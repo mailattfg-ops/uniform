@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-primary: rgb(var(--color-primary));
+  --color-primary-foreground: rgb(var(--color-primary-foreground));
+  --color-background: rgb(var(--color-background));
+  --color-foreground: rgb(var(--color-foreground));
+  --color-muted: rgb(var(--color-muted));
+  --color-muted-foreground: rgb(var(--color-muted-foreground));
+  --color-border: rgb(var(--color-border));
+  --color-input: rgb(var(--color-input));
+  --color-success: rgb(var(--color-success));
+  --color-warning: rgb(var(--color-warning));
+  --color-error: rgb(var(--color-error));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Image Specific Palette */
+  --color-teal-deep: #2d8d9b;
+  --color-teal-light: #6fa1ac;
+  --color-peach: #fce4d4;
+  --color-orange-accent: #f2994a;
+  --color-sidebar-bg: #3a525d;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Custom variant for data-theme="dark" to work with dark: utility */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --color-primary: 45 141 155;
+  --color-primary-foreground: 255 255 255;
+  --color-background: 81 109 122;
+  --color-foreground: 26 26 26;
+
+  --color-muted: 243 244 246;
+  --color-muted-foreground: 107 114 128;
+
+  --color-border: 229 231 235;
+  --color-input: 255 255 255;
+
+  --color-success: 34 197 94;
+  --color-warning: 242 153 74;
+  --color-error: 235 87 87;
+}
+
+[data-theme="dark"] {
+  --color-primary: 111 161 172;
+  --color-background: 15 23 42;
+  --color-foreground: 250 250 250;
+
+  --color-muted: 31 41 55;
+  --color-muted-foreground: 156 163 175;
+  --color-border: 55 65 81;
+  --color-input: 31 41 55;
+}
+
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased h-screen overflow-hidden;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes bounce-slow {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s infinite;
 }
