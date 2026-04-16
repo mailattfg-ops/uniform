@@ -76,20 +76,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   }[columns];
 
   return (
-    <div className="bg-white dark:bg-zinc-950 rounded-[3rem] border border-[#fce4d4] dark:border-zinc-800 shadow-2xl overflow-hidden max-w-5xl mx-auto transition-all duration-300">
+    <div className="bg-white dark:bg-zinc-950 rounded-[2rem] md:rounded-[3rem] border border-[#fce4d4] dark:border-zinc-800 shadow-2xl max-w-5xl mx-auto transition-all duration-300">
       
       {(title || subtitle) && (
-        <div className="bg-[#fce4d4]/20 dark:bg-zinc-900/40 p-8 border-b border-[#fce4d4] dark:border-zinc-800">
-          {title && <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d] dark:text-zinc-100">{title}</h3>}
+        <div className="bg-[#fce4d4]/20 dark:bg-zinc-900/40 p-5 md:p-8 border-b border-[#fce4d4] dark:border-zinc-800 rounded-t-[2rem] md:rounded-t-[3rem]">
+          {title && <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-[#3a525d] dark:text-zinc-100">{title}</h3>}
           {subtitle && (
-            <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] opacity-80 mt-1">
+            <p className="text-[9px] md:text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] opacity-80 mt-1">
               {subtitle}
             </p>
           )}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="p-8 space-y-8">
+      <form onSubmit={handleSubmit} className="p-5 md:p-8 space-y-6 md:space-y-8">
         <div className={`grid gap-x-10 gap-y-6 ${gridCols}`}>
           {fields.map((field) => (
             <div key={field.name} className={`${field.className} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
@@ -136,7 +136,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         </div>
       </form>
       
-      <div className="h-1.5 bg-gradient-to-r from-[#fce4d4] via-[#2d8d9b] to-[#f2994a] opacity-40" />
+      {/* <div className="h-1.5 bg-gradient-to-r from-[#fce4d4] via-[#2d8d9b] to-[#f2994a] opacity-40 rounded-b-[3rem]" /> */}
     </div>
   );
 };

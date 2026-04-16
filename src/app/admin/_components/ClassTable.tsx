@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { GraduationCap, Layers, Grid } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Layers, Grid, PlusCircle } from 'lucide-react';
+import { ClassAddForm } from './ClassAddForm';
 
 interface ClassData {
   id: string;
@@ -19,6 +21,8 @@ const mockClasses: ClassData[] = [
 ];
 
 export const ClassTable: React.FC = () => {
+  const [view, setView] = useState<'list' | 'add'>('list');
+
   const columns: Column<ClassData>[] = [
     {
       header: 'Class / Section',
@@ -28,8 +32,8 @@ export const ClassTable: React.FC = () => {
             <Layers size={18} />
           </div>
           <div>
-            <p className="font-bold text-[13px] tracking-tight">{c.name}</p>
-            <p className="text-[9px] text-[#8b6b5a] font-bold uppercase tracking-[0.1em] mt-1">Section {c.section}</p>
+            <p className="font-bold text-[13px] tracking-tight text-foreground leading-none">{c.name}</p>
+            <p className="text-[9px] text-[#8b6b5a] font-bold uppercase tracking-[0.1em] mt-1.5 opacity-80">Section {c.section}</p>
           </div>
         </div>
       ),
@@ -37,26 +41,39 @@ export const ClassTable: React.FC = () => {
     {
       header: 'School',
       accessor: (c) => (
-        <span className="text-[11px] font-black uppercase tracking-widest text-[#2d8d9b]">{c.school}</span>
+        <span className="text-[11px] font-bold text-foreground opacity-90">{c.school}</span>
       ),
     },
     {
-       header: 'Total Students',
+       header: 'Students',
        accessor: (c) => (
          <div className="flex items-center gap-2">
-           <Grid size={12} className="text-muted-foreground" />
-           <span className="text-[11px] font-black">{c.count}</span>
+           <Grid size={12} className="text-[#2d8d9b]" />
+           <span className="text-[11px] font-black italic">{c.count}</span>
          </div>
        ),
     },
   ];
 
+  if (view === 'add') {
+    return <ClassAddForm onSuccess={() => setView('list')} onCancel={() => setView('list')} />;
+  }
+
   return (
     <DataTable 
       title="Class Management"
-      subtitle="Organize students by grade and section"
+      subtitle="Registry & section tracking"
       columns={columns}
       data={mockClasses}
+      headerAction={
+        <Button 
+          onClick={() => setView('add')}
+          className="gap-2 text-[10px] items-center rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#f2994a] text-white hover:bg-[#d97d2d] shadow-lg hover:scale-105 transition-all"
+        >
+          <PlusCircle size={16} />
+          Add Class
+        </Button>
+      }
     />
   );
 };

@@ -39,41 +39,41 @@ export default function StudentsRoot() {
   ];
 
   return (
-    <div className="space-y-12 py-6">
+    <div className="space-y-8 md:space-y-12 py-4 md:py-6">
       <div className="space-y-2">
-        <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d] dark:text-zinc-100">
+        <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter text-[#3a525d] dark:text-zinc-100">
           Student Management
         </h1>
-        <p className="text-sm font-bold text-[#2d8d9b] uppercase tracking-[0.2em] opacity-80">
+        <p className="text-[10px] md:text-sm font-bold text-[#2d8d9b] uppercase tracking-[0.2em] opacity-80">
           Registry, Registration & Bulk Operations
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
         {actions.map((action, idx) => (
           <Link 
             key={idx} 
             href={action.href}
-            className="group relative flex flex-col justify-between p-8 rounded-[3rem] bg-white dark:bg-zinc-950 border border-[#fce4d4] dark:border-zinc-800 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 overflow-hidden"
+            className="group relative flex flex-col justify-between p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] bg-white dark:bg-zinc-950 border border-[#fce4d4] dark:border-zinc-800 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 overflow-hidden"
           >
             {/* Background Accent */}
-            <div className={`absolute -right-12 -top-12 w-48 h-48 ${action.lightColor} rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700`} />
+            <div className={`absolute -right-12 -top-12 w-32 md:w-48 h-32 md:h-48 ${action.lightColor} rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700`} />
             
             <div className="relative z-10">
-              <div className={`w-16 h-16 ${action.color} rounded-2xl flex items-center justify-center text-white shadow-lg mb-8 group-hover:rotate-6 transition-transform duration-500`}>
-                <action.icon size={32} strokeWidth={2.5} />
+              <div className={`w-12 md:w-16 h-12 md:h-16 ${action.color} rounded-2xl flex items-center justify-center text-white shadow-lg mb-6 md:mb-8 group-hover:rotate-6 transition-transform duration-500`}>
+                <action.icon size={window?.innerWidth < 768 ? 24 : 32} strokeWidth={2.5} />
               </div>
               
-              <h3 className={`text-2xl font-black italic tracking-tight ${action.textColor} dark:text-zinc-200 mb-4`}>
+              <h3 className={`text-xl md:text-2xl font-black italic tracking-tight ${action.textColor} dark:text-zinc-200 mb-3 md:mb-4`}>
                 {action.title}
               </h3>
               
-              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">
+              <p className="text-xs md:text-sm font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed mb-6 md:mb-8">
                 {action.description}
               </p>
             </div>
 
-            <div className="relative z-10 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
+            <div className="relative z-10 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
               {action.actionText}
               <ChevronRight size={14} className="group-hover:translate-x-2 transition-transform duration-300" />
             </div>
@@ -82,17 +82,17 @@ export default function StudentsRoot() {
       </div>
 
       {/* Quick Info / Stats Footer */}
-      <div className="p-10 rounded-[3rem] bg-[#fce4d4]/20 dark:bg-zinc-900/40 border border-[#fce4d4] dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-8">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-full bg-white dark:bg-zinc-800 shadow-xl flex items-center justify-center shrink-0">
-             <Users className="text-[#2d8d9b]" size={28} />
+      <div className="p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-[#fce4d4]/20 dark:bg-zinc-900/40 border border-[#fce4d4] dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+          <div className="w-12 md:w-16 h-12 md:h-16 rounded-full bg-white dark:bg-zinc-800 shadow-xl flex items-center justify-center shrink-0">
+             <Users className="text-[#2d8d9b]" size={24} />
           </div>
           <div>
-            <h4 className="text-xl font-black italic text-[#3a525d] dark:text-zinc-200">Total Registered Students</h4>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1">Updated 2 minutes ago</p>
+            <h4 className="text-lg md:text-xl font-black italic text-[#3a525d] dark:text-zinc-200">Total Registered Students</h4>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1">Updated 2 minutes ago</p>
           </div>
         </div>
-        <div className="text-5xl font-black italic tracking-tighter text-[#3a525d] dark:text-white">
+        <div className="text-4xl md:text-5xl font-black italic tracking-tighter text-[#3a525d] dark:text-white">
           1,248
         </div>
       </div>

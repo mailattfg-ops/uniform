@@ -3,10 +3,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Button } from '@/components/ui/Button';
-import { Bell, Search, User, Settings, LogOut, ChevronDown, UserCircle } from 'lucide-react';
+import { Bell, Search, User, Settings, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import Link from 'next/link';
+import { useLayout } from '@/hooks/useLayout';
 
 export const Header: React.FC = () => {
+  const { isSidebarOpen, toggleSidebar } = useLayout();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -22,15 +24,20 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-20 bg-background/80 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between transition-colors">
-      {/* Left: Search */}
-      <div className="max-w-md w-full relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-        <input 
-          type="text" 
-          placeholder="Global search..." 
-          className="w-full bg-muted/50 dark:bg-zinc-800/50 border-none rounded-2xl py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium text-foreground"
-        />
+    <header className="h-20 bg-background/80 backdrop-blur-md sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between transition-all duration-300 ">
+      {/* Left: Mobile Toggle & Breadcrumbs/Title */}
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={toggleSidebar}
+          className="p-2.5 rounded-2xl bg-white dark:bg-zinc-800 shadow-sm border border-border hover:shadow-md transition-all lg:hidden text-muted-foreground active:scale-95"
+        >
+          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+        
+        <div className="hidden sm:flex flex-col">
+          <h1 className="text-sm font-black italic tracking-tight text-foreground/80">Inland Uniform</h1>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] opacity-60">Enterprise Management</p>
+        </div>
       </div>
 
       {/* Right: Actions & User */}

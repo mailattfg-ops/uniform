@@ -39,35 +39,37 @@ export function DataTable<T extends { id: string | number }>({
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-950 rounded-[3rem] border border-[#fce4d4] dark:border-zinc-800 overflow-hidden shadow-sm transition-all duration-300">
+    <div className="bg-white dark:bg-zinc-950 rounded-[2rem] md:rounded-[3rem] border border-[#fce4d4] dark:border-zinc-800 overflow-hidden shadow-sm transition-all duration-300">
       {/* Table Header Section - Light Themed */}
       {(title || subtitle || searchPlaceholder) && (
-        <div className="p-8 border-b border-[#fce4d4] dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#fce4d4]/10">
+        <div className="p-4 md:p-8 border-b border-[#fce4d4] dark:border-zinc-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-[#fce4d4]/10">
           <div className="space-y-1">
-            {title && <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d] dark:text-zinc-200">{title}</h3>}
+            {title && <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-[#3a525d] dark:text-zinc-200">{title}</h3>}
             {subtitle && (
-              <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] opacity-80">
+              <p className="text-[9px] md:text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] opacity-80">
                 {subtitle}
               </p>
             )}
           </div>
           
-          <div className="flex gap-3 items-center">
-            {headerAction}
-            <div className="relative group">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-               <input 
-                 type="text" 
-                 value={searchTerm}
-                 onChange={handleSearchChange}
-                 placeholder={searchPlaceholder} 
-                 className="bg-white dark:bg-zinc-900 border border-[#fce4d4] dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-6 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-72 transition-all text-foreground shadow-sm"
-               />
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            {headerAction && <div className="flex justify-start">{headerAction}</div>}
+            <div className="flex gap-2 flex-1 sm:flex-initial">
+              <div className="relative group flex-1 sm:flex-initial">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
+                 <input 
+                   type="text" 
+                   value={searchTerm}
+                   onChange={handleSearchChange}
+                   placeholder={searchPlaceholder} 
+                   className="bg-white dark:bg-zinc-900 border border-[#fce4d4] dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-6 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-64 transition-all text-foreground shadow-sm"
+                 />
+              </div>
+              <Button variant="secondary" className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-4 md:px-6 border border-[#fce4d4] text-[#2d8d9b] bg-white hover:bg-[#fce4d4]">
+                 <Filter size={14} />
+                 <span className="hidden sm:inline">Filter</span>
+              </Button>
             </div>
-            <Button variant="secondary" className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 border border-[#fce4d4] text-[#2d8d9b] bg-white hover:bg-[#fce4d4]">
-               <Filter size={14} />
-               Filter
-            </Button>
           </div>
         </div>
       )}
@@ -123,16 +125,16 @@ export function DataTable<T extends { id: string | number }>({
       </div>
 
       {/* Modern Footer */}
-      <div className="p-8 border-t border-[#fce4d4] dark:border-zinc-800 flex justify-between items-center bg-[#fce4d4]/5 transition-colors">
-        <span className="text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em]">
-          Total <span className="text-[#2d8d9b] text-sm">{data.length}</span> entries found
+      <div className="p-4 md:p-8 border-t border-[#fce4d4] dark:border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#fce4d4]/5 transition-colors">
+        <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
+          Total <span className="text-[#2d8d9b] text-sm md:text-base">{data.length}</span> entries found
         </span>
-        <div className="flex gap-3">
-          <Button variant="secondary" className="px-6 py-2.5 h-auto text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
+        <div className="flex gap-2 md:gap-3 w-full md:w-auto">
+          <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             Prev
           </Button>
-          <Button variant="secondary" className="px-6 py-2.5 h-auto text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
+          <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
             Next
             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </Button>
