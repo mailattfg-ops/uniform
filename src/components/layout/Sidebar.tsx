@@ -33,12 +33,9 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   { 
-    icon: GraduationCap, label: 'Students', href: '/students',
+    icon: GraduationCap, label: 'Students', href: '/students/directory',
     subsections: [
-      { label: 'Overview', href: '/students' },
       { label: 'Directory', href: '/students/directory' },
-      { label: 'Registration', href: '/students/registration' },
-      { label: 'Bulk Upload', href: '/students/bulk-upload' },
       { label: 'Groups', href: '/students/groups' },
       { label: 'Profiles', href: '/students/profiles' }
     ]

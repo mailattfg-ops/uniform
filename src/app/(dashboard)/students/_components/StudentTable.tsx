@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Eye, Edit2, MoreHorizontal, UserPlus, FileUp } from 'lucide-react';
@@ -23,13 +22,18 @@ const mockStudents: Student[] = [
   { id: '5', name: 'Noah Miller', class: 'Grade 2', school: 'Riverdale Academy', status: 'Ordered', uniform: 'Standard' },
 ];
 
-export const StudentTable: React.FC = () => {
+interface StudentTableProps {
+  onRegister: () => void;
+  onBulkUpload: () => void;
+}
+
+export const StudentTable: React.FC<StudentTableProps> = ({ onRegister, onBulkUpload }) => {
   const columns: Column<Student>[] = [
     {
       header: 'Student Name',
       accessor: (s) => (
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center font-bold text-zinc-900 dark:text-zinc-100 text-[10px] shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center font-bold text-zinc-900 text-[10px] shadow-sm">
             {s.name.charAt(0)}
           </div>
           <div>
@@ -51,7 +55,7 @@ export const StudentTable: React.FC = () => {
     {
       header: 'Uniform Template',
       accessor: (s) => (
-        <span className="px-4 py-1.5 bg-white dark:bg-zinc-900 rounded-full text-[9px] font-black uppercase tracking-[0.15em] text-[#2d8d9b] border border-[#fce4d4]">
+        <span className="px-4 py-1.5 bg-white rounded-full text-[9px] font-black uppercase tracking-[0.15em] text-[#2d8d9b] border border-[#fce4d4]">
           {s.uniform}
         </span>
       ),
@@ -60,7 +64,7 @@ export const StudentTable: React.FC = () => {
       header: 'Status',
       accessor: (s) => (
         <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${
-          s.status === 'Completed' ? 'text-success' : 'text-[#1a1a1a] dark:text-white'
+          s.status === 'Completed' ? 'text-success' : 'text-[#1a1a1a]'
         }`}>
           {s.status}
         </span>
@@ -73,7 +77,7 @@ export const StudentTable: React.FC = () => {
           <button className="p-2 h-auto text-muted-foreground hover:text-[#2d8d9b] transition-colors">
             <Eye size={18} />
           </button>
-          <button className="p-2 h-auto text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors">
+          <button className="p-2 h-auto text-muted-foreground hover:text-zinc-900 transition-colors">
             <Edit2 size={16} />
           </button>
           <button className="p-2 h-auto text-muted-foreground hover:text-zinc-900 transition-colors">
@@ -94,18 +98,21 @@ export const StudentTable: React.FC = () => {
       searchPlaceholder="Search by name, grade or ID..."
       headerAction={
         <div className="flex gap-2">
-          <Link href="/students/registration">
-            <Button className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#f2994a] hover:bg-[#e68a3d] text-white border-none shadow-lg shadow-orange-500/20">
-              <UserPlus size={14} strokeWidth={3} />
-              Register
-            </Button>
-          </Link>
-          <Link href="/students/bulk-upload">
-            <Button variant="secondary" className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 border border-[#fce4d4] text-[#3a525d] bg-white hover:bg-[#fce4d4]">
-              <FileUp size={14} strokeWidth={3} />
-              Bulk Upload
-            </Button>
-          </Link>
+          <Button 
+            onClick={onRegister}
+            className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#f2994a] hover:bg-[#e68a3d] text-white border-none shadow-lg shadow-orange-500/20"
+          >
+            <UserPlus size={14} strokeWidth={3} />
+            Register
+          </Button>
+          <Button 
+            onClick={onBulkUpload}
+            variant="secondary" 
+            className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 border border-[#fce4d4] text-[#3a525d] bg-white hover:bg-[#fce4d4]"
+          >
+            <FileUp size={14} strokeWidth={3} />
+            Bulk Upload
+          </Button>
         </div>
       }
     />

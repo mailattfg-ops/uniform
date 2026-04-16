@@ -16,7 +16,7 @@ export const Button: React.FC<ButtonProps> = ({
   
   const variants = {
     primary: 'bg-[#2d8d9b] text-white shadow-xl shadow-[#2d8d9b]/20 hover:bg-[#236e7a] hover:shadow-2xl hover:scale-105 focus:ring-[#2d8d9b]/30',
-    secondary: 'bg-white dark:bg-zinc-900 text-[#8b6b5a] border-2 border-[#fce4d4] dark:border-zinc-800 hover:bg-[#fce4d4]/10 focus:ring-[#fce4d4]/50',
+    secondary: 'bg-white text-[#8b6b5a] border-2 border-[#fce4d4] hover:bg-[#fce4d4]/10 focus:ring-[#fce4d4]/50',
     danger: 'bg-error text-white shadow-xl shadow-error/20 hover:bg-error/90 focus:ring-error/50',
     ghost: 'bg-transparent text-muted-foreground hover:bg-muted/50 focus:ring-muted/50',
   };

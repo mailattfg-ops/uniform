@@ -37,17 +37,23 @@ const studentFields: FormField[] = [
   },
 ];
 
-export const StudentRegisterForm: React.FC = () => {
+interface StudentRegisterFormProps {
+  onCancel?: () => void;
+}
+
+export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCancel }) => {
   const router = useRouter();
 
   const handleSubmit = (data: any) => {
     console.log('Registering Student:', data);
     alert(`Success: ${data.fullName} has been registered!`);
-    router.push('/students/directory');
+    if (onCancel) onCancel();
+    else router.push('/students/directory');
   };
 
   const handleCancel = () => {
-    router.push('/students/directory');
+    if (onCancel) onCancel();
+    else router.push('/students/directory');
   };
 
   return (
