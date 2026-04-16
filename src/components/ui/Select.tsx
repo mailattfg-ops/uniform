@@ -69,7 +69,7 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="flex flex-col gap-2 w-full group relative" ref={containerRef}>
       {label && (
-        <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] dark:text-zinc-500 ml-1 transition-colors group-focus-within:text-[#2d8d9b]">
+        <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 transition-colors group-focus-within:text-[#2d8d9b]">
           {label}
         </label>
       )}
@@ -80,7 +80,7 @@ export const Select: React.FC<SelectProps> = ({
 
         <div
           onClick={handleToggle}
-          className={`w-full px-5 py-3.5 bg-[#fce4d4]/5 dark:bg-zinc-900/50 border-2 ${
+          className={`w-full px-5 py-3.5 bg-[#fce4d4]/5 border-2 ${
             isOpen ? 'border-[#2d8d9b] ring-4 ring-[#fce4d4]/30' : (error ? 'border-error' : 'border-[#fce4d4] hover:border-[#fce4d4]/80')
           } rounded-[1.2rem] transition-all text-sm font-bold text-foreground flex items-center justify-between cursor-pointer shadow-sm ${
             icon ? 'pl-12' : ''
@@ -92,7 +92,7 @@ export const Select: React.FC<SelectProps> = ({
                  {icon}
                </div>
             )}
-            <span className={`truncate ${!selectedOption ? 'text-zinc-400 dark:text-zinc-600 font-medium' : ''}`}>
+            <span className={`truncate ${!selectedOption ? 'text-zinc-400 font-medium' : ''}`}>
               {displayValue}
             </span>
           </div>
@@ -104,7 +104,7 @@ export const Select: React.FC<SelectProps> = ({
 
         {/* Custom Dropdown Menu */}
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-950 border-2 border-[#fce4d4] dark:border-zinc-800 rounded-[1.5rem] shadow-2xl z-[999] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-[#fce4d4] rounded-[1.5rem] shadow-2xl z-[999] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
             <div className="max-h-[300px] overflow-y-auto no-scrollbar p-2">
               <div className={`text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6b5a]/40 py-2 mb-1 ${icon ? 'pl-7' : 'px-4'}`}>
                 Choose {label || 'Option'}
