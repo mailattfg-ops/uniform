@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import api from "@/services/api";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-
 
 export default function Home() {
   const [message, setMessage] = useState<string>("Loading...");
@@ -22,40 +20,36 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-8">
-      <nav className="absolute top-8 right-8">
-        <ThemeToggle />
-      </nav>
-
+    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
       <main className="flex flex-col items-center gap-10 max-w-xl w-full">
         <div className="text-center space-y-4">
-          <h1 className="text-5xl font-extrabold tracking-tight text-primary">
-            Theme System
+          <h1 className="text-5xl font-extrabold tracking-tight text-[#3a525d]">
+            ERPSystem Hub
           </h1>
-          <p className="text-muted-foreground text-lg">
-            A scalable Next.js + Tailwind UI with semantic color switching.
+          <p className="text-[#2d8d9b] text-lg font-bold">
+            Scalable Enterprise Management Dashboard
           </p>
         </div>
 
-        <div className="w-full p-8 bg-muted/30 border border-border rounded-3xl backdrop-blur-sm space-y-6">
-          <div className="p-4 bg-background border border-border rounded-xl shadow-sm">
-            <p className="text-md font-medium">
-              Backend Status: <span className="text-success font-mono">"{message}"</span>
+        <div className="w-full p-8 bg-white border border-[#fce4d4] rounded-[2.5rem] shadow-xl space-y-6">
+          <div className="p-4 bg-[#fce4d4]/10 border border-[#fce4d4] rounded-xl shadow-sm">
+            <p className="text-sm font-bold text-[#3a525d]">
+              Backend Status: <span className="text-[#2d8d9b] font-mono">"{message}"</span>
             </p>
           </div>
 
           <div className="space-y-4">
-            <Input label="Demo Input" placeholder="Type something..." />
+            <Input label="System Verification" placeholder="Verify connectivity..." />
             <div className="flex gap-4">
-              <Button variant="primary" className="flex-1">Primary Action</Button>
-              <Button variant="secondary" className="flex-1">Secondary</Button>
+              <Button variant="primary" className="flex-1 h-12 rounded-2xl bg-[#2d8d9b] text-white">Refresh Analytics</Button>
+              <Button variant="secondary" className="flex-1 h-12 rounded-2xl border border-[#fce4d4] text-[#2d8d9b]">View Logs</Button>
             </div>
-            <Button variant="danger" className="w-full">Danger Zone</Button>
+            <Button variant="danger" className="w-full h-12 rounded-2xl bg-error text-white">Emergency Stop</Button>
           </div>
         </div>
 
-        <footer className="text-muted-foreground text-sm">
-          Theme preference stored in local storage & synced with system.
+        <footer className="text-[#8b6b5a] text-[10px] font-black uppercase tracking-widest opacity-60">
+          Corporate Enterprise Resource Planning Platform
         </footer>
       </main>
     </div>

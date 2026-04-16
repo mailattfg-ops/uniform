@@ -86,7 +86,9 @@ export const Sidebar: React.FC = () => {
       setActiveMenu(activeMenu === item.label ? null : item.label);
     } else {
       router.push(item.href);
-      if (window.innerWidth < 768) setIsSidebarOpen(false);
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      }
     }
   };
 
