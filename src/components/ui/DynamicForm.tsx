@@ -41,6 +41,8 @@ export interface FormField {
   options?: { label: string; value: string }[];
   required?: boolean;
   className?: string;
+  defaultValue?: any;
+  onChange?: (value: string) => void;
 }
 
 interface DynamicFormProps {
@@ -100,6 +102,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   options={field.options || []} 
                   required={field.required}
                   icon={getFieldIcon(field.name)}
+                  defaultValue={field.defaultValue}
+                  onChange={(val) => field.onChange && field.onChange(val)}
                 />
               ) : (
                 <Input 
@@ -109,6 +113,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   placeholder={field.placeholder} 
                   required={field.required}
                   icon={getFieldIcon(field.name)}
+                  defaultValue={field.defaultValue}
+                  onChange={(e) => field.onChange && field.onChange(e.target.value)}
                 />
               )}
             </div>

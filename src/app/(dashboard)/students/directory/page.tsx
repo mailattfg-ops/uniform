@@ -5,11 +5,23 @@ import { StudentTable } from '../_components/StudentTable';
 import { StudentRegisterForm } from '../_components/StudentRegisterForm';
 import { BulkUpload } from '../_components/BulkUpload';
 import { ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type ViewState = 'list' | 'register' | 'bulk';
 
 export default function StudentDirectoryPage() {
   const [view, setView] = useState<ViewState>('list');
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
+
+  const handleEdit = (student: any) => {
+    setEditingStudent(student);
+    setView('register');
+  };
+
+  const handleRegister = () => {
+    setEditingStudent(null);
+    setView('register');
+  };
 
   const renderContent = () => {
     switch (view) {
@@ -17,13 +29,22 @@ export default function StudentDirectoryPage() {
         return (
           <div className="space-y-6">
             <button 
-              onClick={() => setView('list')}
+              onClick={() => {
+                setView('list');
+                setEditingStudent(null);
+              }}
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-4"
             >
               <ArrowLeft size={14} />
               Back to List
             </button>
-            <StudentRegisterForm />
+            <StudentRegisterForm 
+                initialData={editingStudent} 
+                onCancel={() => {
+                    setView('list');
+                    setEditingStudent(null);
+                }} 
+            />
           </div>
         );
       case 'bulk':
@@ -36,7 +57,7 @@ export default function StudentDirectoryPage() {
               <ArrowLeft size={14} />
               Back to List
             </button>
-            <BulkUpload />
+            <BulkUpload onComplete={() => setView('list')} />
           </div>
         );
       default:
@@ -58,8 +79,9 @@ export default function StudentDirectoryPage() {
               </div>
             </div>
             <StudentTable 
-              onRegister={() => setView('register')} 
+              onRegister={handleRegister} 
               onBulkUpload={() => setView('bulk')} 
+              onEdit={handleEdit}
             />
           </div>
         );

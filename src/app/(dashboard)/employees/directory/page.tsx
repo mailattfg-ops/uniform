@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { EmployeeTable } from '../../employees/_components/EmployeeTable';
-import { EmployeeRegisterForm } from '../../employees/_components/EmployeeRegisterForm';
+import { EmployeeTable } from '../_components/EmployeeTable';
+import { EmployeeRegisterForm } from '../_components/EmployeeRegisterForm';
 
-export default function AdminEmployeesPage() {
+export default function EmployeeDirectoryPage() {
   const [view, setView] = useState<'list' | 'register' | 'edit'>('list');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
@@ -24,12 +24,10 @@ export default function AdminEmployeesPage() {
     switch (view) {
       case 'list':
         return (
-          <div className="animate-in fade-in duration-500">
-             <EmployeeTable 
-               onRegister={handleRegister} 
-               onEdit={handleEdit} 
-             />
-          </div>
+          <EmployeeTable 
+            onRegister={handleRegister} 
+            onEdit={handleEdit} 
+          />
         );
       case 'register':
         return (

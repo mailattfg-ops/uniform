@@ -80,15 +80,15 @@ export const Select: React.FC<SelectProps> = ({
 
         <div
           onClick={handleToggle}
-          className={`w-full px-5 py-3.5 bg-[#fce4d4]/5 border-2 ${
-            isOpen ? 'border-[#2d8d9b] ring-4 ring-[#fce4d4]/30' : (error ? 'border-error' : 'border-[#fce4d4] hover:border-[#fce4d4]/80')
-          } rounded-[1.2rem] transition-all text-sm font-bold text-foreground flex items-center justify-between cursor-pointer shadow-sm ${
+          className={`w-full px-5 py-3.5 bg-white border-2 ${
+            isOpen ? 'border-[#2d8d9b] ring-4 ring-[#2d8d9b]/10' : (error ? 'border-red-500' : 'border-zinc-200 hover:border-zinc-300')
+          } rounded-[1.2rem] transition-all text-sm font-bold text-[#3a525d] flex items-center justify-between cursor-pointer shadow-sm ${
             icon ? 'pl-12' : ''
           } ${className}`}
         >
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-3 overflow-hidden text-[#3a525d]">
             {icon && (
-               <div className="absolute left-4 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors pointer-events-none">
+               <div className="absolute left-4 text-[#2d8d9b] group-focus-within:text-[#2d8d9b] transition-colors pointer-events-none">
                  {icon}
                </div>
             )}

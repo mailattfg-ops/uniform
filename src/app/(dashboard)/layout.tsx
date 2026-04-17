@@ -2,23 +2,49 @@
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  useEffect(() => {
+    const token = Cookies.get('auth_token');
+    if (!token) {
+      router.push('/login');
+    } else {
+      setIsAuthChecking(false);
+    }
+  }, [router]);
+
+  if (isAuthChecking) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#516d7a]">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 border-4 border-[#6fa1ac]/30 border-t-[#fce4d4] rounded-full animate-spin shadow-2xl" />
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white opacity-50">Checking Authorization</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative w-full">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative w-full">
+      <div className="flex flex-col flex-1 min-w-0 bg-white">
         <Header />
-        <div className="flex-1 bg-white rounded-tl-[2rem] lg:rounded-tl-[4.5rem] p-4 lg:p-12 overflow-y-auto no-scrollbar shadow-[inset_0_20px_40px_rgba(0,0,0,0.1)] transition-all duration-500 w-full max-w-full">
-          <div className="w-full max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 scrollbar-hide">
+          <div className="max-w-[1600px] mx-auto">
             {children}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

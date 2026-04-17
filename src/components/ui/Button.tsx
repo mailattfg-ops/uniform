@@ -1,29 +1,39 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  size?: 'sm' | 'md' | 'lg' | 'h-auto';
   isLoading?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({ 
   children, 
   variant = 'primary', 
+  size = 'md',
   isLoading, 
   className = '', 
   ...props 
 }) => {
-  const baseStyles = 'px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all focus:outline-none focus:ring-4 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center';
+  const baseStyles = 'rounded-2xl font-black text-xs uppercase tracking-widest transition-all focus:outline-none focus:ring-4 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center';
   
   const variants = {
     primary: 'bg-[#2d8d9b] text-white shadow-xl shadow-[#2d8d9b]/20 hover:bg-[#236e7a] hover:shadow-2xl hover:scale-105 focus:ring-[#2d8d9b]/30',
     secondary: 'bg-white text-[#8b6b5a] border-2 border-[#fce4d4] hover:bg-[#fce4d4]/10 focus:ring-[#fce4d4]/50',
     danger: 'bg-error text-white shadow-xl shadow-error/20 hover:bg-error/90 focus:ring-error/50',
     ghost: 'bg-transparent text-muted-foreground hover:bg-muted/50 focus:ring-muted/50',
+    outline: 'bg-transparent border-2 border-[#3a525d]/10 text-[#3a525d] hover:bg-[#3a525d]/5'
+  };
+
+  const sizes = {
+    sm: 'px-4 py-2 text-[10px]',
+    md: 'px-6 py-3 text-xs',
+    lg: 'px-8 py-4 text-sm',
+    'h-auto': ''
   };
 
   return (
     <button 
-      className={`${baseStyles} ${variants[variant]} ${className}`}
+      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={isLoading || props.disabled}
       {...props}
     >

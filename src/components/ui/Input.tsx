@@ -34,9 +34,9 @@ export const Input: React.FC<InputProps> = ({ label, error, icon, allowSpecialCh
           </div>
         )}
         <input
-          className={`w-full px-5 py-3.5 bg-[#fce4d4]/5 border-2 ${
-            error ? 'border-error' : 'border-[#fce4d4] hover:border-[#fce4d4]/80'
-          } rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#fce4d4]/30 focus:border-[#2d8d9b] transition-all text-sm font-bold text-foreground placeholder:text-zinc-300 shadow-sm ${
+          className={`w-full px-5 py-3.5 bg-white border-2 ${
+            error ? 'border-red-500' : 'border-zinc-200 hover:border-[#2d8d9b]/50'
+          } rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-sm font-bold text-[#3a525d] placeholder:text-zinc-400 shadow-sm ${
             icon ? 'pl-12' : ''
           } ${className}`}
           {...props}

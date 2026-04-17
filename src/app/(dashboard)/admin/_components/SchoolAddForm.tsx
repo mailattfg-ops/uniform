@@ -49,7 +49,7 @@ export const SchoolAddForm: React.FC<SchoolAddFormProps> = ({ onSuccess, onCance
         </button>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-4 lg:p-8 border border-zinc-100 dark:border-zinc-800 shadow-xl">
+      <div className="bg-white rounded-[3rem] p-4 lg:p-8 border border-zinc-100 shadow-xl">
         <DynamicForm 
           title="School Credentials"
           subtitle="Please ensure all official contact details are accurate"

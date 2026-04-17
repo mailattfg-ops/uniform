@@ -75,7 +75,7 @@ export function DataTable<T extends { id: string | number }>({
       )}
 
       {/* Table Body */}
-      <div className="overflow-x-auto no-scrollbar">
+      <div className="overflow-x-auto pb-4">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-[#fce4d4]/20">

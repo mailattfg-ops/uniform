@@ -1,18 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   Star, 
   Settings,
   Grid,
-  Users,
+  Building2,
+  Library,
   GraduationCap,
   ChevronLeft,
   Ruler,
   ShieldAlert,
   ChevronDown,
+  User,
+  Box,
 } from 'lucide-react';
 
 interface Subsection {
@@ -23,7 +27,7 @@ interface Subsection {
 interface ModuleItem {
   icon: any;
   label: string;
-  href: string; // Base href for icon click (first subsection)
+  href: string;
   subsections: Subsection[];
 }
 
@@ -31,6 +35,13 @@ const modules: ModuleItem[] = [
   { 
     icon: Star, label: 'Dashboard', href: '/dashboard',
     subsections: []
+  },
+  { 
+    icon: Building2, label: 'Schools Hub', href: '/schools/registry',
+    subsections: [
+      { label: 'Schools Registry', href: '/schools/registry' },
+      { label: 'Class Management', href: '/schools/classes' },
+    ]
   },
   { 
     icon: GraduationCap, label: 'Students', href: '/students/directory',
@@ -53,8 +64,6 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Approvals', href: '/admin/approvals' },
       { label: 'Audit Logs', href: '/admin/audit' },
-      { label: 'Schools', href: '/admin/schools' },
-      { label: 'Classes', href: '/admin/classes' },
       { label: 'Employees', href: '/admin/employees' }
     ]
   },
@@ -75,6 +84,21 @@ export const Sidebar: React.FC = () => {
   const { isSidebarOpen, setIsSidebarOpen, toggleSidebar: toggleMobileSidebar } = useLayout();
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Load user on mount and sync with identity updates
+  const loadUser = () => {
+    if (typeof window !== 'undefined') {
+      const u = localStorage.getItem('user');
+      if (u) setUser(JSON.parse(u));
+    }
+  };
+
+  useEffect(() => {
+    loadUser();
+    window.addEventListener('storage', loadUser);
+    return () => window.removeEventListener('storage', loadUser);
+  }, []);
 
   const toggleSidebar = () => setIsExpanded(!isExpanded);
 
@@ -100,33 +124,46 @@ export const Sidebar: React.FC = () => {
       />
 
       {/* Sidebar Content */}
-      <aside 
-        className={`bg-[#3a525d] text-white transition-all duration-500 ease-in-out h-full flex flex-col z-[100] overflow-hidden 
-          fixed lg:relative left-0 top-0 bottom-0 shadow-2xl shrink-0
-          ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 w-0 lg:w-auto'}
-          ${isExpanded && !isSidebarOpen ? 'lg:w-64' : !isSidebarOpen ? 'lg:w-20' : 'w-64'}
-        `}
-      >
-        <div className="w-64 lg:w-full flex flex-col h-full shrink-0">
-        {/* Brand Section */}
-        <div className={`flex items-center justify-between py-8 transition-all ${isExpanded ? 'px-6' : 'px-0 flex-col gap-4'}`}>
+      <aside className={`
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 transition-all duration-300 ease-in-out
+        fixed lg:static inset-y-0 left-0 z-50
+        ${isExpanded ? 'w-72' : 'w-24'}
+        bg-[#F5CAAD] text-[#1a1d21]/70 flex flex-col border-r border-black/5 shadow-2xl
+      `}>
+        {/* Brand Identity Section */}
+        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg shrink-0">
-              <Grid className="text-[#3a525d]" size={20} fill="currentColor" />
-            </div>
-            {isExpanded && (
-              <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                <span className="text-sm font-black tracking-[0.2em] leading-none">INLAND UNIFORM</span>
-                <span className="text-[10px] opacity-40 font-bold tracking-widest mt-0.5 uppercase">Enterprise</span>
-              </div>
-            )}
+             {!isExpanded ? (
+                <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
+                  <Image 
+                    src="/logosmall.jpeg" 
+                    alt="Inland Logo" 
+                    width={40} 
+                    height={40} 
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              ):(
+                <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
+                  <Image 
+                    src="/logoimg.jpeg" 
+                    alt="Inland Logo" 
+                    width={140} 
+                    height={40} 
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              )}
           </div>
 
           <button 
             onClick={toggleSidebar}
-            className={`w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
+            className={`w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} className="text-[#1a1d21]" />
           </button>
         </div>
 
@@ -134,7 +171,33 @@ export const Sidebar: React.FC = () => {
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
           <nav className="flex-1 overflow-y-auto no-scrollbar py-4 space-y-2">
             {modules.map((item) => {
-              const isPathActive = pathname.startsWith(item.href.split('/').slice(0, 2).join('/'));
+              // Get user from localStorage safely
+              const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+              const user = userStr ? JSON.parse(userStr) : null;
+              const userPermissions = user?.permissions || [];
+              const isAdmin = userPermissions.includes('all');
+
+              // Permission Logic Mapping
+              const modulePermissionMap: Record<string, string> = {
+                'Schools Hub': 'view_schools',
+                'Students': 'view_students',
+                'Measurements': 'manage_measurements',
+                'Admin Controls': 'manage_system' // Only admin or specific managers
+              };
+
+              const requiredPermission = modulePermissionMap[item.label];
+              
+              // Hide if permission is required but missing (Admins bypass)
+              if (requiredPermission && !isAdmin && !userPermissions.includes(requiredPermission)) {
+                  // Special case: "Admin Controls" usually requires 'all' or specific admin permission
+                  if (item.label === 'Admin Controls' && !isAdmin) return null;
+                  
+                  // For others, if they don't have the "view" permission, hide them
+                  return null;
+              }
+
+              const isPathActive = pathname.startsWith(item.href.split('/').slice(0, 3).join('/')) || 
+                                   (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
               
@@ -143,7 +206,7 @@ export const Sidebar: React.FC = () => {
                   <div 
                     onClick={() => handleModuleClick(item)}
                     className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full cursor-pointer ${
-                      isPathActive ? 'bg-white text-[#3a525d] shadow-xl scale-105' : 'hover:bg-white/10 opacity-40 hover:opacity-100'
+                      isPathActive ? 'bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -166,17 +229,19 @@ export const Sidebar: React.FC = () => {
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
                         
+                        // Sub-permission logic can go here if needed
+                        
                         return (
                           <Link 
                             key={idx}
                             href={sub.href}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
                             className={`flex items-center gap-3 group text-xs font-bold transition-all ${
-                              isSubActive ? 'text-white' : 'text-white/40 hover:text-white'
+                              isSubActive ? 'text-[#1a1d21]' : 'text-[#1a1d21]/40 hover:text-[#1a1d21]'
                             }`}
                           >
                             <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                              isSubActive ? 'bg-[#f2994a] shadow-[0_0_8px_#f2994a]' : 'bg-white/20 group-hover:bg-white'
+                              isSubActive ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-black/20 group-hover:bg-black'
                             }`} />
                             {sub.label}
                           </Link>
@@ -190,7 +255,27 @@ export const Sidebar: React.FC = () => {
           </nav>
         </div>
 
-        <div className="h-4 w-full bg-black/10" />
+        {/* User Profile Footer */}
+        <div className={`mt-auto p-4 border-t border-black/10 ${!isExpanded && 'flex justify-center'}`}>
+           <div className={`flex items-center gap-3 p-3 rounded-2xl bg-black/5 group hover:bg-black/10 transition-all cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
+              <div className="w-10 h-10 rounded-xl bg-red-600/10 flex items-center justify-center shrink-0 overflow-hidden border border-black/5 group-hover:border-red-500/30 transition-all">
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={20} className="text-red-500" />
+                )}
+              </div>
+              {isExpanded && (
+                <div className="flex flex-col min-w-0 pr-4">
+                  <p className="text-xs font-black truncate leading-tight text-[#1a1d21]">
+                    {user?.fullName || 'User Profile'}
+                  </p>
+                  <p className="text-[10px] font-bold text-[#1a1d21]/40 uppercase tracking-widest mt-0.5">
+                    {user?.role || 'Portal'}
+                  </p>
+                </div>
+              )}
+           </div>
         </div>
       </aside>
     </>
