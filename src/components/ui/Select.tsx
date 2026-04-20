@@ -16,6 +16,7 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
   onChange?: (value: string) => void;
   value?: string;
   defaultValue?: string;
+  placeholder?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({ 
@@ -29,6 +30,7 @@ export const Select: React.FC<SelectProps> = ({
   value: controlledValue,
   defaultValue,
   required,
+  placeholder,
   ...props 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,7 +66,7 @@ export const Select: React.FC<SelectProps> = ({
   };
 
   const selectedOption = options.find(opt => opt.value === internalValue);
-  const displayValue = selectedOption ? selectedOption.label : `Select ${label || ''}`;
+  const displayValue = selectedOption ? selectedOption.label : (placeholder || `Select ${label || ''}`);
 
   return (
     <div className="flex flex-col gap-2 w-full group relative" ref={containerRef}>
