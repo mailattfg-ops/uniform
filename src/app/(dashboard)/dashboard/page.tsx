@@ -42,15 +42,15 @@ export default function DashboardPage() {
            </div>
         </div>
 
-        <div className="absolute right-0 bottom-0 w-[550px] h-full flex items-end justify-end pointer-events-none pr-6 pb-2">
+        <div className="absolute right-0 bottom-0 w-[550px] h-full flex items-end justify-end pointer-events-none pr-6 pb-2 z-10">
            <img 
-             src="/dashboard_illustration_1776147777937.png" 
+             src="/images/dashboard_illustration_1776147777937-1.png" 
              alt="Dashboard Illustration" 
              className="object-contain max-h-[95%] opacity-90 mix-blend-multiply"
            />
         </div>
 
-        <button className="absolute bottom-12 right-12 bg-primary hover:bg-[#236e7a] hover:scale-105 active:scale-95 transition-all px-10 py-5 rounded-2xl flex items-center gap-4 font-black text-sm shadow-xl z-20">
+        <button className="absolute bottom-12 right-12 bg-[#236e7b] hover:bg-[#236e7a] hover:scale-105 active:scale-95 transition-all px-10 py-5 rounded-2xl flex items-center gap-4 font-black text-sm shadow-xl z-20">
            VIEW FULL STATISTIC
            <ChevronRight size={20} />
         </button>
