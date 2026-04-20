@@ -161,10 +161,36 @@ export default function StudentProfilePage() {
 
                 {/* THE METRICS MATRIX */}
                 <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {Object.entries(latestFit.dynamic_data || {}).map(([key, val]: any, i) => {
-                      const delta = calculateDelta(key, val, previousFit?.dynamic_data?.[key]);
+                   {Object.entries(latestFit.dynamic_data || {}).flatMap(([groupKey, groupVal]: [string, any]) => {
+                      // If nested (New format), flatten it for display cards
+                      if (typeof groupVal === 'object' && groupVal !== null) {
+                         return Object.entries(groupVal).map(([label, val]: [string, any]) => ({
+                            key: `${groupKey}-${label}`,
+                            displayLabel: `${groupKey} // ${label}`,
+                            value: val,
+                            deltaKey: label,
+                            prodName: groupKey
+                         }));
+                      }
+                      // If flat (Legacy format)
+                      return [{
+                         key: groupKey,
+                         displayLabel: groupKey,
+                         value: groupVal,
+                         deltaKey: groupKey,
+                         prodName: ''
+                      }];
+                   }).map((metric) => {
+                      const delta = calculateDelta(
+                         metric.deltaKey, 
+                         metric.value, 
+                         metric.prodName 
+                           ? previousFit?.dynamic_data?.[metric.prodName]?.[metric.deltaKey]
+                           : previousFit?.dynamic_data?.[metric.deltaKey]
+                      );
+
                       return (
-                         <Card key={key} className="p-8 border-none bg-white shadow-xl hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col justify-between">
+                         <Card key={metric.key} className="p-8 border-none bg-white shadow-xl hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col justify-between">
                             <div className="absolute top-0 right-0 p-4">
                                <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center group-hover:bg-[#3a525d] group-hover:text-white transition-all">
                                   <Layers size={14} />
@@ -173,11 +199,11 @@ export default function StudentProfilePage() {
 
                             <div className="space-y-4">
                                <div className="flex flex-col">
-                                  <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest leading-none mb-1 opacity-60">{key}</span>
+                                  <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest leading-none mb-1 opacity-60">{metric.displayLabel}</span>
                                   <div className="flex items-baseline gap-3">
-                                     <span className="text-4xl font-black text-[#3a525d] italic">{val}</span>
+                                     <span className="text-4xl font-black text-[#3a525d] italic">{metric.value}</span>
                                      <span className="text-[10px] font-black text-zinc-300 uppercase italic">
-                                       {config.find(f => f.label === key)?.unit || 'In'}
+                                       {config.find(f => f.label === metric.deltaKey)?.unit || 'In'}
                                      </span>
                                   </div>
                                </div>

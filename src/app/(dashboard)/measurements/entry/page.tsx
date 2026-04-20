@@ -363,35 +363,53 @@ export default function MeasurementEntryPage() {
                       </div>
                    </div>
 
-                    <div className="space-y-6">
-                       {lastMeasurement && Object.entries(lastMeasurement.dynamic_data || {}).map(([prodName, prodData]: [string, any]) => (
-                         <div key={prodName} className="space-y-3 pb-4 border-b border-orange-100 last:border-0">
-                            <h5 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{prodName}</h5>
-                            <div className="grid grid-cols-2 gap-x-10 gap-y-4">
-                               {Object.entries(prodData || {}).map(([label, val]: [string, any]) => {
-                                  const fieldConfig = measurementFields.find(f => f.label === label);
-                                  const unit = fieldConfig?.unit || 'In';
-                                  return (
-                                    <div key={label} className="flex justify-between items-end border-b border-orange-50/50 pb-1 group">
-                                       <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] opacity-50">{label}</span>
-                                       <div className="flex items-baseline gap-1">
-                                          <span className="text-lg font-black italic tracking-tighter text-[#3a525d]">{val}</span>
-                                          <span className="text-[7px] font-black uppercase text-zinc-300">{unit}</span>
-                                       </div>
-                                    </div>
-                                  );
-                               })}
+                     <div className="space-y-6">
+                        {lastMeasurement && Object.entries(lastMeasurement.dynamic_data || {}).map(([prodName, prodData]: [string, any]) => {
+                          // Handle Nested Structure (New)
+                          if (typeof prodData === 'object' && prodData !== null) {
+                            return (
+                              <div key={prodName} className="space-y-3 pb-4 border-b border-orange-100 last:border-0">
+                                 <h5 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{prodName}</h5>
+                                 <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+                                    {Object.entries(prodData).map(([label, val]: [string, any]) => {
+                                       const fieldConfig = measurementFields.find(f => f.label === label);
+                                       const unit = fieldConfig?.unit || 'In';
+                                       return (
+                                         <div key={label} className="flex justify-between items-end border-b border-orange-50/50 pb-1 group">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] opacity-50">{label}</span>
+                                            <div className="flex items-baseline gap-1">
+                                               <span className="text-lg font-black italic tracking-tighter text-[#3a525d]">{val}</span>
+                                               <span className="text-[7px] font-black uppercase text-zinc-300">{unit}</span>
+                                            </div>
+                                         </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+                            );
+                          }
+                          
+                          // Handle Flat Structure (Legacy)
+                          const fieldConfig = measurementFields.find(f => f.label === prodName);
+                          const unit = fieldConfig?.unit || 'In';
+                          return (
+                            <div key={prodName} className="flex justify-between items-end border-b border-orange-50 pb-1">
+                               <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] opacity-50">{prodName}</span>
+                               <div className="flex items-baseline gap-1">
+                                  <span className="text-lg font-black italic tracking-tighter text-[#3a525d]">{prodData}</span>
+                                  <span className="text-[7px] font-black uppercase text-zinc-300">{unit}</span>
+                               </div>
                             </div>
-                         </div>
-                       ))}
-                       
-                       {lastMeasurement && (
-                         <div className="pt-3 flex justify-between items-center">
-                            <span className="text-[10px] font-black text-orange-600 uppercase">Suggested Size</span>
-                            <span className="px-3 py-1 bg-white rounded-lg font-black text-[#3a525d] shadow-sm">{lastMeasurement.suggested_size}</span>
-                         </div>
-                       )}
-                    </div>
+                          );
+                        })}
+                        
+                        {lastMeasurement && (
+                          <div className="pt-3 flex justify-between items-center">
+                             <span className="text-[10px] font-black text-orange-600 uppercase">Suggested Size</span>
+                             <span className="px-3 py-1 bg-white rounded-lg font-black text-[#3a525d] shadow-sm">{lastMeasurement.suggested_size}</span>
+                          </div>
+                        )}
+                     </div>
                 </Card>
             </div>
 
