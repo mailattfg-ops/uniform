@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Plus, Trash2, Ruler, Settings2, GripVertical, X } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface LabelModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function LabelConfigModal({ isOpen, onClose }: LabelModalProps) {
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldUnit, setNewFieldUnit] = useState('Inches');
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchConfig = async () => {
     try {
@@ -49,12 +51,17 @@ export function LabelConfigModal({ isOpen, onClose }: LabelModalProps) {
     } catch (err) { toast.error('Failed to add'); }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async () => {
+    if (!deletingId) return;
     try {
-      await api.delete(`/measurements/config/${id}`);
+      await api.delete(`/measurements/config/${deletingId}`);
       fetchConfig();
       toast.success('Label removed');
-    } catch (err) { toast.error('Cannot remove label in use'); }
+    } catch (err) { 
+        toast.error('Cannot remove label in use'); 
+    } finally {
+        setDeletingId(null);
+    }
   };
 
   if (!isOpen) return null;
@@ -108,14 +115,24 @@ export function LabelConfigModal({ isOpen, onClose }: LabelModalProps) {
                         <span className="text-[8px] font-black uppercase text-zinc-300 tracking-widest">{f.unit || 'Inches'}</span>
                       </div>
                    </div>
-                   <button onClick={() => handleDelete(f.id)} className="text-zinc-200 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                    <button onClick={() => setDeletingId(f.id)} className="text-zinc-200 hover:text-red-500 p-2"><Trash2 size={16} /></button>
                 </div>
               ))}
            </div>
 
-           <Button onClick={onClose} className="w-full h-14 rounded-2xl bg-[#f2994a] text-white font-black uppercase tracking-widest">Update Form Schema</Button>
+            <Button onClick={onClose} className="w-full h-14 rounded-2xl bg-[#f2994a] text-white font-black uppercase tracking-widest">Update Form Schema</Button>
         </div>
       </Card>
+
+      <ConfirmModal 
+        isOpen={!!deletingId}
+        title="Remove Metric?"
+        message="Are you sure? This will remove the field from future sizing entries."
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingId(null)}
+        confirmLabel="Remove"
+        variant="danger"
+      />
     </div>
   );
 }

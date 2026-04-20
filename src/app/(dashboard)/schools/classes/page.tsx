@@ -7,10 +7,13 @@ import { Plus, BookOpen, Trash2, Filter, Edit2 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface ClassRecord {
   id: number;
   name: string;
+  grade: string;
+  section: string;
   school_id: number;
   schools: { name: string };
   created_at: string;
@@ -23,6 +26,10 @@ export default function ClassManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassRecord | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null
+  });
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -54,12 +61,20 @@ export default function ClassManagement() {
       defaultValue: editingClass?.school_id 
     },
     { 
-      name: 'name', 
-      label: 'Class Name / Grade', 
+      name: 'grade', 
+      label: 'Grade / standard', 
       type: 'text', 
-      placeholder: 'e.g. Grade 5-A', 
+      placeholder: 'e.g. Grade 5, 10th Standard', 
       required: true,
-      defaultValue: editingClass?.name
+      defaultValue: editingClass?.grade
+    },
+    { 
+      name: 'section', 
+      label: 'Section / Class Name', 
+      type: 'text', 
+      placeholder: 'e.g. A, B, Ruby, Emerald', 
+      required: true,
+      defaultValue: editingClass?.section
     }
   ];
 
@@ -81,10 +96,13 @@ export default function ClassManagement() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Permanently delete this class?')) return;
+  const handleConfirmedDelete = async () => {
+    if (!deleteConfirm.id) return;
     
     const loadingToast = toast.loading('Removing class...');
+    const id = deleteConfirm.id;
+    setDeleteConfirm({ isOpen: false, id: null });
+    
     try {
       await api.delete(`/schools/classes/${id}`);
       toast.success('Class removed!', { id: loadingToast });
@@ -96,15 +114,23 @@ export default function ClassManagement() {
 
   const columns: Column<ClassRecord>[] = [
     {
-      header: 'Class / Grade Name',
+      header: 'Grade',
       accessor: (c) => (
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-[#2d8d9b]/5 rounded-xl flex items-center justify-center text-[#2d8d9b]">
-            <BookOpen size={20} />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-[#2d8d9b]/5 rounded-lg flex items-center justify-center text-[#2d8d9b]">
+            <BookOpen size={16} />
           </div>
-          <p className="font-black text-sm tracking-tight text-[#3a525d]">{c.name}</p>
+          <p className="font-black text-sm tracking-tight text-[#3a525d]">{c.grade || 'N/A'}</p>
         </div>
       ),
+    },
+    {
+      header: 'Section',
+      accessor: (c) => (
+        <span className="px-3 py-1 bg-zinc-100 rounded-lg text-xs font-black text-[#3a525d]">
+           {c.section || 'N/A'}
+        </span>
+      )
     },
     {
       header: 'Assigned School',
@@ -139,7 +165,7 @@ export default function ClassManagement() {
                 <Edit2 size={16} />
             </button>
             <button 
-                onClick={() => handleDelete(c.id.toString())}
+                onClick={() => setDeleteConfirm({ isOpen: true, id: c.id.toString() })}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm"
                 title="Delete Class"
             >
@@ -204,6 +230,16 @@ export default function ClassManagement() {
         data={classes}
         isLoading={isLoading}
         searchPlaceholder="Filter classes..."
+      />
+
+      <ConfirmModal 
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Class?"
+        message="This will permanently remove this class group and its association with students. This action cannot be undone."
+        onConfirm={handleConfirmedDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
+        confirmLabel="Yes, Delete Class"
+        variant="danger"
       />
     </div>
   );

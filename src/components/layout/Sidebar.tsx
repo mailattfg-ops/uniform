@@ -63,6 +63,8 @@ const modules: ModuleItem[] = [
     icon: ShieldAlert, label: 'Admin Controls', href: '/admin/approvals',
     subsections: [
       { label: 'Approvals', href: '/admin/approvals' },
+      { label: 'Measures', href: '/admin/measures' },
+      { label: 'Products', href: '/admin/products' },
       { label: 'Audit Logs', href: '/admin/audit' },
       { label: 'Employees', href: '/admin/employees' }
     ]

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Clipboard, Check, UserCheck, Key, LogIn, ArrowRight } from 'lucide-react';
+import { Clipboard, Check, UserCheck, Key, LogIn, ArrowRight, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface StudentRegisterFormProps {
@@ -124,7 +124,10 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
       } else {
         const response = await api.post('/students/register', data);
         toast.success('Registration complete!', { id: loadingToast });
-        setGeneratedCreds(response.data.credentials);
+        setGeneratedCreds({
+            ...response.data.credentials,
+            studentId: response.data.student.id
+        });
       }
     } catch (err) {
       toast.error('Action failed. Check if Admission No exists.', { id: loadingToast });
@@ -153,15 +156,15 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                   
                   <div className="space-y-4">
                     <div className="flex flex-col">
-                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Login Username (Email)</label>
-                      <span className="text-lg font-black text-[#3a525d] tracking-tight">{generatedCreds.username}</span>
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Login Username (Email)</label>
+                       <span className="text-lg font-black text-[#3a525d] tracking-tight">{generatedCreds.username}</span>
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Temporary Password</label>
-                      <div className="flex items-center gap-3">
-                        <Key size={14} className="text-[#f2994a]" />
-                        <span className="text-xl font-black text-[#f2994a] tracking-[0.2em]">{generatedCreds.password}</span>
-                      </div>
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Temporary Password</label>
+                       <div className="flex items-center gap-3">
+                         <Key size={14} className="text-[#f2994a]" />
+                         <span className="text-xl font-black text-[#f2994a] tracking-[0.2em]">{generatedCreds.password}</span>
+                       </div>
                     </div>
                   </div>
                </div>
@@ -175,7 +178,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                 }`}
                >
                  {hasCopied ? <Check size={16} /> : <Clipboard size={16} />}
-                 {hasCopied ? 'Copied!' : 'Copy Credentials'}
+                 {hasCopied ? 'Copy Credentials' : 'Copy Credentials'}
                </Button>
 
                <Button 
@@ -188,6 +191,14 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                >
                  Finish & Exit
                  <ArrowRight size={16} />
+               </Button>
+
+               <Button 
+                 onClick={() => router.push(`/measurements/entry?studentId=${generatedCreds.studentId}`)}
+                 className="h-16 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-[11px] gap-3 col-span-2 shadow-xl shadow-orange-500/20 mt-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+               >
+                 <Ruler size={18} />
+                 Capture Sizing / Measurements Now
                </Button>
             </div>
           </div>

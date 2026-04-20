@@ -3,15 +3,14 @@ import React from 'react';
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  suffix?: string;
   icon?: React.ReactNode;
   allowSpecialCharacters?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, icon, allowSpecialCharacters = false, className = '', ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, error, suffix, icon, allowSpecialCharacters = false, className = '', ...props }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!allowSpecialCharacters && (props.type === 'text' || props.type === 'tel' || !props.type)) {
-      // Allow alphanumeric, spaces, and basic business symbols (@ . + - , _)
-      // Filter out symbols like ^ & * ( ) % $ # ! ~ ` = { } [ ] | \ : ; " ' < > ? /
       const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s\@\.\+\-\,\_]/g, '');
       if (sanitized !== e.target.value) {
         e.target.value = sanitized;
@@ -38,10 +37,15 @@ export const Input: React.FC<InputProps> = ({ label, error, icon, allowSpecialCh
             error ? 'border-red-500' : 'border-zinc-200 hover:border-[#2d8d9b]/50'
           } rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-sm font-bold text-[#3a525d] placeholder:text-zinc-400 shadow-sm ${
             icon ? 'pl-12' : ''
-          } ${className}`}
+          } ${suffix ? 'pr-14' : ''} ${className}`}
           {...props}
           onChange={handleChange}
         />
+        {suffix && (
+          <div className="absolute right-5 text-[10px] font-black uppercase text-zinc-300 pointer-events-none">
+            {suffix}
+          </div>
+        )}
       </div>
       {error && <span className="text-[10px] text-error font-black uppercase tracking-widest ml-1 animate-in shake duration-300">{error}</span>}
     </div>

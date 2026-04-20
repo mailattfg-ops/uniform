@@ -15,7 +15,8 @@ import {
   Calendar, 
   Shield, 
   MapPin,
-  FileText
+  FileText,
+  Layers
 } from 'lucide-react';
 
 const getFieldIcon = (name: string) => {
@@ -30,19 +31,20 @@ const getFieldIcon = (name: string) => {
   if (n.includes('date') || n.includes('birth')) return <Calendar size={18} />;
   if (n.includes('id') || n.includes('security')) return <Shield size={18} />;
   if (n.includes('address') || n.includes('city') || n.includes('location')) return <MapPin size={18} />;
+  if (n.includes('material')) return <Layers size={18} />;
   return <FileText size={18} />;
 };
 
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'email' | 'tel';
+  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group';
   placeholder?: string;
   options?: { label: string; value: string }[];
   required?: boolean;
   className?: string;
   defaultValue?: any;
-  onChange?: (value: string) => void;
+  onChange?: (value: any) => void;
 }
 
 interface DynamicFormProps {
@@ -67,7 +69,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const data = Object.fromEntries(formData.entries());
+    const data: any = {};
+    
+    formData.forEach((value, key) => {
+      if (data[key]) {
+        if (Array.isArray(data[key])) {
+          data[key].push(value);
+        } else {
+          data[key] = [data[key], value];
+        }
+      } else {
+        data[key] = value;
+      }
+    });
+
     onSubmit(data);
   };
 
@@ -105,6 +120,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   defaultValue={field.defaultValue}
                   onChange={(val) => field.onChange && field.onChange(val)}
                 />
+              ) : field.type === 'checkbox-group' ? (
+                <div className="space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100">
+                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1">
+                     {field.label}
+                   </label>
+                   <div className="grid grid-cols-2 gap-4">
+                     {field.options?.map((opt) => (
+                       <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
+                          <input 
+                            type="checkbox" 
+                            name={field.name} 
+                            value={opt.value}
+                            defaultChecked={field.defaultValue?.includes(opt.value)}
+                            className="w-5 h-5 rounded-lg border-2 border-zinc-200 text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                          />
+                          <span className="text-xs font-bold text-[#3a525d] group-hover:text-[#2d8d9b] transition-colors">
+                            {opt.label}
+                          </span>
+                       </label>
+                     ))}
+                   </div>
+                </div>
               ) : (
                 <Input 
                   label={field.label} 
