@@ -32,18 +32,22 @@ const getFieldIcon = (name: string) => {
   if (n.includes('id') || n.includes('security')) return <Shield size={18} />;
   if (n.includes('address') || n.includes('city') || n.includes('location')) return <MapPin size={18} />;
   if (n.includes('material')) return <Layers size={18} />;
+  if (n.includes('username')) return <Shield size={18} />;
+  if (n.includes('password')) return <Shield size={18} />;
   return <FileText size={18} />;
 };
 
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group';
+  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password';
   placeholder?: string;
   options?: { label: string; value: string }[];
   required?: boolean;
   className?: string;
   defaultValue?: any;
+  value?: any;
+  allowSpecialCharacters?: boolean;
   onChange?: (value: any) => void;
 }
 
@@ -118,6 +122,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   required={field.required}
                   icon={getFieldIcon(field.name)}
                   defaultValue={field.defaultValue}
+                  value={field.value}
                   onChange={(val) => field.onChange && field.onChange(val)}
                 />
               ) : field.type === 'checkbox-group' ? (
@@ -151,7 +156,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   required={field.required}
                   icon={getFieldIcon(field.name)}
                   defaultValue={field.defaultValue}
-                  onChange={(e) => field.onChange && field.onChange(e.target.value)}
+                  allowSpecialCharacters={field.allowSpecialCharacters}
+                  onChange={(e: any) => {
+                    if (field.onChange) field.onChange(e.target.value);
+                  }}
                 />
               )}
             </div>

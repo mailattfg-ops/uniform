@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { CredentialsModal } from '@/components/ui/CredentialsModal';
 
 interface School {
   id: number;
@@ -24,6 +25,10 @@ export default function SchoolsRegistry() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({
     isOpen: false,
     id: null
+  });
+  const [credsModal, setCredsModal] = useState<{ isOpen: boolean; data: any | null }>({
+    isOpen: false,
+    data: null
   });
 
   const fetchSchools = async () => {
@@ -44,7 +49,11 @@ export default function SchoolsRegistry() {
 
   const schoolFields: FormField[] = [
     { name: 'name', label: 'School Name', type: 'text', placeholder: 'e.g. St. Xavier High School', required: true, defaultValue: editingSchool?.name },
-    { name: 'address', label: 'Full Address', type: 'text', placeholder: 'Street, City, Pin Code', defaultValue: editingSchool?.address }
+    { name: 'address', label: 'Full Address', type: 'text', placeholder: 'Street, City, Pin Code', defaultValue: editingSchool?.address },
+    ...(!editingSchool ? [
+      { name: 'username', label: 'System Username', type: 'text' as const, placeholder: 'e.g. stxaviers_admin', required: true },
+      { name: 'password', label: 'Initial Password', type: 'password' as const, placeholder: 'Set login password', required: true }
+    ] : [])
   ];
 
   const handleAddOrUpdate = async (data: any) => {
@@ -54,8 +63,20 @@ export default function SchoolsRegistry() {
         await api.put(`/schools/${editingSchool.id}`, data);
         toast.success('School updated successfully!', { id: loadingToast });
       } else {
-        await api.post('/schools/create', data);
+        const response = await api.post('/schools/create', data);
         toast.success('School registered successfully!', { id: loadingToast });
+        
+        // Show credentials for new school
+        if (data.username && data.password) {
+          setCredsModal({
+            isOpen: true,
+            data: {
+              full_name: data.name,
+              username: data.username,
+              password: data.password
+            }
+          });
+        }
       }
       setIsAdding(false);
       setEditingSchool(null);
@@ -76,6 +97,28 @@ export default function SchoolsRegistry() {
       fetchSchools();
     } catch (err) {
       toast.error('Failed to delete school', { id: loadingToast });
+    }
+  };
+
+  const handleResetPassword = async (school: School) => {
+    const loadingToast = toast.loading('Generating secure access key...');
+    try {
+      const response = await api.post(`/schools/${school.id}/reset-password`);
+      const { newPassword, username } = response.data;
+      
+      toast.success('Credentials Reset Successfully!', { id: loadingToast });
+      
+      setCredsModal({
+        isOpen: true,
+        data: {
+          full_name: school.name,
+          username: username,
+          password: newPassword
+        }
+      });
+
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reset password', { id: loadingToast });
     }
   };
 
@@ -127,6 +170,13 @@ export default function SchoolsRegistry() {
             title="Edit School"
           >
             <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={() => handleResetPassword(s)}
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm"
+            title="Reset Password"
+          >
+            <Key size={16} />
           </button>
           <button 
             onClick={() => setDeleteConfirm({ isOpen: true, id: s.id })}
@@ -236,6 +286,12 @@ export default function SchoolsRegistry() {
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
         confirmLabel="Confirm De-Registration"
         variant="danger"
+      />
+
+      <CredentialsModal 
+        isOpen={credsModal.isOpen}
+        onClose={() => setCredsModal({ isOpen: false, data: null })}
+        data={credsModal.data}
       />
     </div>
   );

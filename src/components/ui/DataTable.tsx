@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 
 export interface Column<T> {
@@ -65,10 +65,6 @@ export function DataTable<T extends { id: string | number }>({
                    className="bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-6 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-64 transition-all text-foreground shadow-sm"
                  />
               </div>
-              <Button variant="secondary" className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-4 md:px-6 border border-[#fce4d4] text-[#2d8d9b] bg-white hover:bg-[#fce4d4]">
-                 <Filter size={14} />
-                 <span className="hidden sm:inline">Filter</span>
-              </Button>
             </div>
           </div>
         </div>

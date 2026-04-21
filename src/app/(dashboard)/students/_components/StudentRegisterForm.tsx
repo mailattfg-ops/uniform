@@ -25,8 +25,19 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const response = await api.get('/schools');
-        setSchools(response.data.map((s: any) => ({ label: s.name, value: s.id })));
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const isSchoolRole = user?.role?.toLowerCase() === 'school';
+
+        if (isSchoolRole && user.schoolId) {
+          // Force select their own school
+          const schoolData = { label: user.schoolName || user.fullName, value: user.schoolId };
+          setSchools([schoolData]);
+          setSelectedSchool(user.schoolId.toString());
+        } else {
+          const response = await api.get('/schools');
+          setSchools(response.data.map((s: any) => ({ label: s.name, value: s.id })));
+        }
       } catch (err) {
         toast.error('Failed to load schools');
       } finally {
@@ -78,6 +89,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
       options: schools,
       required: true,
       defaultValue: initialData?.school_id,
+      value: selectedSchool,
       onChange: (val) => setSelectedSchool(val)
     },
     { 

@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-20 bg-white/70 backdrop-blur-xl sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between border-b border-zinc-100/50 shadow-sm transition-all duration-300">
+    <header className="h-24 bg-white/70 backdrop-blur-xl sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between border-b border-zinc-100/50 shadow-sm transition-all duration-300">
       {/* Left: Mobile Toggle & Breadcrumbs/Title */}
       <div className="flex items-center gap-6">
         <button 
@@ -124,7 +124,7 @@ export const Header: React.FC = () => {
           {/* Premium Dropdown Menu */}
           {isMenuOpen && (
             <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-zinc-100 p-2 animate-in fade-in slide-in-from-top-4 duration-300 scale-100 origin-top-right z-50 overflow-hidden">
-               <div className="px-6 py-6 bg-zinc-50/50 rounded-[1.5rem] mb-2">
+               {/* <div className="px-6 py-6 bg-zinc-50/50 rounded-[1.5rem] mb-2">
                  <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden border border-zinc-100 font-black text-[#2d8d9b] text-xl">
                         {avatarUrl ? (
@@ -144,10 +144,10 @@ export const Header: React.FC = () => {
                     </div>
                     <span className="text-[9px] font-black text-green-600 uppercase">Live Account</span>
                  </div>
-               </div>
+               </div> */}
                
                <div className="p-2 space-y-1">
-                 <Link 
+                 {/* <Link 
                    href="/profile" 
                    className="flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-[#2d8d9b] hover:text-white transition-all group"
                  >
@@ -160,10 +160,10 @@ export const Header: React.FC = () => {
                  >
                    <Settings size={18} className="text-zinc-400 group-hover:text-white/70" />
                    System Config
-                 </Link>
+                 </Link> */}
                  <button 
                    onClick={handleLogout}
-                   className="w-full mt-2 flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-black text-white bg-[#3a525d] hover:bg-error transition-all shadow-lg hover:shadow-error/20 group"
+                   className="w-full mt-2 flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#3a525d] hover:bg-[#3a525e] transition-all shadow-lg hover:shadow-error/20 group"
                  >
                    <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
                    Secure Logout

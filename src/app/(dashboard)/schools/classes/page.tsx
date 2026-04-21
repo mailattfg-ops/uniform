@@ -8,6 +8,7 @@ import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Select } from '@/components/ui/Select';
 
 interface ClassRecord {
   id: number;
@@ -34,12 +35,29 @@ export default function ClassManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [schoolsRes, classesRes] = await Promise.all([
-        api.get('/schools'),
-        api.get('/schools/classes' + (selectedSchool ? `?schoolId=${selectedSchool}` : ''))
-      ]);
-      setSchools(schoolsRes.data);
-      setClasses(classesRes.data);
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const isSchoolRole = user?.role?.toLowerCase() === 'school';
+
+      let schoolsData = [];
+      let classesData = [];
+
+      if (isSchoolRole) {
+        // If school role, we don't need all schools list
+        const classesRes = await api.get('/schools/classes');
+        classesData = classesRes.data;
+        schoolsData = [{ id: user.schoolId, name: user.schoolName || user.fullName }];
+      } else {
+        const [schoolsRes, classesRes] = await Promise.all([
+          api.get('/schools'),
+          api.get('/schools/classes' + (selectedSchool ? `?schoolId=${selectedSchool}` : ''))
+        ]);
+        schoolsData = schoolsRes.data;
+        classesData = classesRes.data;
+      }
+      
+      setSchools(schoolsData);
+      setClasses(classesData);
     } catch (err) {
       toast.error('Failed to load class data');
     } finally {
@@ -202,16 +220,14 @@ export default function ClassManagement() {
               <div className="p-3 bg-[#3a525d]/5 rounded-2xl">
                   <Filter size={20} className="text-[#3a525d]" />
               </div>
-              <select 
-                value={selectedSchool}
-                onChange={(e) => setSelectedSchool(e.target.value)}
-                className="bg-zinc-50 border-none text-sm font-bold text-[#3a525d] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2d8d9b]/20 min-w-[240px]"
-              >
-                <option value="">All Schools</option>
-                {schools.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+              <div className="min-w-[240px]">
+                <Select 
+                  placeholder="All Schools"
+                  value={selectedSchool}
+                  options={schools.map(s => ({ label: s.name, value: s.id.toString() }))}
+                  onChange={(val: string) => setSelectedSchool(val)}
+                />
+              </div>
           </div>
 
           <Button 

@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
+import { Select } from '@/components/ui/Select';
 
 interface Student {
   id: number;
@@ -27,6 +28,9 @@ interface StudentTableProps {
 
 export const StudentTable: React.FC<StudentTableProps> = ({ onRegister, onBulkUpload, onEdit }) => {
   const [students, setStudents] = useState<Student[]>([]);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
   // Modals State
@@ -43,10 +47,32 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onRegister, onBulkUp
     data: null
   });
 
+  const fetchSchools = async () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const isSchoolRole = user?.role?.toLowerCase() === 'school';
+
+      if (isSchoolRole) {
+        setSchools([{ id: user.schoolId, name: user.schoolName || user.fullName }]);
+        setSelectedSchool(user.schoolId.toString());
+      } else {
+        const response = await api.get('/schools');
+        setSchools(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to load schools');
+    }
+  };
+
   const fetchStudents = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/students');
+      const queryParams = new URLSearchParams();
+      if (selectedSchool) queryParams.append('schoolId', selectedSchool);
+      if (searchQuery) queryParams.append('search', searchQuery);
+
+      const response = await api.get(`/students?${queryParams.toString()}`);
       setStudents(response.data);
     } catch (err) {
       console.error('Failed to fetch students:', err);
@@ -57,8 +83,15 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onRegister, onBulkUp
   };
 
   useEffect(() => {
-    fetchStudents();
+    fetchSchools();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchStudents();
+    }, searchQuery ? 500 : 0); // Debounce search
+    return () => clearTimeout(timer);
+  }, [selectedSchool, searchQuery]);
 
   const handleConfirmedDelete = async () => {
     if (!deleteConfirm.id) return;
@@ -170,24 +203,37 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onRegister, onBulkUp
         columns={columns}
         data={students}
         isLoading={isLoading}
+        onSearch={setSearchQuery}
         searchPlaceholder="Search by name, grade or ID..."
         headerAction={
-          <div className="flex gap-2">
-            <Button 
-              onClick={onRegister}
-              className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20"
-            >
-              <UserPlus size={14} strokeWidth={3} />
-              Register
-            </Button>
-            <Button 
-              onClick={onBulkUpload}
-              variant="secondary" 
-              className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 border border-[#fce4d4] text-[#3a525d] bg-white hover:bg-[#fce4d4]"
-            >
-              <FileUp size={14} strokeWidth={3} />
-              Bulk Upload
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-3 items-center">
+            {/* School Filter - Only for Admin/Staff or show as label for School */}
+            <div className="min-w-[240px]">
+              <Select 
+                placeholder="All Institutions"
+                value={selectedSchool}
+                options={schools.map(s => ({ label: s.name, value: s.id.toString() }))}
+                onChange={(val: string) => setSelectedSchool(val)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={onRegister}
+                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20"
+              >
+                <UserPlus size={14} strokeWidth={3} />
+                Register
+              </Button>
+              <Button 
+                onClick={onBulkUpload}
+                variant="secondary" 
+                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 border border-[#fce4d4] text-[#3a525d] bg-white hover:bg-[#fce4d4]"
+              >
+                <FileUp size={14} strokeWidth={3} />
+                Bulk Upload
+              </Button>
+            </div>
           </div>
         }
       />

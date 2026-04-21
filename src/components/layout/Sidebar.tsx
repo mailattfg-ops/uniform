@@ -37,18 +37,12 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   { 
-    icon: Building2, label: 'Schools Hub', href: '/schools/registry',
+    icon: Building2, label: 'School Management', href: '/schools/classes',
     subsections: [
       { label: 'Schools Registry', href: '/schools/registry' },
       { label: 'Class Management', href: '/schools/classes' },
-    ]
-  },
-  { 
-    icon: GraduationCap, label: 'Students', href: '/students/directory',
-    subsections: [
-      { label: 'Directory', href: '/students/directory' },
-      { label: 'Groups', href: '/students/groups' },
-      { label: 'Profiles', href: '/students/profiles' }
+      { label: 'Students Directory', href: '/students/directory' },
+      { label: 'Student Groups', href: '/students/groups' }
     ]
   },
   { 
@@ -60,13 +54,18 @@ const modules: ModuleItem[] = [
     ]
   },
   { 
-    icon: ShieldAlert, label: 'Admin Controls', href: '/admin/approvals',
+    icon: ShieldAlert, label: 'Admin Controls', href: '/admin/settings',
     subsections: [
-      { label: 'Approvals', href: '/admin/approvals' },
       { label: 'Measures', href: '/admin/measures' },
       { label: 'Products', href: '/admin/products' },
       { label: 'Audit Logs', href: '/admin/audit' },
-      { label: 'Employees', href: '/admin/employees' }
+      { label: 'Employees', href: '/admin/employees' },
+      { label: 'System Settings', href: '/admin/settings' },
+      { label: 'User Roles', href: '/admin/roles' },
+      { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
+      { label: 'Button Catalog', href: '/admin/inventory/buttons' },
+      { label: 'Thread Catalog', href: '/admin/inventory/threads' },
+      { label: 'Design Hub', href: '/admin/inventory/designs' }
     ]
   },
   { 
@@ -134,7 +133,7 @@ export const Sidebar: React.FC = () => {
         bg-[#F5CAAD] text-[#1a1d21]/70 flex flex-col border-r border-black/5 shadow-2xl
       `}>
         {/* Brand Identity Section */}
-        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
+        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all bg-black/6 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
           <div className="flex items-center gap-3">
              {!isExpanded ? (
                 <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
@@ -180,25 +179,22 @@ export const Sidebar: React.FC = () => {
               const isAdmin = userPermissions.includes('all');
 
               // Permission Logic Mapping
-              const modulePermissionMap: Record<string, string> = {
-                'Schools Hub': 'view_schools',
-                'Students': 'view_students',
-                'Measurements': 'manage_measurements',
-                'Admin Controls': 'manage_system' // Only admin or specific managers
+              const modulePermissionMap: Record<string, string[]> = {
+                'School Management': ['view_schools', 'manage_classes', 'view_students', 'view_own_students'],
+                'Measurements': ['manage_measurements'],
+                'Admin Controls': ['manage_system'] // Only admin or specific managers
               };
 
-              const requiredPermission = modulePermissionMap[item.label];
+              const requiredPermissions = modulePermissionMap[item.label] || [];
+              const hasPermission = isAdmin || requiredPermissions.length === 0 || 
+                                   requiredPermissions.some(rp => userPermissions.includes(rp));
               
-              // Hide if permission is required but missing (Admins bypass)
-              if (requiredPermission && !isAdmin && !userPermissions.includes(requiredPermission)) {
-                  // Special case: "Admin Controls" usually requires 'all' or specific admin permission
-                  if (item.label === 'Admin Controls' && !isAdmin) return null;
-                  
-                  // For others, if they don't have the "view" permission, hide them
+              if (!hasPermission) {
                   return null;
               }
 
-              const isPathActive = pathname.startsWith(item.href.split('/').slice(0, 3).join('/')) || 
+              const isPathActive = item.subsections.some(sub => pathname.startsWith(sub.href)) || 
+                                   pathname.startsWith(item.href.split('/').slice(0, 2).join('/')) || 
                                    (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
@@ -207,8 +203,8 @@ export const Sidebar: React.FC = () => {
                 <div key={item.label} className={`transition-all ${isExpanded ? 'px-4' : 'px-0 flex flex-col items-center'}`}>
                   <div 
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full cursor-pointer ${
-                      isPathActive ? 'bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full bg-black/6 cursor-pointer ${
+                      isPathActive ? '!bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -231,7 +227,27 @@ export const Sidebar: React.FC = () => {
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
                         
-                        // Sub-permission logic can go here if needed
+                        // Sub-permission logic
+                        const subPermissionMap: Record<string, string[]> = {
+                          'Schools Registry': ['view_schools'],
+                          'Class Management': ['view_schools', 'manage_classes'],
+                          'Students Directory': ['view_students', 'view_own_students'],
+                          'Student Groups': ['view_students', 'view_own_students'],
+                          'Profiles': ['view_students', 'view_own_students'],
+                          'Record Entry': ['manage_measurements'],
+                          'History': ['view_measurements'],
+                          'Templates': ['manage_measurements'],
+                          'Fabric Catalog': ['manage_system'],
+                          'Button Catalog': ['manage_system'],
+                          'Thread Catalog': ['manage_system'],
+                          'Design Hub': ['manage_system']
+                        };
+
+                        const requiredSubPerms = subPermissionMap[sub.label] || [];
+                        const hasSubPerm = isAdmin || requiredSubPerms.length === 0 || 
+                                          requiredSubPerms.some(rp => userPermissions.includes(rp));
+
+                        if (!hasSubPerm) return null;
                         
                         return (
                           <Link 

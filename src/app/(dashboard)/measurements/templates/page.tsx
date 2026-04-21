@@ -31,8 +31,8 @@ interface UniformTemplate {
   school_id: number;
   name: string;
   classes: number[];
-  boys_config: { product_id: number; quantity: number }[];
-  girls_config: { product_id: number; quantity: number }[];
+  boys_config: { product_id: number; quantity: number; design_id?: string }[];
+  girls_config: { product_id: number; quantity: number; design_id?: string }[];
   schools?: { name: string };
 }
 
@@ -58,6 +58,7 @@ export default function UniformTemplatesPage() {
   const [templates, setTemplates] = useState<UniformTemplate[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [designs, setDesigns] = useState<{ label: string; value: string }[]>([]);
   const [classes, setClasses] = useState<ClassRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -67,8 +68,8 @@ export default function UniformTemplatesPage() {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
   const [templateName, setTemplateName] = useState('');
   const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
-  const [boysConfig, setBoysConfig] = useState<{ product_id: string; quantity: number }[]>([]);
-  const [girlsConfig, setGirlsConfig] = useState<{ product_id: string; quantity: number }[]>([]);
+  const [boysConfig, setBoysConfig] = useState<{ product_id: string; quantity: number; design_id?: string }[]>([]);
+  const [girlsConfig, setGirlsConfig] = useState<{ product_id: string; quantity: number; design_id?: string }[]>([]);
 
   const fetchTemplates = async () => {
     try {
@@ -102,7 +103,10 @@ export default function UniformTemplatesPage() {
     await Promise.allSettled([
       fetchTemplates(),
       fetchSchools(),
-      fetchProducts()
+      fetchProducts(),
+      api.get('/inventory/designs').then(res => 
+        setDesigns(res.data.map((d: any) => ({ label: d.design_code, value: d.id })))
+      )
     ]);
     setIsLoading(false);
   };
@@ -123,7 +127,7 @@ export default function UniformTemplatesPage() {
 
   const handleAddProduct = (section: 'boys' | 'girls') => {
     const defaultProd = products.length > 0 ? products[0].id.toString() : '';
-    const newItem = { product_id: defaultProd, quantity: 1 };
+    const newItem = { product_id: defaultProd, quantity: 1, design_id: '' };
     if (section === 'boys') setBoysConfig([...boysConfig, newItem]);
     else setGirlsConfig([...girlsConfig, newItem]);
   };
@@ -164,8 +168,16 @@ export default function UniformTemplatesPage() {
       school_id: parseInt(selectedSchoolId),
       name: templateName,
       classes: selectedClasses,
-      boys_config: boysConfig.map(c => ({ product_id: parseInt(c.product_id), quantity: c.quantity })),
-      girls_config: girlsConfig.map(c => ({ product_id: parseInt(c.product_id), quantity: c.quantity }))
+      boys_config: boysConfig.map(c => ({ 
+        product_id: parseInt(c.product_id), 
+        quantity: c.quantity,
+        design_id: c.design_id || null 
+      })),
+      girls_config: girlsConfig.map(c => ({ 
+        product_id: parseInt(c.product_id), 
+        quantity: c.quantity,
+        design_id: c.design_id || null 
+      }))
     };
 
     const loadingToast = toast.loading(editingTemplate ? 'Updating template...' : 'Creating template...');
@@ -199,8 +211,8 @@ export default function UniformTemplatesPage() {
     setSelectedSchoolId(t.school_id.toString());
     setTemplateName(t.name);
     setSelectedClasses(t.classes || []);
-    setBoysConfig(t.boys_config?.map(c => ({ product_id: c.product_id.toString(), quantity: c.quantity })) || []);
-    setGirlsConfig(t.girls_config?.map(c => ({ product_id: c.product_id.toString(), quantity: c.quantity })) || []);
+    setBoysConfig(t.boys_config?.map(c => ({ product_id: c.product_id.toString(), quantity: c.quantity, design_id: c.design_id })) || []);
+    setGirlsConfig(t.girls_config?.map(c => ({ product_id: c.product_id.toString(), quantity: c.quantity, design_id: c.design_id })) || []);
     setIsAdding(true);
   };
 
@@ -377,7 +389,15 @@ export default function UniformTemplatesPage() {
                              <Select 
                                options={products.map(p => ({ label: p.name, value: p.id.toString() }))}
                                value={item.product_id}
-                               onChange={(val) => handleUpdateProduct('boys', idx, 'product_id', val)}
+                               onChange={(val: string) => handleUpdateProduct('boys', idx, 'product_id', val)}
+                             />
+                          </div>
+                          <div className="flex-1">
+                             <Select 
+                               placeholder="Design No"
+                               options={designs}
+                               value={item.design_id || ''}
+                               onChange={(val: string) => handleUpdateProduct('boys', idx, 'design_id', val)}
                              />
                           </div>
                           <div className="w-24">
@@ -428,7 +448,15 @@ export default function UniformTemplatesPage() {
                              <Select 
                                options={products.map(p => ({ label: p.name, value: p.id.toString() }))}
                                value={item.product_id}
-                               onChange={(val) => handleUpdateProduct('girls', idx, 'product_id', val)}
+                               onChange={(val: string) => handleUpdateProduct('girls', idx, 'product_id', val)}
+                             />
+                          </div>
+                          <div className="flex-1">
+                             <Select 
+                               placeholder="Design No"
+                               options={designs}
+                               value={item.design_id || ''}
+                               onChange={(val: string) => handleUpdateProduct('girls', idx, 'design_id', val)}
                              />
                           </div>
                           <div className="w-24">
