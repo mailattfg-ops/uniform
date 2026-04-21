@@ -38,6 +38,25 @@ export function DataTable<T extends { id: string | number }>({
     if (onSearch) onSearch(e.target.value);
   };
 
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm) return data;
+    const lowerSearch = searchTerm.toLowerCase();
+    
+    return data.filter(item => {
+      // Check all values in the item for the search term
+      return Object.values(item as object).some(val => {
+        if (val === null || val === undefined) return false;
+        if (typeof val === 'string' || typeof val === 'number') {
+          return val.toString().toLowerCase().includes(lowerSearch);
+        }
+        if (Array.isArray(val)) {
+            return (val as any[]).some(v => v?.toString().toLowerCase().includes(lowerSearch));
+        }
+        return false;
+      });
+    });
+  }, [data, searchTerm]);
+
   return (
     <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
       {/* Table Header Section - Light Themed */}
@@ -93,8 +112,8 @@ export function DataTable<T extends { id: string | number }>({
                   ))}
                 </tr>
               ))
-            ) : data.length > 0 ? (
-              data.map((item) => (
+            ) : filteredData.length > 0 ? (
+              filteredData.map((item) => (
                 <tr key={item.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
                   {columns.map((col, idx) => (
                     <td key={idx} className={`p-6 text-sm font-medium text-foreground ${col.className || ''}`}>
@@ -123,7 +142,7 @@ export function DataTable<T extends { id: string | number }>({
       {/* Modern Footer */}
       <div className="p-4 md:p-8 border-t border-[#fce4d4] flex flex-col md:flex-row justify-between items-center gap-4 bg-[#fce4d4]/5 transition-colors">
         <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
-          Total <span className="text-[#2d8d9b] text-sm md:text-base">{data.length}</span> entries found
+          Total <span className="text-[#2d8d9b] text-sm md:text-base">{filteredData.length}</span> entries found
         </span>
         <div className="flex gap-2 md:gap-3 w-full md:w-auto">
           <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">

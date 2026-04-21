@@ -434,7 +434,7 @@ export default function MeasurementEntryPage() {
                               return (
                                  <div key={item.product_id} className="px-3 py-1.5 bg-[#2d8d9b]/5 border border-[#2d8d9b]/10 rounded-xl flex items-center gap-2">
                                     <Package size={10} className="text-[#2d8d9b]" />
-                                    <span className="text-[10px] font-black uppercase text-[#3a525d]">{prod?.name}</span>
+                                    <span className="text-[10px] font-black uppercase text-[#3a525d]">{prod?.name} ({prod?.art_number})</span>
                                     <span className="text-[9px] font-bold text-[#2d8d9b] bg-white px-2 rounded-lg ml-1">x{item.quantity}</span>
                                  </div>
                               );
@@ -467,7 +467,7 @@ export default function MeasurementEntryPage() {
                                      </div>
                                      <div>
                                         <div className="flex items-center gap-2">
-                                           <h4 className="text-lg font-black italic tracking-tighter text-[#3a525d]">{prod.name}</h4>
+                                           <h4 className="text-lg font-black italic tracking-tighter text-[#3a525d]">{prod.name} ({prod.art_number})</h4>
                                            <span className="px-2 py-0.5 bg-[#2d8d9b] text-white text-[10px] font-black rounded-lg">x{item.quantity}</span>
                                         </div>
                                         <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">Sizing requirements</p>

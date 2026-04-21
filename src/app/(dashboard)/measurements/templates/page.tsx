@@ -387,7 +387,7 @@ export default function UniformTemplatesPage() {
                        <div key={idx} className="flex items-center gap-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100 group animate-in slide-in-from-right-4 duration-300">
                           <div className="flex-1">
                              <Select 
-                               options={products.map(p => ({ label: p.name, value: p.id.toString() }))}
+                               options={products.map(p => ({ label: `${p.name} (${p.art_number})`, value: p.id.toString() }))}
                                value={item.product_id}
                                onChange={(val: string) => handleUpdateProduct('boys', idx, 'product_id', val)}
                              />
@@ -446,7 +446,7 @@ export default function UniformTemplatesPage() {
                        <div key={idx} className="flex items-center gap-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100 group animate-in slide-in-from-right-4 duration-300">
                           <div className="flex-1">
                              <Select 
-                               options={products.map(p => ({ label: p.name, value: p.id.toString() }))}
+                               options={products.map(p => ({ label: `${p.name} (${p.art_number})`, value: p.id.toString() }))}
                                value={item.product_id}
                                onChange={(val: string) => handleUpdateProduct('girls', idx, 'product_id', val)}
                              />
