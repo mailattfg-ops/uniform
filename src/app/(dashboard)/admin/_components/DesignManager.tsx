@@ -34,6 +34,7 @@ export default function DesignManager() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'list' | 'add' | 'edit'>('list');
+  const [nextCode, setNextCode] = useState('');
   const [editingDesign, setEditingDesign] = useState<Design | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
     isOpen: false,
@@ -59,6 +60,17 @@ export default function DesignManager() {
       toast.error('Failed to load design hub data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddClick = async () => {
+    try {
+      const res = await api.get('/inventory/designs/next-code');
+      setNextCode(res.data.nextCode);
+      setView('add');
+    } catch (err) {
+      toast.error('Failed to generate next code');
+      setView('add'); // fallback anyway
     }
   };
 
@@ -156,7 +168,7 @@ export default function DesignManager() {
           <DynamicForm 
             title={editingDesign ? `Edit Design ${editingDesign.design_code}` : 'Register New Design No'}
             fields={[
-              { name: 'design_code', label: 'Design Code', type: 'text', required: true, defaultValue: editingDesign?.design_code, allowSpecialCharacters: true },
+              { name: 'design_code', label: 'Design Code', type: 'text', required: true, defaultValue: editingDesign?.design_code || nextCode, allowSpecialCharacters: true },
               { name: 'main_fabric_id', label: 'Main Fabric', type: 'select', options: catalogs.fabrics, required: true, defaultValue: editingDesign?.main_fabric_id },
               { name: 'attachment_fabric1_id', label: 'Attachment Fabric 1', type: 'select', options: catalogs.fabrics, defaultValue: editingDesign?.attachment_fabric1_id },
               { name: 'attachment_fabric2_id', label: 'Attachment Fabric 2', type: 'select', options: catalogs.fabrics, defaultValue: editingDesign?.attachment_fabric2_id },
@@ -186,7 +198,7 @@ export default function DesignManager() {
         isLoading={isLoading}
         headerAction={
           <Button 
-            onClick={() => setView('add')}
+            onClick={handleAddClick}
             className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20"
           >
             <Plus size={14} strokeWidth={3} />
