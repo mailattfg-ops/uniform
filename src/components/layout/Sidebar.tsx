@@ -65,7 +65,8 @@ const modules: ModuleItem[] = [
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
-      { label: 'Design Hub', href: '/admin/inventory/designs' }
+      { label: 'Design Hub', href: '/admin/inventory/designs' },
+      { label: 'US Size Chart', href: '/admin/size-charts' }
     ]
   },
   { 

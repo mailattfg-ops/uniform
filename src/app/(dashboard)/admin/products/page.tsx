@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Edit2, Trash2, Box, Tag, Users, Ruler, BookOpen, Layers } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Layers } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -16,12 +16,15 @@ interface Product {
   gender: string;
   measurements: string[];
   materials: string;
+  entry_methods?: string[];
+  size_chart_id?: string;
   created_at: string;
 }
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [measureConfig, setMeasureConfig] = useState<any[]>([]);
+  const [sizeCharts, setSizeCharts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -30,17 +33,22 @@ export default function ProductManagement() {
     id: null
   });
 
+  // Local state for dynamic form reactivity
+  const [selectedMethods, setSelectedMethods] = useState<string[]>(['manual']);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes] = await Promise.all([
+      const [prodRes, configRes, chartRes] = await Promise.all([
         api.get('/products'),
-        api.get('/measurements/config')
+        api.get('/measurements/config'),
+        api.get('/size-charts')
       ]);
       setProducts(prodRes.data);
       setMeasureConfig(configRes.data);
+      setSizeCharts(chartRes.data);
     } catch (err) {
-      toast.error('Failed to load products');
+      toast.error('Failed to load catalog data');
     } finally {
       setIsLoading(false);
     }
@@ -49,6 +57,14 @@ export default function ProductManagement() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (editingProduct) {
+        setSelectedMethods(editingProduct.entry_methods || ['manual']);
+    } else {
+        setSelectedMethods(['manual']);
+    }
+  }, [editingProduct, isAdding]);
 
   const productFields: FormField[] = [
     { 
@@ -86,24 +102,53 @@ export default function ProductManagement() {
        defaultValue: editingProduct?.materials 
     },
     {
+       name: 'entry_methods',
+       label: 'Measurement Entry Logic',
+       type: 'checkbox-group',
+       options: [
+         { label: 'Manual Measurements', value: 'manual' },
+         { label: 'US Size Chart Scaling', value: 'us_size_chart' }
+       ],
+       defaultValue: selectedMethods,
+       className: 'md:col-span-2',
+       onChange: (val: string[]) => setSelectedMethods(val)
+    },
+    {
+       name: 'size_chart_id',
+       label: 'Linked US Size Chart',
+       type: 'select',
+       options: [
+         { label: 'Select Preferred Chart', value: '' },
+         ...sizeCharts.map(c => ({ label: `${c.name} (${c.category.replace('_', ' ')})`, value: c.id }))
+       ],
+       defaultValue: editingProduct?.size_chart_id || '',
+       className: 'md:col-span-1',
+       disabled: !selectedMethods.includes('us_size_chart')
+    },
+    {
        name: 'measurements',
-       label: 'Required Measurement Metrics',
+       label: 'Required Manual Metrics',
        type: 'checkbox-group',
        options: measureConfig.map(m => ({ label: m.label, value: m.label })),
        defaultValue: editingProduct?.measurements || [],
-       className: 'md:col-span-2'
+       className: 'md:col-span-2',
+       disabled: !selectedMethods.includes('manual')
     }
   ];
 
   const handleAddOrUpdate = async (data: any) => {
     const loadingToast = toast.loading(editingProduct ? 'Updating product...' : 'Creating product...');
     
-    // Ensure measurements is always an array
-    if (data.measurements && !Array.isArray(data.measurements)) {
-        data.measurements = [data.measurements];
-    } else if (!data.measurements) {
-        data.measurements = [];
-    }
+    // Normalize arrays
+    const normalize = (val: any) => {
+      if (!val) return [];
+      return Array.isArray(val) ? val : [val];
+    };
+
+    data.measurements = normalize(data.measurements);
+    data.entry_methods = normalize(data.entry_methods);
+    
+    if (!data.size_chart_id) data.size_chart_id = null;
 
     try {
       if (editingProduct) {
@@ -151,16 +196,15 @@ export default function ProductManagement() {
       ),
     },
     {
-      header: 'Gender / Target',
+      header: 'Strategy',
       accessor: (p) => (
-        <div className="flex items-center gap-2">
-            <Tag size={12} className="text-zinc-300" />
-            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                p.gender === 'Female' ? 'bg-pink-50 text-pink-500' : 
-                p.gender === 'Male' ? 'bg-blue-50 text-blue-500' : 'bg-zinc-50 text-zinc-500'
-            }`}>
-                {p.gender}
-            </span>
+        <div className="flex flex-col gap-1">
+           {p.entry_methods?.includes('manual') && (
+             <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded border border-blue-100 w-fit">Manual</span>
+           )}
+           {p.entry_methods?.includes('us_size_chart') && (
+             <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-black uppercase rounded border border-purple-100 w-fit">US Size Chart</span>
+           )}
         </div>
       )
     },
@@ -172,7 +216,7 @@ export default function ProductManagement() {
                     <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#f2994a] text-[8px] font-black uppercase rounded-md border border-orange-100/50">
                         {m}
                     </span>
-                )) || <span className="text-zinc-300 italic text-[10px]">None</span>}
+                )) || <span className="text-zinc-300 italic text-[10px]">Standard</span>}
             </div>
         )
     },
@@ -254,7 +298,7 @@ export default function ProductManagement() {
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
         title="Delete Product Article?"
-        message="This will remove the product from the catalog. Historical records using this product may still exist but it will be hidden from new selections."
+        message="This action will remove the article from the catalog database permanently."
         onConfirm={handleConfirmedDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
         confirmLabel="Confirm Deletion"

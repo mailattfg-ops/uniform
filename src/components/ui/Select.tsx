@@ -17,6 +17,7 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
   value?: string;
   defaultValue?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const Select: React.FC<SelectProps> = ({ 
@@ -31,6 +32,7 @@ export const Select: React.FC<SelectProps> = ({
   defaultValue,
   required,
   placeholder,
+  disabled = false,
   ...props 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,7 +66,10 @@ export const Select: React.FC<SelectProps> = ({
     }
   }, [isOpen]);
 
-  const handleToggle = () => setIsOpen(!isOpen);
+  const handleToggle = () => {
+    if (disabled) return;
+    setIsOpen(!isOpen);
+  };
 
   const handleSelect = (option: SelectOption) => {
     setInternalValue(option.value);
@@ -82,9 +87,9 @@ export const Select: React.FC<SelectProps> = ({
   const displayValue = selectedOption ? selectedOption.label : (placeholder || `Select ${label || ''}`);
 
   return (
-    <div className="flex flex-col gap-2 w-full group relative" ref={containerRef}>
+    <div className={`flex flex-col gap-2 w-full group relative ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`} ref={containerRef}>
       {label && (
-        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 transition-colors group-focus-within:text-[#2d8d9b]">
+        <label className={`text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 transition-colors ${!disabled ? 'group-focus-within:text-[#2d8d9b]' : ''}`}>
           {label}
         </label>
       )}
@@ -98,7 +103,7 @@ export const Select: React.FC<SelectProps> = ({
             isOpen ? 'border-[#2d8d9b] ring-8 ring-[#2d8d9b]/5' : (error ? 'border-red-500' : 'border-zinc-200/60 hover:border-zinc-300')
           } rounded-2xl transition-all text-sm font-black text-[#3a525d] flex items-center justify-between cursor-pointer shadow-sm active:scale-[0.99] ${
             icon ? 'pl-14' : ''
-          } ${className}`}
+          } ${disabled ? 'pointer-events-none bg-zinc-50' : ''} ${className}`}
         >
           <div className="flex items-center gap-3 overflow-hidden">
             {icon && (
@@ -116,7 +121,7 @@ export const Select: React.FC<SelectProps> = ({
           />
         </div>
 
-        {isOpen && (
+        {isOpen && !disabled && (
           <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-zinc-100 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-[999] animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden">
             <div className="p-2 border-b border-zinc-50 bg-zinc-50/30">
                <div className="relative group">
