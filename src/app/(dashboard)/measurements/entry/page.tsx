@@ -184,9 +184,16 @@ export default function MeasurementEntryPage() {
         const strategy = item.entry_methods?.[0] || 'manual';
         
         if (strategy === 'us_size_chart') {
-          const selectedSize = formData.get(`${prod.id}-size-chart`);
+          const chart = sizeCharts.find(c => c.id === prod.size_chart_id);
+          const selections: {[key: string]: string} = {};
+          
+          chart?.metric_groups?.forEach((group: any) => {
+            const val = formData.get(`${prod.id}-${group.label}`);
+            if (val) selections[group.label] = val.toString();
+          });
+
           dynamic_data[prod.name] = {
-            selected_size: selectedSize,
+            selected_size: selections,
             strategy: 'us_size_chart',
             chart_id: prod.size_chart_id
           };
@@ -494,71 +501,91 @@ export default function MeasurementEntryPage() {
 
                                   {/* Dynamic Strategy UI */}
                                   {item.entry_methods?.includes('us_size_chart') ? (
-                                    <div className="space-y-8">
+                                    <div className="space-y-12">
                                        {(() => {
                                           const chart = sizeCharts.find(c => c.id === prod.size_chart_id);
-                                          const sizes = chart?.metric_groups?.[0]?.data?.map((d: any) => d.size) || [];
-                                          const currentSize = selectedSizes[prod.id] || lastMeasurement?.dynamic_data?.[prod.name]?.selected_size;
-
+                                          
                                           return (
-                                             <>
-                                                <div className="flex items-center justify-between">
-                                                   <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Available Sizes Scaling</label>
-                                                   <div className="flex items-center gap-2 text-[#2d8d9b]">
-                                                      <Ruler size={12} />
-                                                      <span className="text-[9px] font-black uppercase tracking-widest">{chart?.name || 'Standard Chart'}</span>
-                                                   </div>
-                                                </div>
-
-                                                <input type="hidden" name={`${prod.id}-size-chart`} value={currentSize || ''} required />
+                                            <>
+                                              {chart?.metric_groups?.map((group: any) => {
+                                                const groupSizes = group.data?.map((d: any) => d.size) || [];
+                                                const selectionKey = `${prod.id}-${group.label}`;
                                                 
-                                                <div className="flex flex-wrap gap-4">
-                                                   {sizes.map((size: string) => {
-                                                      const isSelected = currentSize === size;
-                                                      return (
-                                                         <button
-                                                            key={size}
-                                                            type="button"
-                                                            onClick={() => setSelectedSizes(prev => ({...prev, [prod.id]: size}))}
-                                                            className={`min-w-[60px] h-[60px] flex items-center justify-center border-2 rounded-2xl transition-all font-black text-sm relative group ${
-                                                               isSelected 
-                                                               ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white shadow-xl scale-110 z-10' 
-                                                               : 'bg-white border-zinc-100 text-[#3a525d] hover:border-[#2d8d9b]/30'
-                                                            }`}
-                                                         >
-                                                            {size}
-                                                            {isSelected && <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                                               <ShieldCheck size={10} className="text-[#2d8d9b]" />
-                                                            </div>}
-                                                         </button>
-                                                      );
-                                                   })}
-                                                </div>
+                                                // Resolve current selection: state first, then history
+                                                const historyVal = lastMeasurement?.dynamic_data?.[prod.name]?.selected_size?.[group.label];
+                                                const currentSize = selectedSizes[selectionKey] || historyVal;
 
-                                                <div className="bg-[#fcf8f5] p-8 rounded-[2.5rem] border border-[#fce4d4]/50 shadow-inner">
-                                                   <div className="flex items-center gap-3 mb-6">
-                                                      <div className="w-1.5 h-6 bg-[#2d8d9b] rounded-full" />
-                                                      <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">
-                                                         Live Chart Reference <span className="text-[#2d8d9b] italic">{currentSize ? `(Size ${currentSize})` : '(Select a Size)'}</span>
-                                                      </h5>
+                                                return (
+                                                   <div key={group.label} className="space-y-6">
+                                                      <div className="flex items-center justify-between">
+                                                         <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                                                            Select {group.label}
+                                                         </label>
+                                                         <div className="flex items-center gap-2 text-[#2d8d9b]">
+                                                            <Ruler size={12} />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest">{chart?.name || 'Standard Chart'}</span>
+                                                         </div>
+                                                      </div>
+
+                                                      <input type="hidden" name={selectionKey} value={currentSize || ''} required />
+                                                      
+                                                      <div className="flex flex-wrap gap-4">
+                                                         {groupSizes.map((size: string) => {
+                                                            const isSelected = currentSize === size;
+                                                            return (
+                                                               <button
+                                                                  key={size}
+                                                                  type="button"
+                                                                  onClick={() => setSelectedSizes(prev => ({...prev, [selectionKey]: size}))}
+                                                                  className={`min-w-[70px] h-[70px] px-4 flex items-center justify-center border-2 rounded-2xl transition-all font-black text-sm relative group ${
+                                                                     isSelected 
+                                                                     ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white shadow-xl scale-110 z-10' 
+                                                                     : 'bg-white border-zinc-100 text-[#3a525d] hover:border-[#2d8d9b]/30'
+                                                                  }`}
+                                                               >
+                                                                  {size}
+                                                                  {isSelected && (
+                                                                     <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-300">
+                                                                        <ShieldCheck size={12} className="text-[#2d8d9b]" />
+                                                                     </div>
+                                                                  )}
+                                                               </button>
+                                                            );
+                                                         })}
+                                                      </div>
                                                    </div>
-                                                   
-                                                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-                                                      {chart?.metric_groups?.map((group: any) => {
-                                                         const metricValue = group.data.find((d: any) => d.size === currentSize)?.value || '--';
-                                                         return (
-                                                            <div key={group.label} className="bg-white p-6 rounded-3xl shadow-sm border border-[#fce4d4]/20 flex flex-col items-center group hover:bg-[#2d8d9b] transition-all">
-                                                               <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-white/60">{group.label}</span>
-                                                               <div className="flex items-baseline gap-1 mt-2">
-                                                                  <span className="text-xl font-black italic tracking-tighter text-[#3a525d] group-hover:text-white">{metricValue}</span>
-                                                                  <span className="text-[8px] font-black uppercase text-zinc-300 group-hover:text-white/40">{chart.unit}</span>
-                                                               </div>
-                                                            </div>
-                                                         );
-                                                      })}
-                                                   </div>
-                                                </div>
-                                             </>
+                                                );
+                                              })}
+
+                                              {/* Live Reference Card */}
+                                              <div className="bg-[#fcf8f5] p-8 rounded-[2.5rem] border border-[#fce4d4]/50 shadow-inner">
+                                                 <div className="flex items-center gap-3 mb-6">
+                                                    <div className="w-1.5 h-6 bg-[#2d8d9b] rounded-full" />
+                                                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">
+                                                       Live Chart Reference
+                                                    </h5>
+                                                 </div>
+                                                 
+                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+                                                    {chart?.metric_groups?.map((group: any) => {
+                                                       const selectionKey = `${prod.id}-${group.label}`;
+                                                       const currentVal = selectedSizes[selectionKey] || lastMeasurement?.dynamic_data?.[prod.name]?.selected_size?.[group.label];
+                                                       const metricValue = group.data.find((d: any) => d.size === currentVal)?.value || '--';
+                                                       
+                                                       return (
+                                                          <div key={group.label} className="bg-white p-6 rounded-3xl shadow-sm border border-[#fce4d4]/20 flex flex-col items-center group hover:bg-[#2d8d9b] transition-all">
+                                                             <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-white/60">{group.label}</span>
+                                                             {currentVal && <span className="text-[7px] font-bold text-[#2d8d9b] mb-1 group-hover:text-white/80">SIZE: {currentVal}</span>}
+                                                             <div className="flex items-baseline gap-1 mt-2">
+                                                                <span className="text-xl font-black italic tracking-tighter text-[#3a525d] group-hover:text-white">{metricValue}</span>
+                                                                <span className="text-[8px] font-black uppercase text-zinc-300 group-hover:text-white/40">{chart.unit}</span>
+                                                             </div>
+                                                          </div>
+                                                       );
+                                                    })}
+                                                 </div>
+                                              </div>
+                                            </>
                                           );
                                        })()}
                                     </div>
