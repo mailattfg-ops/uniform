@@ -50,6 +50,10 @@ export interface FormField {
   disabled?: boolean;
   hidden?: boolean;
   allowSpecialCharacters?: boolean;
+  onlyLetters?: boolean;
+  onlyNumbers?: boolean;
+  maxLength?: number;
+  pattern?: string;
   onChange?: (value: any) => void;
 }
 
@@ -195,6 +199,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   defaultValue={field.defaultValue}
                   disabled={field.disabled}
                   allowSpecialCharacters={field.allowSpecialCharacters}
+                  onlyLetters={field.onlyLetters}
+                  onlyNumbers={field.onlyNumbers}
+                  maxLength={field.maxLength}
+                  pattern={field.pattern}
                   onChange={(e: any) => {
                     if (field.onChange) field.onChange(e.target.value);
                   }}

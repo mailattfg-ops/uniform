@@ -6,15 +6,27 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   suffix?: string;
   icon?: React.ReactNode;
   allowSpecialCharacters?: boolean;
+  onlyLetters?: boolean;
+  onlyNumbers?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, suffix, icon, allowSpecialCharacters = false, className = '', ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, error, suffix, icon, allowSpecialCharacters = false, onlyLetters, onlyNumbers, className = '', ...props }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    if (onlyLetters) {
+      value = value.replace(/[0-9]/g, '');
+    }
+    if (onlyNumbers) {
+      value = value.replace(/[^0-9]/g, '');
+    }
+
     if (!allowSpecialCharacters && (props.type === 'text' || props.type === 'tel' || !props.type)) {
-      const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s\@\.\+\-\,\_]/g, '');
-      if (sanitized !== e.target.value) {
-        e.target.value = sanitized;
-      }
+      value = value.replace(/[^a-zA-Z0-9\s\@\.\+\-\,\_]/g, '');
+    }
+
+    if (value !== e.target.value) {
+      e.target.value = value;
     }
     props.onChange?.(e);
   };

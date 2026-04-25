@@ -318,7 +318,7 @@ export default function IndustryTemplatesPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          <Card className="lg:col-span-1 p-8 space-y-6">
+          <Card className="lg:col-span-1 p-8 space-y-6 h-fit">
             <h3 className="font-black italic text-lg text-[#3a525d] flex items-center gap-3">
               <Settings2 className="text-[#2d8d9b]" size={20} />
               Foundation Details
@@ -440,11 +440,7 @@ export default function IndustryTemplatesPage() {
                                      <button
                                        key={method}
                                        onClick={() => {
-                                         const current = item.entry_methods || [];
-                                         const next = current.includes(method) 
-                                           ? current.filter(m => m !== method)
-                                           : [...current, method];
-                                         handleUpdateProduct('male', idx, 'entry_methods', next);
+                                         handleUpdateProduct('male', idx, 'entry_methods', [method]);
                                        }}
                                        className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
                                          isActive 
@@ -535,11 +531,7 @@ export default function IndustryTemplatesPage() {
                                      <button
                                        key={method}
                                        onClick={() => {
-                                         const current = item.entry_methods || [];
-                                         const next = current.includes(method) 
-                                           ? current.filter(m => m !== method)
-                                           : [...current, method];
-                                         handleUpdateProduct('female', idx, 'entry_methods', next);
+                                         handleUpdateProduct('female', idx, 'entry_methods', [method]);
                                        }}
                                        className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
                                          isActive 

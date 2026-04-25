@@ -79,8 +79,9 @@ export default function DepartmentManagement() {
       name: 'name', 
       label: 'Department Name', 
       type: 'text', 
-      placeholder: 'e.g. Sales, HR, Production Line A, Grade 10-A', 
+      placeholder: 'e.g. Sales, HR, Production', 
       required: true,
+      maxLength: 20,
       defaultValue: editingDept?.name
     }
   ];

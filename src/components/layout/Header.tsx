@@ -87,10 +87,10 @@ export const Header: React.FC = () => {
             </div>
         </div>
 
-        <Button variant="ghost" className="p-2.5 h-auto rounded-2xl relative hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-zinc-100">
+        {/* <Button variant="ghost" className="p-2.5 h-auto rounded-2xl relative hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-zinc-100">
           <Bell size={20} className="text-[#3a525d]" />
           <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#f2994a] rounded-full border-2 border-white ring-2 ring-[#f2994a]/20" />
-        </Button>
+        </Button> */}
         
         <div className="h-6 w-[1px] bg-zinc-200 hidden sm:block" />
 

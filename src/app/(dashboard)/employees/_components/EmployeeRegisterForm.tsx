@@ -24,26 +24,50 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
     data: null
   });
 
+  // Form State
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [fullName, setFullName] = useState(initialData?.full_name || '');
+  const [phone, setPhone] = useState(initialData?.contact_mobile || '');
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[0-9]/g, '');
+    setFullName(value);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    if (value.length <= 15) {
+      setPhone(value);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
+    // Validation
+    if (phone.length < 10) {
+      toast.error('Mobile number should be at least 10 digits');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (initialData) {
-        await api.put(`/employees/${initialData.id}`, data);
-        toast.success(`${data.full_name}'s profile updated successfully`);
+        await api.put(`/employees/${initialData.id}`, { ...data, full_name: fullName, contact_mobile: phone });
+        toast.success(`${fullName}'s profile updated successfully`);
         onSuccess();
       } else {
-        const response = await api.post('/employees/register', data);
-        toast.success(`Hired! ${data.full_name} is now part of the team.`);
+        const response = await api.post('/employees/register', { ...data, full_name: fullName, contact_mobile: phone });
+        toast.success(`Hired! ${fullName} is now part of the team.`);
         
         // Show credentials popup
         setCredsModal({
           isOpen: true,
           data: {
-            full_name: data.full_name as string,
+            full_name: fullName,
             username: response.data.credentials.username,
             password: response.data.credentials.password
           }
@@ -95,9 +119,10 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
               <Input 
                 name="full_name" 
                 label="Full Official Name" 
-                placeholder="e.g. David Sterling" 
+                placeholder="Enter Full Name ..." 
                 required 
-                defaultValue={initialData?.full_name}
+                value={fullName}
+                onChange={handleNameChange}
                 icon={<Briefcase size={18} />}
               />
               <Input 
@@ -105,6 +130,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 label="Employee ID (Unique)" 
                 placeholder="e.g. EMP-2024-001" 
                 required 
+                maxLength={20}
                 defaultValue={initialData?.employee_id}
                 icon={<ShieldCheck size={18} />}
               />
@@ -113,6 +139,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 label="Designation / Role" 
                 placeholder="e.g. Senior Regional Manager" 
                 required 
+                maxLength={50}
                 defaultValue={initialData?.designation}
               />
               <Select 
@@ -124,18 +151,16 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                   { label: 'Measurements', value: 'Measurements' },
                   { label: 'Sales & Marketing', value: 'Sales' },
                   { label: 'Inventory & Logistics', value: 'Logistics' },
-                  // { label: 'Accounts & Finance', value: 'Finance' },
-                  // { label: 'Quality Control', value: 'QC' },
-                  // { label: 'Production staff', value: 'Production' }
                 ]}
               />
               <Input 
                 name="contact_mobile" 
                 label="Primary Contact No" 
-                placeholder="+91 88000 00000" 
+                placeholder="Numbers only (10-15 digits)" 
                 type="tel" 
                 required 
-                defaultValue={initialData?.contact_mobile}
+                value={phone}
+                onChange={handlePhoneChange}
                 icon={<Phone size={18} />}
               />
               <Input 
@@ -143,6 +168,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 label="Official Email (Optional)" 
                 placeholder="david@company.com" 
                 type="email" 
+                maxLength={100}
                 defaultValue={initialData?.email}
                 icon={<Mail size={18} />}
               />
@@ -151,6 +177,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 label="Date of Joining" 
                 type="date" 
                 required 
+                max={new Date().toISOString().split('T')[0]}
                 defaultValue={initialData?.joining_date?.split('T')[0] || new Date().toISOString().split('T')[0]}
                 icon={<Calendar size={18} />}
               />

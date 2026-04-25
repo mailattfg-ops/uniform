@@ -65,7 +65,9 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
   const studentFields: FormField[] = [
     { 
         name: 'full_name', label: 'Full Name', type: 'text', 
-        placeholder: 'e.g. Alex Johnson', required: true, 
+        placeholder: 'Enter Full Name...', required: true, 
+        onlyLetters: true,
+        maxLength: 25,
         defaultValue: initialData?.full_name 
     },
     { 
@@ -101,7 +103,9 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
     },
     { 
         name: 'contact_mobile', label: 'Contact Mobile', type: 'tel', 
-        placeholder: 'e.g. +91 9876543210',
+        placeholder: 'Numbers only (max 15)',
+        onlyNumbers: true,
+        maxLength: 15,
         defaultValue: initialData?.contact_mobile
     },
     {

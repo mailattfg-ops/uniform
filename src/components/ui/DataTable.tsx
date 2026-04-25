@@ -43,20 +43,36 @@ export function DataTable<T extends { id: string | number }>({
   };
 
   const filteredData = React.useMemo(() => {
-    if (!searchTerm) return data;
-    const lowerSearch = searchTerm.toLowerCase();
+    if (!searchTerm.trim()) return data;
     
+    const lowerSearch = searchTerm.toLowerCase().trim();
+    const searchWords = lowerSearch.split(/\s+/).filter(Boolean);
+    
+    // Deep flattener to extract all string values from an object/array
+    const getAllValues = (obj: any): string[] => {
+      let values: string[] = [];
+      if (obj === null || obj === undefined) return values;
+      
+      if (typeof obj === 'string' || typeof obj === 'number') {
+        values.push(obj.toString().toLowerCase());
+      } else if (Array.isArray(obj)) {
+        obj.forEach(item => {
+          values = values.concat(getAllValues(item));
+        });
+      } else if (typeof obj === 'object') {
+        Object.values(obj).forEach(val => {
+          values = values.concat(getAllValues(val));
+        });
+      }
+      return values;
+    };
+
     return data.filter(item => {
-      return Object.values(item as object).some(val => {
-        if (val === null || val === undefined) return false;
-        if (typeof val === 'string' || typeof val === 'number') {
-          return val.toString().toLowerCase().includes(lowerSearch);
-        }
-        if (Array.isArray(val)) {
-            return (val as any[]).some(v => v?.toString().toLowerCase().includes(lowerSearch));
-        }
-        return false;
-      });
+      const itemValues = getAllValues(item);
+
+      return searchWords.every(word => 
+        itemValues.some(val => val.includes(word))
+      );
     });
   }, [data, searchTerm]);
 
@@ -90,8 +106,16 @@ export function DataTable<T extends { id: string | number }>({
                    value={searchTerm}
                    onChange={handleSearchChange}
                    placeholder={searchPlaceholder} 
-                   className="bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-6 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-64 transition-all text-foreground shadow-sm"
+                   className="bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-64 transition-all text-foreground shadow-sm"
                  />
+                 {searchTerm && (
+                   <button 
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition-colors"
+                   >
+                     <ChevronRight size={14} className="rotate-45" />
+                   </button>
+                 )}
               </div>
             </div>
           </div>

@@ -94,8 +94,8 @@ export default function RoleManagementPage() {
       await api.delete(`/user/types/${id}`);
       toast.success('Role deleted successfully');
       fetchRoles();
-    } catch (err) {
-      toast.error('Failed to delete role');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete role');
     }
   };
 

@@ -66,8 +66,9 @@ export default function OrganizationsRegistry() {
       name: 'name', 
       label: 'Organization Name', 
       type: 'text', 
-      placeholder: 'e.g. Acme Corp or St. Xavier School', 
+      placeholder: 'Only letters allowed', 
       required: true, 
+      pattern: "[a-zA-Z\\s]*",
       defaultValue: editingOrg?.name 
     },
     { 
@@ -83,10 +84,11 @@ export default function OrganizationsRegistry() {
       label: 'Full Address', 
       type: 'text', 
       placeholder: 'Street, City, Country', 
+      maxLength: 200,
       defaultValue: editingOrg?.address 
     },
     ...(!editingOrg ? [
-      { name: 'username', label: 'Admin Username', type: 'text' as const, placeholder: 'e.g. admin_acme', required: true }
+      { name: 'username', label: 'Admin Username', type: 'text' as const, placeholder: 'Max 20 chars', required: true, maxLength: 20 }
     ] : [])
   ];
 
