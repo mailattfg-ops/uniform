@@ -41,7 +41,7 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Member Organizations', href: '/organizations/registry' },
       { label: 'Department Units', href: '/organizations/departments' },
-      { label: 'Master Registry', href: '/entities/directory' },
+      { label: 'Entity Registry', href: '/entities/directory' },
       // { label: 'Functional Groups', href: '/entities/groups' }
     ]
   },
@@ -58,10 +58,11 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Industry Sectors', href: '/admin/industries' },
       { label: 'Measurement Setup', href: '/admin/measures' },
+      { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
       { label: 'Product Registry', href: '/admin/products' },
       { label: 'Audit Logs', href: '/admin/audit' },
       { label: 'Staff Management', href: '/admin/employees' },
-      { label: 'System Settings', href: '/admin/settings' },
+      // { label: 'System Settings', href: '/admin/settings' },
       { label: 'User Roles', href: '/admin/roles' },
       { label: 'US Size Charts', href: '/admin/size-charts' }
     ]
@@ -179,27 +180,23 @@ export const Sidebar: React.FC = () => {
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
           <nav className="flex-1 overflow-y-auto no-scrollbar py-4 space-y-2">
             {modules.map((item) => {
-              // Get user from localStorage safely
-              const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-              const user = userStr ? JSON.parse(userStr) : null;
+              // Use the user state loaded in useEffect
               const userPermissions = user?.permissions || [];
               const isAdmin = userPermissions.includes('all');
 
-              // Permission Logic Mapping
+              // Permission Logic Mapping - Must match Modules array labels exactly
               const modulePermissionMap: Record<string, string[]> = {
-                'Industry Registry': ['view_schools', 'manage_classes', 'view_students', 'view_own_students'],
-                'Measurements': ['manage_measurements'],
-                'Admin Controls': ['manage_system'],
-                'Inventory Hub': ['manage_system']
+                'Sector Operations': ['view_schools', 'manage_schools', 'view_students', 'register_students'],
+                'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
+                'Admin Controls': ['manage_system', 'view_audit_logs'],
+                'Inventory Hub': ['manage_inventory', 'view_inventory']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
               const hasPermission = isAdmin || requiredPermissions.length === 0 || 
                                    requiredPermissions.some(rp => userPermissions.includes(rp));
               
-              if (!hasPermission) {
-                  return null;
-              }
+              if (!hasPermission) return null;
 
               const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) || 
                                    (item.href !== '/' && pathname === item.href) ||
@@ -235,20 +232,27 @@ export const Sidebar: React.FC = () => {
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
                         
-                        // Sub-permission logic
+                        // Sub-permission logic - Labels MUST match subsections array labels
                         const subPermissionMap: Record<string, string[]> = {
-                          'Organizations Registry': ['view_schools'],
-                          'Department Management': ['view_schools', 'manage_classes'],
-                          'Entity Directory': ['view_students', 'view_own_students'],
-                          'Entity Groups': ['view_students', 'view_own_students'],
-                          'Profiles': ['view_students', 'view_own_students'],
+                          'Member Organizations': ['view_schools', 'manage_schools'],
+                          'Department Units': ['view_schools', 'manage_schools'],
+                          'Entity Registry': ['view_students', 'register_students'],
                           'Record Entry': ['manage_measurements'],
                           'History': ['view_measurements'],
-                          'Templates': ['manage_measurements'],
-                          'Fabric Catalog': ['manage_system'],
-                          'Button Catalog': ['manage_system'],
-                          'Thread Catalog': ['manage_system'],
-                          'Design Hub': ['manage_system']
+                          'Industry Templates': ['manage_measurements'],
+                          'Industry Sectors': ['manage_system'],
+                          'Measurement Setup': ['manage_system'],
+                          'Measurements Approvals': ['manage_system'],
+                          'Product Registry': ['manage_products', 'view_products'],
+                          'Audit Logs': ['view_audit_logs'],
+                          'Staff Management': ['manage_employees', 'view_employees'],
+                          'System Settings': ['manage_system'],
+                          'User Roles': ['manage_system'],
+                          'US Size Charts': ['manage_size_charts', 'view_size_charts'],
+                          'Fabric Catalog': ['manage_inventory', 'view_inventory'],
+                          'Button Catalog': ['manage_inventory', 'view_inventory'],
+                          'Thread Catalog': ['manage_inventory', 'view_inventory'],
+                          'Design Hub': ['manage_inventory', 'view_inventory']
                         };
 
                         const requiredSubPerms = subPermissionMap[sub.label] || [];

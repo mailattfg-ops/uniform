@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Eye, Clock, CheckCircle2, MoreHorizontal, User, ShieldCheck } from 'lucide-react';
+import { Eye, Clock, ShieldCheck } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
 
 interface MeasurementRecord {
   id: string;
@@ -13,6 +14,7 @@ interface MeasurementRecord {
   recorded_at: string;
   dynamic_data: any;
   notes: string;
+  status: string;
   registry_members: {
     full_name: string;
     admission_no: string;
@@ -28,6 +30,7 @@ interface MeasurementRecord {
 export const MeasurementTable: React.FC = () => {
   const [data, setData] = useState<MeasurementRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRecord, setSelectedRecord] = useState<MeasurementRecord | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -98,11 +101,16 @@ export const MeasurementTable: React.FC = () => {
     },
     {
       header: 'Status',
-      accessor: () => (
+      accessor: (r) => (
         <div className="flex items-center gap-2">
-           <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg border border-green-100/50">
-              <ShieldCheck size={12} strokeWidth={3} />
-              <span className="text-[9px] font-black uppercase tracking-wider">Measured</span>
+           <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${
+             r.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100/50' : 
+             r.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-100/50' :
+             r.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-100/50' :
+             'bg-zinc-50 text-zinc-700 border-zinc-100'
+           }`}>
+              {r.status === 'Approved' ? <ShieldCheck size={12} strokeWidth={3} /> : <Clock size={12} strokeWidth={3} />}
+              <span className="text-[9px] font-black uppercase tracking-wider">{r.status || 'Verified'}</span>
            </div>
         </div>
       ),
@@ -129,9 +137,12 @@ export const MeasurementTable: React.FC = () => {
     },
     {
       header: 'Actions',
-      accessor: () => (
+      accessor: (r) => (
         <div className="flex gap-1 justify-end">
-          <button className="p-3 bg-zinc-50 hover:bg-[#2d8d9b] hover:text-white transition-all rounded-xl text-zinc-400 group">
+          <button 
+            onClick={() => setSelectedRecord(r)}
+            className="p-3 bg-zinc-50 hover:bg-[#2d8d9b] hover:text-white transition-all rounded-xl text-zinc-400 group"
+          >
             <Eye size={16} />
           </button>
         </div>
@@ -148,6 +159,12 @@ export const MeasurementTable: React.FC = () => {
         data={data}
         isLoading={isLoading}
         searchPlaceholder="Filter logic by member name or ID..."
+      />
+
+      <MeasurementDetailModal 
+        isOpen={!!selectedRecord}
+        onClose={() => setSelectedRecord(null)}
+        record={selectedRecord}
       />
     </div>
   );

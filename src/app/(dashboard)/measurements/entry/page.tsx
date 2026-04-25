@@ -222,8 +222,8 @@ export default function MeasurementEntryPage() {
       setMembers(prev => {
         const updated = prev.map(m => {
           if (String(m.id) === String(selectedMember.id)) {
-            console.log('[SizingHub] Match found. Injecting dummy measurement for:', m.full_name);
-            return { ...m, measurements: [{ id: 'temp' }] };
+            console.log('[SizingHub] Match found. Injecting pending status for:', m.full_name);
+            return { ...m, measurement_status: 'Pending' };
           }
           return m;
         });
@@ -311,10 +311,15 @@ export default function MeasurementEntryPage() {
                     }`}>
                       {m.gender || 'Not Set'}
                     </div>
-                    {(m.measurements && Array.isArray(m.measurements) && m.measurements.length > 0) ? (
+                    {m.measurement_status === 'Approved' ? (
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-green-100 animate-in zoom-in duration-500 shadow-sm">
                         <ShieldCheck size={10} strokeWidth={3} />
                         Measured
+                      </div>
+                    ) : m.measurement_status === 'Pending' ? (
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-100 animate-pulse shadow-sm">
+                        <Clock size={10} strokeWidth={3} />
+                        Reviewing
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-50 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-100 opacity-60">

@@ -19,6 +19,7 @@ export interface DataTableProps<T> {
   onSearch?: (term: string) => void;
   isLoading?: boolean;
   headerAction?: React.ReactNode;
+  pageSize?: number;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
@@ -30,11 +31,14 @@ export function DataTable<T extends { id: string | number }>({
   onSearch,
   isLoading,
   headerAction,
+  pageSize = 10,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1);
     if (onSearch) onSearch(e.target.value);
   };
 
@@ -43,7 +47,6 @@ export function DataTable<T extends { id: string | number }>({
     const lowerSearch = searchTerm.toLowerCase();
     
     return data.filter(item => {
-      // Check all values in the item for the search term
       return Object.values(item as object).some(val => {
         if (val === null || val === undefined) return false;
         if (typeof val === 'string' || typeof val === 'number') {
@@ -56,6 +59,12 @@ export function DataTable<T extends { id: string | number }>({
       });
     });
   }, [data, searchTerm]);
+
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = React.useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
 
   return (
     <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
@@ -112,8 +121,8 @@ export function DataTable<T extends { id: string | number }>({
                   ))}
                 </tr>
               ))
-            ) : filteredData.length > 0 ? (
-              filteredData.map((item) => (
+            ) : paginatedData.length > 0 ? (
+              paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
                   {columns.map((col, idx) => (
                     <td key={idx} className={`p-6 text-sm font-medium text-foreground ${col.className || ''}`}>
@@ -142,14 +151,24 @@ export function DataTable<T extends { id: string | number }>({
       {/* Modern Footer */}
       <div className="p-4 md:p-8 border-t border-[#fce4d4] flex flex-col md:flex-row justify-between items-center gap-4 bg-[#fce4d4]/5 transition-colors">
         <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
-          Total <span className="text-[#2d8d9b] text-sm md:text-base">{filteredData.length}</span> entries found
+          Showing <span className="text-[#2d8d9b] text-sm md:text-base">{Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)}</span> to <span className="text-[#2d8d9b] text-sm md:text-base">{Math.min(filteredData.length, currentPage * pageSize)}</span> of <span className="text-[#2d8d9b] text-xs md:text-sm font-black">{filteredData.length}</span> entries
         </span>
         <div className="flex gap-2 md:gap-3 w-full md:w-auto">
-          <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
+          <Button 
+            variant="secondary" 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase disabled:opacity-30"
+          >
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             Prev
           </Button>
-          <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
+          <Button 
+             variant="secondary" 
+             disabled={currentPage === totalPages || totalPages === 0}
+             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+             className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase disabled:opacity-30"
+          >
             Next
             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </Button>

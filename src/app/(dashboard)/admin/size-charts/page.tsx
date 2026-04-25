@@ -189,9 +189,19 @@ export default function SizeChartPage() {
     }));
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5; // Size charts are large, 5 is a better fit
+
   const filteredCharts = charts.filter(c => c.category === activeTab);
+  const totalPages = Math.ceil(filteredCharts.length / pageSize);
+  const paginatedCharts = filteredCharts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   if (isAdding) {
+    // ... remain same ...
     return (
       <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in zoom-in duration-500 pb-40">
          <div className="flex items-center justify-between">
@@ -409,7 +419,7 @@ export default function SizeChartPage() {
           <div className="py-20 flex justify-center">
             <div className="w-10 h-10 border-4 border-[#2d8d9b]/10 border-t-[#2d8d9b] rounded-full animate-spin" />
           </div>
-        ) : filteredCharts.length === 0 ? (
+        ) : paginatedCharts.length === 0 ? (
           <div className="grid justify-center py-20 text-center border-2 border-dashed border-zinc-100 rounded-[3rem]">
             <Package size={48} className="mx-auto text-zinc-200 mb-4" />
             <p className="text-zinc-400 font-bold italic">No size charts defined for this category</p>
@@ -424,7 +434,7 @@ export default function SizeChartPage() {
               Add New Chart
             </Button>
           </div>
-        ) : filteredCharts.map(chart => (
+        ) : paginatedCharts.map(chart => (
           <div key={chart.id} className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                {/* Measuring Advice */}
@@ -451,7 +461,7 @@ export default function SizeChartPage() {
                            </div>
                            <p className="text-xs font-black text-[#3a525d]">US Bottom Sizing</p>
                            <p className="text-[9px] text-zinc-400 text-center mt-3 font-medium leading-relaxed">
-                               Check waist measurement and leg length options.
+                                Check waist measurement and leg length options.
                            </p>
                         </>
                       )}
@@ -520,6 +530,41 @@ export default function SizeChartPage() {
             </div>
           </div>
         ))}
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+           <div className="flex justify-center items-center gap-4 py-8 border-t border-zinc-100 mt-10">
+              <Button 
+                variant="secondary" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest disabled:opacity-30"
+              >
+                 &larr; Prev Charts
+              </Button>
+              <div className="flex items-center gap-2">
+                 {[...Array(totalPages)].map((_, i) => (
+                    <button 
+                       key={i}
+                       onClick={() => setCurrentPage(i + 1)}
+                       className={`w-10 h-10 rounded-xl font-black text-xs transition-all ${
+                          currentPage === i + 1 ? 'bg-[#2d8d9b] text-white shadow-lg' : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
+                       }`}
+                    >
+                       {i + 1}
+                    </button>
+                 ))}
+              </div>
+              <Button 
+                variant="secondary" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest disabled:opacity-30"
+              >
+                 Next Charts &rarr;
+              </Button>
+           </div>
+        )}
 
         <div className="flex justify-center pt-10">
            <Button 

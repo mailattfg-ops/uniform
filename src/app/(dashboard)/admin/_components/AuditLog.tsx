@@ -1,29 +1,68 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Activity, Clock, Edit, UserPlus, Database } from 'lucide-react';
+import { Activity, Clock, Edit, UserPlus, Database, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import api from '@/lib/api';
 
 interface AuditEntry {
   id: string;
   action: string;
+  entity_type: string;
   user: string;
   details: string;
   time: string;
-  impact: 'Low' | 'Medium' | 'High';
 }
 
-const mockLogs: AuditEntry[] = [
-  { id: 'LOG-001', action: 'Login', user: 'Admin', details: 'Successful login from 192.168.1.1', time: '10:05 AM', impact: 'Low' },
-  { id: 'LOG-002', action: 'Update', user: 'Sarah J.', details: 'Updated measurements for RID-M-101', time: '11:30 AM', impact: 'Medium' },
-  { id: 'LOG-003', action: 'Delete', user: 'System', details: 'Auto-purged temporary cache logs', time: '12:00 PM', impact: 'Low' },
-];
-
 export const AuditLog: React.FC = () => {
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isMissingSchema, setIsMissingSchema] = useState(false);
+
+  useEffect(() => {
+    api.get('/audit')
+      .then(res => {
+        if (res.data.error === 'SCHEMA_MISSING') {
+            setIsMissingSchema(true);
+        } else {
+            setLogs(res.data);
+        }
+      })
+      .catch(err => {
+        console.error('Audit fetch error:', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const getActionLabel = (action: string, entity: string) => {
+    const act = (action || 'ACTION').toUpperCase();
+    const ent = (entity || 'SYSTEM').toUpperCase();
+    
+    const labels: Record<string, string> = {
+      'CREATE_MEMBER': 'Member Registration',
+      'UPDATE_MEMBER': 'Member Profile Update',
+      'DELETE_MEMBER': 'Member De-registered',
+      'SAVE_MEASUREMENT': 'Measurement Logged',
+      'UPDATE_ORGANIZATION': 'Organization Updated',
+      'CREATE_ORGANIZATION': 'New Organization Added',
+      'LOGIN_AUTH': 'System Login',
+      'CREATE_PRODUCT': 'Inventory Item Added',
+      'UPDATE_PRODUCT': 'Product Article Updated',
+      'APPROVED_MEASUREMENT': 'Measurement Approved',
+      'REJECTED_MEASUREMENT': 'Measurement Rejected',
+    };
+
+    return labels[`${act}_${ent}`] || `${act} ${ent}`;
+  };
+
   const getActionIcon = (action: string) => {
-    if (action === 'Login') return <Activity size={16} className="text-success" />;
-    if (action === 'Update') return <Edit size={16} className="text-[#2d8d9b]" />;
-    return <Database size={16} className="text-muted-foreground" />;
+    const act = action.toUpperCase();
+    if (act.includes('LOGIN')) return <Activity size={16} className="text-emerald-500" />;
+    if (act.includes('APPROVED')) return <CheckCircle2 size={16} className="text-green-500" />;
+    if (act.includes('REJECTED')) return <XCircle size={16} className="text-red-500" />;
+    if (act.includes('UPDATE') || act.includes('SAVE')) return <Edit size={16} className="text-amber-500" />;
+    if (act.includes('CREATE')) return <UserPlus size={16} className="text-[#2d8d9b]" />;
+    return <Database size={16} className="text-zinc-400" />;
   };
 
   const columns: Column<AuditEntry>[] = [
@@ -35,8 +74,8 @@ export const AuditLog: React.FC = () => {
             {getActionIcon(l.action)}
           </div>
           <div>
-            <p className="font-bold text-[12px]">{l.action}</p>
-            <p className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 tracking-widest">{l.id}</p>
+            <p className="font-bold text-[12px]">{getActionLabel(l.action, l.entity_type)}</p>
+            <p className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 tracking-widest leading-none">REF-{l.id}</p>
           </div>
         </div>
       ),
@@ -48,10 +87,45 @@ export const AuditLog: React.FC = () => {
       ),
     },
     {
-       header: 'Event Details',
-       accessor: (l) => (
-         <p className="text-xs text-muted-foreground font-medium italic">"{l.details}"</p>
-       ),
+       header: 'Action Details',
+       accessor: (l) => {
+         try {
+           const d = JSON.parse(l.details);
+           
+           // Measurement specific formatting
+           if (l.action === 'SAVE' && l.entity_type === 'measurement') {
+             return (
+               <div className="space-y-1">
+                 <p className="text-xs text-[#2d8d9b] font-bold uppercase tracking-tight">Size: {d.suggested_size || 'N/A'}</p>
+                 {d.notes && <p className="text-[10px] text-muted-foreground italic truncate max-w-[300px]">Notes: "{d.notes}"</p>}
+               </div>
+             );
+           }
+
+           // Update specific formatting (Entity Field Diff)
+           if (l.action === 'UPDATE') {
+             return (
+               <div className="space-y-1">
+                 <p className="text-[10px] font-bold text-[#3a525d] uppercase tracking-tighter">Fields Modified</p>
+                 <div className="flex flex-wrap gap-1">
+                    {Object.keys(d.updated_fields || d || {}).map(k => (
+                      <span key={k} className="text-[8px] bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-500 font-bold uppercase">{k.replace('_', ' ')}</span>
+                    ))}
+                 </div>
+               </div>
+             );
+           }
+
+           // Create specific formatting
+           if (l.action === 'CREATE') {
+            return <p className="text-xs text-muted-foreground font-medium">New Record: <span className="text-[#3a525d] font-bold">{d.name || d.full_name || 'System Generated'}</span></p>;
+           }
+
+           return <p className="text-xs text-muted-foreground italic truncate max-w-[400px]">"{l.details}"</p>;
+         } catch (e) {
+           return <p className="text-xs text-muted-foreground italic truncate max-w-[400px]">"{l.details}"</p>;
+         }
+       },
     },
     {
        header: 'Timestamp',
@@ -64,12 +138,34 @@ export const AuditLog: React.FC = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="h-[400px] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#2d8d9b]" size={32} />
+      </div>
+    );
+  }
+
+  if (isMissingSchema) {
+    return (
+        <div className="p-12 bg-white rounded-[2.5rem] border-2 border-dashed border-zinc-100 flex flex-col items-center text-center space-y-6">
+            <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500">
+                <Database size={40} />
+            </div>
+            <div className="space-y-2 max-w-md">
+                <h3 className="text-xl font-black text-[#3a525d]">Audit Logs are Offline</h3>
+                <p className="text-sm text-muted-foreground font-medium">The database table for tracking activity hasn't been created yet. Please copy the SQL from `backend/migrations/create_audit_logs_table.sql` and run it in your Supabase SQL Editor.</p>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <DataTable 
       title="Audit Logs" 
-      subtitle="Complete system trace and activity monitoring"
+      subtitle="Complete system trace and activity monitoring (Who updated what)"
       columns={columns} 
-      data={mockLogs} 
+      data={logs} 
     />
   );
 };

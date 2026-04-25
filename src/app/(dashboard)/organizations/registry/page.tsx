@@ -59,6 +59,8 @@ export default function OrganizationsRegistry() {
     fetchData();
   }, []);
 
+  const generateInitialPassword = () => Math.random().toString(36).slice(-6).toUpperCase();
+
   const orgFields: FormField[] = [
     { 
       name: 'name', 
@@ -84,31 +86,32 @@ export default function OrganizationsRegistry() {
       defaultValue: editingOrg?.address 
     },
     ...(!editingOrg ? [
-      { name: 'username', label: 'Admin Username', type: 'text' as const, placeholder: 'e.g. admin_acme', required: true },
-      { name: 'password', label: 'Initial Password', type: 'password' as const, placeholder: 'Set login password', required: true }
+      { name: 'username', label: 'Admin Username', type: 'text' as const, placeholder: 'e.g. admin_acme', required: true }
     ] : [])
   ];
 
-  const handleAddOrUpdate = async (data: any) => {
+  const handleAddOrUpdate = async (formData: any) => {
     const loadingToast = toast.loading(editingOrg ? 'Updating organization...' : 'Registering organization...');
     try {
       if (editingOrg) {
-        await api.put(`/organizations/${editingOrg.id}`, data);
+        await api.put(`/organizations/${editingOrg.id}`, formData);
         toast.success('Organization updated successfully!', { id: loadingToast });
       } else {
-        const response = await api.post('/organizations', data);
+        // Auto-generate password for new organization
+        const autoPassword = generateInitialPassword();
+        const submissionData = { ...formData, password: autoPassword };
+        
+        const response = await api.post('/organizations', submissionData);
         toast.success('Organization registered successfully!', { id: loadingToast });
         
-        if (data.username && data.password) {
-          setCredsModal({
-            isOpen: true,
-            data: {
-              full_name: data.name,
-              username: data.username,
-              password: data.password
-            }
-          });
-        }
+        setCredsModal({
+          isOpen: true,
+          data: {
+            full_name: formData.name,
+            username: formData.username,
+            password: autoPassword
+          }
+        });
       }
       setIsAdding(false);
       setEditingOrg(null);

@@ -155,13 +155,29 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
     },
     {
       header: 'Status',
-      accessor: (e) => (
+      accessor: (e: any) => (
         <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${
           e.status === 'Active' ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'
         }`}>
           {e.status || 'Active'}
         </span>
       ),
+    },
+    {
+        header: 'Measurement Status',
+        accessor: (e: any) => {
+          const status = e.measurement_status || 'Missing';
+          const colors: Record<string, string> = {
+            'Approved': 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
+            'Pending': 'bg-amber-500/10 text-amber-600 border border-amber-500/20 animate-pulse',
+            'Missing': 'bg-zinc-100 text-zinc-400 border border-zinc-200'
+          };
+          return (
+            <span className={`text-[9px] font-black uppercase tracking-[0.1em] px-3 py-1 rounded-lg ${colors[status]}`}>
+              {status === 'Pending' ? 'Awaiting Review' : status}
+            </span>
+          );
+        }
     },
     {
       header: 'Actions',
