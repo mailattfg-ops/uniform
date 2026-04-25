@@ -34,11 +34,11 @@ export default function DashboardPage() {
   return (
     <div className="grid grid-cols-12 gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-1000">
       
-      {/* Top Row - Total Students */}
+      {/* Top Row - Total Members */}
       <div className="col-span-12 lg:col-span-8 bg-gradient-to-br from-[#6fa1ac] to-[#2d8d9b] rounded-[3.5rem] p-12 min-h-[400px] relative overflow-hidden text-white flex flex-col justify-between shadow-2xl shadow-[#2d8d9b]/30">
         <div className="z-10">
-          <p className="text-xl font-medium opacity-90 tracking-wide">Total Registered Students</p>
-          <h1 className="text-9xl font-black mt-2 drop-shadow-lg">{stats?.totalStudents || 0}</h1>
+          <p className="text-xl font-medium opacity-90 tracking-wide">Total Registered Members</p>
+          <h1 className="text-9xl font-black mt-2 drop-shadow-lg">{stats?.totalMembers || 0}</h1>
         </div>
         
         <div className="space-y-6 z-10">
@@ -47,8 +47,8 @@ export default function DashboardPage() {
                <Star size={20} fill="white" />
              </div>
              <div>
-               <p className="text-[11px] opacity-70 font-black tracking-widest uppercase">Member Schools</p>
-               <p className="font-bold text-xl">{stats?.totalSchools || 0}</p>
+               <p className="text-[11px] opacity-70 font-black tracking-widest uppercase">Member Organizations</p>
+               <p className="font-bold text-xl">{stats?.totalOrganizations || 0}</p>
              </div>
            </div>
            <div className="flex items-center gap-4">
@@ -56,7 +56,7 @@ export default function DashboardPage() {
                <Activity size={20} />
              </div>
              <div>
-               <p className="text-[11px] opacity-70 font-black tracking-widest uppercase">Measurements</p>
+               <p className="text-[11px] opacity-70 font-black tracking-widest uppercase">Measurements Captured</p>
                <p className="font-bold text-xl">{stats?.totalMeasurements || 0}</p>
              </div>
            </div>
@@ -80,67 +80,66 @@ export default function DashboardPage() {
       <div className="col-span-12 lg:col-span-4 bg-[#fce4d4] rounded-[3.5rem] p-12 flex flex-col justify-between relative shadow-xl shadow-[#fce4d4]/50">
          <div className="flex justify-between items-start">
             <div>
-              <p className="text-xl font-bold text-[#8b6b5a]">Utilization rate</p>
-              <h2 className="text-8xl font-black text-[#1a1a1a] mt-2">{stats?.popularity || 87}<span className="text-2xl align-top relative top-4">%</span></h2>
+              <p className="text-xl font-bold text-[#8b6b5a]">Deployment Reach</p>
+              <h2 className="text-8xl font-black text-[#1a1a1a] mt-2">{stats?.reach || 87}<span className="text-2xl align-top relative top-4">%</span></h2>
             </div>
             <div className="w-32 h-32 relative">
               <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
                 <circle cx="18" cy="18" r="16" fill="none" stroke="white" strokeWidth="3" opacity="0.3" />
-                <circle cx="18" cy="18" r="16" fill="none" stroke="#f2994a" strokeWidth="3" strokeDasharray={`${stats?.popularity || 87}, 100`} strokeLinecap="round" />
+                <circle cx="18" cy="18" r="16" fill="none" stroke="#f2994a" strokeWidth="3" strokeDasharray={`${stats?.reach || 87}, 100`} strokeLinecap="round" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                 <span className="text-[#f2994a] font-black text-xs">+{stats?.newStudentsThisMonth || 0}</span>
+                 <span className="text-[#f2994a] font-black text-xs">+{stats?.newMembersThisMonth || 0}</span>
               </div>
             </div>
          </div>
 
-         <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 space-y-4 shadow-sm border border-white">
-            <p className="text-sm text-[#444] leading-relaxed font-medium">
-              Data reflects current student <span className="font-black text-[#1a1a1a]">onboarding progress</span> and measurement completion across institutions.
+         <div className="bg-[#3a525d] text-white rounded-[2.5rem] p-8 space-y-5 shadow-2xl shadow-[#3a525d]/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/10 transition-colors" />
+            <p className="text-sm opacity-80 leading-relaxed font-bold tracking-tight">
+              Real-time analytics monitor <span className="text-[#f2994a]">Enterprise Expansion</span> and regional deployment efficiency across all nodes.
             </p>
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-              <span className="text-[11px] font-black opacity-50 flex items-center gap-2 tracking-wider">
-                 <Search size={14} />
-                 ANALYZE DATA
-              </span>
-              <button className="w-10 h-10 rounded-full bg-[#f2994a] hover:bg-[#e67e22] transition-colors flex items-center justify-center text-white shadow-lg">
-                 <Play size={16} fill="white" />
-              </button>
+            <div className="flex items-center justify-between pt-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-2 h-2 rounded-full bg-[#f2994a] animate-pulse shadow-[0_0_8px_#f2994a]" />
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Live Intelligence</span>
+              </div>
+              {/* <button className="px-6 py-3 rounded-xl bg-white text-[#3a525d] hover:bg-[#f2994a] hover:text-white transition-all flex items-center gap-3 font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95">
+                 Expand Insight
+                 <ChevronRight size={14} strokeWidth={3} />
+              </button> */}
             </div>
          </div>
       </div>
 
       {/* Activity Performance */}
       <div className="col-span-12 lg:col-span-4 bg-zinc-50/50 rounded-[3rem] p-8 border border-zinc-100">
-        <h3 className="text-xl font-black mb-8 tracking-tight text-[#3a525d]">Measurement Volume</h3>
+        <h3 className="text-xl font-black mb-8 tracking-tight text-[#3a525d]">Product Registry</h3>
         <div className="space-y-8">
            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-[#2d8d9b] flex items-center justify-center text-white text-xl font-black shadow-lg shadow-[#2d8d9b]/20">M</div>
+              <div className="w-14 h-14 rounded-2xl bg-[#2d8d9b] flex items-center justify-center text-white text-xl font-black shadow-lg shadow-[#2d8d9b]/20">P</div>
               <div>
-                 <p className="text-3xl font-black tracking-tighter">{stats?.totalMeasurements || 0}</p>
-                 <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest leading-none mt-1">Total Records Taken</p>
+                 <p className="text-3xl font-black tracking-tighter">{stats?.totalProducts || 0}</p>
+                 <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest leading-none mt-1">Total Uniform Articles</p>
               </div>
            </div>
-           <div className="flex justify-between items-end h-32 gap-3 px-2">
-              {[3, 6, 4, 8, 5, 9].map((h, i) => (
-                <div key={i} className="flex-1 bg-zinc-100 rounded-full relative overflow-hidden h-full">
-                  <div className="absolute bottom-0 w-full bg-[#2d8d9b] rounded-full transition-all duration-1000 ease-out" style={{height: `${h*10}%`}} />
-                </div>
-              ))}
-           </div>
-           <div className="flex justify-between text-[11px] font-black text-zinc-300 tracking-widest px-1">
-              <span>DEC</span><span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span>
+           <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-[#f2994a] flex items-center justify-center text-white text-xl font-black shadow-lg shadow-[#f2994a]/20">I</div>
+              <div>
+                 <p className="text-3xl font-black tracking-tighter">{stats?.totalInventory || 0}</p>
+                 <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest leading-none mt-1">Inventory Items</p>
+              </div>
            </div>
         </div>
       </div>
 
       <div className="col-span-12 lg:col-span-4 bg-zinc-50/50 rounded-[3rem] p-8 border border-zinc-100">
-        <h3 className="text-xl font-black mb-8 tracking-tight text-[#3a525d]">System Status</h3>
+        <h3 className="text-xl font-black mb-8 tracking-tight text-[#3a525d]">Global Metrics</h3>
         <div className="space-y-6">
            {[
-             { name: 'Database API', status: 'Healthy', score: '99.9', color: 'green' },
-             { name: 'Asset Server', status: 'Online', score: '98.2', color: 'green' },
-             { name: 'Vercel Edge', status: 'Optimized', score: '12ms', color: 'zinc' }
+             { name: 'Member Onboarding', status: 'Active', score: stats?.totalMembers || 0, color: 'green' },
+             { name: 'Measurement Log', status: 'Healthy', score: stats?.totalMeasurements || 0, color: 'green' },
+             { name: 'Organization Sync', status: 'Optimized', score: stats?.totalOrganizations || 0, color: 'zinc' }
            ].map((p, i) => (
              <div key={i} className="flex items-center justify-between group transition-all">
                 <div className="flex items-center gap-5">

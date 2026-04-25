@@ -63,18 +63,23 @@ const modules: ModuleItem[] = [
       { label: 'Staff Management', href: '/admin/employees' },
       { label: 'System Settings', href: '/admin/settings' },
       { label: 'User Roles', href: '/admin/roles' },
+      { label: 'US Size Charts', href: '/admin/size-charts' }
+    ]
+  },
+  {
+    icon: Box, label: 'Inventory Hub', href: '/admin/inventory/fabrics',
+    subsections: [
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
       { label: 'Design Hub', href: '/admin/inventory/designs' },
-      { label: 'Standard Size Charts', href: '/admin/size-charts' }
     ]
   },
   { 
     icon: Settings, label: 'Settings', href: '/settings/profile',
     subsections: [
       { label: 'Profile', href: '/settings/profile' },
-      { label: 'Company Info', href: '/settings/company' }
+      // { label: 'Company Info', href: '/settings/company' }
     ]
   },
 ];
@@ -184,7 +189,8 @@ export const Sidebar: React.FC = () => {
               const modulePermissionMap: Record<string, string[]> = {
                 'Industry Registry': ['view_schools', 'manage_classes', 'view_students', 'view_own_students'],
                 'Measurements': ['manage_measurements'],
-                'Admin Controls': ['manage_system'] // Only admin or specific managers
+                'Admin Controls': ['manage_system'],
+                'Inventory Hub': ['manage_system']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
@@ -195,8 +201,8 @@ export const Sidebar: React.FC = () => {
                   return null;
               }
 
-              const isPathActive = item.subsections.some(sub => pathname.startsWith(sub.href)) || 
-                                   pathname.startsWith(item.href.split('/').slice(0, 2).join('/')) || 
+              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) || 
+                                   (item.href !== '/' && pathname === item.href) ||
                                    (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);

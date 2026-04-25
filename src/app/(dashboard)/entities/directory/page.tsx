@@ -1,17 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StudentTable } from '../_components/StudentTable';
 import { StudentRegisterForm } from '../_components/StudentRegisterForm';
 import { BulkUpload } from '../_components/BulkUpload';
 import { ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 
 type ViewState = 'list' | 'register' | 'bulk';
 
 export default function StudentDirectoryPage() {
   const [view, setView] = useState<ViewState>('list');
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/dashboard/stats');
+        setStats(res.data);
+      } catch (err) {
+        console.error('Stats fetch failed');
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleEdit = (student: any) => {
     setEditingStudent(student);
@@ -63,19 +77,21 @@ export default function StudentDirectoryPage() {
       default:
         return (
           <div className="space-y-6 md:space-y-8">
-            {/* Quick Stats (Keep as part of directory) */}
+            {/* Quick Stats (Now Live) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               <div className="p-4 md:p-6 bg-[#fce4d4] rounded-[2rem] md:rounded-[2.5rem] flex flex-col justify-between h-28 md:h-32 shadow-lg border border-white">
-                <span className="font-black text-[9px] md:text-[11px] text-[#8b6b5a] uppercase tracking-widest">Total Students</span>
-                <h4 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#1a1a1a]">1,248</h4>
+                <span className="font-black text-[9px] md:text-[11px] text-[#8b6b5a] uppercase tracking-widest">Total Registered Members</span>
+                <h4 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#1a1a1a]">{stats?.totalMembers || '...'}</h4>
               </div>
               <div className="p-4 md:p-6 bg-[#6fa1ac]/10 rounded-[2rem] md:rounded-[2.5rem] border border-[#6fa1ac]/30 flex flex-col justify-between h-28 md:h-32">
-                <span className="font-black text-[9px] md:text-[11px] text-[#2d8d9b] uppercase tracking-widest">Pending Measures</span>
-                <h4 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#2d8d9b]">84</h4>
+                <span className="font-black text-[9px] md:text-[11px] text-[#2d8d9b] uppercase tracking-widest">Measurements Captured</span>
+                <h4 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#2d8d9b]">{stats?.totalMeasurements || '...'}</h4>
               </div>
               <div className="p-4 md:p-6 bg-[#f2994a] rounded-[2rem] md:rounded-[2.5rem] flex flex-col justify-between h-28 md:h-32 shadow-lg border-white">
-                <span className="font-black text-[9px] md:text-[11px] text-white uppercase tracking-widest leading-none">Completed Orders</span>
-                <h4 className="text-2xl md:text-3xl font-black italic tracking-tighter text-white">312</h4>
+                <span className="font-black text-[9px] md:text-[11px] text-white uppercase tracking-widest leading-none">Pending Measures</span>
+                <h4 className="text-2xl md:text-3xl font-black italic tracking-tighter text-white">
+                  {stats ? (stats.totalMembers - stats.totalMeasurements) : '...'}
+                </h4>
               </div>
             </div>
             <StudentTable 
