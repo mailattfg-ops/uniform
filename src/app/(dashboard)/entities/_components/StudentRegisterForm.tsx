@@ -15,53 +15,52 @@ interface StudentRegisterFormProps {
 
 export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCancel, initialData }) => {
   const router = useRouter();
-  const [schools, setSchools] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<string>(initialData?.school_id || '');
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string>(initialData?.organization_id || initialData?.school_id || '');
   const [isLoading, setIsLoading] = useState(true);
   const [generatedCreds, setGeneratedCreds] = useState<any | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
 
   useEffect(() => {
-    const fetchSchools = async () => {
+    const fetchOrgs = async () => {
       try {
         const userStr = localStorage.getItem('user');
         const user = userStr ? JSON.parse(userStr) : null;
-        const isSchoolRole = user?.role?.toLowerCase() === 'school';
+        const isOrgRole = user?.role?.toLowerCase() === 'school' || user?.role?.toLowerCase() === 'organization';
 
-        if (isSchoolRole && user.schoolId) {
-          // Force select their own school
-          const schoolData = { label: user.schoolName || user.fullName, value: user.schoolId };
-          setSchools([schoolData]);
-          setSelectedSchool(user.schoolId.toString());
+        if (isOrgRole && (user.schoolId || user.organizationId)) {
+          const orgData = { label: user.schoolName || user.organizationName || user.fullName, value: user.schoolId || user.organizationId };
+          setOrganizations([orgData]);
+          setSelectedOrg((user.schoolId || user.organizationId).toString());
         } else {
-          const response = await api.get('/schools');
-          setSchools(response.data.map((s: any) => ({ label: s.name, value: s.id })));
+          const response = await api.get('/organizations');
+          setOrganizations(response.data.map((o: any) => ({ label: o.name, value: o.id })));
         }
       } catch (err) {
-        toast.error('Failed to load schools');
+        toast.error('Failed to load organizations');
       } finally {
         setIsLoading(false);
       }
     };
-    fetchSchools();
+    fetchOrgs();
   }, []);
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      if (!selectedSchool) {
-        setClasses([]);
+    const fetchDepts = async () => {
+      if (!selectedOrg) {
+        setDepartments([]);
         return;
       }
       try {
-        const response = await api.get(`/schools/classes?schoolId=${selectedSchool}`);
-        setClasses(response.data.map((c: any) => ({ label: c.name, value: c.id })));
+        const response = await api.get(`/departments?orgId=${selectedOrg}`);
+        setDepartments(response.data.map((d: any) => ({ label: d.name, value: d.id })));
       } catch (err) {
-        toast.error('Failed to load classes');
+        toast.error('Failed to load departments');
       }
     };
-    fetchClasses();
-  }, [selectedSchool]);
+    fetchDepts();
+  }, [selectedOrg]);
 
   const studentFields: FormField[] = [
     { 
@@ -70,8 +69,8 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
         defaultValue: initialData?.full_name 
     },
     { 
-        name: 'admission_no', label: 'Admission Number', type: 'text', 
-        placeholder: 'e.g. SD-2024-001', required: true,
+        name: 'admission_no', label: 'Reference ID / ID', type: 'text', 
+        placeholder: 'e.g. EMP-101 or SD-2024-001', required: true,
         defaultValue: initialData?.admission_no
     },
     {
@@ -85,20 +84,20 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
       defaultValue: initialData?.gender || 'Male'
     },
     { 
-      name: 'school_id', label: 'Select School', type: 'select', 
-      options: schools,
+      name: 'school_id', label: 'Organization', type: 'select', 
+      options: organizations,
       required: true,
-      defaultValue: initialData?.school_id,
-      value: selectedSchool,
-      onChange: (val) => setSelectedSchool(val)
+      defaultValue: initialData?.organization_id || initialData?.school_id,
+      value: selectedOrg,
+      onChange: (val) => setSelectedOrg(val)
     },
     { 
       name: 'class_id', 
-      label: 'Class / Grade', 
+      label: 'Department / Unit', 
       type: 'select', 
-      options: classes.length > 0 ? classes : [{ label: 'Select School First', value: '' }], 
+      options: departments.length > 0 ? departments : [{ label: 'Select Organization First', value: '' }], 
       required: true,
-      defaultValue: initialData?.class_id
+      defaultValue: initialData?.department_id || initialData?.class_id
     },
     { 
         name: 'contact_mobile', label: 'Contact Mobile', type: 'tel', 
@@ -126,13 +125,13 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
 
   const handleSubmit = async (data: any) => {
     const isEditing = !!initialData;
-    const loadingToast = toast.loading(isEditing ? 'Updating student record...' : 'Registering student and creating account...');
+    const loadingToast = toast.loading(isEditing ? 'Updating record...' : 'Registering member and creating account...');
     
     try {
       if (isEditing) {
         await api.put(`/students/${initialData.id}`, data);
-        toast.success('Student profile updated!', { id: loadingToast });
-        if (onCancel) onCancel(); // Return to list
+        toast.success('Profile updated!', { id: loadingToast });
+        if (onCancel) onCancel();
       } else {
         const response = await api.post('/students/register', data);
         toast.success('Registration complete!', { id: loadingToast });
@@ -142,7 +141,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
         });
       }
     } catch (err) {
-      toast.error('Action failed. Check if Admission No exists.', { id: loadingToast });
+      toast.error('Action failed. Check if ID exists.', { id: loadingToast });
     }
   };
 
@@ -155,20 +154,20 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
               <UserCheck size={40} />
             </div>
             <h2 className="text-3xl font-black tracking-tight italic">Registration Successful!</h2>
-            <p className="text-[#fce4d4] font-bold uppercase tracking-widest text-xs mt-2 opacity-80">Login Account Created for student</p>
+            <p className="text-[#fce4d4] font-bold uppercase tracking-widest text-xs mt-2 opacity-80">Access Portal Account Generated</p>
           </div>
 
           <div className="p-10 space-y-8">
             <div className="space-y-4">
                <div className="p-6 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Student access portal</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Entity Access Portal</span>
                     <LogIn size={16} className="text-[#2d8d9b]" />
                   </div>
                   
                   <div className="space-y-4">
                     <div className="flex flex-col">
-                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Login Username (Email)</label>
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Login Username</label>
                        <span className="text-lg font-black text-[#3a525d] tracking-tight">{generatedCreds.username}</span>
                     </div>
                     <div className="flex flex-col">
@@ -196,7 +195,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                <Button 
                  onClick={() => {
                    if (onCancel) onCancel();
-                   else router.push('/students/directory');
+                   else router.push('/entities/directory');
                  }}
                  variant="outline"
                  className="h-14 rounded-2xl border-2 border-[#3a525d]/10 font-black uppercase tracking-widest text-[10px] gap-3"
@@ -210,7 +209,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                  className="h-16 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-[11px] gap-3 col-span-2 shadow-xl shadow-orange-500/20 mt-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                >
                  <Ruler size={18} />
-                 Capture Sizing / Measurements Now
+                 Capture Sizing Records Now
                </Button>
             </div>
           </div>
@@ -230,11 +229,11 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       <DynamicForm 
-        title={initialData ? "Edit Student Profile" : "Student Registration"}
-        subtitle={initialData ? `Modify record for ${initialData.full_name}` : "Live Portal Account Generation"}
+        title={initialData ? "Edit Member Profile" : "Entity Registration"}
+        subtitle={initialData ? `Modify record for ${initialData.full_name}` : "Industry-Agnostic Portal Onboarding"}
         fields={studentFields}
         onSubmit={handleSubmit}
-        onCancel={() => onCancel ? onCancel() : router.push('/students/directory')}
+        onCancel={() => onCancel ? onCancel() : router.push('/entities/directory')}
         submitLabel={initialData ? "Update Profile" : "Register & Create Account"}
         columns={2}
       />

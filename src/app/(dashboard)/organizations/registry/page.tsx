@@ -3,25 +3,33 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 
-interface School {
+interface Organization {
   id: number;
   name: string;
   address: string;
+  industry_id: number;
+  industries?: { name: string };
   created_at: string;
 }
 
-export default function SchoolsRegistry() {
-  const [schools, setSchools] = useState<School[]>([]);
+interface Industry {
+  id: number;
+  name: string;
+}
+
+export default function OrganizationsRegistry() {
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [industries, setIndustries] = useState<Industry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [editingSchool, setEditingSchool] = useState<School | null>(null);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({
     isOpen: false,
     id: null
@@ -31,42 +39,66 @@ export default function SchoolsRegistry() {
     data: null
   });
 
-  const fetchSchools = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/schools');
-      setSchools(response.data);
+      const [orgsRes, indRes] = await Promise.all([
+        api.get('/organizations'),
+        api.get('/industries')
+      ]);
+      setOrganizations(orgsRes.data);
+      setIndustries(indRes.data);
     } catch (err) {
-      toast.error('Failed to load schools registry');
+      toast.error('Failed to load registry data');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSchools();
+    fetchData();
   }, []);
 
-  const schoolFields: FormField[] = [
-    { name: 'name', label: 'School Name', type: 'text', placeholder: 'e.g. St. Xavier High School', required: true, defaultValue: editingSchool?.name },
-    { name: 'address', label: 'Full Address', type: 'text', placeholder: 'Street, City, Pin Code', defaultValue: editingSchool?.address },
-    ...(!editingSchool ? [
-      { name: 'username', label: 'System Username', type: 'text' as const, placeholder: 'e.g. stxaviers_admin', required: true },
+  const orgFields: FormField[] = [
+    { 
+      name: 'name', 
+      label: 'Organization Name', 
+      type: 'text', 
+      placeholder: 'e.g. Acme Corp or St. Xavier School', 
+      required: true, 
+      defaultValue: editingOrg?.name 
+    },
+    { 
+      name: 'industry_id', 
+      label: 'Industry Sector', 
+      type: 'select', 
+      options: industries.map(i => ({ label: i.name, value: String(i.id) })),
+      required: true, 
+      defaultValue: editingOrg?.industry_id ? String(editingOrg.industry_id) : undefined
+    },
+    { 
+      name: 'address', 
+      label: 'Full Address', 
+      type: 'text', 
+      placeholder: 'Street, City, Country', 
+      defaultValue: editingOrg?.address 
+    },
+    ...(!editingOrg ? [
+      { name: 'username', label: 'Admin Username', type: 'text' as const, placeholder: 'e.g. admin_acme', required: true },
       { name: 'password', label: 'Initial Password', type: 'password' as const, placeholder: 'Set login password', required: true }
     ] : [])
   ];
 
   const handleAddOrUpdate = async (data: any) => {
-    const loadingToast = toast.loading(editingSchool ? 'Updating school...' : 'Registering school...');
+    const loadingToast = toast.loading(editingOrg ? 'Updating organization...' : 'Registering organization...');
     try {
-      if (editingSchool) {
-        await api.put(`/schools/${editingSchool.id}`, data);
-        toast.success('School updated successfully!', { id: loadingToast });
+      if (editingOrg) {
+        await api.put(`/organizations/${editingOrg.id}`, data);
+        toast.success('Organization updated successfully!', { id: loadingToast });
       } else {
-        const response = await api.post('/schools/create', data);
-        toast.success('School registered successfully!', { id: loadingToast });
+        const response = await api.post('/organizations', data);
+        toast.success('Organization registered successfully!', { id: loadingToast });
         
-        // Show credentials for new school
         if (data.username && data.password) {
           setCredsModal({
             isOpen: true,
@@ -79,8 +111,8 @@ export default function SchoolsRegistry() {
         }
       }
       setIsAdding(false);
-      setEditingSchool(null);
-      fetchSchools();
+      setEditingOrg(null);
+      fetchData();
     } catch (err) {
       toast.error('Operation failed', { id: loadingToast });
     }
@@ -89,21 +121,21 @@ export default function SchoolsRegistry() {
   const handleConfirmedDelete = async () => {
     if (!deleteConfirm.id) return;
     
-    const loadingToast = toast.loading('Purging school record...');
+    const loadingToast = toast.loading('Purging record...');
     setDeleteConfirm({ isOpen: false, id: null });
     try {
-      await api.delete(`/schools/${deleteConfirm.id}`);
-      toast.success('School and all linked data removed', { id: loadingToast });
-      fetchSchools();
+      await api.delete(`/organizations/${deleteConfirm.id}`);
+      toast.success('Record and all linked data removed', { id: loadingToast });
+      fetchData();
     } catch (err) {
-      toast.error('Failed to delete school', { id: loadingToast });
+      toast.error('Failed to delete organization', { id: loadingToast });
     }
   };
 
-  const handleResetPassword = async (school: School) => {
+  const handleResetPassword = async (org: Organization) => {
     const loadingToast = toast.loading('Generating secure access key...');
     try {
-      const response = await api.post(`/schools/${school.id}/reset-password`);
+      const response = await api.post(`/organizations/${org.id}/reset-password`);
       const { newPassword, username } = response.data;
       
       toast.success('Credentials Reset Successfully!', { id: loadingToast });
@@ -111,77 +143,77 @@ export default function SchoolsRegistry() {
       setCredsModal({
         isOpen: true,
         data: {
-          full_name: school.name,
+          full_name: org.name,
           username: username,
           password: newPassword
         }
       });
-
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reset password', { id: loadingToast });
     }
   };
 
-  const columns: Column<School>[] = [
+  const columns: Column<Organization>[] = [
     {
-      header: 'School Details',
-      accessor: (s) => (
+      header: 'Organization Details',
+      accessor: (o) => (
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-[#3a525d]/5 rounded-2xl flex items-center justify-center text-[#3a525d]">
             <Building2 size={24} />
           </div>
           <div>
-            <p className="font-black text-sm tracking-tight text-[#3a525d]">{s.name}</p>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ref ID: #{s.id}</p>
+            <p className="font-black text-sm tracking-tight text-[#3a525d]">{o.name}</p>
+            <div className="flex items-center gap-2 mt-1">
+               <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">ID: #{o.id}</p>
+               <span className="w-1 h-1 rounded-full bg-zinc-300" />
+               <p className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">{o.industries?.name || 'School'}</p>
+            </div>
           </div>
         </div>
       ),
     },
     {
       header: 'Location',
-      accessor: (s) => (
+      accessor: (o) => (
         <div className="flex items-center gap-2 text-muted-foreground">
           <MapPin size={14} className="text-[#2d8d9b]" />
-          <span className="text-xs font-semibold">{s.address || 'Location not set'}</span>
+          <span className="text-xs font-semibold truncate max-w-[200px]">{o.address || 'Location not set'}</span>
         </div>
       )
     },
     {
-        header: 'Registered On',
-        accessor: (s) => (
-            <div className="flex flex-col">
-                <span className="text-xs font-black text-[#3a525d]">
-                    {s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                </span>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">System Logged</span>
-            </div>
-        )
+      header: 'System Log',
+      accessor: (o) => (
+          <div className="flex flex-col">
+              <span className="text-xs font-black text-[#3a525d]">
+                  {o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+              </span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Registered Date</span>
+          </div>
+      )
     },
     {
       header: 'Actions',
-      accessor: (s) => (
+      accessor: (o) => (
         <div className="flex items-center gap-3">
           <button 
             onClick={() => {
-                setEditingSchool(s);
+                setEditingOrg(o);
                 setIsAdding(true);
             }}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm"
-            title="Edit School"
           >
             <Edit2 size={16} />
           </button>
           <button 
-            onClick={() => handleResetPassword(s)}
+            onClick={() => handleResetPassword(o)}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm"
-            title="Reset Password"
           >
             <Key size={16} />
           </button>
           <button 
-            onClick={() => setDeleteConfirm({ isOpen: true, id: s.id })}
+            onClick={() => setDeleteConfirm({ isOpen: true, id: o.id })}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm"
-            title="Delete School"
           >
             <Trash2 size={16} />
           </button>
@@ -194,64 +226,63 @@ export default function SchoolsRegistry() {
     return (
       <div className="max-w-4xl mx-auto py-10">
         <DynamicForm 
-          title={editingSchool ? "Edit School Details" : "Register New School"}
-          subtitle={editingSchool ? `Modify profile for ${editingSchool.name}` : "Add a new academic partner to the system"}
-          fields={schoolFields}
+          title={editingOrg ? "Edit Organization" : "Register New Organization"}
+          subtitle={editingOrg ? `Update profile for ${editingOrg.name}` : "Configure a new industry organization"}
+          fields={orgFields}
           onSubmit={handleAddOrUpdate}
           onCancel={() => {
               setIsAdding(false);
-              setEditingSchool(null);
+              setEditingOrg(null);
           }}
-          submitLabel={editingSchool ? "Save Changes" : "Create School Profile"}
+          submitLabel={editingOrg ? "Save Changes" : "Register Organization"}
           columns={1}
         />
       </div>
     );
   }
 
-  const latestSchool = schools.length > 0 ? schools[0] : null;
+  const latestOrg = organizations.length > 0 ? organizations[0] : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Stats Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center justify-between group hover:shadow-xl hover:shadow-[#3a525d]/5 transition-all duration-500">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Total Institutions</p>
-            <h3 className="text-4xl font-black text-[#3a525d] tracking-tighter">{schools.length}</h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Total Organizations</p>
+            <h3 className="text-4xl font-black text-[#3a525d] tracking-tighter">{organizations.length}</h3>
             <p className="text-[10px] font-bold text-green-600 mt-2 uppercase flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-green-500" />
-              Live Connectivity
+              Global Registry
             </p>
           </div>
           <div className="w-16 h-16 bg-[#3a525d]/5 rounded-3xl flex items-center justify-center text-[#3a525d] group-hover:scale-110 group-hover:bg-[#3a525d] group-hover:text-white transition-all duration-500">
-            <School size={32} />
+            <Building2 size={32} />
           </div>
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center justify-between group hover:shadow-xl hover:shadow-[#2d8d9b]/5 transition-all duration-500">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Partner Coverage</p>
-            <h3 className="text-4xl font-black text-[#2d8d9b] tracking-tighter">100%</h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Sectors Covered</p>
+            <h3 className="text-4xl font-black text-[#2d8d9b] tracking-tighter">{industries.length}</h3>
             <p className="text-[10px] font-bold text-blue-600 mt-2 uppercase flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-blue-500" />
-              Active Integration
+              Active Industries
             </p>
           </div>
           <div className="w-16 h-16 bg-[#2d8d9b]/5 rounded-3xl flex items-center justify-center text-[#2d8d9b] group-hover:scale-110 group-hover:bg-[#2d8d9b] group-hover:text-white transition-all duration-500">
-            <Users size={32} />
+            <Grid size={32} />
           </div>
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center justify-between group hover:shadow-xl hover:shadow-[#f2994a]/5 transition-all duration-500">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Latest Entry</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Recent Onboarding</p>
             <h3 className="text-xl font-black text-[#3a525d] tracking-tight truncate max-w-[180px]">
-              {latestSchool ? latestSchool.name : 'No Entries'}
+              {latestOrg ? latestOrg.name : 'No Entries'}
             </h3>
             <p className="text-[10px] font-bold text-[#f2994a] mt-2 uppercase flex items-center gap-1">
               <Calendar size={10} />
-              {latestSchool ? new Date(latestSchool.created_at).toLocaleDateString() : 'N/A'}
+              {latestOrg ? new Date(latestOrg.created_at).toLocaleDateString() : 'N/A'}
             </p>
           </div>
           <div className="w-16 h-16 bg-[#f2994a]/5 rounded-3xl flex items-center justify-center text-[#f2994a] group-hover:scale-110 group-hover:bg-[#f2994a] group-hover:text-white transition-all duration-500">
@@ -261,27 +292,27 @@ export default function SchoolsRegistry() {
       </div>
 
       <DataTable 
-        title="Schools Registry"
-        subtitle="Manage academic institutions and partners"
+        title="Organizations Registry"
+        subtitle="Manage all multi-industry partners and sectors"
         columns={columns}
-        data={schools}
+        data={organizations}
         isLoading={isLoading}
-        searchPlaceholder="Search schools by name or address..."
+        searchPlaceholder="Search by name, ID or industry..."
         headerAction={
           <Button 
             onClick={() => setIsAdding(true)}
             className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3"
           >
             <Plus size={16} strokeWidth={3} />
-            Register School
+            Register Organization
           </Button>
         }
       />
 
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
-        title="De-Register School?"
-        message="Running this action will remove the school and all its linked classes and student records. This is a destructive system action."
+        title="De-Register Organization?"
+        message="This will remove the organization and all linked departments and member records. This action cannot be reversed."
         onConfirm={handleConfirmedDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
         confirmLabel="Confirm De-Registration"

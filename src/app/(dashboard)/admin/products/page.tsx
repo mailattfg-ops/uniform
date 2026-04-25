@@ -14,6 +14,7 @@ interface Product {
   name: string;
   art_number: string;
   gender: string;
+  category: string;
   measurements: string[];
   materials: string;
   entry_methods?: string[];
@@ -100,6 +101,19 @@ export default function ProductManagement() {
        type: 'text', 
        placeholder: 'e.g. 100% Cotton', 
        defaultValue: editingProduct?.materials 
+    },
+    { 
+       name: 'category', 
+       label: 'Product Category', 
+       type: 'select', 
+       options: [
+         { label: 'Top Wear', value: 'top_wear' },
+         { label: 'Bottom Wear', value: 'bottom_wear' },
+         { label: 'Accessory', value: 'accessory' },
+         { label: 'Other', value: 'other' }
+       ],
+       defaultValue: editingProduct?.category || 'top_wear',
+       required: true
     },
     {
        name: 'entry_methods',
@@ -194,6 +208,18 @@ export default function ProductManagement() {
           </div>
         </div>
       ),
+    },
+    {
+      header: 'Category',
+      accessor: (p) => (
+        <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border w-fit ${
+          p.category === 'top_wear' ? 'bg-green-50 text-green-600 border-green-100' :
+          p.category === 'bottom_wear' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+          'bg-zinc-50 text-zinc-600 border-zinc-100'
+        }`}>
+          {p.category?.replace('_', ' ') || 'top wear'}
+        </span>
+      )
     },
     {
       header: 'Strategy',

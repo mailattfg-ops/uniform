@@ -10,23 +10,21 @@ import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Select } from '@/components/ui/Select';
 
-interface ClassRecord {
+interface DepartmentRecord {
   id: number;
   name: string;
-  grade: string;
-  section: string;
-  school_id: number;
-  schools: { name: string };
+  organization_id: number;
+  organizations: { name: string };
   created_at: string;
 }
 
-export default function ClassManagement() {
-  const [classes, setClasses] = useState<ClassRecord[]>([]);
-  const [schools, setSchools] = useState<any[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<string>('');
+export default function DepartmentManagement() {
+  const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [editingClass, setEditingClass] = useState<ClassRecord | null>(null);
+  const [editingDept, setEditingDept] = useState<DepartmentRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
     isOpen: false,
     id: null
@@ -37,29 +35,28 @@ export default function ClassManagement() {
     try {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
-      const isSchoolRole = user?.role?.toLowerCase() === 'school';
+      const isOrgRole = user?.role?.toLowerCase() === 'school' || user?.role?.toLowerCase() === 'organization';
 
-      let schoolsData = [];
-      let classesData = [];
+      let orgsData = [];
+      let deptsData = [];
 
-      if (isSchoolRole) {
-        // If school role, we don't need all schools list
-        const classesRes = await api.get('/schools/classes');
-        classesData = classesRes.data;
-        schoolsData = [{ id: user.schoolId, name: user.schoolName || user.fullName }];
+      if (isOrgRole) {
+        const deptsRes = await api.get('/departments');
+        deptsData = deptsRes.data;
+        orgsData = [{ id: user.schoolId || user.organizationId, name: user.schoolName || user.organizationName || user.fullName }];
       } else {
-        const [schoolsRes, classesRes] = await Promise.all([
-          api.get('/schools'),
-          api.get('/schools/classes' + (selectedSchool ? `?schoolId=${selectedSchool}` : ''))
+        const [orgsRes, deptsRes] = await Promise.all([
+          api.get('/organizations'),
+          api.get('/departments' + (selectedOrg ? `?orgId=${selectedOrg}` : ''))
         ]);
-        schoolsData = schoolsRes.data;
-        classesData = classesRes.data;
+        orgsData = orgsRes.data;
+        deptsData = deptsRes.data;
       }
       
-      setSchools(schoolsData);
-      setClasses(classesData);
+      setOrganizations(orgsData);
+      setDepartments(deptsData);
     } catch (err) {
-      toast.error('Failed to load class data');
+      toast.error('Failed to load department data');
     } finally {
       setIsLoading(false);
     }
@@ -67,47 +64,39 @@ export default function ClassManagement() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedSchool]);
+  }, [selectedOrg]);
 
-  const classFields: FormField[] = [
+  const deptFields: FormField[] = [
     { 
-      name: 'schoolId', 
-      label: 'Select School', 
+      name: 'orgId', 
+      label: 'Select Organization', 
       type: 'select', 
-      options: schools.map(s => ({ label: s.name, value: s.id })),
+      options: organizations.map(o => ({ label: o.name, value: String(o.id) })),
       required: true,
-      defaultValue: editingClass?.school_id 
+      defaultValue: editingDept?.organization_id ? String(editingDept.organization_id) : undefined
     },
     { 
-      name: 'grade', 
-      label: 'Grade / standard', 
+      name: 'name', 
+      label: 'Department Name', 
       type: 'text', 
-      placeholder: 'e.g. Grade 5, 10th Standard', 
+      placeholder: 'e.g. Sales, HR, Production Line A, Grade 10-A', 
       required: true,
-      defaultValue: editingClass?.grade
-    },
-    { 
-      name: 'section', 
-      label: 'Section / Class Name', 
-      type: 'text', 
-      placeholder: 'e.g. A, B, Ruby, Emerald', 
-      required: true,
-      defaultValue: editingClass?.section
+      defaultValue: editingDept?.name
     }
   ];
 
   const handleAddOrUpdate = async (data: any) => {
-    const loadingToast = toast.loading(editingClass ? 'Updating class...' : 'Setting up class...');
+    const loadingToast = toast.loading(editingDept ? 'Updating department...' : 'Setting up department...');
     try {
-      if (editingClass) {
-          await api.put(`/schools/classes/${editingClass.id}`, data);
-          toast.success('Class updated successfully!', { id: loadingToast });
+      if (editingDept) {
+          await api.put(`/departments/${editingDept.id}`, data);
+          toast.success('Department updated successfully!', { id: loadingToast });
       } else {
-          await api.post('/schools/classes/create', data);
-          toast.success('Class created successfully!', { id: loadingToast });
+          await api.post('/departments', data);
+          toast.success('Department created successfully!', { id: loadingToast });
       }
       setIsAdding(false);
-      setEditingClass(null);
+      setEditingDept(null);
       fetchData();
     } catch (err) {
       toast.error('Operation failed', { id: loadingToast });
@@ -117,75 +106,65 @@ export default function ClassManagement() {
   const handleConfirmedDelete = async () => {
     if (!deleteConfirm.id) return;
     
-    const loadingToast = toast.loading('Removing class...');
+    const loadingToast = toast.loading('Removing department...');
     const id = deleteConfirm.id;
     setDeleteConfirm({ isOpen: false, id: null });
     
     try {
-      await api.delete(`/schools/classes/${id}`);
-      toast.success('Class removed!', { id: loadingToast });
+      await api.delete(`/departments/${id}`);
+      toast.success('Department removed!', { id: loadingToast });
       fetchData();
     } catch (err) {
-      toast.error('Failed to delete', { id: loadingToast });
+      toast.error('Failed to delete department', { id: loadingToast });
     }
   };
 
-  const columns: Column<ClassRecord>[] = [
+  const columns: Column<DepartmentRecord>[] = [
     {
-      header: 'Grade',
-      accessor: (c) => (
+      header: 'Department / Unit',
+      accessor: (d) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-[#2d8d9b]/5 rounded-lg flex items-center justify-center text-[#2d8d9b]">
             <BookOpen size={16} />
           </div>
-          <p className="font-black text-sm tracking-tight text-[#3a525d]">{c.grade || 'N/A'}</p>
+          <p className="font-black text-sm tracking-tight text-[#3a525d]">{d.name || 'N/A'}</p>
         </div>
       ),
     },
     {
-      header: 'Section',
-      accessor: (c) => (
-        <span className="px-3 py-1 bg-zinc-100 rounded-lg text-xs font-black text-[#3a525d]">
-           {c.section || 'N/A'}
-        </span>
-      )
-    },
-    {
-      header: 'Assigned School',
-      accessor: (c) => (
+      header: 'Parent Organization',
+      accessor: (d) => (
         <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#3a525d]">{c.schools?.name}</span>
+            <span className="text-xs font-bold text-[#3a525d]">{d.organizations?.name || 'Main Office'}</span>
         </div>
       )
     },
     {
         header: 'Setup Date',
-        accessor: (c) => (
+        accessor: (d) => (
             <div className="flex flex-col">
                 <span className="text-xs font-black text-zinc-500">
-                    {c.created_at ? new Date(c.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    {d.created_at ? new Date(d.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                 </span>
             </div>
         )
     },
     {
       header: 'Actions',
-      accessor: (c) => (
+      accessor: (d) => (
         <div className="flex items-center gap-3">
           <button 
                 onClick={() => {
-                    setEditingClass(c);
+                    setEditingDept(d);
                     setIsAdding(true);
                 }}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm"
-                title="Edit Class"
             >
                 <Edit2 size={16} />
             </button>
             <button 
-                onClick={() => setDeleteConfirm({ isOpen: true, id: c.id.toString() })}
+                onClick={() => setDeleteConfirm({ isOpen: true, id: d.id.toString() })}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm"
-                title="Delete Class"
             >
                 <Trash2 size={16} />
             </button>
@@ -198,15 +177,15 @@ export default function ClassManagement() {
     return (
       <div className="max-w-4xl mx-auto py-10">
         <DynamicForm 
-          title={editingClass ? "Edit Class Setup" : "Setup New Class"}
-          subtitle={editingClass ? `Modify details for ${editingClass.name}` : "Define a new academic group for a school"}
-          fields={classFields}
+          title={editingDept ? "Edit Department" : "Setup New Department"}
+          subtitle={editingDept ? `Modify details for ${editingDept.name}` : "Define a new functional unit for an organization"}
+          fields={deptFields}
           onSubmit={handleAddOrUpdate}
           onCancel={() => {
               setIsAdding(false);
-              setEditingClass(null);
+              setEditingDept(null);
           }}
-          submitLabel={editingClass ? "Update Class" : "Create Class"}
+          submitLabel={editingDept ? "Update Department" : "Create Department"}
           columns={1}
         />
       </div>
@@ -222,10 +201,10 @@ export default function ClassManagement() {
               </div>
               <div className="min-w-[240px]">
                 <Select 
-                  placeholder="All Schools"
-                  value={selectedSchool}
-                  options={schools.map(s => ({ label: s.name, value: s.id.toString() }))}
-                  onChange={(val: string) => setSelectedSchool(val)}
+                  placeholder="All Organizations"
+                  value={selectedOrg}
+                  options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
+                  onChange={(val: string) => setSelectedOrg(val)}
                 />
               </div>
           </div>
@@ -235,26 +214,26 @@ export default function ClassManagement() {
             className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3 w-full md:w-auto"
           >
             <Plus size={16} strokeWidth={3} />
-            Quick Setup Class
+            Setup Department
           </Button>
       </div>
 
       <DataTable 
-        title="Class Management"
-        subtitle="Organize student groups per institution"
+        title="Department Management"
+        subtitle="Organize functional groups per organization"
         columns={columns}
-        data={classes}
+        data={departments}
         isLoading={isLoading}
-        searchPlaceholder="Filter classes..."
+        searchPlaceholder="Filter departments..."
       />
 
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
-        title="Delete Class?"
-        message="This will permanently remove this class group and its association with students. This action cannot be undone."
+        title="Delete Department?"
+        message="This will permanently remove this department group. This action cannot be undone."
         onConfirm={handleConfirmedDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
-        confirmLabel="Yes, Delete Class"
+        confirmLabel="Yes, Delete Department"
         variant="danger"
       />
     </div>

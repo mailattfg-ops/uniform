@@ -69,10 +69,17 @@ export default function SizeChartPage() {
     setIsLoading(true);
     try {
       const res = await api.get('/size-charts');
-      setCharts(res.data.map((c: any) => ({
-        ...c,
-        metric_groups: c.metric_groups || (c.chart_data ? [{ label: (c.category === 'top_wear' ? 'Chest' : 'Waist'), data: c.chart_data }] : [])
-      })));
+      setCharts(res.data.map((c: any) => {
+        const hasMetricGroups = Array.isArray(c.metric_groups) && c.metric_groups.length > 0;
+        return {
+          ...c,
+          metric_groups: hasMetricGroups 
+            ? c.metric_groups 
+            : (c.chart_data && c.chart_data.length > 0 
+                ? [{ label: (c.category === 'top_wear' ? 'Chest' : 'Waist'), data: c.chart_data }] 
+                : [])
+        };
+      }));
     } catch (err) {
       toast.error('Failed to load size charts');
     } finally {
@@ -160,6 +167,28 @@ export default function SizeChartPage() {
     });
   };
 
+  const updateGroupLabel = (groupIndex: number, label: string) => {
+    setNewChart(prev => {
+      const groups = [...prev.metric_groups];
+      groups[groupIndex].label = label;
+      return { ...prev, metric_groups: groups };
+    });
+  };
+
+  const addMetricGroup = () => {
+    setNewChart(prev => ({
+      ...prev,
+      metric_groups: [...prev.metric_groups, { label: 'New Metric', data: [{ size: 'M', value: '' }] }]
+    }));
+  };
+
+  const removeMetricGroup = (idx: number) => {
+    setNewChart(prev => ({
+      ...prev,
+      metric_groups: prev.metric_groups.filter((_, i) => i !== idx)
+    }));
+  };
+
   const filteredCharts = charts.filter(c => c.category === activeTab);
 
   if (isAdding) {
@@ -195,40 +224,43 @@ export default function SizeChartPage() {
                     onChange={e => setNewChart({...newChart, name: e.target.value})}
                   />
                </div>
-               <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest">Category</label>
-                  <div className="flex gap-4">
-                     <button 
-                       onClick={() => {
-                         if (!editingId) {
-                           setNewChart({
-                              ...newChart, 
-                              category: 'top_wear',
-                              metric_groups: getInitialMetrics('top_wear')
-                           });
-                         }
-                       }}
-                       disabled={!!editingId}
-                       className={`flex-1 h-14 rounded-2xl text-[10px] font-black uppercase transition-all ${newChart.category === 'top_wear' ? 'bg-[#2d8d9b] text-white shadow-lg' : 'bg-zinc-50 text-zinc-400'} ${editingId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                     >
-                       Top Wear (Chest/Length)
-                     </button>
-                     <button 
-                       onClick={() => {
-                        if (!editingId) {
-                          setNewChart({
-                             ...newChart, 
-                             category: 'bottom_wear',
-                             metric_groups: getInitialMetrics('bottom_wear')
-                          });
-                        }
-                       }}
-                       disabled={!!editingId}
-                       className={`flex-1 h-14 rounded-2xl text-[10px] font-black uppercase transition-all ${newChart.category === 'bottom_wear' ? 'bg-[#2d8d9b] text-white shadow-lg' : 'bg-zinc-50 text-zinc-400'} ${editingId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                     >
-                       Bottom Wear (Waist/Length)
-                     </button>
-                  </div>
+               <div className="grid grid-cols-2 gap-6">
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest">Category</label>
+                    <select 
+                      className="w-full h-14 bg-zinc-50 border-none rounded-2xl px-4 text-xs font-bold focus:ring-2 focus:ring-[#2d8d9b] outline-none"
+                      value={newChart.category}
+                      onChange={e => {
+                        const cat = e.target.value as any;
+                        setNewChart({
+                          ...newChart,
+                          category: cat,
+                          metric_groups: getInitialMetrics(cat)
+                        });
+                      }}
+                      disabled={!!editingId}
+                    >
+                       <option value="top_wear">Top Wear</option>
+                       <option value="bottom_wear">Bottom Wear</option>
+                    </select>
+                 </div>
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest">Base Unit</label>
+                    <div className="flex bg-zinc-50 rounded-2xl p-1 h-14">
+                       <button 
+                         onClick={() => setNewChart({...newChart, unit: 'cm'})}
+                         className={`flex-1 rounded-xl text-[10px] font-black uppercase transition-all ${newChart.unit === 'cm' ? 'bg-[#2d8d9b] text-white shadow-md' : 'text-zinc-400'}`}
+                       >
+                         cm
+                       </button>
+                       <button 
+                         onClick={() => setNewChart({...newChart, unit: 'in'})}
+                         className={`flex-1 rounded-xl text-[10px] font-black uppercase transition-all ${newChart.unit === 'in' ? 'bg-[#2d8d9b] text-white shadow-md' : 'text-zinc-400'}`}
+                       >
+                         in
+                       </button>
+                    </div>
+                 </div>
                </div>
             </Card>
 
@@ -247,17 +279,33 @@ export default function SizeChartPage() {
 
          {newChart.metric_groups.map((group, gIdx) => (
            <Card key={gIdx} className="p-10 border-none shadow-2xl rounded-[3rem]">
-              <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-sm font-black uppercase tracking-widest text-[#3a525d]">Table {gIdx + 1}: {group.label} ({unit})</h3>
-                 <Button 
-                   onClick={() => addSizeOption(gIdx)}
-                   variant="secondary" 
-                   className="h-8 rounded-lg px-3 text-[10px] font-black gap-2 bg-zinc-50 text-[#2d8d9b]"
-                 >
-                    <PlusCircle size={12} /> Add Size
-                 </Button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-4 text-[#333]">
+               <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4 flex-1 max-w-sm">
+                     <h3 className="text-sm font-black uppercase tracking-widest text-[#3a525d] shrink-0">Table {gIdx + 1}:</h3>
+                     <input 
+                       className="bg-transparent border-b-2 border-dashed border-zinc-200 focus:border-[#2d8d9b] text-sm font-black text-[#3a525d] outline-none pb-1 w-full"
+                       value={group.label}
+                       onChange={e => updateGroupLabel(gIdx, e.target.value)}
+                     />
+                     <span className="text-[10px] font-black text-[#2d8d9b] opacity-40">({newChart.unit})</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => addSizeOption(gIdx)}
+                      variant="secondary" 
+                      className="h-8 rounded-lg px-3 text-[10px] font-black gap-2 bg-zinc-50 text-[#2d8d9b]"
+                    >
+                        <PlusCircle size={12} /> Add Size
+                    </Button>
+                    <button 
+                      onClick={() => removeMetricGroup(gIdx)}
+                      className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                    >
+                       <Trash2 size={12} />
+                    </button>
+                  </div>
+               </div>
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-4 text-[#333]">
                  {group.data.map((d, i) => (
                    <div key={i} className="space-y-3 relative group">
                       <input 
@@ -279,19 +327,26 @@ export default function SizeChartPage() {
                       </button>
                    </div>
                  ))}
-              </div>
+               </div>
            </Card>
          ))}
 
-         <div className="flex justify-end gap-4">
-            <Button 
-               onClick={handleSave} 
-               className="h-16 px-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl flex gap-3"
-            >
-               <Plus size={18} strokeWidth={3} />
-               {editingId ? 'Update Size Chart' : 'Register Size Chart'}
-            </Button>
-         </div>
+          <div className="flex justify-between items-center pb-20">
+             <Button 
+                onClick={addMetricGroup}
+                variant="outline"
+                className="h-14 px-8 rounded-2xl border-2 border-dashed border-zinc-200 text-[#3a525d] font-black uppercase text-[10px] tracking-widest hover:border-[#2d8d9b] hover:text-[#2d8d9b] transition-all gap-2"
+             >
+                <PlusCircle size={16} /> Add Additional Table
+             </Button>
+             <Button 
+                onClick={handleSave} 
+                className="h-16 px-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl flex gap-3"
+             >
+                <Plus size={18} strokeWidth={3} />
+                {editingId ? 'Update Size Chart' : 'Register Size Chart'}
+             </Button>
+          </div>
       </div>
     );
   }
@@ -396,7 +451,7 @@ export default function SizeChartPage() {
                            </div>
                            <p className="text-xs font-black text-[#3a525d]">US Bottom Sizing</p>
                            <p className="text-[9px] text-zinc-400 text-center mt-3 font-medium leading-relaxed">
-                              Check waist measurement and leg length options.
+                               Check waist measurement and leg length options.
                            </p>
                         </>
                       )}
@@ -410,7 +465,7 @@ export default function SizeChartPage() {
                         <div className="bg-[#3a525d] p-5 text-white flex justify-between items-center">
                            <div>
                               <h2 className="text-lg font-black italic tracking-tighter uppercase">{chart.name} - {group.label}</h2>
-                              <p className="text-[8px] font-black tracking-widest opacity-60">REF TABLE {idx + 1} • {unit.toUpperCase()}</p>
+                              <p className="text-[8px] font-black tracking-widest opacity-60">REF TABLE {idx + 1} • {chart.unit?.toUpperCase() || unit.toUpperCase()}</p>
                            </div>
                            {idx === 0 && (
                             <div className="flex gap-2">

@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
-import { Search, Ruler, User, ShieldCheck, Save, History, Scale, Building2, Library, Settings2, Clock, Plus, Package } from 'lucide-react';
+import { Search, Ruler, User, ShieldCheck, CheckCircle2, Save, History, Scale, Building2, Library, Settings2, Clock, Plus, Package, Info } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { LabelConfigModal } from '../_components/LabelConfigModal';
@@ -13,15 +13,16 @@ import { AdHocFieldModal } from '../_components/AdHocFieldModal';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function MeasurementEntryPage() {
-  const [schools, setSchools] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [measurementFields, setMeasurementFields] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
   
-  const [selectedSchool, setSelectedSchool] = useState<string>('');
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedOrg, setSelectedOrg] = useState<string>('');
+  const [selectedDept, setSelectedDept] = useState<string>('');
+  const [selectedMember, setSelectedMember] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [sizeCharts, setSizeCharts] = useState<any[]>([]);
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
@@ -38,16 +39,18 @@ export default function MeasurementEntryPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [schoolsRes, configRes, productsRes, sizeChartsRes] = await Promise.all([
-          api.get('/schools'),
+        const [orgsRes, configRes, productsRes, sizeChartsRes, staffRes] = await Promise.all([
+          api.get('/organizations'),
           api.get('/measurements/config'),
           api.get('/products'),
-          api.get('/size-charts')
+          api.get('/size-charts'),
+          api.get('/employees').catch(() => ({ data: [] }))
         ]);
-        setSchools(schoolsRes.data.map((s: any) => ({ label: s.name, value: s.id.toString() })));
+        setOrganizations(orgsRes.data.map((o: any) => ({ label: o.name, value: o.id.toString() })));
         setMeasurementFields(configRes.data);
         setProducts(productsRes.data);
         setSizeCharts(sizeChartsRes.data);
+        setStaff(staffRes.data.map((s: any) => ({ label: s.full_name, value: s.user_id })));
       } catch (err) {
         toast.error('Failed to initialize settings');
       }
@@ -55,77 +58,76 @@ export default function MeasurementEntryPage() {
     fetchData();
   }, []);
 
-  // 2. Fetch Classes
+  // 2. Fetch Departments
   useEffect(() => {
-    const fetchClasses = async () => {
-      if (!selectedSchool) {
-        setClasses([]);
-        setSelectedClass('');
+    const fetchDepartments = async () => {
+      if (!selectedOrg) {
+        setDepartments([]);
+        setSelectedDept('');
         return;
       }
       try {
-        const response = await api.get(`/schools/classes?schoolId=${selectedSchool}`);
-        setClasses(response.data.map((c: any) => ({ label: `Grade ${c.grade}-${c.section}`, value: c.id.toString() })));
+        const response = await api.get(`/departments?orgId=${selectedOrg}`);
+        setDepartments(response.data.map((d: any) => ({ label: d.name, value: d.id.toString() })));
       } catch (err) {
-        toast.error('Failed to load classes');
+        toast.error('Failed to load departments');
       }
     };
-    fetchClasses();
-  }, [selectedSchool]);
+    fetchDepartments();
+  }, [selectedOrg]);
 
   const handleReset = () => {
-    setSelectedSchool('');
-    setSelectedClass('');
-    setSelectedStudent(null);
-    setStudents([]);
+    setSelectedOrg('');
+    setSelectedDept('');
+    setSelectedMember(null);
+    setMembers([]);
   };
 
   const searchParams = useSearchParams();
   const studentIdParam = searchParams.get('studentId');
 
-  // 3. Fetch Students or Single Student if param exists
+  // 3. Fetch Members or Single Member if param exists
   useEffect(() => {
-    const fetchStudents = async () => {
-      // If we have a direct student ID param, fetch that specific student
+    const fetchMembers = async () => {
       if (studentIdParam) {
         setIsDataLoading(true);
         try {
-          const response = await api.get(`/students`); // Fetch all to find the one, or add a single student endpoint
-          const student = response.data.find((s: any) => s.id.toString() === studentIdParam);
-          if (student) {
-            setSelectedStudent(student);
-            setSelectedSchool(student.school_id.toString());
-            setSelectedClass(student.class_id.toString());
+          const response = await api.get(`/members`); 
+          const member = response.data.find((m: any) => m.id.toString() === studentIdParam);
+          if (member) {
+            setSelectedMember(member);
+            setSelectedOrg(member.organization_id.toString());
+            setSelectedDept(member.department_id.toString());
           }
         } catch (err) {
-          toast.error('Failed to load student');
+          toast.error('Failed to load member');
         } finally {
           setIsDataLoading(false);
         }
         return;
       }
 
-      if (!selectedClass) {
-        setStudents([]);
+      if (!selectedDept) {
+        setMembers([]);
         return;
       }
       setIsDataLoading(true);
       try {
-        const response = await api.get(`/students?classId=${selectedClass}`);
-        setStudents(response.data);
+        const response = await api.get(`/members?classId=${selectedDept}`);
+        setMembers(response.data);
       } catch (err) {
-        toast.error('Failed to load students');
+        toast.error('Failed to load members');
       } finally {
         setIsDataLoading(false);
       }
     };
-    fetchStudents();
-  }, [selectedClass, studentIdParam]);
+    fetchMembers();
+  }, [selectedDept, studentIdParam]);
 
-  // 4. Fetch History and Templates when Student is selected
+  // 4. Fetch History and Templates when Member is selected
   useEffect(() => {
-    const fetchStudentContext = async () => {
-      if (!selectedStudent) {
+    const fetchMemberContext = async () => {
+      if (!selectedMember) {
         setAvailableTemplates([]);
         setSelectedTemplate(null);
         setLastMeasurement(null);
@@ -133,32 +135,30 @@ export default function MeasurementEntryPage() {
       }
 
       try {
-        // Fetch applicable templates for this student's school and class
-        const templRes = await api.get(`/templates?schoolId=${selectedStudent.school_id}`);
-        // Filter by class (since templates store array of class IDs)
+        // Fetch applicable templates for this organization
+        const templRes = await api.get(`/templates?orgId=${selectedMember.organization_id}`);
+        // Filter by dept (templates store array of department IDs)
         const relevant = templRes.data.filter((t: any) => 
-            t.classes?.includes(selectedStudent.class_id)
+            t.department_ids?.includes(selectedMember.department_id)
         );
         setAvailableTemplates(relevant);
         
-        // Auto-select if only one template exists
         if (relevant.length === 1) {
             setSelectedTemplate(relevant[0]);
         }
 
-        // Fetch History
-        const historyRes = await api.get(`/measurements/student/${selectedStudent.id}`);
+        const historyRes = await api.get(`/measurements/history/${selectedMember.id}`);
         if (historyRes.data && historyRes.data.length > 0) {
             setLastMeasurement(historyRes.data[0]);
         } else {
             setLastMeasurement(null);
         }
       } catch (err) {
-        console.error('History or Template fetch failed');
+        console.error('History or Template fetch failed:', err);
       }
     };
-    fetchStudentContext();
-  }, [selectedStudent]);
+    fetchMemberContext();
+  }, [selectedMember]);
 
   const handleAddExtraField = (field: { label: string, unit: string }) => {
     setExtraFields([...extraFields, field]);
@@ -166,15 +166,16 @@ export default function MeasurementEntryPage() {
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedStudent || !selectedTemplate) return;
+    if (!selectedMember || !selectedTemplate) return;
     
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
     const suggested_size = formData.get('suggested_size');
     const notes = formData.get('notes');
+    const recorded_by = formData.get('recorded_by');
     
     // Group measurements product-wise
-    const config = selectedStudent.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config;
+    const config = selectedMember.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config;
     const dynamic_data: any = {};
     
     config?.forEach((item: any) => {
@@ -210,13 +211,33 @@ export default function MeasurementEntryPage() {
 
     try {
       await api.post('/measurements/record', {
-        student_id: selectedStudent.id,
+        member_id: selectedMember.id,
         suggested_size,
         notes,
-        dynamic_data
+        dynamic_data,
+        recorded_by
       });
-      toast.success(`Measurements Updated for ${selectedStudent.full_name}`);
-      setSelectedStudent(null);
+      // Deep Debugging & Optimistic Update
+      console.log('[SizingHub] Attempting update for member:', selectedMember.id);
+      setMembers(prev => {
+        const updated = prev.map(m => {
+          if (String(m.id) === String(selectedMember.id)) {
+            console.log('[SizingHub] Match found. Injecting dummy measurement for:', m.full_name);
+            return { ...m, measurements: [{ id: 'temp' }] };
+          }
+          return m;
+        });
+        return updated;
+      });
+
+      // Wait 300ms for DB index to catch up before re-fetch
+      setTimeout(async () => {
+        const response = await api.get(`/members?classId=${selectedDept}`);
+        console.log('[SizingHub] Backend state synced:', response.data.find((m: any) => String(m.id) === String(selectedMember.id)));
+        setMembers(response.data);
+      }, 300);
+
+      setSelectedMember(null);
       setSelectedTemplate(null);
     } catch (err) {
       toast.error('Failed to update sizing');
@@ -234,29 +255,29 @@ export default function MeasurementEntryPage() {
            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Tailoring Intelligence</p>
         </div>
 
-        {!selectedStudent && (
+        {!selectedMember && (
           <div className="flex flex-col sm:flex-row gap-4 flex-1 max-w-2xl bg-white p-4 rounded-[2rem] border border-[#fce4d4] shadow-sm">
             <div className="flex-1">
                <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-2 px-2 flex items-center gap-2">
-                 <Building2 size={10} /> School
+                 <Building2 size={10} /> Organization
                </label>
                <Select 
-                 name="filter_school" 
-                 options={schools} 
-                 defaultValue={selectedSchool}
-                 onChange={(val) => setSelectedSchool(val)}
+                 name="filter_org" 
+                 options={organizations} 
+                 defaultValue={selectedOrg}
+                 onChange={(val) => setSelectedOrg(val)}
                />
             </div>
             <div className="flex-1">
                <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-2 px-2 flex items-center gap-2">
-                 <Library size={10} /> Class
+                 <Library size={10} /> Department
                </label>
                <Select 
-                 name="filter_class" 
-                 options={classes.length > 0 ? classes : [{ label: 'Select School...', value: '' }]} 
-                 defaultValue={selectedClass}
-                 onChange={(val) => setSelectedClass(val)}
-                 disabled={!selectedSchool}
+                 name="filter_dept" 
+                 options={departments.length > 0 ? departments : [{ label: 'Select Organization...', value: '' }]} 
+                 defaultValue={selectedDept}
+                 onChange={(val) => setSelectedDept(val)}
+                 disabled={!selectedOrg}
                />
             </div>
             <div className="flex items-end pb-1">
@@ -272,33 +293,46 @@ export default function MeasurementEntryPage() {
         )}
       </div>
 
-      {!selectedStudent ? (
+      {!selectedMember ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {students.map((s) => (
+          {members.map((m) => (
             <Card 
-              key={s.id} 
+              key={m.id} 
               className="p-6 cursor-pointer hover:border-[#2d8d9b] hover:shadow-2xl transition-all group border-2 border-transparent"
-              onClick={() => setSelectedStudent(s)}
+              onClick={() => setSelectedMember(m)}
             >
                <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center text-[#3a525d] font-black italic group-hover:bg-[#2d8d9b] group-hover:text-white transition-all">
-                    {s.full_name.charAt(0)}
+                    {m.full_name.charAt(0)}
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${
-                    s.gender === 'Female' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'
-                  }`}>
-                    {s.gender || 'Not Set'}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${
+                      m.gender === 'Female' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'
+                    }`}>
+                      {m.gender || 'Not Set'}
+                    </div>
+                    {(m.measurements && Array.isArray(m.measurements) && m.measurements.length > 0) ? (
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-green-100 animate-in zoom-in duration-500 shadow-sm">
+                        <ShieldCheck size={10} strokeWidth={3} />
+                        Measured
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-50 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-100 opacity-60">
+                        <Info size={10} strokeWidth={3} />
+                        Not Measured
+                      </div>
+                    )}
                   </div>
                </div>
-               <h3 className="font-bold text-[#3a525d] text-base leading-tight">{s.full_name}</h3>
-               <p className="text-[9px] font-black text-[#2d8d9b] tracking-widest mt-1 opacity-60 uppercase">ID: {s.admission_no}</p>
+               <h3 className="font-bold text-[#3a525d] text-base leading-tight">{m.full_name}</h3>
+               <p className="text-[9px] font-black text-[#2d8d9b] tracking-widest mt-1 opacity-60 uppercase">ID: {m.admission_no}</p>
             </Card>
           ))}
           
-          {!selectedClass && (
+          {!selectedDept && (
             <div className="col-span-full py-20 text-center opacity-20">
                <Scale size={64} className="mx-auto mb-4" />
-               <p className="text-xl font-black italic tracking-tighter">Choose School & Class to begin</p>
+               <p className="text-xl font-black italic tracking-tighter">Choose Organization & Department to begin</p>
             </div>
           )}
 
@@ -310,24 +344,24 @@ export default function MeasurementEntryPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20 animate-in zoom-in duration-500">
-            {/* Student Profile & HISTORY */}
+            {/* Member Profile & HISTORY */}
             <div className="lg:col-span-1 space-y-6">
                 <Card className="p-8 border-none bg-gradient-to-br from-[#3a525d] to-[#2d8d9b] text-white shadow-2xl relative overflow-hidden">
                    <div className="relative z-10">
                       <Button 
                         variant="secondary" 
-                        onClick={() => setSelectedStudent(null)}
+                        onClick={() => setSelectedMember(null)}
                         className="h-10 px-6 rounded-xl bg-white/20 hover:bg-white/30 border-none text-white text-[10px] font-black uppercase tracking-widest mb-8 gap-2"
                       >
-                         &larr; Back to Student Registry
+                         &larr; Back to Registry
                       </Button>
-                      <h2 className="text-3xl font-black italic tracking-tighter mb-4">{selectedStudent.full_name}</h2>
+                      <h2 className="text-3xl font-black italic tracking-tighter mb-4">{selectedMember.full_name}</h2>
                       <div className="space-y-2 opacity-70">
                          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                            <ShieldCheck size={14} /> ID: {selectedStudent.admission_no}
+                            <ShieldCheck size={14} /> ID: {selectedMember.admission_no}
                          </div>
                          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                            <User size={14} /> Gender: {selectedStudent.gender || 'Not Set'}
+                            <User size={14} /> Gender: {selectedMember.gender || 'Not Set'}
                          </div>
                       </div>
                    </div>
@@ -360,7 +394,7 @@ export default function MeasurementEntryPage() {
                                      {t.name}
                                   </p>
                                   <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
-                                     {selectedStudent.gender === 'Female' ? t.girls_config?.length : t.boys_config?.length} Products Linked
+                                     {selectedMember.gender === 'Female' ? t.girls_config?.length : t.boys_config?.length} Products Linked
                                   </p>
                                </div>
                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
@@ -375,7 +409,7 @@ export default function MeasurementEntryPage() {
                 </Card>
 
                 {/* HISTORICAL PREVIEW CARD */}
-                <Card className={`p-6 border-none shadow-xl ${lastMeasurement ? 'bg-orange-50/80 border border-orange-100' : 'bg-zinc-50 opacity-40'}`}>
+                <Card className={`hidden p-6 border-none shadow-xl ${lastMeasurement ? 'bg-orange-50/80 border border-orange-100' : 'bg-zinc-50 opacity-40'}`}>
                    <div className="flex items-center gap-3 mb-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${lastMeasurement ? 'bg-orange-100 text-orange-600' : 'bg-zinc-100 text-zinc-400'}`}>
                          <History size={20} />
@@ -429,9 +463,21 @@ export default function MeasurementEntryPage() {
                         })}
                         
                         {lastMeasurement && (
-                          <div className="pt-3 flex justify-between items-center">
-                             <span className="text-[10px] font-black text-orange-600 uppercase">Suggested Size</span>
-                             <span className="px-3 py-1 bg-white rounded-lg font-black text-[#3a525d] shadow-sm">{lastMeasurement.suggested_size}</span>
+                          <div className="space-y-4">
+                            <div className="pt-3 flex justify-between items-center border-t border-orange-100/50 mt-4">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-orange-600 uppercase">Captured By</span>
+                                    <span className="text-[9px] font-bold text-[#3a525d] opacity-60">{lastMeasurement.user_profiles?.full_name || 'System'}</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-black text-orange-600 uppercase">Suggested Size</span>
+                                    <span className="px-3 py-1 bg-white rounded-lg font-black text-[#3a525d] shadow-sm">{lastMeasurement.suggested_size}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-xl border border-green-100 shadow-sm animate-in zoom-in duration-500">
+                                <ShieldCheck size={14} strokeWidth={3} />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Measured</span>
+                            </div>
                           </div>
                         )}
                      </div>
@@ -454,7 +500,7 @@ export default function MeasurementEntryPage() {
                       
                       {selectedTemplate && (
                         <div className="flex flex-wrap gap-2 md:justify-end max-w-md">
-                           {(selectedStudent.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config)?.map((item: any) => {
+                           {(selectedMember.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config)?.map((item: any) => {
                               const prod = products.find(p => p.id === item.product_id);
                               return (
                                  <div key={item.product_id} className="px-3 py-1.5 bg-[#2d8d9b]/5 border border-[#2d8d9b]/10 rounded-xl flex items-center gap-2">
@@ -469,7 +515,7 @@ export default function MeasurementEntryPage() {
                    </div>
 
                   <form 
-                    key={selectedStudent.id + (lastMeasurement?.recorded_at || '') + (selectedTemplate?.id || '')}
+                    key={selectedMember.id + (lastMeasurement?.recorded_at || '') + (selectedTemplate?.id || '')}
                     onSubmit={handleSave} 
                     className="space-y-10"
                   >
@@ -480,7 +526,7 @@ export default function MeasurementEntryPage() {
                        </div>
                     ) : (
                        <div className="space-y-12">
-                          {(selectedStudent.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config)?.map((item: any) => {
+                          {(selectedMember.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config)?.map((item: any) => {
                              const prod = products.find(p => p.id === item.product_id);
                              if (!prod) return null;
 
@@ -566,7 +612,7 @@ export default function MeasurementEntryPage() {
                                                     </h5>
                                                  </div>
                                                  
-                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-8">
                                                     {chart?.metric_groups?.map((group: any) => {
                                                        const selectionKey = `${prod.id}-${group.label}`;
                                                        const currentVal = selectedSizes[selectionKey] || lastMeasurement?.dynamic_data?.[prod.name]?.selected_size?.[group.label];
@@ -590,7 +636,7 @@ export default function MeasurementEntryPage() {
                                        })()}
                                     </div>
                                   ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                                       {(prod.measurements || []).map((label: string) => {
                                           const field = measurementFields.find(f => f.label === label);
                                           const historyVal = lastMeasurement?.dynamic_data?.[prod.name]?.[label] || '';
@@ -629,6 +675,15 @@ export default function MeasurementEntryPage() {
                             { label: '2XL', value: '2XL' }, { label: 'Custom', value: 'Custom' }
                           ]}
                        />
+                       <Select 
+                          name="recorded_by" 
+                          label="Recorded By (Staff/Admin)" 
+                          defaultValue={typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').id : ''}
+                          options={staff}
+                       />
+                       
+                    </div>
+                    <div className="md:col-span-2 pt-8 border-t border-zinc-50 grid grid-cols-1 gap-8">
                        <Input 
                           name="notes" 
                           label="Special Tailoring Instructions" 

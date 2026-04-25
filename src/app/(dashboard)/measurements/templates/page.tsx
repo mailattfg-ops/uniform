@@ -27,26 +27,25 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
-interface UniformTemplate {
+interface IndustryTemplate {
   id: number;
-  school_id: number;
+  organization_id: number;
   name: string;
-  classes: number[];
+  department_ids: number[];
   boys_config: { product_id: number; quantity: number; design_id?: string; entry_methods?: string[] }[];
   girls_config: { product_id: number; quantity: number; design_id?: string; entry_methods?: string[] }[];
-  schools?: { name: string };
+  organizations?: { name: string };
 }
 
-interface School {
+interface Organization {
   id: number;
   name: string;
 }
 
-interface ClassRecord {
+interface Department {
   id: number;
-  grade: string;
-  section: string;
-  school_id: number;
+  name: string;
+  organization_id: number;
 }
 
 interface Product {
@@ -56,38 +55,38 @@ interface Product {
   entry_methods?: string[];
 }
 
-export default function UniformTemplatesPage() {
-  const [templates, setTemplates] = useState<UniformTemplate[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
+export default function IndustryTemplatesPage() {
+  const [templates, setTemplates] = useState<IndustryTemplate[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [designs, setDesigns] = useState<{ label: string; value: string }[]>([]);
-  const [classes, setClasses] = useState<ClassRecord[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<UniformTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<IndustryTemplate | null>(null);
 
   // Form State
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
   const [templateName, setTemplateName] = useState('');
-  const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
-  const [boysConfig, setBoysConfig] = useState<{ product_id: string; quantity: number; design_id?: string; entry_methods?: string[] }[]>([]);
-  const [girlsConfig, setGirlsConfig] = useState<{ product_id: string; quantity: number; design_id?: string; entry_methods?: string[] }[]>([]);
+  const [selectedDepts, setSelectedDepts] = useState<number[]>([]);
+  const [maleConfig, setMaleConfig] = useState<{ product_id: string; quantity: number; design_id?: string; entry_methods?: string[] }[]>([]);
+  const [femaleConfig, setFemaleConfig] = useState<{ product_id: string; quantity: number; design_id?: string; entry_methods?: string[] }[]>([]);
 
   const fetchTemplates = async () => {
     try {
       const res = await api.get('/templates');
       setTemplates(res.data);
     } catch (err) {
-      console.error('Templates table not yet created or inaccessible');
+      console.error('Template registry inaccessible');
     }
   };
 
-  const fetchSchools = async () => {
+  const fetchOrganizations = async () => {
     try {
-      const res = await api.get('/schools');
-      setSchools(res.data);
+      const res = await api.get('/organizations');
+      setOrganizations(res.data);
     } catch (err) {
-      toast.error('Failed to load schools');
+      toast.error('Failed to load organizations');
     }
   };
 
@@ -104,7 +103,7 @@ export default function UniformTemplatesPage() {
     setIsLoading(true);
     await Promise.allSettled([
       fetchTemplates(),
-      fetchSchools(),
+      fetchOrganizations(),
       fetchProducts(),
       api.get('/inventory/designs').then(res => 
         setDesigns(res.data.map((d: any) => ({ label: d.design_code, value: d.id })))
@@ -118,31 +117,29 @@ export default function UniformTemplatesPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedSchoolId) {
-      api.get(`/schools/classes?schoolId=${selectedSchoolId}`)
-        .then(res => setClasses(res.data))
-        .catch(() => toast.error('Failed to load classes for school'));
+    if (selectedOrgId) {
+      api.get(`/departments?orgId=${selectedOrgId}`)
+        .then(res => setDepartments(res.data))
+        .catch(() => toast.error('Failed to load departments'));
     } else {
-      setClasses([]);
+      setDepartments([]);
     }
-  }, [selectedSchoolId]);
+  }, [selectedOrgId]);
 
-  const handleAddProduct = (section: 'boys' | 'girls') => {
-    const defaultProd = '';
-    const newItem = { product_id: defaultProd, quantity: 1, design_id: '', entry_methods: ['manual'] };
-    if (section === 'boys') setBoysConfig([...boysConfig, newItem]);
-    else setGirlsConfig([...girlsConfig, newItem]);
+  const handleAddProduct = (section: 'male' | 'female') => {
+    const newItem = { product_id: '', quantity: 1, design_id: '', entry_methods: ['manual'] };
+    if (section === 'male') setMaleConfig([...maleConfig, newItem]);
+    else setFemaleConfig([...femaleConfig, newItem]);
   };
 
-  const handleRemoveProduct = (section: 'boys' | 'girls', index: number) => {
-    if (section === 'boys') setBoysConfig(boysConfig.filter((_, i) => i !== index));
-    else setGirlsConfig(girlsConfig.filter((_, i) => i !== index));
+  const handleRemoveProduct = (section: 'male' | 'female', index: number) => {
+    if (section === 'male') setMaleConfig(maleConfig.filter((_, i) => i !== index));
+    else setFemaleConfig(femaleConfig.filter((_, i) => i !== index));
   };
 
-  const handleUpdateProduct = (section: 'boys' | 'girls', index: number, field: string, value: any) => {
-    const config = section === 'boys' ? [...boysConfig] : [...girlsConfig];
+  const handleUpdateProduct = (section: 'male' | 'female', index: number, field: string, value: any) => {
+    const config = section === 'male' ? [...maleConfig] : [...femaleConfig];
     
-    // Auto-sync entry methods if product changed and no manual override exists yet
     if (field === 'product_id' && value) {
         const prod = products.find(p => p.id.toString() === value);
         if (prod) {
@@ -154,49 +151,35 @@ export default function UniformTemplatesPage() {
         config[index] = { ...config[index], [field]: value };
     }
 
-    if (section === 'boys') setBoysConfig(config);
-    else setGirlsConfig(config);
+    if (section === 'male') setMaleConfig(config);
+    else setFemaleConfig(config);
   };
 
-  const setEntryMethod = (section: 'boys' | 'girls', configIndex: number, method: string) => {
-    const config = section === 'boys' ? [...boysConfig] : [...girlsConfig];
-    config[configIndex].entry_methods = [method]; // Set only the selected one
-    
-    if (section === 'boys') setBoysConfig(config);
-    else setGirlsConfig(config);
-  };
-
-  const handleToggleGrade = (grade: string) => {
-    const classIdsInGrade = classes
-      .filter(c => c.grade === grade)
-      .map(c => c.id);
-
-    const allInGradeSelected = classIdsInGrade.every(id => selectedClasses.includes(id));
-
-    if (allInGradeSelected) {
-      setSelectedClasses(selectedClasses.filter(id => !classIdsInGrade.includes(id)));
+  const handleToggleDept = (deptId: number) => {
+    if (selectedDepts.includes(deptId)) {
+        setSelectedDepts(selectedDepts.filter(id => id !== deptId));
     } else {
-      setSelectedClasses([...new Set([...selectedClasses, ...classIdsInGrade])]);
+        setSelectedDepts([...selectedDepts, deptId]);
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedSchoolId || !templateName || selectedClasses.length === 0) {
+    if (!selectedOrgId || !templateName || selectedDepts.length === 0) {
       toast.error('Please fill all mandatory fields');
       return;
     }
 
     const payload = {
-      school_id: parseInt(selectedSchoolId),
+      organization_id: parseInt(selectedOrgId),
       name: templateName,
-      classes: selectedClasses,
-      boys_config: boysConfig.map(c => ({ 
+      department_ids: selectedDepts,
+      boys_config: maleConfig.map(c => ({ 
         product_id: parseInt(c.product_id), 
         quantity: c.quantity,
         design_id: c.design_id || null,
         entry_methods: c.entry_methods || ['manual']
       })),
-      girls_config: girlsConfig.map(c => ({ 
+      girls_config: femaleConfig.map(c => ({ 
         product_id: parseInt(c.product_id), 
         quantity: c.quantity,
         design_id: c.design_id || null,
@@ -223,25 +206,25 @@ export default function UniformTemplatesPage() {
   };
 
   const resetForm = () => {
-    setSelectedSchoolId('');
+    setSelectedOrgId('');
     setTemplateName('');
-    setSelectedClasses([]);
-    setBoysConfig([]);
-    setGirlsConfig([]);
+    setSelectedDepts([]);
+    setMaleConfig([]);
+    setFemaleConfig([]);
   };
 
-  const startEdit = (t: UniformTemplate) => {
+  const startEdit = (t: IndustryTemplate) => {
     setEditingTemplate(t);
-    setSelectedSchoolId(t.school_id.toString());
+    setSelectedOrgId(t.organization_id.toString());
     setTemplateName(t.name);
-    setSelectedClasses(t.classes || []);
-    setBoysConfig(t.boys_config?.map(c => ({ 
+    setSelectedDepts(t.department_ids || []);
+    setMaleConfig(t.boys_config?.map(c => ({ 
         product_id: c.product_id.toString(), 
         quantity: c.quantity, 
         design_id: c.design_id,
         entry_methods: c.entry_methods || ['manual']
     })) || []);
-    setGirlsConfig(t.girls_config?.map(c => ({ 
+    setFemaleConfig(t.girls_config?.map(c => ({ 
         product_id: c.product_id.toString(), 
         quantity: c.quantity, 
         design_id: c.design_id,
@@ -250,7 +233,7 @@ export default function UniformTemplatesPage() {
     setIsAdding(true);
   };
 
-  const columns: Column<UniformTemplate>[] = [
+  const columns: Column<IndustryTemplate>[] = [
     {
       header: 'Template Name',
       accessor: (t) => (
@@ -266,16 +249,16 @@ export default function UniformTemplatesPage() {
       )
     },
     {
-      header: 'School',
+      header: 'Organization',
       accessor: (t) => (
         <div className="flex items-center gap-2 text-zinc-500">
           <SchoolIcon size={14} className="text-[#2d8d9b]" />
-          <span className="text-xs font-bold">{t.schools?.name}</span>
+          <span className="text-xs font-bold">{t.organizations?.name}</span>
         </div>
       )
     },
     {
-       header: 'Boys Set',
+       header: 'Male Config',
        accessor: (t) => (
          <p className="text-[10px] font-black uppercase text-[#3a525d] bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100 inline-block">
            {t.boys_config?.length || 0} Products
@@ -283,7 +266,7 @@ export default function UniformTemplatesPage() {
        )
     },
     {
-        header: 'Girls Set',
+        header: 'Female Config',
         accessor: (t) => (
           <p className="text-[10px] font-black uppercase text-[#2d8d9b] bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100 inline-block">
             {t.girls_config?.length || 0} Products
@@ -302,9 +285,9 @@ export default function UniformTemplatesPage() {
           </button>
           <button 
             onClick={async () => {
-              if (confirm('Delete this template?')) {
+              if (confirm('Permanently remove this template?')) {
                 await api.delete(`/templates/${t.id}`);
-                toast.success('Template deleted');
+                toast.success('Template purged');
                 fetchData();
               }
             }}
@@ -323,10 +306,10 @@ export default function UniformTemplatesPage() {
         <div className="flex items-center justify-between">
            <div>
               <h2 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">
-                {editingTemplate ? 'Refine Template' : 'Architect Template'}
+                {editingTemplate ? 'Refine Logic' : 'Architect Template'}
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
-                Defining uniform bundles for academic sessions
+                Defining specialized bundles for industry sectors
               </p>
            </div>
            <Button variant="secondary" onClick={() => { setIsAdding(false); resetForm(); }}>
@@ -335,26 +318,25 @@ export default function UniformTemplatesPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Main Info */}
           <Card className="lg:col-span-1 p-8 space-y-6">
             <h3 className="font-black italic text-lg text-[#3a525d] flex items-center gap-3">
-              <SchoolIcon className="text-[#2d8d9b]" size={20} />
+              <Settings2 className="text-[#2d8d9b]" size={20} />
               Foundation Details
             </h3>
             
             <div className="space-y-4">
                <div>
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2 block">Assigned School</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2 block">Assigned Organization</label>
                   <Select 
-                    options={schools.map(s => ({ label: s.name, value: s.id.toString() }))}
-                    value={selectedSchoolId}
-                    onChange={setSelectedSchoolId}
+                    options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
+                    value={selectedOrgId}
+                    onChange={setSelectedOrgId}
                   />
                </div>
                <div>
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2 block">Template Identifier</label>
                   <Input 
-                    placeholder="e.g. Nursery Uniform 2024"
+                    placeholder="e.g. Factory Floor Set A"
                     value={templateName}
                     onChange={(e) => setTemplateName(e.target.value)}
                   />
@@ -362,39 +344,31 @@ export default function UniformTemplatesPage() {
             </div>
 
             <div className="pt-6 border-t border-zinc-100">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 block">Applicable Classes</label>
-                {!selectedSchoolId ? (
-                   <p className="text-xs text-zinc-300 italic">Select a school to view grades...</p>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 block">Applicable Departments</label>
+                {!selectedOrgId ? (
+                   <p className="text-xs text-zinc-300 italic">Select an organization first...</p>
                 ) : (
-                   <div className="grid grid-cols-2 gap-2">
-                      {Array.from(new Set(classes.map(c => c.grade))).map(grade => {
-                        const isGradeSelected = classes
-                          .filter(c => c.grade === grade)
-                          .every(c => selectedClasses.includes(c.id));
-
-                        return (
-                          <button 
-                            key={grade}
-                            onClick={() => handleToggleGrade(grade)}
-                            className={`p-3 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 ${
-                              isGradeSelected 
-                              ? 'bg-[#3a525d] text-white border-[#3a525d] shadow-lg shadow-[#3a525d]/20' 
-                              : 'bg-zinc-50 text-zinc-400 border-zinc-100 hover:bg-zinc-100'
-                            }`}
-                          >
-                             <GraduationCap size={12} />
-                             Grade {grade}
-                          </button>
-                        );
-                      })}
+                   <div className="grid grid-cols-1 gap-2">
+                      {departments.map(dept => (
+                        <button 
+                          key={dept.id}
+                          onClick={() => handleToggleDept(dept.id)}
+                          className={`p-3 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 ${
+                            selectedDepts.includes(dept.id) 
+                            ? 'bg-[#3a525d] text-white border-[#3a525d] shadow-lg shadow-[#3a525d]/20' 
+                            : 'bg-zinc-50 text-zinc-400 border-zinc-100 hover:bg-zinc-100'
+                          }`}
+                        >
+                           <BookOpen size={12} />
+                           {dept.name}
+                        </button>
+                      ))}
                    </div>
                 )}
             </div>
           </Card>
 
-          {/* Product Sets */}
           <div className="lg:col-span-2 space-y-10">
-              {/* BOYS SECTION */}
               <Card className="p-8 border-l-4 border-l-blue-500 shadow-2xl shadow-blue-500/5">
                  <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
@@ -402,94 +376,94 @@ export default function UniformTemplatesPage() {
                           <UserCircle size={28} />
                        </div>
                        <div>
-                          <h3 className="font-black italic text-xl text-[#3a525d]">Boys Uniform Set</h3>
-                          <p className="text-[9px] font-extrabold uppercase tracking-widest text-blue-600">Male Student Configuration</p>
+                          <h3 className="font-black italic text-xl text-[#3a525d]">Male Member Set</h3>
+                          <p className="text-[9px] font-extrabold uppercase tracking-widest text-blue-600">Primary Industry Config</p>
                        </div>
                     </div>
                     <Button 
                       variant="secondary" 
                       className="rounded-xl h-10 px-4 text-[9px] font-black gap-2"
-                      onClick={() => handleAddProduct('boys')}
+                      onClick={() => handleAddProduct('male')}
                     >
                        <Plus size={14} /> Add Product
                     </Button>
                  </div>
 
                  <div className="space-y-4">
-                    {boysConfig.map((item, idx) => {
-                       const prod = products.find(p => p.id.toString() === item.product_id);
-                       return (
+                    {maleConfig.map((item, idx) => (
                         <div key={idx} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 space-y-6 group animate-in slide-in-from-right-4 duration-300">
                            <div className="flex items-center gap-4">
                                 <div className="flex-[2]">
                                     <Select 
                                         options={products.map(p => ({ label: `${p.name} (${p.art_number})`, value: p.id.toString() }))}
                                         value={item.product_id}
-                                        onChange={(val: string) => handleUpdateProduct('boys', idx, 'product_id', val)}
+                                        onChange={(val: string) => handleUpdateProduct('male', idx, 'product_id', val)}
                                     />
                                 </div>
                                 <div className="flex-1">
                                     <Select 
-                                        placeholder="Design No"
+                                        placeholder="Variation No"
                                         options={designs}
                                         value={item.design_id || ''}
-                                        onChange={(val: string) => handleUpdateProduct('boys', idx, 'design_id', val)}
+                                        onChange={(val: string) => handleUpdateProduct('male', idx, 'design_id', val)}
                                     />
                                 </div>
                                 <div className="w-24">
                                     <Input 
                                         type="number"
                                         value={item.quantity}
-                                        onChange={(e) => handleUpdateProduct('boys', idx, 'quantity', parseInt(e.target.value))}
+                                        onChange={(e) => handleUpdateProduct('male', idx, 'quantity', parseInt(e.target.value))}
                                         placeholder="Qty"
                                     />
                                 </div>
                                 <button 
-                                    onClick={() => handleRemoveProduct('boys', idx)}
+                                    onClick={() => handleRemoveProduct('male', idx)}
                                     className="p-3 text-zinc-300 hover:text-red-500 transition-colors"
                                 >
                                     <Trash size={18} />
                                 </button>
                            </div>
 
-                           {prod && (
-                               <div className="flex items-center gap-6 pl-1 pt-2">
-                                  <div className="flex items-center gap-2">
-                                     <Settings2 size={12} className="text-[#2d8d9b]" />
-                                     <span className="text-[10px] font-black uppercase text-[#3a525d]/40 tracking-widest">Entry Strategy:</span>
-                                  </div>
-                                  <div className="flex gap-4">
-                                     <label className={`flex items-center gap-2 cursor-pointer transition-all ${!prod.entry_methods?.includes('manual') ? 'opacity-20 pointer-events-none' : ''}`}>
-                                        <input 
-                                            type="radio" 
-                                            name={`boys-entry-${idx}`}
-                                            checked={item.entry_methods?.includes('manual')}
-                                            onChange={() => setEntryMethod('boys', idx, 'manual')}
-                                            className="w-4 h-4 text-[#2d8d9b] focus:ring-[#2d8d9b] border-zinc-300"
-                                        />
-                                        <span className={`text-[10px] font-bold ${item.entry_methods?.includes('manual') ? 'text-[#2d8d9b]' : 'text-[#3a525d]'}`}>Manual Measurement</span>
-                                     </label>
-                                     <label className={`flex items-center gap-2 cursor-pointer transition-all ${!prod.entry_methods?.includes('us_size_chart') ? 'opacity-20 pointer-events-none' : ''}`}>
-                                        <input 
-                                            type="radio" 
-                                            name={`boys-entry-${idx}`}
-                                            checked={item.entry_methods?.includes('us_size_chart')}
-                                            onChange={() => setEntryMethod('boys', idx, 'us_size_chart')}
-                                            className="w-4 h-4 text-[#2d8d9b] focus:ring-[#2d8d9b] border-zinc-300"
-                                        />
-                                        <span className={`text-[10px] font-bold ${item.entry_methods?.includes('us_size_chart') ? 'text-[#2d8d9b]' : 'text-[#3a525d]'}`}>US Size Chart Scaling</span>
-                                     </label>
-                                  </div>
+                           {/* Entry Logic Selection */}
+                           {item.product_id && (
+                             <div className="flex items-center gap-6 px-2 border-t border-zinc-100 pt-4">
+                               <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Entry Logic:</p>
+                               <div className="flex items-center gap-2">
+                                 {['manual', 'us_size_chart'].map(method => {
+                                   const prod = products.find(p => p.id.toString() === item.product_id);
+                                   const isSupported = prod?.entry_methods?.includes(method);
+                                   const isActive = item.entry_methods?.includes(method);
+
+                                   if (!isSupported) return null;
+
+                                   return (
+                                     <button
+                                       key={method}
+                                       onClick={() => {
+                                         const current = item.entry_methods || [];
+                                         const next = current.includes(method) 
+                                           ? current.filter(m => m !== method)
+                                           : [...current, method];
+                                         handleUpdateProduct('male', idx, 'entry_methods', next);
+                                       }}
+                                       className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
+                                         isActive 
+                                         ? 'bg-[#3a525d] text-white border-[#3a525d] shadow-md shadow-[#3a525d]/20' 
+                                         : 'bg-white text-zinc-400 border-zinc-200 hover:border-[#3a525d]/30 font-extrabold'
+                                       }`}
+                                     >
+                                       {method.replace(/_/g, ' ')}
+                                     </button>
+                                   );
+                                 })}
                                </div>
+                             </div>
                            )}
                         </div>
-                       )
-                    })}
-                    {boysConfig.length === 0 && <p className="text-center py-6 text-xs text-zinc-300 italic border-2 border-dashed border-zinc-100 rounded-3xl uppercase font-black">No Products Added to Boys Set</p>}
+                    ))}
                  </div>
               </Card>
 
-              {/* GIRLS SECTION */}
               <Card className="p-8 border-l-4 border-l-pink-500 shadow-2xl shadow-pink-500/5">
                  <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
@@ -497,90 +471,91 @@ export default function UniformTemplatesPage() {
                           <UserCircle2 size={28} />
                        </div>
                        <div>
-                          <h3 className="font-black italic text-xl text-[#3a525d]">Girls Uniform Set</h3>
-                          <p className="text-[9px] font-extrabold uppercase tracking-widest text-pink-600">Female Student Configuration</p>
+                          <h3 className="font-black italic text-xl text-[#3a525d]">Female Member Set</h3>
+                          <p className="text-[9px] font-extrabold uppercase tracking-widest text-pink-600">Primary Industry Config</p>
                        </div>
                     </div>
                     <Button 
                       variant="secondary" 
                       className="rounded-xl h-10 px-4 text-[9px] font-black gap-2"
-                      onClick={() => handleAddProduct('girls')}
+                      onClick={() => handleAddProduct('female')}
                     >
                        <Plus size={14} /> Add Product
                     </Button>
                  </div>
 
                  <div className="space-y-4">
-                    {girlsConfig.map((item, idx) => {
-                       const prod = products.find(p => p.id.toString() === item.product_id);
-                       return (
+                    {femaleConfig.map((item, idx) => (
                         <div key={idx} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 space-y-6 group animate-in slide-in-from-right-4 duration-300">
                            <div className="flex items-center gap-4">
                                 <div className="flex-[2]">
                                     <Select 
                                         options={products.map(p => ({ label: `${p.name} (${p.art_number})`, value: p.id.toString() }))}
                                         value={item.product_id}
-                                        onChange={(val: string) => handleUpdateProduct('girls', idx, 'product_id', val)}
+                                        onChange={(val: string) => handleUpdateProduct('female', idx, 'product_id', val)}
                                     />
                                 </div>
                                 <div className="flex-1">
                                     <Select 
-                                        placeholder="Design No"
+                                        placeholder="Variation No"
                                         options={designs}
                                         value={item.design_id || ''}
-                                        onChange={(val: string) => handleUpdateProduct('girls', idx, 'design_id', val)}
+                                        onChange={(val: string) => handleUpdateProduct('female', idx, 'design_id', val)}
                                     />
                                 </div>
                                 <div className="w-24">
                                     <Input 
                                         type="number"
                                         value={item.quantity}
-                                        onChange={(e) => handleUpdateProduct('girls', idx, 'quantity', parseInt(e.target.value))}
+                                        onChange={(e) => handleUpdateProduct('female', idx, 'quantity', parseInt(e.target.value))}
                                         placeholder="Qty"
                                     />
                                 </div>
                                 <button 
-                                    onClick={() => handleRemoveProduct('girls', idx)}
+                                    onClick={() => handleRemoveProduct('female', idx)}
                                     className="p-3 text-zinc-300 hover:text-red-500 transition-colors"
                                 >
                                     <Trash size={18} />
                                 </button>
                            </div>
 
-                           {prod && (
-                               <div className="flex items-center gap-6 pl-1 pt-2">
-                                  <div className="flex items-center gap-2">
-                                     <Settings2 size={12} className="text-[#2d8d9b]" />
-                                     <span className="text-[10px] font-black uppercase text-[#3a525d]/40 tracking-widest">Entry Strategy:</span>
-                                  </div>
-                                  <div className="flex gap-4">
-                                     <label className={`flex items-center gap-2 cursor-pointer transition-all ${!prod.entry_methods?.includes('manual') ? 'opacity-20 pointer-events-none' : ''}`}>
-                                        <input 
-                                            type="radio" 
-                                            name={`girls-entry-${idx}`}
-                                            checked={item.entry_methods?.includes('manual')}
-                                            onChange={() => setEntryMethod('girls', idx, 'manual')}
-                                            className="w-4 h-4 text-[#2d8d9b] focus:ring-[#2d8d9b] border-zinc-300"
-                                        />
-                                        <span className={`text-[10px] font-bold ${item.entry_methods?.includes('manual') ? 'text-[#2d8d9b]' : 'text-[#3a525d]'}`}>Manual Measurement</span>
-                                     </label>
-                                     <label className={`flex items-center gap-2 cursor-pointer transition-all ${!prod.entry_methods?.includes('us_size_chart') ? 'opacity-20 pointer-events-none' : ''}`}>
-                                        <input 
-                                            type="radio" 
-                                            name={`girls-entry-${idx}`}
-                                            checked={item.entry_methods?.includes('us_size_chart')}
-                                            onChange={() => setEntryMethod('girls', idx, 'us_size_chart')}
-                                            className="w-4 h-4 text-[#2d8d9b] focus:ring-[#2d8d9b] border-zinc-300"
-                                        />
-                                        <span className={`text-[10px] font-bold ${item.entry_methods?.includes('us_size_chart') ? 'text-[#2d8d9b]' : 'text-[#3a525d]'}`}>US Size Chart Scaling</span>
-                                     </label>
-                                  </div>
+                           {/* Entry Logic Selection */}
+                           {item.product_id && (
+                             <div className="flex items-center gap-6 px-2 border-t border-zinc-100 pt-4">
+                               <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Entry Logic:</p>
+                               <div className="flex items-center gap-2">
+                                 {['manual', 'us_size_chart'].map(method => {
+                                   const prod = products.find(p => p.id.toString() === item.product_id);
+                                   const isSupported = prod?.entry_methods?.includes(method);
+                                   const isActive = item.entry_methods?.includes(method);
+
+                                   if (!isSupported) return null;
+
+                                   return (
+                                     <button
+                                       key={method}
+                                       onClick={() => {
+                                         const current = item.entry_methods || [];
+                                         const next = current.includes(method) 
+                                           ? current.filter(m => m !== method)
+                                           : [...current, method];
+                                         handleUpdateProduct('female', idx, 'entry_methods', next);
+                                       }}
+                                       className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
+                                         isActive 
+                                         ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' 
+                                         : 'bg-white text-zinc-400 border-zinc-200 hover:border-pink-500/30 font-extrabold'
+                                       }`}
+                                     >
+                                       {method.replace(/_/g, ' ')}
+                                     </button>
+                                   );
+                                 })}
                                </div>
+                             </div>
                            )}
                         </div>
-                       )
-                    })}
-                    {girlsConfig.length === 0 && <p className="text-center py-6 text-xs text-zinc-300 italic border-2 border-dashed border-zinc-100 rounded-3xl uppercase font-black">No Products Added to Girls Set</p>}
+                    ))}
                  </div>
               </Card>
 
@@ -589,7 +564,7 @@ export default function UniformTemplatesPage() {
                    onClick={handleSubmit}
                    className="h-20 px-20 text-lg font-black italic rounded-[2rem] bg-[#3a525d] hover:bg-[#2d8d9b] text-white shadow-2xl shadow-[#3a525d]/30 gap-4"
                  >
-                    Publish Uniform Bundle <ArrowRight />
+                    Publish Template <ArrowRight />
                  </Button>
               </div>
           </div>
@@ -603,7 +578,7 @@ export default function UniformTemplatesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
          <div>
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Bundle Architect</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Define & Manage school-wide uniform templates</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Design & Manage industry-specific bundle templates</p>
          </div>
          <Button 
             onClick={() => setIsAdding(true)}
@@ -618,7 +593,7 @@ export default function UniformTemplatesPage() {
         columns={columns}
         data={templates}
         isLoading={isLoading}
-        searchPlaceholder="Filter bundles by name or school..."
+        searchPlaceholder="Filter bundles by name or organization..."
       />
     </div>
   );

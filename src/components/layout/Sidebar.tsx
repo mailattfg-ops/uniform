@@ -37,12 +37,12 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   { 
-    icon: Building2, label: 'School Management', href: '/schools/classes',
+    icon: Building2, label: 'Sector Operations', href: '/organizations/registry',
     subsections: [
-      { label: 'Schools Registry', href: '/schools/registry' },
-      { label: 'Class Management', href: '/schools/classes' },
-      { label: 'Students Directory', href: '/students/directory' },
-      { label: 'Student Groups', href: '/students/groups' }
+      { label: 'Member Organizations', href: '/organizations/registry' },
+      { label: 'Department Units', href: '/organizations/departments' },
+      { label: 'Master Registry', href: '/entities/directory' },
+      // { label: 'Functional Groups', href: '/entities/groups' }
     ]
   },
   { 
@@ -50,30 +50,31 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Record Entry', href: '/measurements/entry' },
       { label: 'History', href: '/measurements/history' },
-      { label: 'Templates', href: '/measurements/templates' }
+      { label: 'Industry Templates', href: '/measurements/templates' }
     ]
   },
   { 
     icon: ShieldAlert, label: 'Admin Controls', href: '/admin/settings',
     subsections: [
-      { label: 'Measures', href: '/admin/measures' },
-      { label: 'Products', href: '/admin/products' },
+      { label: 'Industry Sectors', href: '/admin/industries' },
+      { label: 'Measurement Setup', href: '/admin/measures' },
+      { label: 'Product Registry', href: '/admin/products' },
       { label: 'Audit Logs', href: '/admin/audit' },
-      { label: 'Employees', href: '/admin/employees' },
+      { label: 'Staff Management', href: '/admin/employees' },
       { label: 'System Settings', href: '/admin/settings' },
       { label: 'User Roles', href: '/admin/roles' },
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
       { label: 'Design Hub', href: '/admin/inventory/designs' },
-      { label: 'US Size Chart', href: '/admin/size-charts' }
+      { label: 'Standard Size Charts', href: '/admin/size-charts' }
     ]
   },
   { 
     icon: Settings, label: 'Settings', href: '/settings/profile',
     subsections: [
       { label: 'Profile', href: '/settings/profile' },
-      { label: 'Company', href: '/settings/company' }
+      { label: 'Company Info', href: '/settings/company' }
     ]
   },
 ];
@@ -181,7 +182,7 @@ export const Sidebar: React.FC = () => {
 
               // Permission Logic Mapping
               const modulePermissionMap: Record<string, string[]> = {
-                'School Management': ['view_schools', 'manage_classes', 'view_students', 'view_own_students'],
+                'Industry Registry': ['view_schools', 'manage_classes', 'view_students', 'view_own_students'],
                 'Measurements': ['manage_measurements'],
                 'Admin Controls': ['manage_system'] // Only admin or specific managers
               };
@@ -230,10 +231,10 @@ export const Sidebar: React.FC = () => {
                         
                         // Sub-permission logic
                         const subPermissionMap: Record<string, string[]> = {
-                          'Schools Registry': ['view_schools'],
-                          'Class Management': ['view_schools', 'manage_classes'],
-                          'Students Directory': ['view_students', 'view_own_students'],
-                          'Student Groups': ['view_students', 'view_own_students'],
+                          'Organizations Registry': ['view_schools'],
+                          'Department Management': ['view_schools', 'manage_classes'],
+                          'Entity Directory': ['view_students', 'view_own_students'],
+                          'Entity Groups': ['view_students', 'view_own_students'],
                           'Profiles': ['view_students', 'view_own_students'],
                           'Record Entry': ['manage_measurements'],
                           'History': ['view_measurements'],
