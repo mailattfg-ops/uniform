@@ -21,7 +21,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({ isOpen, onCl
   if (!isOpen || !data) return null;
 
   const handleCopy = () => {
-    const text = `Student: ${data.full_name}\nUsername: ${data.username || 'Unchanged'}\nPassword: ${data.password || 'Unchanged'}`;
+    const text = `Entity: ${data.full_name}\nUsername: ${data.username || 'Unchanged'}\nPassword: ${data.password || 'Unchanged'}`;
     navigator.clipboard.writeText(text);
     setHasCopied(true);
     toast.success('Credentials copied!');

@@ -39,18 +39,21 @@ export const MeasurementTable: React.FC = () => {
   const [selectedOrg, setSelectedOrg] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
 
+  const [measurementFields, setMeasurementFields] = useState<any[]>([]);
   const [sizeCharts, setSizeCharts] = useState<any[]>([]);
 
   const fetchFilters = async () => {
     try {
-      const [orgsRes, deptsRes, chartsRes] = await Promise.all([
+      const [orgsRes, deptsRes, chartsRes, configRes] = await Promise.all([
         api.get('/organizations'),
         api.get('/departments'),
-        api.get('/size-charts')
+        api.get('/size-charts'),
+        api.get('/measurements/config')
       ]);
       setOrganizations(orgsRes.data);
       setDepartments(deptsRes.data);
       setSizeCharts(chartsRes.data);
+      setMeasurementFields(configRes.data);
     } catch (err) {
       console.error('Failed to load filters');
     }
@@ -128,7 +131,7 @@ export const MeasurementTable: React.FC = () => {
     const dynamicLabelsArray = Array.from(dynamicLabels).sort();
     const dynamicHeaders = dynamicLabelsArray.map(l => {
         const [cat, lab] = l.split('|');
-        return `"${cat}: ${lab}"`; // Format as "Product: Metric"
+        return `"${cat}: ${lab}"`;
     });
 
     const headers = [...baseHeaders.map(h => `"${h}"`), ...dynamicHeaders];
@@ -161,18 +164,23 @@ export const MeasurementTable: React.FC = () => {
               if (strategy === 'us_size_chart') {
                   const sizeLabel = metrics.selected_size?.[label];
                   if (sizeLabel) {
-                      // Try to resolve actual measurement value from size chart
                       const chart = sizeCharts.find(c => c.id === metrics.chart_id);
                       if (chart) {
                           const group = chart.metric_groups?.find((g: any) => g.label === label);
                           const valObj = group?.data?.find((d: any) => d.size === sizeLabel);
-                          val = valObj ? `${sizeLabel} (${valObj.value})` : sizeLabel;
+                          const unit = chart.unit || '';
+                          val = valObj ? `${sizeLabel} (${valObj.value}${unit ? ' ' + unit : ''})` : sizeLabel;
                       } else {
                           val = sizeLabel;
                       }
                   }
               } else {
-                  val = metrics[label];
+                  const rawVal = metrics[label];
+                  if (rawVal !== undefined && rawVal !== null && rawVal !== '') {
+                      const fieldConfig = measurementFields.find(f => f.label === label);
+                      const unit = fieldConfig?.unit || '';
+                      val = unit ? `${rawVal} ${unit}` : rawVal;
+                  }
               }
           }
           return `"${val !== undefined && val !== null ? String(val).replace(/"/g, '""') : ''}"`;

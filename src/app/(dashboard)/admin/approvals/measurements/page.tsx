@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle2, XCircle, User, Calendar, Ruler, MessageSquare, Loader2, Eye } from 'lucide-react';
+import { CheckCircle2, XCircle, User, Calendar, Ruler, MessageSquare, Loader2, Eye, Download } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
@@ -31,15 +31,21 @@ export default function MeasurementApprovals() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
+  const [sizeCharts, setSizeCharts] = useState<any[]>([]);
+  const [measurementFields, setMeasurementFields] = useState<any[]>([]);
 
   const fetchFilters = async () => {
     try {
-      const [orgsRes, deptsRes] = await Promise.all([
+      const [orgsRes, deptsRes, chartsRes, configRes] = await Promise.all([
         api.get('/organizations'),
-        api.get('/departments')
+        api.get('/departments'),
+        api.get('/size-charts'),
+        api.get('/measurements/config')
       ]);
       setOrganizations(orgsRes.data);
       setDepartments(deptsRes.data);
+      setSizeCharts(chartsRes.data);
+      setMeasurementFields(configRes.data);
     } catch (err) {
       console.error('Failed to load filters');
     }
@@ -109,6 +115,109 @@ export default function MeasurementApprovals() {
     } else {
       setSelectedIds([...selectedIds, id]);
     }
+  };
+
+  const downloadCSV = () => {
+    if (measurements.length === 0) {
+        toast.error('No data to export');
+        return;
+    }
+
+    const baseHeaders = ['Full Name', 'Admission No', 'Organization', 'Suggested Size', 'Status', 'Date', 'Time', 'Recorded By', 'Notes'];
+    
+    const dynamicLabels = new Set<string>();
+    measurements.forEach(m => {
+        if (m.dynamic_data) {
+            Object.entries(m.dynamic_data).forEach(([category, metrics]: [string, any]) => {
+                if (typeof metrics === 'object' && metrics !== null) {
+                    const strategy = metrics.strategy || 'manual';
+                    const displayMetrics = strategy === 'us_size_chart' 
+                        ? (metrics.selected_size || {})
+                        : Object.fromEntries(Object.entries(metrics).filter(([k]) => k !== 'strategy' && k !== 'chart_id'));
+                    
+                    Object.keys(displayMetrics).forEach(label => {
+                        const cleanCat = category.trim();
+                        const cleanLab = label.trim();
+                        if (cleanLab) {
+                            dynamicLabels.add(`${cleanCat}|${cleanLab}`);
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    const dynamicLabelsArray = Array.from(dynamicLabels).sort();
+    const dynamicHeaders = dynamicLabelsArray.map(l => {
+        const [cat, lab] = l.split('|');
+        return `"${cat}: ${lab}"`;
+    });
+
+    const headers = [...baseHeaders.map(h => `"${h}"`), ...dynamicHeaders];
+    
+    const rows = measurements.map(m => {
+      const date = new Date(m.recorded_at);
+      const formattedDate = date.toLocaleDateString();
+      const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const baseValues = [
+        `"${m.registry_members?.full_name || ''}"`,
+        `"${m.registry_members?.admission_no || ''}"`,
+        `"${m.registry_members?.organizations?.name || ''}"`,
+        `"${m.suggested_size || ''}"`,
+        `"${m.status || ''}"`,
+        `"${formattedDate}"`,
+        `"${formattedTime}"`,
+        `"${m.user_profiles?.full_name || 'System'}"`,
+        `"${(m.notes || '').replace(/"/g, '""')}"`
+      ];
+
+      const dynamicValues = dynamicLabelsArray.map(fullLabel => {
+          const [category, label] = fullLabel.split('|');
+          const metrics = m.dynamic_data?.[category];
+          let val: any = '';
+          
+          if (metrics) {
+              const strategy = metrics.strategy || 'manual';
+              if (strategy === 'us_size_chart') {
+                  const sizeLabel = metrics.selected_size?.[label];
+                  if (sizeLabel) {
+                      const chart = sizeCharts.find(c => c.id === metrics.chart_id);
+                      if (chart) {
+                          const group = chart.metric_groups?.find((g: any) => g.label === label);
+                          const valObj = group?.data?.find((d: any) => d.size === sizeLabel);
+                          const unit = chart.unit || '';
+                          val = valObj ? `${sizeLabel} (${valObj.value}${unit ? ' ' + unit : ''})` : sizeLabel;
+                      } else {
+                          val = sizeLabel;
+                      }
+                  }
+              } else {
+                  const rawVal = metrics[label];
+                  if (rawVal !== undefined && rawVal !== null && rawVal !== '') {
+                      const fieldConfig = measurementFields.find(f => f.label === label);
+                      const unit = fieldConfig?.unit || '';
+                      val = unit ? `${rawVal} ${unit}` : rawVal;
+                  }
+              }
+          }
+          return `"${val !== undefined && val !== null ? String(val).replace(/"/g, '""') : ''}"`;
+      });
+
+      return [...baseValues, ...dynamicValues];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `pending_approvals_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('CSV Exported');
   };
 
   const columns: Column<Measurement>[] = [
@@ -261,10 +370,20 @@ export default function MeasurementApprovals() {
               </div>
           </div>
 
-          <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase text-[#2d8d9b] bg-[#2d8d9b]/5 px-4 py-2 rounded-xl border border-[#2d8d9b]/10">
-                 Auto-Sync Active
-              </span>
+          <div className="flex items-center gap-4">
+              <Button 
+                variant="secondary" 
+                onClick={downloadCSV}
+                className="h-12 px-8 bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-black rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] border-none gap-3 shadow-sm"
+              >
+                <Download size={16} />
+                Export CSV
+              </Button>
+              <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-[#2d8d9b] bg-[#2d8d9b]/5 px-4 py-2 rounded-xl border border-[#2d8d9b]/10">
+                    Auto-Sync Active
+                  </span>
+              </div>
           </div>
       </div>
 
