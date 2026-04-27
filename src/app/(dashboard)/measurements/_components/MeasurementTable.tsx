@@ -39,14 +39,18 @@ export const MeasurementTable: React.FC = () => {
   const [selectedOrg, setSelectedOrg] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
 
+  const [sizeCharts, setSizeCharts] = useState<any[]>([]);
+
   const fetchFilters = async () => {
     try {
-      const [orgsRes, deptsRes] = await Promise.all([
+      const [orgsRes, deptsRes, chartsRes] = await Promise.all([
         api.get('/organizations'),
-        api.get('/departments')
+        api.get('/departments'),
+        api.get('/size-charts')
       ]);
       setOrganizations(orgsRes.data);
       setDepartments(deptsRes.data);
+      setSizeCharts(chartsRes.data);
     } catch (err) {
       console.error('Failed to load filters');
     }
@@ -96,18 +100,24 @@ export const MeasurementTable: React.FC = () => {
     }
 
     // 1. Prepare Headers
-    const baseHeaders = ['Full Name', 'Admission No', 'Organization', 'Suggested Size', 'Status', 'Date', 'Time', 'Recorded By'];
+    const baseHeaders = ['Full Name', 'Admission No', 'Organization', 'Suggested Size', 'Status', 'Date', 'Time', 'Recorded By', 'Notes'];
     
-    // 2. Identify all unique dynamic measurement labels to include them as columns
+    // 2. Identify all unique dynamic measurement labels
     const dynamicLabels = new Set<string>();
     data.forEach(r => {
         if (r.dynamic_data) {
-            Object.keys(r.dynamic_data).forEach(prodName => {
-                const prodData = r.dynamic_data[prodName];
-                if (typeof prodData === 'object' && prodData !== null) {
-                    Object.keys(prodData).forEach(label => {
-                        if (label !== 'strategy' && label !== 'chart_id' && label !== 'selected_size') {
-                            dynamicLabels.add(`${prodName}_${label}`);
+            Object.entries(r.dynamic_data).forEach(([category, metrics]: [string, any]) => {
+                if (typeof metrics === 'object' && metrics !== null) {
+                    const strategy = metrics.strategy || 'manual';
+                    const displayMetrics = strategy === 'us_size_chart' 
+                        ? (metrics.selected_size || {})
+                        : Object.fromEntries(Object.entries(metrics).filter(([k]) => k !== 'strategy' && k !== 'chart_id'));
+                    
+                    Object.keys(displayMetrics).forEach(label => {
+                        const cleanCat = category.trim();
+                        const cleanLab = label.trim();
+                        if (cleanLab) {
+                            dynamicLabels.add(`${cleanCat}|${cleanLab}`);
                         }
                     });
                 }
@@ -115,8 +125,13 @@ export const MeasurementTable: React.FC = () => {
         }
     });
 
-    const dynamicLabelsArray = Array.from(dynamicLabels);
-    const headers = [...baseHeaders, ...dynamicLabelsArray];
+    const dynamicLabelsArray = Array.from(dynamicLabels).sort();
+    const dynamicHeaders = dynamicLabelsArray.map(l => {
+        const [cat, lab] = l.split('|');
+        return `"${cat}: ${lab}"`; // Format as "Product: Metric"
+    });
+
+    const headers = [...baseHeaders.map(h => `"${h}"`), ...dynamicHeaders];
     
     // 3. Prepare Rows
     const rows = data.map(r => {
@@ -132,13 +147,35 @@ export const MeasurementTable: React.FC = () => {
         `"${r.status || ''}"`,
         `"${formattedDate}"`,
         `"${formattedTime}"`,
-        `"${r.user_profiles?.full_name || 'System'}"`
+        `"${r.user_profiles?.full_name || 'System'}"`,
+        `"${(r.notes || '').replace(/"/g, '""')}"`
       ];
 
       const dynamicValues = dynamicLabelsArray.map(fullLabel => {
-          const [prodName, label] = fullLabel.split('_');
-          const val = r.dynamic_data?.[prodName]?.[label];
-          return `"${val !== undefined ? val : ''}"`;
+          const [category, label] = fullLabel.split('|');
+          const metrics = r.dynamic_data?.[category];
+          let val: any = '';
+          
+          if (metrics) {
+              const strategy = metrics.strategy || 'manual';
+              if (strategy === 'us_size_chart') {
+                  const sizeLabel = metrics.selected_size?.[label];
+                  if (sizeLabel) {
+                      // Try to resolve actual measurement value from size chart
+                      const chart = sizeCharts.find(c => c.id === metrics.chart_id);
+                      if (chart) {
+                          const group = chart.metric_groups?.find((g: any) => g.label === label);
+                          const valObj = group?.data?.find((d: any) => d.size === sizeLabel);
+                          val = valObj ? `${sizeLabel} (${valObj.value})` : sizeLabel;
+                      } else {
+                          val = sizeLabel;
+                      }
+                  }
+              } else {
+                  val = metrics[label];
+              }
+          }
+          return `"${val !== undefined && val !== null ? String(val).replace(/"/g, '""') : ''}"`;
       });
 
       return [...baseValues, ...dynamicValues];
