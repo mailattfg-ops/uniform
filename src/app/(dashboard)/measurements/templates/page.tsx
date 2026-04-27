@@ -569,7 +569,7 @@ export default function IndustryTemplatesPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
          <div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Bundle Architect</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Industry Templates</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Design & Manage industry-specific bundle templates</p>
          </div>
          <Button 

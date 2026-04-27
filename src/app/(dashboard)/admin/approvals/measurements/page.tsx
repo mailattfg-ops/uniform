@@ -7,6 +7,8 @@ import { CheckCircle2, XCircle, User, Calendar, Ruler, MessageSquare, Loader2, E
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
+import { Select } from '@/components/ui/Select';
+import { Filter } from 'lucide-react';
 
 interface Measurement {
   id: number;
@@ -24,11 +26,37 @@ export default function MeasurementApprovals() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState<Measurement | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string>('');
+  const [selectedDept, setSelectedDept] = useState<string>('');
+
+  const fetchFilters = async () => {
+    try {
+      const [orgsRes, deptsRes] = await Promise.all([
+        api.get('/organizations'),
+        api.get('/departments')
+      ]);
+      setOrganizations(orgsRes.data);
+      setDepartments(deptsRes.data);
+    } catch (err) {
+      console.error('Failed to load filters');
+    }
+  };
+
+  useEffect(() => {
+    fetchFilters();
+  }, []);
 
   const fetchPending = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/measurements');
+      const params = new URLSearchParams();
+      if (selectedOrg) params.append('orgId', selectedOrg);
+      if (selectedDept) params.append('deptId', selectedDept);
+
+      const res = await api.get(`/measurements?${params.toString()}`);
       // Filter for Pending only
       setMeasurements(res.data.filter((m: any) => m.status === 'Pending'));
     } catch (err) {
@@ -40,7 +68,7 @@ export default function MeasurementApprovals() {
 
   useEffect(() => {
     fetchPending();
-  }, []);
+  }, [selectedOrg, selectedDept]);
 
   const handleUpdateStatus = async (id: number, status: string) => {
     const loadingToast = toast.loading(`${status === 'Approved' ? 'Approving' : 'Rejecting'} measurement...`);
@@ -53,7 +81,56 @@ export default function MeasurementApprovals() {
     }
   };
 
+  const handleBulkStatusUpdate = async (status: string) => {
+    if (selectedIds.length === 0) return;
+    
+    const loadingToast = toast.loading(`${status === 'Approved' ? 'Approving' : 'Rejecting'} ${selectedIds.length} measurements...`);
+    try {
+      await Promise.all(selectedIds.map(id => api.post(`/measurements/${id}/status`, { status })));
+      toast.success(`${selectedIds.length} measurements ${status.toLowerCase()} successfully`, { id: loadingToast });
+      setSelectedIds([]);
+      fetchPending();
+    } catch (err) {
+      toast.error('Bulk operation failed', { id: loadingToast });
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === measurements.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(measurements.map(m => m.id));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
   const columns: Column<Measurement>[] = [
+    {
+      header: (
+        <input 
+          type="checkbox" 
+          checked={measurements.length > 0 && selectedIds.length === measurements.length}
+          onChange={toggleSelectAll}
+          className="w-5 h-5 rounded-lg border-[#fce4d4] text-[#2d8d9b] focus:ring-[#2d8d9b] transition-all cursor-pointer"
+        />
+      ),
+      accessor: (m) => (
+        <input 
+          type="checkbox" 
+          checked={selectedIds.includes(m.id)}
+          onChange={() => toggleSelect(m.id)}
+          className="w-5 h-5 rounded-lg border-[#fce4d4] text-[#2d8d9b] focus:ring-[#2d8d9b] transition-all cursor-pointer"
+        />
+      ),
+      className: "w-12"
+    },
     {
       header: 'Staff Member',
       accessor: (m) => (
@@ -154,6 +231,42 @@ export default function MeasurementApprovals() {
             </div>
         </div>
       </div>
+      
+      {/* Filter Bar */}
+      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+              <div className="p-3 bg-[#3a525d]/5 rounded-2xl hidden sm:block">
+                  <Filter size={20} className="text-[#3a525d]" />
+              </div>
+              <div className="w-full sm:w-[240px]">
+                <Select 
+                  placeholder="All Organizations"
+                  value={selectedOrg}
+                  options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
+                  onChange={(val: string) => {
+                    setSelectedOrg(val);
+                    setSelectedDept(''); 
+                  }}
+                />
+              </div>
+              <div className="w-full sm:w-[240px]">
+                <Select 
+                  placeholder="All Departments"
+                  value={selectedDept}
+                  options={departments
+                    .filter(d => !selectedOrg || d.organization_id.toString() === selectedOrg)
+                    .map(d => ({ label: d.name, value: d.id.toString() }))}
+                  onChange={(val: string) => setSelectedDept(val)}
+                />
+              </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase text-[#2d8d9b] bg-[#2d8d9b]/5 px-4 py-2 rounded-xl border border-[#2d8d9b]/10">
+                 Auto-Sync Active
+              </span>
+          </div>
+      </div>
 
       <DataTable 
         title="Pending Measurements Queue"
@@ -161,6 +274,28 @@ export default function MeasurementApprovals() {
         columns={columns}
         data={measurements}
         isLoading={loading}
+        headerAction={
+          selectedIds.length > 0 && (
+            <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
+               <span className="text-[10px] font-black uppercase text-[#2d8d9b] bg-[#2d8d9b]/10 px-4 py-2 rounded-xl border border-[#2d8d9b]/20">
+                  {selectedIds.length} Selected
+               </span>
+               <Button 
+                onClick={() => handleBulkStatusUpdate('Approved')}
+                className="h-10 px-6 bg-green-500 hover:bg-green-600 text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-green-500/20 gap-2"
+               >
+                  <CheckCircle2 size={14} /> Approve Selected
+               </Button>
+               <Button 
+                onClick={() => handleBulkStatusUpdate('Rejected')}
+                variant="secondary"
+                className="h-10 px-6 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 rounded-xl font-black uppercase tracking-widest text-[9px] border-red-100 gap-2"
+               >
+                  <XCircle size={14} /> Reject
+               </Button>
+            </div>
+          )
+        }
       />
 
       <MeasurementDetailModal 

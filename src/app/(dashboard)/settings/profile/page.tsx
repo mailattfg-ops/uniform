@@ -11,7 +11,7 @@ import {
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
-export default function StudentProfilePage() {
+export default function UserProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [measurements, setMeasurements] = useState<any[]>([]);
   const [config, setConfig] = useState<any[]>([]);
@@ -25,8 +25,12 @@ export default function StudentProfilePage() {
       ]);
       setProfile(profileRes.data);
       setConfig(configRes.data);
-      if (profileRes.data.role === 'Student' && profileRes.data.details) {
-        const mRes = await api.get(`/measurements/student/${profileRes.data.details.id}`);
+      console.log("sj1",profileRes.data);
+      
+      // Load measurements if user is linked to a registry member
+      const memberDetails = profileRes.data.memberDetails || (profileRes.data.role?.toLowerCase() === 'student' ? profileRes.data.details : null);
+      if (memberDetails?.id) {
+        const mRes = await api.get(`/measurements/history/${memberDetails.id}`);
         setMeasurements(mRes.data);
       }
     } catch (err) {
@@ -74,8 +78,54 @@ export default function StudentProfilePage() {
   if (isLoading) return <div className="flex items-center justify-center p-20 min-h-[60vh]"><div className="w-12 h-12 border-4 border-[#2d8d9b]/10 border-t-[#2d8d9b] rounded-full animate-spin" /></div>;
 
   const details = profile?.details;
+  const role = profile?.role;
   const latestFit = measurements[0] || null;
   const previousFit = measurements[1] || null;
+
+  // Determine Role Label & Metadata
+  const getRoleBadge = () => {
+    switch(role) {
+      case 'Admin': return 'SYSTEM_ADMINISTRATOR';
+      case 'Staff': return `PORTAL_STAFF // ${details?.employee_id || 'ID_PENDING'}`;
+      case 'School':
+      case 'Organization':
+      case 'Entity': return `ORGANIZATION_ADMIN // ${details?.id ? `ORG_${details.id}` : 'VERIFIED'}`;
+      case 'Student': return `STUDENT_PORTAL // ${details?.admission_no || 'REF_PENDING'}`;
+      default: return 'PORTAL_USER';
+    }
+  };
+
+  const getDynamicDetails = () => {
+    const userRole = role?.toLowerCase();
+    if (userRole === 'student') {
+      return [
+        { label: 'INSTITUTION', val: details?.organizations?.name, icon: MapPin },
+        { label: 'ACADEMIC GROUP', val: details?.departments?.name, icon: Award },
+        { label: 'ENROLLMENT', val: details?.created_at ? new Date(details.created_at).toLocaleDateString() : 'Active', icon: Calendar },
+        { label: 'VERIFIED_MAIL', val: profile?.email, icon: Mail }
+      ];
+    }
+    if (userRole === 'staff' || userRole === 'admin') {
+      return [
+        { label: 'DEPARTMENT', val: details?.department, icon: Layers },
+        { label: 'DESIGNATION', val: details?.designation, icon: Award },
+        { label: 'PHONE', val: details?.contact_mobile, icon: MapPin },
+        { label: 'OFFICIAL_MAIL', val: profile?.email, icon: Mail }
+      ];
+    }
+    if (['school', 'organization', 'entity'].includes(userRole)) {
+      return [
+        { label: 'INSTITUTION_NAME', val: details?.name || profile?.fullName, icon: MapPin },
+        { label: 'ADMIN_ACCESS', val: 'Primary Owner', icon: ShieldCheck },
+        { label: 'CONTACT_MAIL', val: profile?.email, icon: Mail },
+        { label: 'ACCOUNT_ID', val: `ORG-ID-${details?.id || 'GLOBAL'}`, icon: Award }
+      ];
+    }
+    return [
+       { label: 'USER_ROLE', val: role, icon: ShieldCheck },
+       { label: 'EMAIL', val: profile?.email, icon: Mail }
+    ];
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-1000 pb-24">
@@ -94,8 +144,8 @@ export default function StudentProfilePage() {
                    <Camera size={16} /><input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                 </label>
              </div>
-             <h1 className="text-3xl font-black italic tracking-tighter mb-2">{profile?.fullName}</h1>
-             <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-zinc-400">STUDENT PORTAL // {details?.admission_no}</div>
+             <h1 className="text-3xl font-black italic tracking-tighter mb-2 text-center leading-tight">{profile?.fullName}</h1>
+             <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-zinc-400">{getRoleBadge()}</div>
              
              <div className="mt-10 w-full grid grid-cols-2 gap-4 py-8 border-t border-white/5">
                 <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">STATUS</span><span className="text-xs font-black text-green-500 uppercase tracking-tighter italic">CORE_ACTIVE</span></div>
@@ -104,14 +154,9 @@ export default function StudentProfilePage() {
           </div>
         </Card>
 
-        <Card className="lg:col-span-2 p-10 bg-white border-none shadow-2xl flex flex-col justify-center">
+        <Card className="lg:col-span-2 p-10 bg-white border-none shadow-2xl flex flex-col justify-center transition-all">
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
-              {[
-                { label: 'INSTITUTION', val: details?.schools?.name, icon: MapPin },
-                { label: 'ACADEMIC GROUP', val: details?.classes?.name, icon: Award },
-                { label: 'ENROLLMENT', val: details?.created_at ? new Date(details.created_at).toLocaleDateString() : 'Active', icon: Calendar },
-                { label: 'VERIFIED_MAIL', val: profile?.email, icon: Mail }
-              ].map((item, i) => (
+              {getDynamicDetails().map((item, i) => (
                 <div key={i} className="space-y-2 group">
                    <div className="flex items-center gap-2 text-[10px] font-black text-[#2d8d9b] opacity-40 group-hover:opacity-100 transition-all uppercase tracking-widest">
                       <item.icon size={12} /> {item.label}
@@ -123,8 +168,8 @@ export default function StudentProfilePage() {
         </Card>
       </div>
 
-      {/* SIZING COMMAND CENTER */}
-      {profile?.role === 'Student' && (
+      {/* SIZING COMMAND CENTER - FOR ANYONE WITH MEASUREMENTS */}
+      {(measurements.length > 0 || role?.toLowerCase() === 'student') && (
         <div className="space-y-8">
            <div className="flex items-center justify-between border-b border-zinc-100 pb-10">
               <div>
@@ -138,105 +183,80 @@ export default function StudentProfilePage() {
               </div>
            </div>
 
-           {latestFit ? (
-             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                {/* THE CORE FIT HUB */}
-                <Card className="xl:col-span-5 p-12 bg-[#1e2a30] text-white border-none shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center">
-                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#2d8d9b]/20 via-transparent to-transparent" />
-                   
-                   <div className="relative z-10">
-                      <div className="w-64 h-64 rounded-full border-[1.5rem] border-white/5 flex flex-col items-center justify-center relative animate-in zoom-in duration-1000">
-                         <div className="absolute inset-0 rounded-full border-t-4 border-[#f2994a] animate-spin duration-[4s]" />
-                         <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#2d8d9b] mb-2">OFFICIAL_FIT</span>
-                         <span className="text-9xl font-black italic tracking-tighter leading-none">{latestFit.suggested_size}</span>
-                         <span className="mt-4 px-4 py-1.5 bg-white/5 rounded-full text-[9px] font-bold text-zinc-500 uppercase tracking-widest border border-white/5">RECORD_LIVE</span>
-                      </div>
-                      
-                      <div className="mt-12 space-y-2">
-                         <p className="text-[11px] font-black uppercase text-[#f2994a] tracking-widest">Recorded Calibration</p>
-                         <h4 className="text-2xl font-black italic text-white/50">{new Date(latestFit.recorded_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h4>
-                      </div>
-                   </div>
-                </Card>
+            {latestFit ? (
+              <div className="space-y-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {Object.entries(latestFit.dynamic_data || {}).map(([category, metrics]: [string, any]) => {
+                       const strategy = metrics.strategy || 'manual';
+                       const technicalKeys = ['strategy', 'chart_id'];
+                       
+                       // For size chart, we might have selected_size and the size name key
+                       let displayMetrics: [string, any][] = [];
+                       let sizeName = null;
 
-                {/* THE METRICS MATRIX */}
-                <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {Object.entries(latestFit.dynamic_data || {}).flatMap(([groupKey, groupVal]: [string, any]) => {
-                      // If nested (New format), flatten it for display cards
-                      if (typeof groupVal === 'object' && groupVal !== null) {
-                         return Object.entries(groupVal).map(([label, val]: [string, any]) => ({
-                            key: `${groupKey}-${label}`,
-                            displayLabel: `${groupKey} // ${label}`,
-                            value: val,
-                            deltaKey: label,
-                            prodName: groupKey
-                         }));
-                      }
-                      // If flat (Legacy format)
-                      return [{
-                         key: groupKey,
-                         displayLabel: groupKey,
-                         value: groupVal,
-                         deltaKey: groupKey,
-                         prodName: ''
-                      }];
-                   }).map((metric) => {
-                      const delta = calculateDelta(
-                         metric.deltaKey, 
-                         metric.value, 
-                         metric.prodName 
-                           ? previousFit?.dynamic_data?.[metric.prodName]?.[metric.deltaKey]
-                           : previousFit?.dynamic_data?.[metric.deltaKey]
-                      );
+                       if (strategy === 'us_size_chart') {
+                          sizeName = Object.keys(metrics).find(k => !technicalKeys.includes(k) && k !== 'selected_size');
+                          if (metrics.selected_size) {
+                             displayMetrics = Object.entries(metrics.selected_size);
+                          }
+                       } else {
+                          displayMetrics = Object.entries(metrics).filter(([k]) => !technicalKeys.includes(k));
+                       }
 
-                      return (
-                         <Card key={metric.key} className="p-8 border-none bg-white shadow-xl hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col justify-between">
-                            <div className="absolute top-0 right-0 p-4">
-                               <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center group-hover:bg-[#3a525d] group-hover:text-white transition-all">
-                                  <Layers size={14} />
-                               </div>
-                            </div>
+                       return (
+                          <div key={category} className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden flex flex-col p-8 space-y-6 transition-all hover:shadow-xl group">
+                             <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                   <div className="w-1.5 h-6 bg-[#2d8d9b] rounded-full group-hover:h-8 transition-all" />
+                                   <h4 className="text-sm font-black uppercase tracking-widest text-[#3a525d]">{category}</h4>
+                                </div>
+                                <div className="flex gap-2">
+                                   {sizeName && (
+                                      <span className="text-[9px] font-black uppercase px-3 py-1 bg-[#3a525d] text-white rounded-lg shadow-sm">
+                                         {sizeName}
+                                      </span>
+                                   )}
+                                   <span className="text-[9px] font-black uppercase px-3 py-1 bg-zinc-50 border border-zinc-100 rounded-lg text-zinc-400">
+                                      {strategy === 'us_size_chart' ? 'Size Chart' : 'Manual Entry'}
+                                   </span>
+                                </div>
+                             </div>
 
-                            <div className="space-y-4">
-                               <div className="flex flex-col">
-                                  <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest leading-none mb-1 opacity-60">{metric.displayLabel}</span>
-                                  <div className="flex items-baseline gap-3">
-                                     <span className="text-4xl font-black text-[#3a525d] italic">{metric.value}</span>
-                                     <span className="text-[10px] font-black text-zinc-300 uppercase italic">
-                                       {config.find(f => f.label === metric.deltaKey)?.unit || 'In'}
-                                     </span>
-                                  </div>
-                               </div>
+                             <div className="space-y-3">
+                                {displayMetrics.length > 0 ? displayMetrics.map(([label, val]: [any, any]) => {
+                                   const unit = config.find(f => f.label?.toLowerCase() === label?.toLowerCase())?.unit || 'in';
+                                   return (
+                                      <div key={label} className="flex justify-between items-center bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50 hover:bg-white hover:border-[#2d8d9b]/20 hover:shadow-sm transition-all group/row">
+                                         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-hover/row:text-[#2d8d9b] transition-colors">{label}</span>
+                                         <div className="flex items-baseline gap-1">
+                                            <span className="text-sm font-black text-[#3a525d]">{val}</span>
+                                            <span className="text-[8px] font-bold text-zinc-300 uppercase italic">{unit}</span>
+                                         </div>
+                                      </div>
+                                   );
+                                }) : (
+                                   <div className="py-8 text-center bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-100">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-300">No Metrics Logged</p>
+                                   </div>
+                                )}
+                             </div>
+                          </div>
+                       );
+                    })}
+                 </div>
 
-                               {delta && (
-                                 <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-50 border border-zinc-100 ${delta.color}`}>
-                                    <delta.icon size={12} />
-                                    <span className="text-[11px] font-black italic">{delta.val} Delta</span>
-                                 </div>
-                               )}
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-zinc-50 flex justify-between items-center">
-                               <span className="text-[8px] font-black text-zinc-200 uppercase tracking-widest">CALIBRATED</span>
-                               <Activity size={12} className="text-zinc-100 group-hover:text-[#2d8d9b] transition-all" />
-                            </div>
-                         </Card>
-                      );
-                   })}
-
-                   {/* SPECIAL NOTES DATA NODE */}
-                   <Card className="col-span-full sm:col-span-1 lg:col-span-2 p-8 border-none bg-zinc-50 shadow-inner flex items-center gap-8">
-                      <div className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center shrink-0">
-                         <Box size={24} className="text-[#3a525d]" />
-                      </div>
-                      <div>
-                         <span className="text-[11px] font-black uppercase tracking-widest text-[#2d8d9b] block mb-2 opacity-60">TAILOR_INSTRUCTIONS</span>
-                         <p className="font-bold text-[#3a525d] italic">{latestFit.notes || 'Standard Enterprise Fitting. No custom adjustments current.'}</p>
-                      </div>
-                   </Card>
-                </div>
-             </div>
-           ) : (
+                 {/* SPECIAL NOTES DATA NODE */}
+                 <Card className="p-8 border-none bg-zinc-50 shadow-inner flex items-center gap-8 rounded-[2.5rem]">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center shrink-0">
+                       <Box size={24} className="text-[#3a525d]" />
+                    </div>
+                    <div>
+                       <span className="text-[11px] font-black uppercase tracking-widest text-[#2d8d9b] block mb-2 opacity-60">TAILOR_INSTRUCTIONS</span>
+                       <p className="font-bold text-[#3a525d] italic text-sm">{latestFit.notes || 'Standard Enterprise Fitting. No custom adjustments current.'}</p>
+                    </div>
+                 </Card>
+              </div>
+            ) : (
              <Card className="py-24 text-center border-none bg-zinc-50 shadow-inner">
                 <Scale size={64} className="mx-auto mb-6 text-zinc-200 animate-pulse" />
                 <h3 className="text-2xl font-black italic tracking-tighter text-zinc-300 uppercase">Awaiting Matrix Initialization</h3>

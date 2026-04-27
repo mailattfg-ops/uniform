@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Edit2, Trash2, UserPlus, FileUp, Key } from 'lucide-react';
+import { Edit2, Trash2, UserPlus, FileUp, Key, Download, Filter, User } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { Select } from '@/components/ui/Select';
+import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 
 interface Entity {
   id: number;
@@ -16,8 +17,9 @@ interface Entity {
   full_name: string;
   status: string;
   organizations?: { name: string };
-  department_name?: string;
+  departments?: { name: string };
   created_at: string;
+  measurement_status?: string;
 }
 
 interface EntityTableProps {
@@ -29,7 +31,9 @@ interface EntityTableProps {
 export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpload, onEdit }) => {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string>('');
+  const [selectedDept, setSelectedDept] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
@@ -45,22 +49,32 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
     isOpen: false,
     data: null
   });
+  const [profileModal, setProfileModal] = useState<{ isOpen: boolean; member: Entity | null }>({
+    isOpen: false,
+    member: null
+  });
 
-  const fetchOrganizations = async () => {
+  const fetchFilters = async () => {
     try {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
       const isOrgRole = user?.role?.toLowerCase() === 'school' || user?.role?.toLowerCase() === 'organization';
 
+      const [orgsRes, deptsRes] = await Promise.all([
+        api.get('/organizations'),
+        api.get('/departments')
+      ]);
+
       if (isOrgRole) {
-        setOrganizations([{ id: user.schoolId || user.organizationId, name: user.schoolName || user.organizationName || user.fullName }]);
-        setSelectedOrg((user.schoolId || user.organizationId).toString());
+        const orgId = user.schoolId || user.organizationId;
+        setOrganizations([{ id: orgId, name: user.schoolName || user.organizationName || user.fullName }]);
+        setSelectedOrg(orgId.toString());
       } else {
-        const response = await api.get('/organizations');
-        setOrganizations(response.data);
+        setOrganizations(orgsRes.data);
       }
+      setDepartments(deptsRes.data);
     } catch (err) {
-      console.error('Failed to load organizations');
+      console.error('Failed to load filters');
     }
   };
 
@@ -68,7 +82,8 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
     setIsLoading(true);
     try {
       const queryParams = new URLSearchParams();
-      if (selectedOrg) queryParams.append('orgId', selectedOrg);
+      if (selectedOrg) queryParams.append('schoolId', selectedOrg);
+      if (selectedDept) queryParams.append('classId', selectedDept);
       if (searchQuery) queryParams.append('search', searchQuery);
 
       const response = await api.get(`/students?${queryParams.toString()}`);
@@ -81,8 +96,38 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
     }
   };
 
+  const downloadCSV = () => {
+    if (entities.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const headers = ['Full Name', 'Reference No', 'Organization', 'Department / Section', 'Status', 'Measurement Status', 'Onboarded Date'];
+    const rows = entities.map(e => [
+      `"${e.full_name}"`,
+      `"${e.admission_no}"`,
+      `"${e.organizations?.name || 'Main Registry'}"`,
+      `"${e.departments?.name || 'N/A'}"`,
+      `"${e.status || 'Active'}"`,
+      `"${e.measurement_status || 'Missing'}"`,
+      `"${new Date(e.created_at).toLocaleDateString()}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `entity_directory_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Directory Exported');
+  };
+
   useEffect(() => {
-    fetchOrganizations();
+    fetchFilters();
   }, []);
 
   useEffect(() => {
@@ -90,7 +135,7 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
       fetchEntities();
     }, searchQuery ? 500 : 0);
     return () => clearTimeout(timer);
-  }, [selectedOrg, searchQuery]);
+  }, [selectedOrg, selectedDept, searchQuery]);
 
   const handleConfirmedDelete = async () => {
     if (!deleteConfirm.id) return;
@@ -147,8 +192,8 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
       accessor: (e) => (
         <div className="flex flex-col gap-1">
           <p className="font-bold text-[12px] tracking-tight text-[#3a525d]">{e.organizations?.name || 'Main Registry'}</p>
-          <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.1em] leading-none">
-            Onboarded: {new Date(e.created_at).toLocaleDateString()}
+          <p className="text-[9px] text-[#2d8d9b] font-black uppercase tracking-[0.1em] leading-none">
+            {e.departments?.name || 'Unassigned'}
           </p>
         </div>
       ),
@@ -184,6 +229,13 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
       accessor: (e) => (
         <div className="flex items-center gap-2">
           <button 
+            onClick={() => setProfileModal({ isOpen: true, member: e })}
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm"
+            title="View Profile"
+          >
+            <User size={16} />
+          </button>
+          <button 
             onClick={() => setResetConfirm({ isOpen: true, entity: e })}
             className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
           >
@@ -209,26 +261,42 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
 
   return (
     <>
-      <DataTable 
-        title="Entity Directory"
-        subtitle="Global Registry Management"
-        columns={columns}
-        data={entities}
-        isLoading={isLoading}
-        onSearch={setSearchQuery}
-        searchPlaceholder="Search by name, ID or department..."
-        headerAction={
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
-            <div className="min-w-[240px]">
-              <Select 
-                placeholder="All Organizations"
-                value={selectedOrg}
-                options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
-                onChange={(val: string) => setSelectedOrg(val)}
-              />
-            </div>
+      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100 mb-8">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+              <div className="p-3 bg-[#3a525d]/5 rounded-2xl hidden sm:block">
+                  <Filter size={20} className="text-[#3a525d]" />
+              </div>
+              <div className="w-full sm:w-[220px]">
+                <Select 
+                  placeholder="All Organizations"
+                  value={selectedOrg}
+                  options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
+                  onChange={(val: string) => {
+                    setSelectedOrg(val);
+                    setSelectedDept(''); 
+                  }}
+                />
+              </div>
+              <div className="w-full sm:w-[220px]">
+                <Select 
+                  placeholder="All Departments"
+                  value={selectedDept}
+                  options={departments
+                    .filter(d => !selectedOrg || d.organization_id.toString() === selectedOrg)
+                    .map(d => ({ label: d.name, value: d.id.toString() }))}
+                  onChange={(val: string) => setSelectedDept(val)}
+                />
+              </div>
+          </div>
 
-            <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-end w-full xl:w-auto">
+              <Button 
+                onClick={downloadCSV}
+                variant="secondary"
+                className="h-11 px-6 bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-black rounded-2xl font-black uppercase tracking-widest text-[9px] border-none gap-2 shadow-sm"
+              >
+                <Download size={14} /> Export
+              </Button>
               <Button 
                 onClick={onRegister}
                 className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20"
@@ -244,9 +312,17 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
                 <FileUp size={14} strokeWidth={3} />
                 Import Data
               </Button>
-            </div>
           </div>
-        }
+      </div>
+
+      <DataTable 
+        title="Entity Directory"
+        subtitle="Global Registry Management"
+        columns={columns}
+        data={entities}
+        isLoading={isLoading}
+        onSearch={setSearchQuery}
+        searchPlaceholder="Search by name, ID or reference..."
       />
 
       <ConfirmModal 
@@ -273,6 +349,12 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
         isOpen={credsModal.isOpen}
         onClose={() => setCredsModal({ isOpen: false, data: null })}
         data={credsModal.data}
+      />
+
+      <MemberProfileModal 
+        isOpen={profileModal.isOpen}
+        onClose={() => setProfileModal({ isOpen: false, member: null })}
+        member={profileModal.member}
       />
     </>
   );

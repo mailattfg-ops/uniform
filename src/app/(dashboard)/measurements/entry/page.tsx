@@ -251,7 +251,7 @@ export default function MeasurementEntryPage() {
       {/* Header & Advanced Filters */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Sizing Hub</h1>
+           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Record Entry</h1>
            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Tailoring Intelligence</p>
         </div>
 

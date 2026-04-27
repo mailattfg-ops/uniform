@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Eye, Clock, ShieldCheck } from 'lucide-react';
+import { Eye, Clock, ShieldCheck, Download } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
+import { Select } from '@/components/ui/Select';
+import { Filter } from 'lucide-react';
 
 interface MeasurementRecord {
   id: string;
@@ -31,11 +34,36 @@ export const MeasurementTable: React.FC = () => {
   const [data, setData] = useState<MeasurementRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState<MeasurementRecord | null>(null);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string>('');
+  const [selectedDept, setSelectedDept] = useState<string>('');
+
+  const fetchFilters = async () => {
+    try {
+      const [orgsRes, deptsRes] = await Promise.all([
+        api.get('/organizations'),
+        api.get('/departments')
+      ]);
+      setOrganizations(orgsRes.data);
+      setDepartments(deptsRes.data);
+    } catch (err) {
+      console.error('Failed to load filters');
+    }
+  };
+
+  useEffect(() => {
+    fetchFilters();
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/measurements');
+      const params = new URLSearchParams();
+      if (selectedOrg) params.append('orgId', selectedOrg);
+      if (selectedDept) params.append('deptId', selectedDept);
+
+      const res = await api.get(`/measurements?${params.toString()}`);
       // Flatten for search support
       const enriched = res.data.map((r: any) => {
         const name = r.registry_members?.full_name || '';
@@ -60,10 +88,79 @@ export const MeasurementTable: React.FC = () => {
       setIsLoading(false);
     }
   };
+  
+  const downloadCSV = () => {
+    if (data.length === 0) {
+        toast.error('No data to export');
+        return;
+    }
+
+    // 1. Prepare Headers
+    const baseHeaders = ['Full Name', 'Admission No', 'Organization', 'Suggested Size', 'Status', 'Date', 'Time', 'Recorded By'];
+    
+    // 2. Identify all unique dynamic measurement labels to include them as columns
+    const dynamicLabels = new Set<string>();
+    data.forEach(r => {
+        if (r.dynamic_data) {
+            Object.keys(r.dynamic_data).forEach(prodName => {
+                const prodData = r.dynamic_data[prodName];
+                if (typeof prodData === 'object' && prodData !== null) {
+                    Object.keys(prodData).forEach(label => {
+                        if (label !== 'strategy' && label !== 'chart_id' && label !== 'selected_size') {
+                            dynamicLabels.add(`${prodName}_${label}`);
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    const dynamicLabelsArray = Array.from(dynamicLabels);
+    const headers = [...baseHeaders, ...dynamicLabelsArray];
+    
+    // 3. Prepare Rows
+    const rows = data.map(r => {
+      const date = new Date(r.recorded_at);
+      const formattedDate = date.toLocaleDateString();
+      const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const baseValues = [
+        `"${r.registry_members?.full_name || ''}"`,
+        `"${r.registry_members?.admission_no || ''}"`,
+        `"${r.registry_members?.organizations?.name || ''}"`,
+        `"${r.suggested_size || ''}"`,
+        `"${r.status || ''}"`,
+        `"${formattedDate}"`,
+        `"${formattedTime}"`,
+        `"${r.user_profiles?.full_name || 'System'}"`
+      ];
+
+      const dynamicValues = dynamicLabelsArray.map(fullLabel => {
+          const [prodName, label] = fullLabel.split('_');
+          const val = r.dynamic_data?.[prodName]?.[label];
+          return `"${val !== undefined ? val : ''}"`;
+      });
+
+      return [...baseValues, ...dynamicValues];
+    });
+
+    // 4. Combine and Trigger Download
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `uniform_measurements_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('CSV Exported');
+  };
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedOrg, selectedDept]);
 
   const columns: Column<MeasurementRecord>[] = [
     {
@@ -151,7 +248,45 @@ export const MeasurementTable: React.FC = () => {
   ];
 
   return (
-    <div className="animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-700">
+      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+              <div className="p-3 bg-[#3a525d]/5 rounded-2xl hidden sm:block">
+                  <Filter size={20} className="text-[#3a525d]" />
+              </div>
+              <div className="w-full sm:w-[220px]">
+                <Select 
+                  placeholder="All Organizations"
+                  value={selectedOrg}
+                  options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
+                  onChange={(val: string) => {
+                    setSelectedOrg(val);
+                    setSelectedDept(''); // Reset dept when org changes
+                  }}
+                />
+              </div>
+              <div className="w-full sm:w-[220px]">
+                <Select 
+                  placeholder="All Departments"
+                  value={selectedDept}
+                  options={departments
+                    .filter(d => !selectedOrg || d.organization_id.toString() === selectedOrg)
+                    .map(d => ({ label: d.name, value: d.id.toString() }))}
+                  onChange={(val: string) => setSelectedDept(val)}
+                />
+              </div>
+          </div>
+
+          <Button 
+            variant="secondary" 
+            onClick={downloadCSV}
+            className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-black rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3 w-full xl:w-auto"
+          >
+            <Download size={16} />
+            Export CSV
+          </Button>
+      </div>
+
       <DataTable 
         title="Measurement History"
         subtitle="Universal Tailoring Audit Log"

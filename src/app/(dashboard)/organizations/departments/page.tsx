@@ -14,6 +14,7 @@ interface DepartmentRecord {
   id: number;
   name: string;
   organization_id: number;
+  division?: string;
   organizations: { name: string };
   created_at: string;
 }
@@ -55,6 +56,11 @@ export default function DepartmentManagement() {
       
       setOrganizations(orgsData);
       setDepartments(deptsData);
+
+      // Auto-select first organization if none selected
+      if (!selectedOrg && orgsData.length > 0) {
+        setSelectedOrg(orgsData[0].id.toString());
+      }
     } catch (err) {
       toast.error('Failed to load department data');
     } finally {
@@ -83,6 +89,14 @@ export default function DepartmentManagement() {
       required: true,
       maxLength: 20,
       defaultValue: editingDept?.name
+    },
+    {
+      name: 'division',
+      label: 'Division / Section (Optional)',
+      type: 'text',
+      placeholder: 'e.g. A, B, North, South',
+      required: false,
+      defaultValue: editingDept?.division
     }
   ];
 
@@ -128,7 +142,14 @@ export default function DepartmentManagement() {
           <div className="w-8 h-8 bg-[#2d8d9b]/5 rounded-lg flex items-center justify-center text-[#2d8d9b]">
             <BookOpen size={16} />
           </div>
-          <p className="font-black text-sm tracking-tight text-[#3a525d]">{d.name || 'N/A'}</p>
+          <div>
+            <p className="font-black text-sm tracking-tight text-[#3a525d]">{d.name || 'N/A'}</p>
+            {d.division && (
+              <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-0.5 opacity-70">
+                Div: {d.division}
+              </p>
+            )}
+          </div>
         </div>
       ),
     },
