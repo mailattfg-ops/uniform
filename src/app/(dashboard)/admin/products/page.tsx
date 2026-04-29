@@ -323,8 +323,8 @@ export default function ProductManagement() {
 
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
-        title="Delete Product Article?"
-        message="This action will remove the article from the catalog database permanently."
+        title="Delete Product?"
+        message="This action will remove the product from the catalog database permanently."
         onConfirm={handleConfirmedDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
         confirmLabel="Confirm Deletion"

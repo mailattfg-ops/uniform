@@ -22,6 +22,7 @@ export default function IndustryManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingIndustry, setEditingIndustry] = useState<Industry | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<Industry | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -31,7 +32,12 @@ export default function IndustryManagementPage() {
     setIsLoading(true);
     try {
       const res = await api.get('/industries');
-      setIndustries(res.data);
+      const enriched = res.data.map((ind: any) => ({
+        ...ind,
+        search_uid: `SEC-${ind.id}`,
+        search_string: `${ind.name} ${ind.type || ''} SEC-${ind.id}`.toLowerCase()
+      }));
+      setIndustries(enriched);
     } catch (err) {
       toast.error('Failed to load industry sectors');
     } finally {
@@ -44,12 +50,35 @@ export default function IndustryManagementPage() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!name) {
+    const trimmedName = name.trim();
+    const trimmedType = type.trim();
+
+    if (!trimmedName) {
       toast.error('Sector name is required');
       return;
     }
 
-    const payload = { name, type };
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      toast.error('Sector Name must be between 2 and 50 characters');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9\s\-\&]+$/.test(trimmedName)) {
+      toast.error('Sector Name can only contain letters, numbers, spaces, hyphens, and ampersands');
+      return;
+    }
+
+    if (trimmedType && trimmedType.length > 30) {
+      toast.error('Industry Type must be at most 30 characters');
+      return;
+    }
+
+    if (trimmedType && !/^[a-zA-Z0-9\s\-\/\&]+$/.test(trimmedType)) {
+      toast.error('Industry Type can only contain letters, numbers, spaces, hyphens, slashes, and ampersands');
+      return;
+    }
+
+    const payload = { name: trimmedName, type: trimmedType };
     const loadingToast = toast.loading(editingIndustry ? 'Updating sector...' : 'Registering new sector...');
 
     try {
@@ -65,8 +94,8 @@ export default function IndustryManagementPage() {
       setName('');
       setType('');
       fetchIndustries();
-    } catch (err) {
-      toast.error('Action failed', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Action failed', { id: loadingToast });
     }
   };
 
@@ -121,17 +150,7 @@ export default function IndustryManagementPage() {
             <Edit2 size={16} />
           </button>
           <button 
-            onClick={async () => {
-              if (confirm('Permanently remove this industry sector? This may affect linked organizations.')) {
-                try {
-                  await api.delete(`/industries/${ind.id}`);
-                  toast.success('Sector removed');
-                  fetchIndustries();
-                } catch (err) {
-                  toast.error('Unable to delete: Sector may have linked organizations');
-                }
-              }
-            }}
+            onClick={() => setDeleteCandidate(ind)}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
             <Trash2 size={16} />
@@ -140,6 +159,19 @@ export default function IndustryManagementPage() {
       )
     }
   ];
+
+  const handleDelete = async () => {
+    if (!deleteCandidate) return;
+    try {
+      await api.delete(`/industries/${deleteCandidate.id}`);
+      toast.success('Sector removed');
+      fetchIndustries();
+    } catch (err) {
+      toast.error('Unable to delete: Sector may have linked organizations');
+    } finally {
+      setDeleteCandidate(null);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -189,7 +221,13 @@ export default function IndustryManagementPage() {
                     <Input 
                         placeholder="e.g. Manufacturing or Healthcare"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val.length <= 50 && /^[a-zA-Z0-9\s\-\&]*$/.test(val)) {
+                            setName(val);
+                          }
+                        }}
+                        maxLength={30}
                         className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
                     />
                  </div>
@@ -198,7 +236,13 @@ export default function IndustryManagementPage() {
                     <Input 
                         placeholder="e.g. Industrial / Service / Public"
                         value={type}
-                        onChange={(e) => setType(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val.length <= 30 && /^[a-zA-Z0-9\s\-\/\&]*$/.test(val)) {
+                            setType(val);
+                          }
+                        }}
+                        maxLength={30}
                         className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
                     />
                  </div>
@@ -221,6 +265,16 @@ export default function IndustryManagementPage() {
             searchPlaceholder="Search defined sectors..."
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteCandidate}
+        title="Remove Sector"
+        message="Permanently remove this industry sector? This may affect linked organizations."
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteCandidate(null)}
+        confirmLabel="Yes, Remove It"
+        variant="danger"
+      />
     </div>
   );
 }

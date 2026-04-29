@@ -12,12 +12,14 @@ interface AuditEntry {
   user: string;
   details: string;
   time: string;
+  created_at: string;
 }
 
 export const AuditLog: React.FC = () => {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMissingSchema, setIsMissingSchema] = useState(false);
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
     api.get('/audit')
@@ -138,6 +140,23 @@ export const AuditLog: React.FC = () => {
     },
   ];
 
+  const processedLogs = React.useMemo(() => {
+    return logs
+      .filter(l => {
+        if (!dateFilter) return true;
+        if (!l.created_at) return false;
+        
+        const logDate = new Date(l.created_at);
+        const year = logDate.getFullYear();
+        const month = String(logDate.getMonth() + 1).padStart(2, '0');
+        const day = String(logDate.getDate()).padStart(2, '0');
+        const localDateStr = `${year}-${month}-${day}`;
+        
+        return localDateStr === dateFilter;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [logs, dateFilter]);
+
   if (loading) {
     return (
       <div className="h-[400px] flex items-center justify-center">
@@ -165,7 +184,34 @@ export const AuditLog: React.FC = () => {
       title="Audit Logs" 
       subtitle="Complete system trace and activity monitoring (Who updated what)"
       columns={columns} 
-      data={logs} 
+      data={processedLogs}
+      headerAction={
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+             <input 
+               type="date" 
+               value={dateFilter}
+               onChange={(e) => setDateFilter(e.target.value)}
+               onClick={(e) => {
+                 try {
+                   (e.target as HTMLInputElement).showPicker();
+                 } catch (err) {
+                   // Fallback for browsers that don't support showPicker
+                 }
+               }}
+               className="h-11 px-4 rounded-2xl border-2 border-zinc-100 bg-zinc-50 text-[11px] font-black uppercase tracking-widest text-[#3a525d] outline-none focus:border-[#2d8d9b] focus:bg-white transition-all cursor-pointer"
+             />
+          </div>
+          {dateFilter && (
+            <button 
+              onClick={() => setDateFilter('')}
+              className="text-[9px] uppercase font-black tracking-widest text-zinc-400 hover:text-red-500 transition-colors"
+            >
+              Clear Date
+            </button>
+          )}
+        </div>
+      }
     />
   );
 };

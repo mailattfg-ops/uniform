@@ -33,11 +33,29 @@ export default function MeasuresArchitectPage() {
   }, []);
 
   const handleAddField = async () => {
-    if (!newFieldName.trim()) return;
+    const trimmedName = newFieldName.trim();
+    if (!trimmedName) return;
+
+    if (trimmedName.length < 2) {
+      toast.error('Label Name must be at least 2 characters');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9\s\-\.\/]+$/.test(trimmedName)) {
+      toast.error('Label Name contains invalid characters');
+      return;
+    }
+
+    const isDuplicate = fields.some(f => f.label.toLowerCase() === trimmedName.toLowerCase());
+    if (isDuplicate) {
+      toast.error('A measurement metric with this label already exists');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const newField = {
-        label: newFieldName,
+        label: trimmedName,
         unit: newFieldUnit,
         display_order: fields.length + 1,
         is_required: true
@@ -47,8 +65,8 @@ export default function MeasuresArchitectPage() {
       setNewFieldName('');
       fetchConfig();
       toast.success('Label added to measures registry');
-    } catch (err) {
-      toast.error('Failed to add label');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to add label');
     } finally {
       setIsSaving(false);
     }
@@ -76,9 +94,9 @@ export default function MeasuresArchitectPage() {
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Measures Architect</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Master Measurement Registry</p>
          </div>
-         <div className="w-14 h-14 bg-zinc-50 rounded-[2rem] flex items-center justify-center text-[#3a525d] shadow-sm border border-zinc-100">
+         {/* <div className="w-14 h-14 bg-zinc-50 rounded-[2rem] flex items-center justify-center text-[#3a525d] shadow-sm border border-zinc-100">
             <Settings2 size={24} />
-         </div>
+         </div> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -100,7 +118,13 @@ export default function MeasuresArchitectPage() {
                         <Input 
                           placeholder="e.g. Inseam" 
                           value={newFieldName}
-                          onChange={(e) => setNewFieldName(e.target.value)}
+                          onChange={(e) => {
+                             const val = e.target.value;
+                             if (val.length <= 30 && /^[a-zA-Z0-9\s\-\.\/]*$/.test(val)) {
+                               setNewFieldName(val);
+                             }
+                          }}
+                          maxLength={20}
                           className="bg-white/10 border-white/20 text-white placeholder:text-white/30"
                         />
                      </div>
