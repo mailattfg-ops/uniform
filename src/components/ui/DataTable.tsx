@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 
 export interface Column<T> {
-  header: string;
+  header: React.ReactNode;
   accessor: keyof T | ((item: T) => React.ReactNode);
   className?: string;
 }
@@ -19,6 +19,7 @@ export interface DataTableProps<T> {
   onSearch?: (term: string) => void;
   isLoading?: boolean;
   headerAction?: React.ReactNode;
+  pageSize?: number;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
@@ -30,13 +31,56 @@ export function DataTable<T extends { id: string | number }>({
   onSearch,
   isLoading,
   headerAction,
+  pageSize = 10,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1);
     if (onSearch) onSearch(e.target.value);
   };
+
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    
+    const lowerSearch = searchTerm.toLowerCase().trim();
+    const searchWords = lowerSearch.split(/\s+/).filter(Boolean);
+    
+    // Deep flattener to extract all string values from an object/array
+    const getAllValues = (obj: any): string[] => {
+      let values: string[] = [];
+      if (obj === null || obj === undefined) return values;
+      
+      if (typeof obj === 'string' || typeof obj === 'number') {
+        values.push(obj.toString().toLowerCase());
+      } else if (Array.isArray(obj)) {
+        obj.forEach(item => {
+          values = values.concat(getAllValues(item));
+        });
+      } else if (typeof obj === 'object') {
+        Object.values(obj).forEach(val => {
+          values = values.concat(getAllValues(val));
+        });
+      }
+      return values;
+    };
+
+    return data.filter(item => {
+      const itemValues = getAllValues(item);
+
+      return searchWords.every(word => 
+        itemValues.some(val => val.includes(word))
+      );
+    });
+  }, [data, searchTerm]);
+
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = React.useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
 
   return (
     <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
@@ -62,13 +106,17 @@ export function DataTable<T extends { id: string | number }>({
                    value={searchTerm}
                    onChange={handleSearchChange}
                    placeholder={searchPlaceholder} 
-                   className="bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-6 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-64 transition-all text-foreground shadow-sm"
+                   className="bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-64 transition-all text-foreground shadow-sm"
                  />
+                 {searchTerm && (
+                   <button 
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition-colors"
+                   >
+                     <ChevronRight size={14} className="rotate-45" />
+                   </button>
+                 )}
               </div>
-              <Button variant="secondary" className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-4 md:px-6 border border-[#fce4d4] text-[#2d8d9b] bg-white hover:bg-[#fce4d4]">
-                 <Filter size={14} />
-                 <span className="hidden sm:inline">Filter</span>
-              </Button>
             </div>
           </div>
         </div>
@@ -97,8 +145,8 @@ export function DataTable<T extends { id: string | number }>({
                   ))}
                 </tr>
               ))
-            ) : data.length > 0 ? (
-              data.map((item) => (
+            ) : paginatedData.length > 0 ? (
+              paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
                   {columns.map((col, idx) => (
                     <td key={idx} className={`p-6 text-sm font-medium text-foreground ${col.className || ''}`}>
@@ -127,14 +175,24 @@ export function DataTable<T extends { id: string | number }>({
       {/* Modern Footer */}
       <div className="p-4 md:p-8 border-t border-[#fce4d4] flex flex-col md:flex-row justify-between items-center gap-4 bg-[#fce4d4]/5 transition-colors">
         <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
-          Total <span className="text-[#2d8d9b] text-sm md:text-base">{data.length}</span> entries found
+          Showing <span className="text-[#2d8d9b] text-sm md:text-base">{Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)}</span> to <span className="text-[#2d8d9b] text-sm md:text-base">{Math.min(filteredData.length, currentPage * pageSize)}</span> of <span className="text-[#2d8d9b] text-xs md:text-sm font-black">{filteredData.length}</span> entries
         </span>
         <div className="flex gap-2 md:gap-3 w-full md:w-auto">
-          <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
+          <Button 
+            variant="secondary" 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase disabled:opacity-30"
+          >
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             Prev
           </Button>
-          <Button variant="secondary" className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase">
+          <Button 
+             variant="secondary" 
+             disabled={currentPage === totalPages || totalPages === 0}
+             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+             className="flex-1 md:flex-initial px-4 md:px-6 py-2.5 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-2xl border-border bg-white group uppercase disabled:opacity-30"
+          >
             Next
             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </Button>

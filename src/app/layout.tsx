@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Next.js Global Theme System",
-  description: "Scalable theme system with color switching",
+  title: "Inland Uniform",
+  description: "Inland Uniform",
 };
 
 export default function RootLayout({

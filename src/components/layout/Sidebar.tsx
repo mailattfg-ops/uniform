@@ -37,18 +37,12 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   { 
-    icon: Building2, label: 'Schools Hub', href: '/schools/registry',
+    icon: Building2, label: 'Sector Operations', href: '/organizations/registry',
     subsections: [
-      { label: 'Schools Registry', href: '/schools/registry' },
-      { label: 'Class Management', href: '/schools/classes' },
-    ]
-  },
-  { 
-    icon: GraduationCap, label: 'Students', href: '/students/directory',
-    subsections: [
-      { label: 'Directory', href: '/students/directory' },
-      { label: 'Groups', href: '/students/groups' },
-      { label: 'Profiles', href: '/students/profiles' }
+      { label: 'Member Organizations', href: '/organizations/registry' },
+      { label: 'Department Units', href: '/organizations/departments' },
+      { label: 'Entity Registry', href: '/entities/directory' },
+      // { label: 'Functional Groups', href: '/entities/groups' }
     ]
   },
   { 
@@ -56,22 +50,37 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Record Entry', href: '/measurements/entry' },
       { label: 'History', href: '/measurements/history' },
-      { label: 'Templates', href: '/measurements/templates' }
+      { label: 'Industry Templates', href: '/measurements/templates' }
     ]
   },
   { 
-    icon: ShieldAlert, label: 'Admin Controls', href: '/admin/approvals',
+    icon: ShieldAlert, label: 'Admin Controls', href: '/admin/settings',
     subsections: [
-      { label: 'Approvals', href: '/admin/approvals' },
+      { label: 'Industry Sectors', href: '/admin/industries' },
+      { label: 'Measurement Setup', href: '/admin/measures' },
+      { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
+      { label: 'Product Registry', href: '/admin/products' },
       { label: 'Audit Logs', href: '/admin/audit' },
-      { label: 'Employees', href: '/admin/employees' }
+      { label: 'Staff Management', href: '/admin/employees' },
+      // { label: 'System Settings', href: '/admin/settings' },
+      { label: 'User Roles', href: '/admin/roles' },
+      { label: 'US Size Charts', href: '/admin/size-charts' }
+    ]
+  },
+  {
+    icon: Box, label: 'Inventory Hub', href: '/admin/inventory/fabrics',
+    subsections: [
+      { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
+      { label: 'Button Catalog', href: '/admin/inventory/buttons' },
+      { label: 'Thread Catalog', href: '/admin/inventory/threads' },
+      { label: 'Design Hub', href: '/admin/inventory/designs' },
     ]
   },
   { 
     icon: Settings, label: 'Settings', href: '/settings/profile',
     subsections: [
       { label: 'Profile', href: '/settings/profile' },
-      { label: 'Company', href: '/settings/company' }
+      // { label: 'Company Info', href: '/settings/company' }
     ]
   },
 ];
@@ -132,7 +141,7 @@ export const Sidebar: React.FC = () => {
         bg-[#F5CAAD] text-[#1a1d21]/70 flex flex-col border-r border-black/5 shadow-2xl
       `}>
         {/* Brand Identity Section */}
-        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
+        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all bg-black/6 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
           <div className="flex items-center gap-3">
              {!isExpanded ? (
                 <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
@@ -171,32 +180,26 @@ export const Sidebar: React.FC = () => {
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
           <nav className="flex-1 overflow-y-auto no-scrollbar py-4 space-y-2">
             {modules.map((item) => {
-              // Get user from localStorage safely
-              const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-              const user = userStr ? JSON.parse(userStr) : null;
+              // Use the user state loaded in useEffect
               const userPermissions = user?.permissions || [];
               const isAdmin = userPermissions.includes('all');
 
-              // Permission Logic Mapping
-              const modulePermissionMap: Record<string, string> = {
-                'Schools Hub': 'view_schools',
-                'Students': 'view_students',
-                'Measurements': 'manage_measurements',
-                'Admin Controls': 'manage_system' // Only admin or specific managers
+              // Permission Logic Mapping - Must match Modules array labels exactly
+              const modulePermissionMap: Record<string, string[]> = {
+                'Sector Operations': ['view_schools', 'manage_schools', 'view_students', 'register_students'],
+                'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
+                'Admin Controls': ['manage_system', 'view_audit_logs'],
+                'Inventory Hub': ['manage_inventory', 'view_inventory']
               };
 
-              const requiredPermission = modulePermissionMap[item.label];
+              const requiredPermissions = modulePermissionMap[item.label] || [];
+              const hasPermission = isAdmin || requiredPermissions.length === 0 || 
+                                   requiredPermissions.some(rp => userPermissions.includes(rp));
               
-              // Hide if permission is required but missing (Admins bypass)
-              if (requiredPermission && !isAdmin && !userPermissions.includes(requiredPermission)) {
-                  // Special case: "Admin Controls" usually requires 'all' or specific admin permission
-                  if (item.label === 'Admin Controls' && !isAdmin) return null;
-                  
-                  // For others, if they don't have the "view" permission, hide them
-                  return null;
-              }
+              if (!hasPermission) return null;
 
-              const isPathActive = pathname.startsWith(item.href.split('/').slice(0, 3).join('/')) || 
+              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) || 
+                                   (item.href !== '/' && pathname === item.href) ||
                                    (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
@@ -205,8 +208,8 @@ export const Sidebar: React.FC = () => {
                 <div key={item.label} className={`transition-all ${isExpanded ? 'px-4' : 'px-0 flex flex-col items-center'}`}>
                   <div 
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full cursor-pointer ${
-                      isPathActive ? 'bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full bg-black/6 cursor-pointer ${
+                      isPathActive ? '!bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -229,7 +232,34 @@ export const Sidebar: React.FC = () => {
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
                         
-                        // Sub-permission logic can go here if needed
+                        // Sub-permission logic - Labels MUST match subsections array labels
+                        const subPermissionMap: Record<string, string[]> = {
+                          'Member Organizations': ['view_schools', 'manage_schools'],
+                          'Department Units': ['view_schools', 'manage_schools'],
+                          'Entity Registry': ['view_students', 'register_students'],
+                          'Record Entry': ['manage_measurements'],
+                          'History': ['view_measurements'],
+                          'Industry Templates': ['manage_measurements'],
+                          'Industry Sectors': ['manage_system'],
+                          'Measurement Setup': ['manage_system'],
+                          'Measurements Approvals': ['manage_system'],
+                          'Product Registry': ['manage_products', 'view_products'],
+                          'Audit Logs': ['view_audit_logs'],
+                          'Staff Management': ['manage_employees', 'view_employees'],
+                          'System Settings': ['manage_system'],
+                          'User Roles': ['manage_system'],
+                          'US Size Charts': ['manage_size_charts', 'view_size_charts'],
+                          'Fabric Catalog': ['manage_inventory', 'view_inventory'],
+                          'Button Catalog': ['manage_inventory', 'view_inventory'],
+                          'Thread Catalog': ['manage_inventory', 'view_inventory'],
+                          'Design Hub': ['manage_inventory', 'view_inventory']
+                        };
+
+                        const requiredSubPerms = subPermissionMap[sub.label] || [];
+                        const hasSubPerm = isAdmin || requiredSubPerms.length === 0 || 
+                                          requiredSubPerms.some(rp => userPermissions.includes(rp));
+
+                        if (!hasSubPerm) return null;
                         
                         return (
                           <Link 
