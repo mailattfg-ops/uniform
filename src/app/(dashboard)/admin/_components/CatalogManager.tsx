@@ -13,6 +13,10 @@ interface Item {
   id: string;
   code: string;
   name: string;
+  brand_name?: string;
+  quantity?: number;
+  shade?: string;
+  width?: string;
 }
 
 interface CatalogManagerProps {
@@ -80,6 +84,36 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const columns: Column<Item>[] = [
     { header: 'Code', accessor: 'code', className: 'font-black text-[#2d8d9b]' },
     { header: 'Name', accessor: 'name' },
+    ...(type === 'fabrics' ? [
+      { 
+        header: 'Brand', 
+        accessor: ((item: Item) => (
+          <span className="text-xs font-bold text-zinc-600">{item.brand_name || '—'}</span>
+        )) as any
+      },
+      { 
+        header: 'Quantity', 
+        accessor: ((item: Item) => (
+          <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">
+            {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'}
+          </span>
+        )) as any
+      },
+      { 
+        header: 'Shade', 
+        accessor: ((item: Item) => (
+          <span className="text-xs font-bold text-zinc-600">{item.shade || '—'}</span>
+        )) as any
+      },
+      { 
+        header: 'Width', 
+        accessor: ((item: Item) => (
+          item.width 
+            ? <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-[11px] font-black text-[#2d8d9b]">{item.width}&quot;</span>
+            : <span className="text-[10px] italic text-zinc-300">—</span>
+        )) as any
+      },
+    ] : []),
     {
       header: 'Actions',
       accessor: (item) => (
@@ -125,6 +159,17 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             fields={[
               { name: 'code', label: 'Item Code', type: 'text', required: true, defaultValue: editingItem?.code, allowSpecialCharacters: true },
               { name: 'name', label: 'Item Name', type: 'text', required: true, defaultValue: editingItem?.name },
+              ...(type === 'fabrics' ? [
+                { name: 'brand_name', label: 'Brand Name', type: 'text' as const, placeholder: 'e.g. Raymond, Arvind', defaultValue: editingItem?.brand_name || '' },
+                { name: 'quantity', label: 'Quantity', type: 'number' as const, step: 'any', placeholder: 'e.g. 100.50', defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : '' },
+                { name: 'shade', label: 'Shade', type: 'text' as const, placeholder: 'e.g. Navy Blue, Charcoal Grey', defaultValue: editingItem?.shade || '' },
+                { name: 'width', label: 'Width (inches)', type: 'select' as const, options: [
+                  { label: 'Select Width', value: '' },
+                  { label: '36"', value: '36' },
+                  { label: '44"', value: '44' },
+                  { label: '58"', value: '58' }
+                ], defaultValue: editingItem?.width || '' },
+              ] : [])
             ]}
             onSubmit={handleSubmit}
             onCancel={() => {

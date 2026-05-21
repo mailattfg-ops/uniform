@@ -54,6 +54,7 @@ export interface FormField {
   onlyNumbers?: boolean;
   maxLength?: number;
   pattern?: string;
+  step?: string;
   onChange?: (value: any) => void;
 }
 
@@ -203,6 +204,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   onlyNumbers={field.onlyNumbers}
                   maxLength={field.maxLength}
                   pattern={field.pattern}
+                  step={field.step}
                   onChange={(e: any) => {
                     if (field.onChange) field.onChange(e.target.value);
                   }}

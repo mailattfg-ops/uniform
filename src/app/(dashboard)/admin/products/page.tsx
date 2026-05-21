@@ -17,8 +17,11 @@ interface Product {
   category: string;
   measurements: string[];
   materials: string;
+  sam_value?: number | null;
   entry_methods?: string[];
   size_chart_id?: string;
+  product_type_id?: number | string;
+  product_types?: { id: number; name: string };
   created_at: string;
 }
 
@@ -26,6 +29,8 @@ export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [measureConfig, setMeasureConfig] = useState<any[]>([]);
   const [sizeCharts, setSizeCharts] = useState<any[]>([]);
+  const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [artNumbers, setArtNumbers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -40,14 +45,18 @@ export default function ProductManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, artNumRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
-        api.get('/size-charts')
+        api.get('/size-charts'),
+        api.get('/product-types').catch(() => ({ data: [] })),
+        api.get('/art-number-hub/art-numbers').catch(() => ({ data: [] }))
       ]);
       setProducts(prodRes.data);
       setMeasureConfig(configRes.data);
       setSizeCharts(chartRes.data);
+      setProductTypes(typeRes.data);
+      setArtNumbers(artNumRes.data);
     } catch (err) {
       toast.error('Failed to load catalog data');
     } finally {
@@ -78,11 +87,28 @@ export default function ProductManagement() {
     },
     { 
        name: 'art_number', 
-       label: 'Art Number', 
-       type: 'text', 
-       placeholder: 'e.g. AR-101', 
+       label: 'Art Number Specification', 
+       type: 'select', 
+       options: [
+         { label: 'Select Registered Art Number', value: '' },
+         ...artNumbers.map(an => ({ 
+           label: `${an.code} (${an.art_dresses?.name || ''} - ${an.art_genders?.name || ''} - ${an.art_patterns?.name || ''})`, 
+           value: an.code 
+         }))
+       ],
        required: true, 
-       defaultValue: editingProduct?.art_number 
+       defaultValue: editingProduct?.art_number || ''
+    },
+    { 
+       name: 'product_type_id', 
+       label: 'Product Type', 
+       type: 'select', 
+       options: [
+         { label: 'Select Product Type', value: '' },
+         ...productTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
+       ],
+       defaultValue: editingProduct?.product_type_id?.toString() || editingProduct?.product_types?.id?.toString() || '',
+       required: true
     },
     { 
        name: 'gender', 
@@ -101,6 +127,14 @@ export default function ProductManagement() {
        type: 'text', 
        placeholder: 'e.g. 100% Cotton', 
        defaultValue: editingProduct?.materials 
+    },
+    { 
+       name: 'sam_value', 
+       label: 'SAM Value (Standard Allowed Minutes)', 
+       type: 'number', 
+       placeholder: 'e.g. 1.25 (fraction minutes per operation)',
+       step: 'any',
+       defaultValue: editingProduct?.sam_value !== null && editingProduct?.sam_value !== undefined ? String(editingProduct.sam_value) : ''
     },
     { 
        name: 'category', 
@@ -163,6 +197,12 @@ export default function ProductManagement() {
     data.entry_methods = normalize(data.entry_methods);
     
     if (!data.size_chart_id) data.size_chart_id = null;
+    if (!data.product_type_id || data.product_type_id === '') data.product_type_id = null;
+    else data.product_type_id = parseInt(data.product_type_id);
+
+    // SAM value: send as number or null
+    if (!data.sam_value || data.sam_value === '') data.sam_value = null;
+    else data.sam_value = parseFloat(data.sam_value);
 
     try {
       if (editingProduct) {
@@ -222,6 +262,14 @@ export default function ProductManagement() {
       )
     },
     {
+      header: 'Product Type',
+      accessor: (p) => (
+        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded border border-blue-100 w-fit">
+          {p.product_types?.name || 'Standard'}
+        </span>
+      )
+    },
+    {
       header: 'Strategy',
       accessor: (p) => (
         <div className="flex flex-col gap-1">
@@ -253,6 +301,22 @@ export default function ProductManagement() {
                 <Layers size={14} className="text-[#2d8d9b]" />
                 <span className="text-xs font-bold truncate max-w-[150px]">{p.materials || 'Not Set'}</span>
             </div>
+        )
+    },
+    {
+        header: 'SAM Value',
+        accessor: (p) => (
+            p.sam_value !== null && p.sam_value !== undefined
+              ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-[11px] font-black text-[#2d8d9b] font-mono tracking-tight">
+                    {Number(p.sam_value).toFixed(4)}
+                  </span>
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase">min</span>
+                </div>
+              ) : (
+                <span className="text-[10px] italic text-zinc-300">—</span>
+              )
         )
     },
     {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid, Eye, ChevronDown } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -38,16 +38,26 @@ export default function OrganizationsRegistry() {
     isOpen: false,
     data: null
   });
+  const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
+  const [orgDetails, setOrgDetails] = useState<any>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [assignedStaff, setAssignedStaff] = useState<any[]>([]);
+  const [selectedStaffIds, setSelectedStaffIds] = useState<number[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [orgsRes, indRes] = await Promise.all([
+      const [orgsRes, indRes, empRes] = await Promise.all([
         api.get('/organizations'),
-        api.get('/industries')
+        api.get('/industries'),
+        api.get('/employees')
       ]);
       setOrganizations(orgsRes.data);
       setIndustries(indRes.data);
+      setEmployees(empRes.data);
     } catch (err) {
       toast.error('Failed to load registry data');
     } finally {
@@ -58,6 +68,45 @@ export default function OrganizationsRegistry() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleViewDetails = async (org: Organization) => {
+    setViewingOrg(org);
+    setIsLoadingDetails(true);
+    try {
+      const [detailsRes, staffRes] = await Promise.all([
+        api.get(`/organizations/${org.id}/details`),
+        api.get(`/organizations/${org.id}/staff`)
+      ]);
+      setOrgDetails(detailsRes.data);
+      
+      const assigned = staffRes.data.data || [];
+      setAssignedStaff(assigned);
+      setSelectedStaffIds(assigned.map((s: any) => s.employee_id));
+    } catch (err) {
+      toast.error('Failed to load organization details');
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  const handleSaveStaff = async () => {
+    if (!viewingOrg) return;
+    setIsAssigning(true);
+    const loadingToast = toast.loading('Updating staff assignments...');
+    try {
+      await api.post(`/organizations/${viewingOrg.id}/staff`, { employee_ids: selectedStaffIds });
+      toast.success('Staff assignments updated successfully!', { id: loadingToast });
+      setIsDropdownOpen(false);
+    } catch (err) {
+      toast.error('Failed to update staff assignments', { id: loadingToast });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const toggleStaffSelection = (id: number) => {
+    setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
 
   const generateInitialPassword = () => Math.random().toString(36).slice(-6).toUpperCase();
 
@@ -202,6 +251,13 @@ export default function OrganizationsRegistry() {
       accessor: (o) => (
         <div className="flex items-center gap-3">
           <button 
+            onClick={() => handleViewDetails(o)}
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+            title="View Details"
+          >
+            <Eye size={16} />
+          </button>
+          <button 
             onClick={() => {
                 setEditingOrg(o);
                 setIsAdding(true);
@@ -329,6 +385,168 @@ export default function OrganizationsRegistry() {
         onClose={() => setCredsModal({ isOpen: false, data: null })}
         data={credsModal.data}
       />
+
+      {/* View Organization Modal */}
+      {viewingOrg && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setViewingOrg(null)} />
+          
+          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="bg-[#3a525d] p-8 text-white">
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                   <Building2 size={24} />
+                </div>
+                <button onClick={() => setViewingOrg(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <h3 className="text-2xl font-black italic">{viewingOrg.name}</h3>
+              <div className="flex items-center gap-2 mt-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">ID: #{viewingOrg.id}</p>
+                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{viewingOrg.industries?.name || 'Unknown Industry'}</p>
+              </div>
+            </div>
+
+            <div className="p-8 space-y-8">
+              {/* Organization Info */}
+              <div className="grid grid-cols-2 gap-6">
+                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <label className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">
+                      <MapPin size={12} />
+                      Location Address
+                    </label>
+                    <p className="text-sm font-semibold text-[#3a525d]">{viewingOrg.address || 'Address not provided'}</p>
+                 </div>
+                 
+                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <label className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">
+                      <Calendar size={12} />
+                      Registration Date
+                    </label>
+                    <p className="text-sm font-semibold text-[#3a525d]">
+                      {viewingOrg.created_at ? new Date(viewingOrg.created_at).toLocaleString(undefined, {
+                        dateStyle: 'long',
+                        timeStyle: 'short'
+                      }) : 'N/A'}
+                    </p>
+                 </div>
+              </div>
+
+              {/* Advanced Details */}
+              {isLoadingDetails ? (
+                <div className="flex items-center justify-center p-8">
+                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2d8d9b]"></div>
+                </div>
+              ) : orgDetails ? (
+                <div className="space-y-8">
+                  {/* Departments */}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
+                       <Grid size={14} /> Departments ({orgDetails.departments?.length || 0})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                       {orgDetails.departments?.length > 0 ? (
+                         orgDetails.departments.map((dept: any) => (
+                           <div key={dept.id} className="px-4 py-2 bg-[#2d8d9b]/10 text-[#2d8d9b] rounded-xl text-xs font-bold border border-[#2d8d9b]/20">
+                             {dept.name} {dept.section ? `(${dept.section})` : ''}
+                           </div>
+                         ))
+                       ) : (
+                         <p className="text-xs font-medium text-zinc-400">No departments found.</p>
+                       )}
+                    </div>
+                  </div>
+
+                  {/* Measurement Status */}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
+                       <Users size={14} /> Measurement Status
+                    </h4>
+                    <div className="grid grid-cols-3 gap-4">
+                       <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
+                          <p className="text-2xl font-black text-[#3a525d]">{orgDetails.measurements?.total || 0}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mt-1">Total Members</p>
+                       </div>
+                       <div className="p-4 bg-green-50 rounded-2xl border border-green-100 text-center">
+                          <p className="text-2xl font-black text-green-600">{orgDetails.measurements?.completed || 0}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-green-500 mt-1">Completed</p>
+                       </div>
+                       <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 text-center">
+                          <p className="text-2xl font-black text-orange-500">{orgDetails.measurements?.pending || 0}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-orange-400 mt-1">Pending</p>
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Staff Assignment */}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
+                       <School size={14} /> Assigned Measurement Staff
+                    </h4>
+                    <div className="flex gap-3 items-start relative">
+                       <div className="flex-1 relative">
+                          <button 
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-sm font-semibold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors"
+                          >
+                            <span className="truncate">
+                               {selectedStaffIds.length === 0 
+                                  ? 'Select Staff Members...' 
+                                  : `${selectedStaffIds.length} staff member(s) selected`}
+                            </span>
+                            <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          
+                          {/* Custom Dropdown */}
+                          {isDropdownOpen && (
+                             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-zinc-100 p-2 z-50 max-h-60 overflow-y-auto custom-scrollbar">
+                                {employees.map(emp => {
+                                  const isSelected = selectedStaffIds.includes(emp.id);
+                                  return (
+                                    <div 
+                                      key={emp.id} 
+                                      onClick={() => toggleStaffSelection(emp.id)}
+                                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-50 cursor-pointer transition-colors"
+                                    >
+                                      <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'}`}>
+                                        {isSelected && <Check size={12} strokeWidth={4} />}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-bold text-[#3a525d]">{emp.full_name}</p>
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{emp.employee_id} • {emp.department}</p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {employees.length === 0 && (
+                                  <div className="p-4 text-center text-sm font-medium text-zinc-400">No employees found</div>
+                                )}
+                             </div>
+                          )}
+                       </div>
+                       <Button 
+                         onClick={handleSaveStaff}
+                         disabled={isAssigning}
+                         className="h-12 px-8 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] whitespace-nowrap"
+                       >
+                         {isAssigning ? 'Updating...' : 'Save Staff'}
+                       </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex justify-end pt-6 border-t border-zinc-100">
+                <Button variant="outline" onClick={() => setViewingOrg(null)} className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest text-zinc-400">
+                   Close Details
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

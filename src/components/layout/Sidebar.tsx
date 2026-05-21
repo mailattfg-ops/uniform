@@ -17,6 +17,7 @@ import {
   ChevronDown,
   User,
   Box,
+  TrendingUp,
 } from 'lucide-react';
 
 interface Subsection {
@@ -60,6 +61,8 @@ const modules: ModuleItem[] = [
       { label: 'Measurement Setup', href: '/admin/measures' },
       { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
       { label: 'Product Registry', href: '/admin/products' },
+      { label: 'Product Types', href: '/admin/product-types' },
+      { label: 'Art Number Hub', href: '/admin/art-number-hub' },
       { label: 'Audit Logs', href: '/admin/audit' },
       { label: 'Staff Management', href: '/admin/employees' },
       // { label: 'System Settings', href: '/admin/settings' },
@@ -74,6 +77,12 @@ const modules: ModuleItem[] = [
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
       { label: 'Design Hub', href: '/admin/inventory/designs' },
+    ]
+  },
+  {
+    icon: TrendingUp, label: 'Marketing', href: '/marketing/quotations',
+    subsections: [
+      { label: 'Quotation', href: '/marketing/quotations' }
     ]
   },
   { 
@@ -189,7 +198,8 @@ export const Sidebar: React.FC = () => {
                 'Sector Operations': ['view_schools', 'manage_schools', 'view_students', 'register_students'],
                 'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
                 'Admin Controls': ['manage_system', 'view_audit_logs'],
-                'Inventory Hub': ['manage_inventory', 'view_inventory']
+                'Inventory Hub': ['manage_inventory', 'view_inventory'],
+                'Marketing': ['manage_quotations', 'view_quotations']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
@@ -244,6 +254,8 @@ export const Sidebar: React.FC = () => {
                           'Measurement Setup': ['manage_system'],
                           'Measurements Approvals': ['manage_system'],
                           'Product Registry': ['manage_products', 'view_products'],
+                          'Product Types': ['manage_products', 'view_products'],
+                          'Art Number Hub': ['manage_products', 'view_products'],
                           'Audit Logs': ['view_audit_logs'],
                           'Staff Management': ['manage_employees', 'view_employees'],
                           'System Settings': ['manage_system'],
@@ -252,7 +264,8 @@ export const Sidebar: React.FC = () => {
                           'Fabric Catalog': ['manage_inventory', 'view_inventory'],
                           'Button Catalog': ['manage_inventory', 'view_inventory'],
                           'Thread Catalog': ['manage_inventory', 'view_inventory'],
-                          'Design Hub': ['manage_inventory', 'view_inventory']
+                          'Design Hub': ['manage_inventory', 'view_inventory'],
+                          'Quotation': ['manage_quotations', 'view_quotations']
                         };
 
                         const requiredSubPerms = subPermissionMap[sub.label] || [];
