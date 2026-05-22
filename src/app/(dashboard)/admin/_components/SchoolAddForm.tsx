@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
+import { Button } from '@/components/ui/Button';
 import { School, MapPin, Phone, Mail, User } from 'lucide-react';
 
 const schoolFields: FormField[] = [
@@ -41,12 +42,13 @@ export const SchoolAddForm: React.FC<SchoolAddFormProps> = ({ onSuccess, onCance
             <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] mt-1">Registry Entry • Admin Control</p>
           </div>
         </div>
-        <button 
+        <Button
           onClick={onCancel}
-          className="px-6 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 text-[10px] font-black uppercase tracking-widest transition-all"
+          variant="secondary"
+          className="px-6 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 text-[10px] font-black uppercase tracking-widest transition-all border-none shadow-none"
         >
           Cancel
-        </button>
+        </Button>
       </div>
 
       <div className="bg-white rounded-[3rem] p-4 lg:p-8 border border-zinc-100 shadow-xl">

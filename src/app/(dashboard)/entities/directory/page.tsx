@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { StudentTable } from '../_components/StudentTable';
 import { StudentRegisterForm } from '../_components/StudentRegisterForm';
 import { BulkUpload } from '../_components/BulkUpload';
+import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
@@ -42,16 +43,17 @@ export default function StudentDirectoryPage() {
       case 'register':
         return (
           <div className="space-y-6">
-            <button 
+            <Button 
               onClick={() => {
                 setView('list');
                 setEditingStudent(null);
               }}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-4"
+              variant="secondary"
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-4 bg-transparent border-none shadow-none px-0"
             >
               <ArrowLeft size={14} />
               Back to List
-            </button>
+            </Button>
             <StudentRegisterForm 
                 initialData={editingStudent} 
                 onCancel={() => {
@@ -64,13 +66,14 @@ export default function StudentDirectoryPage() {
       case 'bulk':
         return (
           <div className="space-y-6">
-             <button 
+             <Button 
               onClick={() => setView('list')}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-4"
+              variant="secondary"
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-4 bg-transparent border-none shadow-none px-0"
             >
               <ArrowLeft size={14} />
               Back to List
-            </button>
+            </Button>
             <BulkUpload onComplete={() => setView('list')} />
           </div>
         );

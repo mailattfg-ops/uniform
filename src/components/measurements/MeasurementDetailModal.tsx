@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, User, Ruler, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface MeasurementDetailModalProps {
   isOpen: boolean;
@@ -28,12 +29,13 @@ export const MeasurementDetailModal: React.FC<MeasurementDetailModalProps> = ({ 
               Reference #{String(record.id).slice(0, 8)} • Captured {new Date(record.recorded_at).toLocaleDateString()}
             </p>
           </div>
-          <button 
+          <Button
             onClick={onClose}
-            className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+            variant="secondary"
+            className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all text-white border-none shadow-none"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="p-10 space-y-10 max-h-[70vh] overflow-y-auto">

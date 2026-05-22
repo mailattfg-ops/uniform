@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
+import { Button } from '@/components/ui/Button';
 import { Layers, School, Info, CheckCircle2 } from 'lucide-react';
 
 const classFields: FormField[] = [
@@ -56,12 +57,13 @@ export const ClassAddForm: React.FC<ClassAddFormProps> = ({ onSuccess, onCancel 
             <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] mt-1">Registry Setup • Group Logistics</p>
           </div>
         </div>
-        <button 
+        <Button
           onClick={onCancel}
-          className="px-6 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 text-[10px] font-black uppercase tracking-widest transition-all"
+          variant="secondary"
+          className="px-6 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 text-[10px] font-black uppercase tracking-widest transition-all shadow-none border-none"
         >
           Cancel
-        </button>
+        </Button>
       </div>
 
       <div className="bg-white dark:bg-zinc-950 rounded-[3rem] p-4 lg:p-8 border border-zinc-100 dark:border-zinc-800 shadow-xl">

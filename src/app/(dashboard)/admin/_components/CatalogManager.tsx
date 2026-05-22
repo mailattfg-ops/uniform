@@ -118,21 +118,23 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       header: 'Actions',
       accessor: (item) => (
         <div className="flex gap-2">
-          <button 
+          <Button
             onClick={() => {
               setEditingItem(item);
               setView('edit');
             }}
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none"
           >
             <Edit2 size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none"
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
       ),
       className: 'w-32',
@@ -142,16 +144,17 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   if (view !== 'list') {
     return (
       <div className="space-y-6">
-        <button 
+        <Button
           onClick={() => {
             setView('list');
             setEditingItem(null);
           }}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors"
+          variant="secondary"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors bg-transparent border-none shadow-none px-0"
         >
           <ArrowLeft size={14} />
           Back to List
-        </button>
+        </Button>
         
         <div className="max-w-2xl mx-auto">
           <DynamicForm 

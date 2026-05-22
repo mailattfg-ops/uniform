@@ -250,34 +250,38 @@ export default function OrganizationsRegistry() {
       header: 'Actions',
       accessor: (o) => (
         <div className="flex items-center gap-3">
-          <button 
+          <Button
             onClick={() => handleViewDetails(o)}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all shadow-sm p-0"
             title="View Details"
           >
             <Eye size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => {
                 setEditingOrg(o);
                 setIsAdding(true);
             }}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
           >
             <Edit2 size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => handleResetPassword(o)}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm p-0"
           >
             <Key size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: o.id })}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm p-0"
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
       )
     }
@@ -397,9 +401,9 @@ export default function OrganizationsRegistry() {
                 <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
                    <Building2 size={24} />
                 </div>
-                <button onClick={() => setViewingOrg(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                <Button variant="secondary" onClick={() => setViewingOrg(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors bg-transparent border-none shadow-none text-white">
                   <X size={20} />
-                </button>
+                </Button>
               </div>
               <h3 className="text-2xl font-black italic">{viewingOrg.name}</h3>
               <div className="flex items-center gap-2 mt-2">
@@ -487,9 +491,10 @@ export default function OrganizationsRegistry() {
                     </h4>
                     <div className="flex gap-3 items-start relative">
                        <div className="flex-1 relative">
-                          <button 
+                          <Button
+                            variant="secondary"
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-sm font-semibold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors"
+                            className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-sm font-semibold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors shadow-none"
                           >
                             <span className="truncate">
                                {selectedStaffIds.length === 0 
@@ -497,7 +502,7 @@ export default function OrganizationsRegistry() {
                                   : `${selectedStaffIds.length} staff member(s) selected`}
                             </span>
                             <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                          </button>
+                          </Button>
                           
                           {/* Custom Dropdown */}
                           {isDropdownOpen && (

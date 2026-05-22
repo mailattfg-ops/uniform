@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Star, 
+import {
+  Star,
   Settings,
   Grid,
   Building2,
@@ -33,11 +33,11 @@ interface ModuleItem {
 }
 
 const modules: ModuleItem[] = [
-  { 
+  {
     icon: Star, label: 'Dashboard', href: '/dashboard',
     subsections: []
   },
-  { 
+  {
     icon: Building2, label: 'Sector Operations', href: '/organizations/registry',
     subsections: [
       { label: 'Member Organizations', href: '/organizations/registry' },
@@ -46,7 +46,7 @@ const modules: ModuleItem[] = [
       // { label: 'Functional Groups', href: '/entities/groups' }
     ]
   },
-  { 
+  {
     icon: Ruler, label: 'Measurements', href: '/measurements/entry',
     subsections: [
       { label: 'Record Entry', href: '/measurements/entry' },
@@ -54,15 +54,12 @@ const modules: ModuleItem[] = [
       { label: 'Industry Templates', href: '/measurements/templates' }
     ]
   },
-  { 
+  {
     icon: ShieldAlert, label: 'Admin Controls', href: '/admin/settings',
     subsections: [
       { label: 'Industry Sectors', href: '/admin/industries' },
       { label: 'Measurement Setup', href: '/admin/measures' },
       { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
-      { label: 'Product Registry', href: '/admin/products' },
-      { label: 'Product Types', href: '/admin/product-types' },
-      { label: 'Art Number Hub', href: '/admin/art-number-hub' },
       { label: 'Audit Logs', href: '/admin/audit' },
       { label: 'Staff Management', href: '/admin/employees' },
       // { label: 'System Settings', href: '/admin/settings' },
@@ -71,21 +68,27 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Box, label: 'Inventory Hub', href: '/admin/inventory/fabrics',
+    icon: Box, label: 'Product Management', href: '/admin/products',
     subsections: [
+      { label: 'Product Registry', href: '/admin/products' },
+      { label: 'Product Types', href: '/admin/product-types' },
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
-      { label: 'Design Hub', href: '/admin/inventory/designs' },
+      { label: 'Stock & Thresholds', href: '/admin/stock' },
+      { label: 'Purchase Orders', href: '/admin/purchase-orders' },
     ]
   },
   {
     icon: TrendingUp, label: 'Marketing', href: '/marketing/quotations',
     subsections: [
-      { label: 'Quotation', href: '/marketing/quotations' }
+      { label: 'Quotation', href: '/marketing/quotations' },
+      { label: 'Operation Team', href: '/marketing/operation-team' },
+      { label: 'Initial Payment', href: '/marketing/initial-payment' },
+      { label: 'Order Placement', href: '/marketing/order-placement' }
     ]
   },
-  { 
+  {
     icon: Settings, label: 'Settings', href: '/settings/profile',
     subsections: [
       { label: 'Profile', href: '/settings/profile' },
@@ -134,10 +137,9 @@ export const Sidebar: React.FC = () => {
   return (
     <>
       {/* Mobile Overlay */}
-      <div 
-        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden ${
-          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
@@ -152,32 +154,32 @@ export const Sidebar: React.FC = () => {
         {/* Brand Identity Section */}
         <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all bg-black/6 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
           <div className="flex items-center gap-3">
-             {!isExpanded ? (
-                <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                  <Image 
-                    src="/logosmall.jpeg" 
-                    alt="Inland Logo" 
-                    width={40} 
-                    height={40} 
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-              ):(
-                <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                  <Image 
-                    src="/logoimg.jpeg" 
-                    alt="Inland Logo" 
-                    width={140} 
-                    height={40} 
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-              )}
+            {!isExpanded ? (
+              <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
+                <Image
+                  src="/logosmall.jpeg"
+                  alt="Inland Logo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
+                <Image
+                  src="/logoimg.jpeg"
+                  alt="Inland Logo"
+                  width={140}
+                  height={40}
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            )}
           </div>
 
-          <button 
+          <button
             onClick={toggleSidebar}
             className={`w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
           >
@@ -198,29 +200,28 @@ export const Sidebar: React.FC = () => {
                 'Sector Operations': ['view_schools', 'manage_schools', 'view_students', 'register_students'],
                 'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
                 'Admin Controls': ['manage_system', 'view_audit_logs'],
-                'Inventory Hub': ['manage_inventory', 'view_inventory'],
+                'Product Management': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
                 'Marketing': ['manage_quotations', 'view_quotations']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
-              const hasPermission = isAdmin || requiredPermissions.length === 0 || 
-                                   requiredPermissions.some(rp => userPermissions.includes(rp));
-              
+              const hasPermission = isAdmin || requiredPermissions.length === 0 ||
+                requiredPermissions.some(rp => userPermissions.includes(rp));
+
               if (!hasPermission) return null;
 
-              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) || 
-                                   (item.href !== '/' && pathname === item.href) ||
-                                   (item.label === 'Dashboard' && pathname === '/dashboard');
+              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) ||
+                (item.href !== '/' && pathname === item.href) ||
+                (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
-              
+
               return (
                 <div key={item.label} className={`transition-all ${isExpanded ? 'px-4' : 'px-0 flex flex-col items-center'}`}>
-                  <div 
+                  <div
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full bg-black/6 cursor-pointer ${
-                      isPathActive ? '!bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
-                    }`}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full bg-black/6 cursor-pointer ${isPathActive ? '!bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
+                      }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className="shrink-0">
@@ -241,7 +242,7 @@ export const Sidebar: React.FC = () => {
                     <div className="ml-10 mt-3 space-y-3 animate-in fade-in slide-in-from-top-4 duration-700 pb-2">
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
-                        
+
                         // Sub-permission logic - Labels MUST match subsections array labels
                         const subPermissionMap: Record<string, string[]> = {
                           'Member Organizations': ['view_schools', 'manage_schools'],
@@ -255,7 +256,6 @@ export const Sidebar: React.FC = () => {
                           'Measurements Approvals': ['manage_system'],
                           'Product Registry': ['manage_products', 'view_products'],
                           'Product Types': ['manage_products', 'view_products'],
-                          'Art Number Hub': ['manage_products', 'view_products'],
                           'Audit Logs': ['view_audit_logs'],
                           'Staff Management': ['manage_employees', 'view_employees'],
                           'System Settings': ['manage_system'],
@@ -264,28 +264,30 @@ export const Sidebar: React.FC = () => {
                           'Fabric Catalog': ['manage_inventory', 'view_inventory'],
                           'Button Catalog': ['manage_inventory', 'view_inventory'],
                           'Thread Catalog': ['manage_inventory', 'view_inventory'],
-                          'Design Hub': ['manage_inventory', 'view_inventory'],
-                          'Quotation': ['manage_quotations', 'view_quotations']
+                          'Stock & Thresholds': ['manage_inventory', 'view_inventory'],
+                          'Purchase Orders': ['manage_inventory', 'view_inventory'],
+                          'Quotation': ['manage_quotations', 'view_quotations'],
+                          'Operation Team': ['manage_quotations', 'view_quotations'],
+                          'Initial Payment': ['manage_quotations', 'view_quotations'],
+                          'Order Placement': ['manage_quotations', 'view_quotations']
                         };
 
                         const requiredSubPerms = subPermissionMap[sub.label] || [];
-                        const hasSubPerm = isAdmin || requiredSubPerms.length === 0 || 
-                                          requiredSubPerms.some(rp => userPermissions.includes(rp));
+                        const hasSubPerm = isAdmin || requiredSubPerms.length === 0 ||
+                          requiredSubPerms.some(rp => userPermissions.includes(rp));
 
                         if (!hasSubPerm) return null;
-                        
+
                         return (
-                          <Link 
+                          <Link
                             key={idx}
                             href={sub.href}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
-                            className={`flex items-center gap-3 group text-xs font-bold transition-all ${
-                              isSubActive ? 'text-[#1a1d21]' : 'text-[#1a1d21]/40 hover:text-[#1a1d21]'
-                            }`}
+                            className={`flex items-center gap-3 group text-xs font-bold transition-all ${isSubActive ? 'text-[#1a1d21]' : 'text-[#1a1d21]/40 hover:text-[#1a1d21]'
+                              }`}
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                              isSubActive ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-black/20 group-hover:bg-black'
-                            }`} />
+                            <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isSubActive ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-black/20 group-hover:bg-black'
+                              }`} />
                             {sub.label}
                           </Link>
                         );
@@ -300,25 +302,25 @@ export const Sidebar: React.FC = () => {
 
         {/* User Profile Footer */}
         <div className={`mt-auto p-4 border-t border-black/10 ${!isExpanded && 'flex justify-center'}`}>
-           <div className={`flex items-center gap-3 p-3 rounded-2xl bg-black/5 group hover:bg-black/10 transition-all cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
-              <div className="w-10 h-10 rounded-xl bg-red-600/10 flex items-center justify-center shrink-0 overflow-hidden border border-black/5 group-hover:border-red-500/30 transition-all">
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <User size={20} className="text-red-500" />
-                )}
-              </div>
-              {isExpanded && (
-                <div className="flex flex-col min-w-0 pr-4">
-                  <p className="text-xs font-black truncate leading-tight text-[#1a1d21]">
-                    {user?.fullName || 'User Profile'}
-                  </p>
-                  <p className="text-[10px] font-bold text-[#1a1d21]/40 uppercase tracking-widest mt-0.5">
-                    {user?.role || 'Portal'}
-                  </p>
-                </div>
+          <div className={`flex items-center gap-3 p-3 rounded-2xl bg-black/5 group hover:bg-black/10 transition-all cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
+            <div className="w-10 h-10 rounded-xl bg-red-600/10 flex items-center justify-center shrink-0 overflow-hidden border border-black/5 group-hover:border-red-500/30 transition-all">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} className="text-red-500" />
               )}
-           </div>
+            </div>
+            {isExpanded && (
+              <div className="flex flex-col min-w-0 pr-4">
+                <p className="text-xs font-black truncate leading-tight text-[#1a1d21]">
+                  {user?.fullName || 'User Profile'}
+                </p>
+                <p className="text-[10px] font-bold text-[#1a1d21]/40 uppercase tracking-widest mt-0.5">
+                  {user?.role || 'Portal'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
     </>

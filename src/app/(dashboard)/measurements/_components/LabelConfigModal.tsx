@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { Plus, Trash2, Ruler, Settings2, GripVertical, X } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -69,7 +70,7 @@ export function LabelConfigModal({ isOpen, onClose }: LabelModalProps) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <Card className="w-full max-w-xl bg-white p-10 border-none shadow-[0_30px_100px_rgba(0,0,0,0.3)] rounded-[3rem] relative overflow-hidden">
-        <button onClick={onClose} className="absolute top-8 right-8 text-zinc-300 hover:text-[#3a525d] transition-colors"><X size={24} /></button>
+        <Button onClick={onClose} variant="secondary" className="absolute top-8 right-8 text-zinc-300 hover:text-[#3a525d] transition-colors bg-transparent border-none shadow-none p-1"><X size={24} /></Button>
         
         <div className="flex items-center gap-3 mb-8">
            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
@@ -91,15 +92,16 @@ export function LabelConfigModal({ isOpen, onClose }: LabelModalProps) {
                     onChange={(e) => setNewFieldName(e.target.value)}
                     className="bg-white flex-1"
                 />
-                <select 
+                <Select
+                    options={[
+                      { label: 'Inches', value: 'Inches' },
+                      { label: 'CM', value: 'CM' },
+                      { label: 'Meter', value: 'Meter' }
+                    ]}
                     value={newFieldUnit}
-                    onChange={(e) => setNewFieldUnit(e.target.value)}
-                    className="h-10 px-4 rounded-xl bg-white border border-zinc-200 text-[#3a525d] font-bold text-xs outline-none focus:border-[#2d8d9b]"
-                >
-                    <option value="Inches">Inches</option>
-                    <option value="CM">CM</option>
-                    <option value="Meter">Meter</option>
-                </select>
+                    onChange={(val) => setNewFieldUnit(val)}
+                    className="h-10 !py-0 !rounded-xl"
+                />
               </div>
               <Button onClick={handleAddField} className="w-full h-10 bg-[#3a525d] text-white">Install Metric</Button>
            </div>
@@ -115,7 +117,7 @@ export function LabelConfigModal({ isOpen, onClose }: LabelModalProps) {
                         <span className="text-[8px] font-black uppercase text-zinc-300 tracking-widest">{f.unit || 'Inches'}</span>
                       </div>
                    </div>
-                    <button onClick={() => setDeletingId(f.id)} className="text-zinc-200 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                    <Button onClick={() => setDeletingId(f.id)} variant="secondary" className="text-zinc-200 hover:text-red-500 p-2 bg-transparent border-none shadow-none"><Trash2 size={16} /></Button>
                 </div>
               ))}
            </div>

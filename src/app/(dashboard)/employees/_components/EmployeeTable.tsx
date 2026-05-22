@@ -148,25 +148,28 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
       header: 'Actions',
       accessor: (e) => (
         <div className="flex items-center gap-2">
-          <button 
+          <Button
             onClick={() => setResetConfirm({ isOpen: true, employee: e })}
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm border-none"
             title="Reset ERP Password"
           >
             <Key size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => onEdit(e)}
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm border-none"
           >
             <Edit2 size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: e.id })}
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm"
+            variant="secondary"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm border-none"
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
       ),
       className: 'w-40',

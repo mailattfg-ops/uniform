@@ -175,21 +175,23 @@ export default function DepartmentManagement() {
       header: 'Actions',
       accessor: (d) => (
         <div className="flex items-center gap-3">
-          <button 
+            <Button
                 onClick={() => {
                     setEditingDept(d);
                     setIsAdding(true);
                 }}
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm"
+                variant="secondary"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
             >
                 <Edit2 size={16} />
-            </button>
-            <button 
+            </Button>
+            <Button
                 onClick={() => setDeleteConfirm({ isOpen: true, id: d.id.toString() })}
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm"
+                variant="secondary"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm p-0"
             >
                 <Trash2 size={16} />
-            </button>
+            </Button>
         </div>
       )
     }

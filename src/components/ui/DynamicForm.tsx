@@ -31,8 +31,8 @@ const getFieldIcon = (name: string) => {
   if (n.includes('date') || n.includes('birth')) return <Calendar size={18} />;
   if (n.includes('id') || n.includes('security')) return <Shield size={18} />;
   if (n.includes('address') || n.includes('city') || n.includes('location')) return <MapPin size={18} />;
-  if (n.includes('material')) return <Layers size={18} />;
-  if (n.includes('username')) return <Shield size={18} />;
+  if (n.includes('material') || n.includes('fabric')) return <Layers size={18} />;
+  if (n.includes('username') || n.includes('gender')) return <User size={18} />;
   if (n.includes('password')) return <Shield size={18} />;
   return <FileText size={18} />;
 };
@@ -45,9 +45,10 @@ export interface FormField {
   options?: { label: string; value: string }[];
   required?: boolean;
   className?: string;
-  defaultValue?: any;
   value?: any;
+  defaultValue?: any;
   disabled?: boolean;
+  readOnly?: boolean;
   hidden?: boolean;
   allowSpecialCharacters?: boolean;
   onlyLetters?: boolean;
@@ -197,8 +198,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   placeholder={field.placeholder} 
                   required={field.required}
                   icon={getFieldIcon(field.name)}
-                  defaultValue={field.defaultValue}
+                  defaultValue={field.value !== undefined ? undefined : field.defaultValue}
+                  value={field.value}
                   disabled={field.disabled}
+                  readOnly={field.readOnly}
                   allowSpecialCharacters={field.allowSpecialCharacters}
                   onlyLetters={field.onlyLetters}
                   onlyNumbers={field.onlyNumbers}

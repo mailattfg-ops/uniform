@@ -7,8 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { 
-  Plus, Trash2, Edit2, ArrowRight, Scissors, UserCheck, Palette, 
+import {
+  Plus, Trash2, Edit2, ArrowRight, Scissors, UserCheck, Palette,
   Hash, Sparkles, AlertCircle, RefreshCw, Eye
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -139,9 +139,9 @@ export default function ArtNumberHubPage() {
     const activeDress = dresses.find(d => String(d.id) === selectedDressId);
     const activeGender = genders.find(g => String(g.id) === selectedGenderId);
     const activePattern = patterns.find(p => String(p.id) === selectedPatternId);
-    
+
     if (!activeDress || !activeGender || !activePattern) return '---';
-    return `${activeDress.code}-${activeGender.code}${activePattern.code}`;
+    return `${activeGender.code}-${activeDress.code}${activePattern.code}`;
   };
 
   const handleCreateOrUpdate = async () => {
@@ -239,7 +239,7 @@ export default function ArtNumberHubPage() {
     if (!deleteCandidate) return;
     const { type, id, code } = deleteCandidate;
     const endpoint = `/art-number-hub/${type === 'registry' ? 'art-numbers' : type}/${id}`;
-    
+
     try {
       await api.delete(endpoint);
       toast.success(`${type === 'registry' ? 'Art Number combination' : 'Item'} successfully deleted`);
@@ -283,13 +283,13 @@ export default function ArtNumberHubPage() {
       header: 'Actions',
       accessor: (d) => (
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => startEdit(d)}
             className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
           >
             <Edit2 size={16} />
           </button>
-          <button 
+          <button
             onClick={() => setDeleteCandidate({ type: 'dresses', id: d.id, code: d.code })}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
@@ -331,13 +331,13 @@ export default function ArtNumberHubPage() {
       header: 'Actions',
       accessor: (g) => (
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => startEdit(g)}
             className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
           >
             <Edit2 size={16} />
           </button>
-          <button 
+          <button
             onClick={() => setDeleteCandidate({ type: 'genders', id: g.id, code: g.code })}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
@@ -379,13 +379,13 @@ export default function ArtNumberHubPage() {
       header: 'Actions',
       accessor: (p) => (
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => startEdit(p)}
             className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
           >
             <Edit2 size={16} />
           </button>
-          <button 
+          <button
             onClick={() => setDeleteCandidate({ type: 'patterns', id: p.id, code: p.code })}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
@@ -440,13 +440,12 @@ export default function ArtNumberHubPage() {
     {
       header: 'Fit',
       accessor: (an) => (
-        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase border ${
-          an.fit === 'slim fit' 
-            ? 'bg-purple-50 text-purple-700 border-purple-100' 
-            : an.fit === 'regular fit'
-              ? 'bg-blue-50 text-blue-700 border-blue-100'
-              : 'bg-zinc-50 text-zinc-400 border-zinc-100'
-        }`}>
+        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase border ${an.fit === 'slim fit'
+          ? 'bg-purple-50 text-purple-700 border-purple-100'
+          : an.fit === 'regular fit'
+            ? 'bg-blue-50 text-blue-700 border-blue-100'
+            : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+          }`}>
           {an.fit || '—'}
         </span>
       )
@@ -463,8 +462,9 @@ export default function ArtNumberHubPage() {
       header: 'Actions',
       accessor: (an) => (
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setDeleteCandidate({ type: 'registry', id: an.id, code: an.code })}
+            // variant="secondary"
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
             <Trash2 size={16} />
@@ -525,24 +525,27 @@ export default function ArtNumberHubPage() {
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"
+            size="h-auto"
             onClick={fetchAllData}
             disabled={isLoading}
-            className="w-12 h-16 rounded-[1.2rem] flex items-center justify-center"
+            className="w-12 h-16 rounded-[1.2rem] p-0 flex items-center justify-center"
           >
-            <RefreshCw size={16} className={isLoading ? 'animate-spin text-teal-600' : 'text-teal-600'} />
+            <RefreshCw size={20} className={isLoading ? 'animate-spin text-teal-600' : 'text-teal-600'} />
           </Button>
 
           {!isAdding ? (
-            <Button 
+            <Button
               onClick={() => setIsAdding(true)}
+              size="h-auto"
               className="h-16 px-8 bg-[#3a525d] hover:bg-teal-600 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
             >
               <Plus size={20} strokeWidth={3} />
               Register {getTabLabelSingular()}
             </Button>
           ) : (
-            <Button 
+            <Button
               variant="secondary"
+              size="h-auto"
               onClick={handleCancel}
               className="h-16 px-8 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px]"
             >
@@ -554,53 +557,57 @@ export default function ArtNumberHubPage() {
 
       {/* Tabs Menu Selector */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-zinc-100 p-2.5 rounded-[1.8rem] border border-zinc-200/50 shadow-inner">
-        <button
+        <Button
           onClick={() => { setActiveTab('registry'); handleCancel(); }}
-          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${
-            activeTab === 'registry'
-              ? 'bg-zinc-900 text-teal-400 shadow-xl border border-zinc-800 scale-[1.02]'
-              : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600'
-          }`}
+          variant="secondary"
+          size="h-auto"
+          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 h-auto border-none ${activeTab === 'registry'
+            ? 'bg-zinc-900 text-teal-400 shadow-xl border border-zinc-800 scale-[1.02]'
+            : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600 bg-transparent shadow-none'
+            }`}
         >
           <Hash size={16} />
           Art Number Registry
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={() => { setActiveTab('dresses'); handleCancel(); }}
-          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${
-            activeTab === 'dresses'
-              ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
-              : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600'
-          }`}
+          variant="secondary"
+          size="h-auto"
+          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 h-auto border-none ${activeTab === 'dresses'
+            ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
+            : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600 bg-transparent shadow-none'
+            }`}
         >
           <Scissors size={16} />
           Dress Prefixes
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={() => { setActiveTab('genders'); handleCancel(); }}
-          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${
-            activeTab === 'genders'
-              ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
-              : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600'
-          }`}
+          variant="secondary"
+          size="h-auto"
+          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 h-auto border-none ${activeTab === 'genders'
+            ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
+            : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600 bg-transparent shadow-none'
+            }`}
         >
           <UserCheck size={16} />
           Gender Codes
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={() => { setActiveTab('patterns'); handleCancel(); }}
-          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${
-            activeTab === 'patterns'
-              ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
-              : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600'
-          }`}
+          variant="secondary"
+          size="h-auto"
+          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 h-auto border-none ${activeTab === 'patterns'
+            ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
+            : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600 bg-transparent shadow-none'
+            }`}
         >
           <Palette size={16} />
           Pattern Codes
-        </button>
+        </Button>
       </div>
 
       {/* Adding / Registering Form View */}
@@ -672,7 +679,7 @@ export default function ArtNumberHubPage() {
                     <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1">
                       Base Size
                     </label>
-                    <Input 
+                    <Input
                       placeholder="e.g. 38, M, L"
                       value={baseSize}
                       onChange={(e) => setBaseSize(e.target.value)}
@@ -703,7 +710,7 @@ export default function ArtNumberHubPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Code Integration Preview</p>
-                      <p className="text-xs font-bold text-[#3a525d]">Dynamic format: [DressPrefix]-[GenderCode][PatternCode]</p>
+                      <p className="text-xs font-bold text-[#3a525d]">Dynamic format: [GenderCode]-[DressPrefix][PatternCode]</p>
                     </div>
                   </div>
 
@@ -715,9 +722,10 @@ export default function ArtNumberHubPage() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={handleCreateOrUpdate}
                   disabled={!selectedDressId || !selectedGenderId || !selectedPatternId}
+                  size="h-auto"
                   className="w-full h-20 rounded-[2rem] bg-zinc-900 hover:bg-teal-600 text-white font-black italic text-xl shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none"
                 >
                   Pre-register Dynamic Combination
@@ -748,7 +756,7 @@ export default function ArtNumberHubPage() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] ml-1">
                       {getTabLabelSingular()} Code {activeTab === 'dresses' ? '(e.g. 4J)' : activeTab === 'genders' ? '(e.g. 1)' : '(e.g. 012)'}
                     </label>
-                    <Input 
+                    <Input
                       placeholder={activeTab === 'dresses' ? 'e.g. 4J' : activeTab === 'genders' ? 'e.g. 1' : 'e.g. 012'}
                       value={code}
                       onChange={(e) => {
@@ -771,7 +779,7 @@ export default function ArtNumberHubPage() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] ml-1">
                       Descriptive Category Name {activeTab === 'dresses' ? '(e.g. Cotton Shirt)' : activeTab === 'genders' ? '(e.g. Male)' : '(e.g. Striped)'}
                     </label>
-                    <Input 
+                    <Input
                       placeholder={activeTab === 'dresses' ? 'e.g. Cotton Shirt' : activeTab === 'genders' ? 'e.g. Male' : 'e.g. Striped Pattern'}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -781,8 +789,9 @@ export default function ArtNumberHubPage() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={handleCreateOrUpdate}
+                  size="h-auto"
                   className="w-full h-20 rounded-[2rem] bg-[#3a525d] hover:bg-teal-600 text-white font-black italic text-xl shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {editingId ? 'Commit Modifications' : `Initialize ${getTabLabelSingular()} Registry`}
@@ -796,10 +805,10 @@ export default function ArtNumberHubPage() {
 
       {/* Main DataTable Display */}
       {!isAdding && (
-        <div className="bg-white rounded-[2.5rem] p-2 border border-zinc-150 shadow-sm animate-in fade-in duration-500">
-          <DataTable 
-            columns={getActiveColumns()}
-            data={getActiveData()}
+        <div className="bg-white rounded-[2.5rem] animate-in fade-in duration-500">
+          <DataTable
+            columns={getActiveColumns() as any}
+            data={getActiveData() as any}
             isLoading={isLoading}
             searchPlaceholder={getSearchPlaceholder()}
           />

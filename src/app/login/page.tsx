@@ -103,13 +103,14 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 allowSpecialCharacters={true}
               />
-              <button 
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-[46px] text-[#6fa1ac]"
+                className="absolute right-5 top-[46px] text-[#6fa1ac] bg-transparent border-none shadow-none hover:bg-transparent p-0"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+              </Button>
             </div>
 
             <Button 

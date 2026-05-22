@@ -281,12 +281,13 @@ export const MeasurementTable: React.FC = () => {
       header: 'Actions',
       accessor: (r) => (
         <div className="flex gap-1 justify-end">
-          <button 
+          <Button
             onClick={() => setSelectedRecord(r)}
-            className="p-3 bg-zinc-50 hover:bg-[#2d8d9b] hover:text-white transition-all rounded-xl text-zinc-400 group"
+            variant="secondary"
+            className="p-3 bg-zinc-50 hover:bg-[#2d8d9b] hover:text-white transition-all rounded-xl text-zinc-400 group border-none shadow-none"
           >
             <Eye size={16} />
-          </button>
+          </Button>
         </div>
       ),
     },
