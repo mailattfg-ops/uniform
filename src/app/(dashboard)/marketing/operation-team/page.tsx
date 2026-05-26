@@ -230,7 +230,7 @@ export default function OperationTeamPage() {
         const fabricId = item.size_breakdown?.fabric_id;
         const fabricBrand = fabricsList.find((f: any) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
         const designNum = item.size_breakdown?.design_number || '—';
-        const sam = item.size_breakdown?.sam_value ? `$ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
+        const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
         const qty = item.quantity || 0;
         const price = Number(item.unit_price) || 0;
         const total = Number(item.total_price) || 0;
@@ -242,8 +242,8 @@ export default function OperationTeamPage() {
             <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
             <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
             <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
-            <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">$ ${price.toFixed(2)}</td>
-            <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">$ ${total.toFixed(2)}</td>
+            <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
+            <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -282,13 +282,31 @@ export default function OperationTeamPage() {
           }
         </script>
         <style>
+          @page {
+            margin: 0;
+          }
           @media print {
             body {
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
+              background-color: white;
+              padding: 2cm !important;
+              margin: 0 !important;
             }
             .no-print {
-              display: none;
+              display: none !important;
+            }
+            .page-break {
+              page-break-before: always;
+              break-before: page;
+            }
+            .print-container {
+              border: none !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              max-width: 100% !important;
+              border-radius: 0 !important;
             }
           }
           body {
@@ -318,7 +336,7 @@ export default function OperationTeamPage() {
         </div>
 
         <!-- COMPOSER FRAME -->
-        <div class="max-w-4xl mx-auto border border-gray-150 p-8 md:p-10 rounded-[2.5rem] shadow-sm relative bg-white">
+        <div class="max-w-4xl mx-auto border border-gray-150 p-8 md:p-10 rounded-[2.5rem] shadow-sm relative bg-white print-container">
           
           <!-- LETTERHEAD BRANDING -->
           <div class="flex justify-between items-start border-b-2 border-gray-100 pb-8 flex-wrap gap-4">
@@ -370,7 +388,7 @@ export default function OperationTeamPage() {
           ` : ''}
 
           <!-- SPECIFICATIONS TABLE -->
-          <div class="py-8">
+          <div class="py-8 page-break">
             <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Quotation Product Specifications</p>
             <div class="border border-gray-150 rounded-2xl overflow-hidden shadow-sm">
               <table class="w-full text-left border-collapse">
@@ -397,16 +415,16 @@ export default function OperationTeamPage() {
             <div class="w-80 space-y-3.5 text-xs font-bold text-gray-500">
               <div class="flex justify-between">
                 <span>Subtotal (Pre-Tax):</span>
-                <span class="font-mono text-gray-800 font-black">$ ${pricing.subtotal.toFixed(2)}</span>
+                <span class="font-mono text-gray-800 font-black">₹ ${pricing.subtotal.toFixed(2)}</span>
               </div>
               <div class="flex justify-between border-b border-gray-100 pb-2">
                 <span>GST Tax (${pricing.gstRate}%):</span>
-                <span class="font-mono text-red-500 font-black">$ ${pricing.gstValue.toFixed(2)}</span>
+                <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
               </div>
               <div class="flex justify-between items-end pt-2 text-[#2d8d9b]">
                 <div>
                   <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">Total Contract Value</p>
-                  <p class="text-2xl font-black italic font-outfit mt-0.5">$ ${pricing.finalValue.toFixed(2)}</p>
+                  <p class="text-2xl font-black italic font-outfit mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -569,7 +587,7 @@ Inland Uniforms Co.`;
 
 We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${quote.title}" (${quote.quotation_no}).
 
-The total contract value is finalized at $${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled and is securely enclosed as an attachment.
+The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled and is securely enclosed as an attachment.
 
 Please review the attached documents and let us know if you have any questions or are ready to proceed with contract execution.
 
@@ -596,7 +614,7 @@ Inland Uniforms Co.`;
 
 We are pleased to inform you that the operations desk has reviewed and approved the contract proposal for *"${messageCandidate.title}"* (${messageCandidate.quotation_no}).
 
-Total finalized contract value: *$${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}* (inclusive of GST).
+Total finalized contract value: *₹${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}* (inclusive of GST).
 
 The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled. We have dispatched a copy to your email, and you can also download or view the details directly under your Inland Uniforms portal.
 
@@ -618,7 +636,7 @@ Best regards,
 
 We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${messageCandidate.title}" (${messageCandidate.quotation_no}).
 
-The total contract value is finalized at $${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled and is securely enclosed as an attachment.
+The total contract value is finalized at ₹${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled and is securely enclosed as an attachment.
 
 Please review the attached documents and let us know if you have any questions or are ready to proceed with contract execution.
 
@@ -942,7 +960,7 @@ Inland Uniforms Co.`;
       header: 'Final quote value',
       accessor: (q) => (
         <span className="font-black text-[#2d8d9b] font-mono whitespace-nowrap">
-          ${Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          ₹{Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </span>
       )
     },
@@ -1061,7 +1079,7 @@ Inland Uniforms Co.`;
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-75">Approved Contract Value</p>
                 <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono">
-                  ${stats.approvedVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  ₹{stats.approvedVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
@@ -1489,7 +1507,7 @@ Inland Uniforms Co.`;
                                           className="w-12 text-right border border-zinc-200 rounded p-0.5"
                                         />
                                       </div>
-                                      <span className="font-bold border-t border-zinc-100 pt-0.5 text-zinc-500 font-mono">${totalBaseCost.toFixed(2)}</span>
+                                      <span className="font-bold border-t border-zinc-100 pt-0.5 text-zinc-500 font-mono">₹{totalBaseCost.toFixed(2)}</span>
                                     </div>
                                   </td>
 
@@ -1505,7 +1523,7 @@ Inland Uniforms Co.`;
 
                                   {/* TOTAL PRICE */}
                                   <td className="p-2 text-right font-black text-[#2d8d9b] font-mono">
-                                    ${Number(item.total_price || 0).toFixed(2)}
+                                    ₹{Number(item.total_price || 0).toFixed(2)}
                                   </td>
 
                                   {/* ACTION DELETE */}
@@ -1526,17 +1544,17 @@ Inland Uniforms Co.`;
                               <tr key={idx} className="hover:bg-zinc-50/20">
                                 <td className="p-4 font-black text-[#3a525d]">{pTypeName}</td>
                                 <td className="p-4 text-zinc-500">{fabricBrand}</td>
-                                <td className="p-4 font-mono">{item.size_breakdown?.sam_value ? `$${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A'}</td>
+                                <td className="p-4 font-mono">{item.size_breakdown?.sam_value ? `₹${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A'}</td>
                                 <td className="p-4">{item.size_breakdown?.design_number || 'N/A'}</td>
                                 <td className="p-4 text-center font-black">{item.quantity}</td>
                                 <td className="p-4 text-right font-mono text-zinc-400">
-                                  ${totalBaseCost.toFixed(2)}
+                                  ₹{totalBaseCost.toFixed(2)}
                                   <div className="text-[9px] opacity-75">
                                     (F:{item.fabric_cost_per_item} + A:{item.accessories_cost_per_item} + L:{item.labor_cost_per_item})
                                   </div>
                                 </td>
-                                <td className="p-4 text-right font-bold font-mono">${Number(item.unit_price).toFixed(2)}</td>
-                                <td className="p-4 text-right font-black text-[#2d8d9b] font-mono">${Number(item.total_price).toFixed(2)}</td>
+                                <td className="p-4 text-right font-bold font-mono">₹{Number(item.unit_price).toFixed(2)}</td>
+                                <td className="p-4 text-right font-black text-[#2d8d9b] font-mono">₹{Number(item.total_price).toFixed(2)}</td>
                               </tr>
                             );
                           })}
@@ -1547,21 +1565,21 @@ Inland Uniforms Co.`;
                           <tr className="bg-zinc-50/50 font-black text-[#3a525d] border-t border-zinc-150">
                             <td colSpan={2} className="p-4 uppercase text-[9px] tracking-widest text-[#3a525d] font-black">Sum totals:</td>
                             <td className="p-4 font-mono font-black">
-                              ${((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + ((it.size_breakdown?.sam_value || 0) * (it.quantity || 0)), 0)).toFixed(2)}
+                              ₹{((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + ((it.size_breakdown?.sam_value || 0) * (it.quantity || 0)), 0)).toFixed(2)}
                             </td>
                             <td></td>
                             <td className="p-4 text-center text-sm">
                               {(editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0)} Qty
                             </td>
                             <td className="p-4 text-right font-mono text-xs text-zinc-400">
-                              ${((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => {
+                              ₹{((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => {
                                 const totalBaseCost = (it.fabric_cost_per_item || 0) + (it.accessories_cost_per_item || 0) + (it.labor_cost_per_item || 0);
                                 return acc + (totalBaseCost * (it.quantity || 0));
                               }, 0)).toFixed(2)}
                             </td>
                             <td></td>
                             <td className="p-4 text-right text-base text-[#2d8d9b] font-mono font-black">
-                              ${((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.total_price || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              ₹{((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.total_price || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             {editMode && <td></td>}
                           </tr>
@@ -1631,7 +1649,7 @@ Inland Uniforms Co.`;
                         <div className="flex justify-between py-2 text-zinc-500">
                           <span>Accumulated Base Expenses:</span>
                           <span className="font-mono text-[#3a525d]">
-                            ${(editMode ? editedExpenses : selectedQuotation.estimated_expenses).toFixed(2)}
+                            ₹{(editMode ? editedExpenses : selectedQuotation.estimated_expenses).toFixed(2)}
                           </span>
                         </div>
 
@@ -1645,7 +1663,7 @@ Inland Uniforms Co.`;
                         <div className="flex justify-between py-2 text-[#3a525d] font-bold">
                           <span>Subtotal (Pre-Tax):</span>
                           <span className="font-mono text-[#3a525d]">
-                            ${(editMode
+                            ₹{(editMode
                               ? editedItems.reduce((acc, it) => acc + (it.total_price || 0), 0)
                               : getSelectedQuotePricing(selectedQuotation).subtotal
                             ).toFixed(2)}
@@ -1674,7 +1692,7 @@ Inland Uniforms Co.`;
                         <div className="flex justify-between py-2 text-zinc-500">
                           <span>GST Tax Value:</span>
                           <span className="font-mono text-red-500 font-bold">
-                            ${(editMode
+                            ₹{(editMode
                               ? (editedItems.reduce((acc, it) => acc + (it.total_price || 0), 0) * (parseFloat(editedGstPercent) || 0) / 100)
                               : getSelectedQuotePricing(selectedQuotation).gstValue
                             ).toFixed(2)}
@@ -1684,7 +1702,7 @@ Inland Uniforms Co.`;
                         <div className="flex justify-between py-2 text-zinc-500">
                           <span>Avg Price / Garment:</span>
                           <span className="font-mono text-[#2d8d9b] font-black">
-                            ${(
+                            ₹{(
                               (editMode ? editedFinalValue : selectedQuotation.final_quote_value) /
                               Math.max(1, (editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0))
                             ).toFixed(2)}
@@ -1699,7 +1717,7 @@ Inland Uniforms Co.`;
                       </p>
                       {editMode ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-[#2d8d9b] font-mono">$</span>
+                          <span className="text-xl font-bold text-[#2d8d9b] font-mono">₹</span>
                           <Input
                             type="number"
                             value={editedFinalValue}
@@ -1709,7 +1727,7 @@ Inland Uniforms Co.`;
                         </div>
                       ) : (
                         <p className="text-4xl font-black italic tracking-tighter text-[#2d8d9b] font-mono">
-                          ${Number(selectedQuotation.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ₹{Number(selectedQuotation.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       )}
                     </div>
@@ -1892,6 +1910,12 @@ Inland Uniforms Co.`;
                   {messageChannel === 'email' ? 'Ready & Signed' : 'Portal Linked'}
                 </span>
               </div>
+
+              {messageChannel === 'whatsapp' && (
+                <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-800 text-[10px] leading-relaxed font-semibold animate-in fade-in duration-300">
+                  ⚠️ <strong>Notice:</strong> Standard browser click-to-chat links do not support direct file attachments. Please click the <strong>"Download Proposal PDF"</strong> button on the detail view to save the PDF, and then drag/attach the downloaded file in the WhatsApp window.
+                </div>
+              )}
             </div>
 
             {/* Modal Footer / Actions */}

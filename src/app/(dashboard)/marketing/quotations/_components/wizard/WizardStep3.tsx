@@ -21,6 +21,8 @@ interface WizardStep3Props {
   setLaborCost: (cost: string) => void;
   gstPercent: string;
   setGstPercent: (percent: string) => void;
+  laborRatePerHour: string;
+  setLaborRatePerHour: (rate: string) => void;
   manualItems: ManualItem[];
   fabricsList: any[];
   calculatedExpenses: { fabric: number; accessories: number; labor: number; total: number };
@@ -41,6 +43,8 @@ export default function WizardStep3({
   setLaborCost,
   gstPercent,
   setGstPercent,
+  laborRatePerHour,
+  setLaborRatePerHour,
   manualItems,
   fabricsList,
   calculatedExpenses,
@@ -56,9 +60,9 @@ export default function WizardStep3({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        {hasMeasurements && (
-          <div className="space-y-2 col-span-1">
+      {hasMeasurements && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product Type</label>
             <Select
               options={productTypes.map((pt) => ({ label: pt.name, value: String(pt.id) }))}
@@ -67,48 +71,8 @@ export default function WizardStep3({
               placeholder="Select Product..."
             />
           </div>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Base Fabric Cost ($)</label>
-          <Input
-            type="number"
-            placeholder="15.00"
-            value={baseFabricCost}
-            onChange={(e) => setBaseFabricCost(e.target.value)}
-          />
         </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Accessories Fee ($)</label>
-          <Input
-            type="number"
-            placeholder="3.00"
-            value={accCost}
-            onChange={(e) => setAccCost(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Labor Cost ($)</label>
-          <Input
-            type="number"
-            placeholder="8.50"
-            value={laborCost}
-            onChange={(e) => setLaborCost(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">GST Tax (%)</label>
-          <Input
-            type="number"
-            placeholder="18"
-            value={gstPercent}
-            onChange={(e) => setGstPercent(e.target.value)}
-          />
-        </div>
-      </div>
+      )}
 
       {/* COST SCALING ENGINE REPORT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -124,7 +88,7 @@ export default function WizardStep3({
                   <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
                     <th className="p-3">Product Type</th>
                     <th className="p-3">Fabric</th>
-                    <th className="p-3 font-mono">SAM ($)</th>
+                    <th className="p-3 font-mono">SAM (min)</th>
                     <th className="p-3 text-right">Quantity</th>
                     <th className="p-3 text-right">Unit Expense</th>
                     <th className="p-3 text-right">Total Expense</th>
@@ -133,21 +97,20 @@ export default function WizardStep3({
                 <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                   {manualItems.map((item, index) => {
                     const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
-                    const fabricBrand = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Fabric';
+                    const fabricBrand = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.name || 'Fabric';
                     const qty = parseInt(item.quantity) || 0;
-                    const unitExpense =
-                      (parseFloat(baseFabricCost) || 0) + (parseFloat(accCost) || 0) + (parseFloat(laborCost) || 0);
+                    const unitExpense = parseFloat(item.price) || 0;
                     return (
                       <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
                         <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
                         <td className="p-3 text-zinc-400">{fabricBrand}</td>
                         <td className="p-3 font-mono">
-                          {item.sam_value ? `$${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                          {item.sam_value ? `${parseFloat(item.sam_value).toFixed(1)} min` : '—'}
                         </td>
                         <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
-                        <td className="p-3 text-right font-mono">${unitExpense.toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
                         <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
-                          ${(unitExpense * qty).toFixed(2)}
+                          ₹{(unitExpense * qty).toFixed(2)}
                         </td>
                       </tr>
                     );
@@ -169,15 +132,15 @@ export default function WizardStep3({
             <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
               <div className="flex justify-between py-2 text-zinc-500">
                 <span>Fabric Expense:</span>
-                <span className="font-mono text-zinc-800 font-black">${calculatedExpenses.fabric.toFixed(2)}</span>
+                <span className="font-mono text-zinc-800 font-black">₹{calculatedExpenses.fabric.toFixed(2)}</span>
               </div>
               <div className="flex justify-between py-2 text-zinc-500">
                 <span>Accessories Fee:</span>
-                <span className="font-mono text-zinc-800 font-black">${calculatedExpenses.accessories.toFixed(2)}</span>
+                <span className="font-mono text-zinc-800 font-black">₹{calculatedExpenses.accessories.toFixed(2)}</span>
               </div>
               <div className="flex justify-between py-2 text-zinc-500">
                 <span>Production Labor:</span>
-                <span className="font-mono text-zinc-800 font-black">${calculatedExpenses.labor.toFixed(2)}</span>
+                <span className="font-mono text-zinc-800 font-black">₹{calculatedExpenses.labor.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -187,7 +150,7 @@ export default function WizardStep3({
               Calculated Expenses
             </p>
             <p className="text-4xl font-black italic tracking-tighter text-[#3a525d] font-mono mt-1">
-              ${calculatedExpenses.total.toFixed(2)}
+              ₹{calculatedExpenses.total.toFixed(2)}
             </p>
           </div>
         </Card>

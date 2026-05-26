@@ -63,8 +63,8 @@ export default function QuotationList({
       header: 'Quote Value',
       accessor: (q) => (
         <div>
-          <p className="text-sm font-black text-[#2d8d9b]">${Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Exp: ${Number(q.estimated_expenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-sm font-black text-[#2d8d9b]">₹{Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Exp: ₹{Number(q.estimated_expenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
       )
     },
@@ -176,7 +176,7 @@ export default function QuotationList({
           </div>
           <div>
             <p className="text-2xl font-black italic text-[#3a525d]">
-              ${quotations.reduce((acc, q) => acc + Number(q.final_quote_value), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              ₹{quotations.reduce((acc, q) => acc + Number(q.final_quote_value), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </p>
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Registry Value</p>
           </div>

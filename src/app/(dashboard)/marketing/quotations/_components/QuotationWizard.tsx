@@ -29,6 +29,21 @@ interface ManualItem {
   product_type_id: string;
   product_id?: string;
   fabric_id: string;
+  main_fabric_meters: string;
+  main_fabric_rate: string;
+  main_fabric_sam: string;
+  attachment_fabric1_id: string;
+  attachment_fabric1_meters: string;
+  attachment_fabric1_rate: string;
+  attachment_fabric1_sam: string;
+  attachment_fabric2_id: string;
+  attachment_fabric2_meters: string;
+  attachment_fabric2_rate: string;
+  attachment_fabric2_sam: string;
+  button_id: string;
+  button_count: string;
+  thread_id: string;
+  thread_count: string;
   sam_value: string;
   design_number: string;
   quantity: string;
@@ -56,6 +71,11 @@ interface QuotationWizardProps {
   productTypes: ProductType[];
   fabricsList: any[];
   allProducts: any[];
+  buttonsList: any[];
+  threadsList: any[];
+  inwardRates: any[];
+  fabricMargins: any[];
+  samConfigurations: any[];
   onClose: () => void;
   onSaveSuccess: () => void;
 }
@@ -66,6 +86,11 @@ export default function QuotationWizard({
   productTypes,
   fabricsList,
   allProducts,
+  buttonsList,
+  threadsList,
+  inwardRates,
+  fabricMargins,
+  samConfigurations,
   onClose,
   onSaveSuccess,
 }: QuotationWizardProps) {
@@ -75,11 +100,20 @@ export default function QuotationWizard({
   const [selectedOrgId, setSelectedOrgId] = useState('');
   const [coverLetter, setCoverLetter] = useState('');
   const [gstPercent, setGstPercent] = useState('18');
+  const [salesType, setSalesType] = useState<string>('WHOLESALE');
+  const [customerType, setCustomerType] = useState<string>('DIRECT');
 
   // Dynamic Branching & Manual Data states
   const [hasMeasurements, setHasMeasurements] = useState(false);
   const [manualItems, setManualItems] = useState<ManualItem[]>([
-    { id: Date.now(), product_type_id: '', product_id: '', fabric_id: '', sam_value: '', design_number: '', quantity: '1', price: '' }
+    {
+      id: Date.now(), product_type_id: '', product_id: '',
+      fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
+      attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
+      attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
+      button_id: '', button_count: '', thread_id: '', thread_count: '',
+      sam_value: '', design_number: '', quantity: '1', price: ''
+    }
   ]);
   const [templateLineItems, setTemplateLineItems] = useState<TemplateLineItem[]>([]);
   const [isInitializingEdit, setIsInitializingEdit] = useState(false);
@@ -110,9 +144,13 @@ export default function QuotationWizard({
   const [dailyShiftHours, setDailyShiftHours] = useState('8');
   const [projectStartDate, setProjectStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [deliveryDate, setDeliveryDate] = useState('');
+  const [laborRatePerHour, setLaborRatePerHour] = useState('50');
 
   // Profit variables
-  const [profitMargin, setProfitMargin] = useState('30');
+  const [profitMargin, setProfitMargin] = useState('0');
+  const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
+    { label: '', quantity: '1', rate: '0' }
+  ]);
 
   // If in edit mode, fetch detailed quotation data and initialize state
   useEffect(() => {
@@ -131,9 +169,17 @@ export default function QuotationWizard({
         setQuoteNo(fullQuote.quotation_no || '');
         setSelectedOrgId(String(fullQuote.organization_id));
         setDeliveryDate(fullQuote.expected_delivery_date ? new Date(fullQuote.expected_delivery_date).toISOString().split('T')[0] : '');
+        setProjectStartDate(fullQuote.metrics_summary?.project_start_date || new Date().toISOString().split('T')[0]);
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
         setGstPercent(String(fullQuote.metrics_summary?.gst_percent ?? '18'));
+
+        if (fullQuote.metrics_summary?.sales_type) {
+          setSalesType(fullQuote.metrics_summary.sales_type);
+        }
+        if (fullQuote.metrics_summary?.customer_type) {
+          setCustomerType(fullQuote.metrics_summary.customer_type);
+        }
 
         const firstItem = fullQuote.items?.[0];
         if (firstItem) {
@@ -151,6 +197,21 @@ export default function QuotationWizard({
             product_type_id: String(item.product_type_id),
             product_id: String(item.size_breakdown?.product_id || ''),
             fabric_id: String(item.size_breakdown?.fabric_id || ''),
+            main_fabric_meters: String(item.size_breakdown?.main_fabric_meters || ''),
+            main_fabric_rate: String(item.size_breakdown?.main_fabric_rate || ''),
+            main_fabric_sam: String(item.size_breakdown?.main_fabric_sam || ''),
+            attachment_fabric1_id: String(item.size_breakdown?.attachment_fabric1_id || ''),
+            attachment_fabric1_meters: String(item.size_breakdown?.attachment_fabric1_meters || ''),
+            attachment_fabric1_rate: String(item.size_breakdown?.attachment_fabric1_rate || ''),
+            attachment_fabric1_sam: String(item.size_breakdown?.attachment_fabric1_sam || ''),
+            attachment_fabric2_id: String(item.size_breakdown?.attachment_fabric2_id || ''),
+            attachment_fabric2_meters: String(item.size_breakdown?.attachment_fabric2_meters || ''),
+            attachment_fabric2_rate: String(item.size_breakdown?.attachment_fabric2_rate || ''),
+            attachment_fabric2_sam: String(item.size_breakdown?.attachment_fabric2_sam || ''),
+            button_id: String(item.size_breakdown?.button_id || ''),
+            button_count: String(item.size_breakdown?.button_count || ''),
+            thread_id: String(item.size_breakdown?.thread_id || ''),
+            thread_count: String(item.size_breakdown?.thread_count || ''),
             sam_value: String(item.size_breakdown?.sam_value || ''),
             design_number: String(item.size_breakdown?.design_number || ''),
             quantity: String(item.quantity),
@@ -186,48 +247,80 @@ export default function QuotationWizard({
     loadQuotationForEditing();
   }, [editingQuotationId]);
 
-  // Triggers measurement and sizing calculation for selected org
+  const [allQuotations, setAllQuotations] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAllQuotes = async () => {
+      try {
+        const res = await api.get('/quotations');
+        setAllQuotations(res.data || []);
+      } catch (err) {
+        console.error('Failed to load quotations list in wizard', err);
+      }
+    };
+    fetchAllQuotes();
+  }, []);
+
+  const previousOrders = allQuotations.filter(
+    (q: any) => String(q.organization_id) === String(selectedOrgId) && q.id !== editingQuotationId
+  );
+
+  const handleSelectPreviousOrder = async (quote: any) => {
+    const loadingToast = toast.loading('Loading previous order details...');
+    try {
+      const res = await api.get(`/quotations/${quote.id}`);
+      const fullQuote = res.data;
+      if (!fullQuote || !fullQuote.items || fullQuote.items.length === 0) {
+        toast.error("This order has no products to copy.", { id: loadingToast });
+        return;
+      }
+      const mapped = fullQuote.items.map((item: any) => ({
+        id: item.id || Date.now() + Math.random(),
+        product_type_id: String(item.product_type_id || ''),
+        product_id: String(item.size_breakdown?.product_id || ''),
+        fabric_id: String(item.size_breakdown?.fabric_id || ''),
+        main_fabric_meters: String(item.size_breakdown?.main_fabric_meters || ''),
+        main_fabric_rate: String(item.size_breakdown?.main_fabric_rate || '0.00'),
+        main_fabric_sam: String(item.size_breakdown?.main_fabric_sam || ''),
+        attachment_fabric1_id: String(item.size_breakdown?.attachment_fabric1_id || ''),
+        attachment_fabric1_meters: String(item.size_breakdown?.attachment_fabric1_meters || ''),
+        attachment_fabric1_rate: String(item.size_breakdown?.attachment_fabric1_rate || '0.00'),
+        attachment_fabric1_sam: String(item.size_breakdown?.attachment_fabric1_sam || ''),
+        attachment_fabric2_id: String(item.size_breakdown?.attachment_fabric2_id || ''),
+        attachment_fabric2_meters: String(item.size_breakdown?.attachment_fabric2_meters || ''),
+        attachment_fabric2_rate: String(item.size_breakdown?.attachment_fabric2_rate || '0.00'),
+        attachment_fabric2_sam: String(item.size_breakdown?.attachment_fabric2_sam || ''),
+        button_id: String(item.size_breakdown?.button_id || ''),
+        button_count: String(item.size_breakdown?.button_count || ''),
+        thread_id: String(item.size_breakdown?.thread_id || ''),
+        thread_count: String(item.size_breakdown?.thread_count || ''),
+        sam_value: String(item.size_breakdown?.sam_value || ''),
+        design_number: String(item.size_breakdown?.design_number || ''),
+        quantity: String(item.quantity || '1'),
+        price: String(item.unit_price || '')
+      }));
+      setManualItems(mapped);
+      setQuoteTitle(`${fullQuote.title} (Copy)`);
+      if (fullQuote.metrics_summary?.sales_type) {
+        setSalesType(fullQuote.metrics_summary.sales_type);
+      }
+      if (fullQuote.metrics_summary?.customer_type) {
+        setCustomerType(fullQuote.metrics_summary.customer_type);
+      }
+      toast.success(`Copied details from order: ${fullQuote.title}`, { id: loadingToast });
+    } catch (err) {
+      console.error('Failed to copy previous order items', err);
+      toast.error('Failed to copy previous order details.', { id: loadingToast });
+    }
+  };
+
   const handleOrgSelection = async (orgId: string) => {
     setSelectedOrgId(orgId);
     if (!orgId) return;
 
-    setIsAnalyzing(true);
-    try {
-      const res = await api.get(`/quotations/calculate/${orgId}`);
-      setOrgAnalysis(res.data);
-
-      // Seed editable template line items from backend response
-      const rawItems = res.data?.template_line_items || [];
-      setTemplateLineItems(rawItems.map((item: any) => ({
-        ...item,
-        design_number_override: item.design_code || '',
-        price_override: ''
-      })));
-
-      const measurementsExist = res.data && res.data.measured_count > 0;
-      setHasMeasurements(measurementsExist);
-
-      if (!measurementsExist) {
-        setManualItems([
-          { id: Date.now(), product_type_id: '', product_id: '', fabric_id: '', sam_value: '', design_number: '', quantity: '1', price: '' }
-        ]);
-      }
-
-      // Auto fill a title if empty
-      const orgName = organizations.find(o => String(o.id) === String(orgId))?.name || 'Customer';
-      setQuoteTitle(`Uniform Contract for ${orgName}`);
-
-      if (measurementsExist) {
-        toast.success('Member sizing profiles analyzed successfully!');
-      } else {
-        toast.success('No sizing metrics exist. Wizard will use manual product entry list.');
-      }
-    } catch (err: any) {
-      toast.error('Failed to run measurement analysis');
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setHasMeasurements(false);
+    const orgName = organizations.find(o => String(o.id) === String(orgId))?.name || 'Customer';
+    setQuoteTitle(`Uniform Contract for ${orgName}`);
   };
 
   const isManualItemsValid = () => {
@@ -235,10 +328,101 @@ export default function QuotationWizard({
     return manualItems.every(item =>
       item.product_type_id !== '' &&
       item.fabric_id !== '' &&
-      parseFloat(item.sam_value) > 0 &&
-      parseInt(item.quantity) > 0 &&
-      parseFloat(item.price) > 0
+      parseFloat(item.main_fabric_meters) > 0 &&
+      parseFloat(item.main_fabric_sam) > 0 &&
+      parseInt(item.quantity) > 0
     );
+  };
+
+  const calculateProductSAMCost = (samValueStr: string, quantityStr: string) => {
+    const baseValue = parseFloat(samValueStr) || 0;
+    if (baseValue === 0) return 0;
+    
+    const globalConfig = samConfigurations.find((c: any) => c.product_id === null && c.is_active) || samConfigurations[0];
+    if (!globalConfig) return baseValue;
+    
+    const components = globalConfig.components || [];
+    const percentageSum = components.reduce((sum: number, c: any) => sum + (parseFloat(c.value || 0) / 100 * baseValue), 0);
+    const baseSAMCost = baseValue + percentageSum;
+    
+    const qty = parseInt(quantityStr, 10) || 1;
+    const slabsW = globalConfig.wholesale_slabs || [];
+    const matchingSlabW = slabsW.find((s: any) => {
+      if (!s || !s.enabled) return false;
+      const min = parseInt(String(s.min_qty), 10) || 0;
+      const max = s.max_qty === null || s.max_qty === undefined ? null : parseInt(String(s.max_qty), 10);
+      return max === null ? qty >= min : qty >= min && qty <= max;
+    });
+    const appliedSlabPercentW = matchingSlabW ? parseFloat(String(matchingSlabW.adjustment_percent || 0)) : 0;
+    const wholesaleSAMCost = baseSAMCost * (1 + appliedSlabPercentW / 100);
+    
+    let finalCost = wholesaleSAMCost;
+    if (salesType === 'RETAIL') {
+      const slabsR = globalConfig.retail_slabs || [];
+      const matchingSlabR = slabsR.find((s: any) => {
+        if (!s || !s.enabled) return false;
+        const min = parseInt(String(s.min_qty), 10) || 0;
+        const max = s.max_qty === null || s.max_qty === undefined ? null : parseInt(String(s.max_qty), 10);
+        return max === null ? qty >= min : qty >= min && qty <= max;
+      });
+      const appliedSlabPercentR = matchingSlabR ? parseFloat(String(matchingSlabR.adjustment_percent || 0)) : 0;
+      finalCost = wholesaleSAMCost * (1 + appliedSlabPercentR / 100);
+    }
+    return finalCost;
+  };
+
+  const calculateFabricCost = (fabricId: string, metersStr: string, fabricSamStr: string, productTypeId: string) => {
+    const meters = parseFloat(metersStr) || 0;
+    const fabricSam = parseFloat(fabricSamStr) || 0;
+    if (!fabricId || meters === 0) return 0;
+    
+    const fabric = fabricsList.find((f: any) => String(f.id) === fabricId);
+    if (!fabric) return 0;
+    
+    // Determine category from Product Type Name
+    const pType = productTypes.find((pt: any) => String(pt.id) === String(productTypeId));
+    const pTypeName = (pType?.name || '').toLowerCase();
+    let category = 'SHIRTING';
+    if (pTypeName.includes('suit') || pTypeName.includes('blazer') || pTypeName.includes('coat')) {
+      category = 'SUITING';
+    } else if (pTypeName.includes('pant') || pTypeName.includes('trouser') || pTypeName.includes('bottom') || pTypeName.includes('skirt') || pTypeName.includes('salwar')) {
+      category = 'BOTTOM';
+    }
+    
+    const widthStr = String(fabric.width || '');
+    const matchedTransport = inwardRates.find(
+      (r: any) => r.item?.toUpperCase() === category && String(r.width) === widthStr
+    );
+    const inwardRate = matchedTransport ? parseFloat(matchedTransport.rate) : 0;
+    const transportCost = inwardRate; // rate per meter
+    
+    const marginRow = fabricMargins.find(
+      (m: any) => m.sales_type?.toUpperCase() === salesType.toUpperCase() && 
+                   m.customer_type?.toUpperCase() === customerType.toUpperCase()
+    );
+    
+    let marginPct = 0;
+    if (marginRow) {
+      const brandType = (fabric.brand_type || '').toLowerCase();
+      if (brandType.includes('branded') && !brandType.includes('semi')) {
+        marginPct = parseFloat(marginRow.branded) || 0;
+      } else if (brandType.includes('semi')) {
+        marginPct = parseFloat(marginRow.semi_branded) || 0;
+      } else {
+        marginPct = parseFloat(marginRow.non_branded) || 0;
+      }
+    }
+    
+    // Formula: Cost = ((Fabric SAM * 24) + Inward Transport) * (1 + Margin / 100) * 1.05 * meters
+    return ((fabricSam * 24) + transportCost) * (1 + marginPct / 100) * 1.05 * meters;
+  };
+
+  const computeItemUnitCost = (item: ManualItem) => {
+    const productSAMCost = calculateProductSAMCost(item.sam_value, item.quantity);
+    const mainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+    const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+    const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+    return productSAMCost + mainFabricCost + att1Cost + att2Cost;
   };
 
   // Run lead time & delivery calculations dynamically
@@ -323,12 +507,18 @@ export default function QuotationWizard({
         totalLaborExpense += baseLabor;
       });
     } else {
-      // Sum details based on manual product items
+      // Manual items: sum per-item computed costs
       manualItems.forEach(item => {
         const qty = parseInt(item.quantity) || 0;
-        totalFabricExpense += (baseFabric * qty);
-        totalAccExpense += (baseAcc * qty);
-        totalLaborExpense += (baseLabor * qty);
+        const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+        const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+        const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+        totalFabricExpense += (mainCost + att1Cost + att2Cost) * qty;
+
+        totalAccExpense += 0;
+
+        const productSAMCost = calculateProductSAMCost(item.sam_value, item.quantity);
+        totalLaborExpense += productSAMCost * qty;
       });
     }
 
@@ -363,6 +553,15 @@ export default function QuotationWizard({
       });
       if (qty === 0) qty = 1;
     }
+
+    // Add extra charges to the subtotal
+    let totalExtraCharges = 0;
+    extraCharges.forEach(ec => {
+      const q = parseFloat(ec.quantity) || 0;
+      const r = parseFloat(ec.rate) || 0;
+      totalExtraCharges += q * r;
+    });
+    preTaxSubtotal += totalExtraCharges;
 
     const gstRate = parseFloat(gstPercent) || 0;
     const gstValue = preTaxSubtotal * (gstRate / 100);
@@ -404,32 +603,47 @@ export default function QuotationWizard({
         labor_cost_per_item: parseFloat(laborCost) || 0
       }];
     } else {
-      // Map manual items
+      // Map manual items with extended material breakdown
       payloadItems = manualItems.map(item => {
         const qty = parseInt(item.quantity) || 0;
-        const price = parseFloat(item.price) || 0;
+        const unitCost = computeItemUnitCost(item);
         const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
         totalQty += qty;
         return {
           product_type_id: parseInt(item.product_type_id),
           product_type_name: selectedProduct?.name || 'Uniform Item',
           quantity: qty,
-          unit_price: price,
-          total_price: qty * price,
-          fabric_id: item.fabric_id || null,
-          sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
-          design_number: item.design_number || null,
+          unit_price: unitCost,
+          total_price: qty * unitCost,
           is_manual: true,
           size_breakdown: {
+            is_manual: true,
+            product_id: item.product_id || null,
             fabric_id: item.fabric_id || null,
+            main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
+            main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
+            main_fabric_sam: parseFloat(item.main_fabric_sam) || null,
+            attachment_fabric1_id: item.attachment_fabric1_id || null,
+            attachment_fabric1_meters: parseFloat(item.attachment_fabric1_meters) || null,
+            attachment_fabric1_rate: parseFloat(item.attachment_fabric1_rate) || null,
+            attachment_fabric1_sam: parseFloat(item.attachment_fabric1_sam) || null,
+            attachment_fabric2_id: item.attachment_fabric2_id || null,
+            attachment_fabric2_meters: parseFloat(item.attachment_fabric2_meters) || null,
+            attachment_fabric2_rate: parseFloat(item.attachment_fabric2_rate) || null,
+            attachment_fabric2_sam: parseFloat(item.attachment_fabric2_sam) || null,
+            button_id: item.button_id || null,
+            button_count: parseFloat(item.button_count) || null,
+            thread_id: item.thread_id || null,
+            thread_count: parseFloat(item.thread_count) || null,
             sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
             design_number: item.design_number || null,
-            is_manual: true,
-            product_id: item.product_id || null
+            computed_unit_cost: unitCost
           },
-          fabric_cost_per_item: parseFloat(baseFabricCost) || 0,
-          accessories_cost_per_item: parseFloat(accCost) || 0,
-          labor_cost_per_item: parseFloat(laborCost) || 0
+          fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
+                                calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
+                                calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id),
+          accessories_cost_per_item: 0,
+          labor_cost_per_item: calculateProductSAMCost(item.sam_value, item.quantity)
         };
       });
     }
@@ -452,7 +666,11 @@ export default function QuotationWizard({
         sizes: hasMeasurements ? orgAnalysis.size_distribution : {},
         cover_letter: coverLetter,
         gst_percent: parseFloat(gstPercent) || 0,
-        pre_tax_subtotal: totals.subtotal
+        pre_tax_subtotal: totals.subtotal,
+        sales_type: salesType,
+        customer_type: customerType,
+        extra_charges: extraCharges,
+        project_start_date: projectStartDate
       },
       items: payloadItems
     };
@@ -513,7 +731,9 @@ Inland Uniforms Co.`;
     setExtraCustomizationHours('0.25');
     setTailorsCount('5');
     setDailyShiftHours('8');
-    setProfitMargin('30');
+    setProfitMargin('0');
+    setSalesType('WHOLESALE');
+    setCustomerType('DIRECT');
     setTemplateLineItems([]);
     setCoverLetter('');
     setGstPercent('18');
@@ -528,7 +748,14 @@ Inland Uniforms Co.`;
       template_line_items: []
     });
     setManualItems([
-      { id: Date.now(), product_type_id: '', product_id: '', fabric_id: '', sam_value: '', design_number: '', quantity: '1', price: '' }
+      {
+        id: Date.now(), product_type_id: '', product_id: '',
+        fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
+        attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
+        attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
+        button_id: '', button_count: '', thread_id: '', thread_count: '',
+        sam_value: '', design_number: '', quantity: '1', price: ''
+      }
     ]);
   };
 
@@ -583,9 +810,15 @@ Inland Uniforms Co.`;
             setQuoteNo={setQuoteNo}
             coverLetter={coverLetter}
             setCoverLetter={setCoverLetter}
+            salesType={salesType}
+            setSalesType={setSalesType}
+            customerType={customerType}
+            setCustomerType={setCustomerType}
             isAnalyzing={isAnalyzing}
             onNext={() => setCurrentStep(2)}
             generateAutoCoverLetter={generateAutoCoverLetter}
+            previousOrders={previousOrders}
+            onSelectPreviousOrder={handleSelectPreviousOrder}
           />
         )}
 
@@ -601,6 +834,16 @@ Inland Uniforms Co.`;
             productTypes={productTypes}
             allProducts={allProducts}
             fabricsList={fabricsList}
+            buttonsList={buttonsList}
+            threadsList={threadsList}
+            inwardRates={inwardRates}
+            fabricMargins={fabricMargins}
+            samConfigurations={samConfigurations}
+            salesType={salesType}
+            customerType={customerType}
+            calculateProductSAMCost={calculateProductSAMCost}
+            calculateFabricCost={calculateFabricCost}
+            laborRatePerHour={laborRatePerHour}
             isAnalyzing={isAnalyzing}
             onBack={() => setCurrentStep(1)}
             onNext={() => setCurrentStep(3)}
@@ -623,6 +866,8 @@ Inland Uniforms Co.`;
             setLaborCost={setLaborCost}
             gstPercent={gstPercent}
             setGstPercent={setGstPercent}
+            laborRatePerHour={laborRatePerHour}
+            setLaborRatePerHour={setLaborRatePerHour}
             manualItems={manualItems}
             fabricsList={fabricsList}
             calculatedExpenses={getCalculatedExpenses()}
@@ -639,10 +884,6 @@ Inland Uniforms Co.`;
             setBaseProductionHours={setBaseProductionHours}
             extraCustomizationHours={extraCustomizationHours}
             setExtraCustomizationHours={setExtraCustomizationHours}
-            tailorsCount={tailorsCount}
-            setTailorsCount={setTailorsCount}
-            dailyShiftHours={dailyShiftHours}
-            setDailyShiftHours={setDailyShiftHours}
             projectStartDate={projectStartDate}
             setProjectStartDate={setProjectStartDate}
             deliveryDate={deliveryDate}
@@ -653,6 +894,9 @@ Inland Uniforms Co.`;
             timeMetrics={getCalculatedTimeMetrics()}
             quoteTotals={getCalculatedQuoteTotals()}
             gstPercent={gstPercent}
+            setGstPercent={setGstPercent}
+            extraCharges={extraCharges}
+            setExtraCharges={setExtraCharges}
             onBack={() => setCurrentStep(3)}
             onNext={() => setCurrentStep(5)}
           />

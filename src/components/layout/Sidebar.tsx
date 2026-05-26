@@ -18,6 +18,7 @@ import {
   User,
   Box,
   TrendingUp,
+  Calculator,
 } from 'lucide-react';
 
 interface Subsection {
@@ -86,6 +87,15 @@ const modules: ModuleItem[] = [
       { label: 'Operation Team', href: '/marketing/operation-team' },
       { label: 'Initial Payment', href: '/marketing/initial-payment' },
       { label: 'Order Placement', href: '/marketing/order-placement' }
+    ]
+  },
+  {
+    icon: Calculator, label: 'SAM Management', href: '/sam-management/calculator',
+    subsections: [
+      { label: 'SAM Calculator', href: '/sam-management/calculator' },
+      { label: 'SAM Configurations', href: '/sam-management/configurations' },
+      { label: 'Reports', href: '/sam-management/reports' },
+      { label: 'Fabric SAM', href: '/sam-management/fabric' }
     ]
   },
   {
@@ -201,7 +211,8 @@ export const Sidebar: React.FC = () => {
                 'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
                 'Admin Controls': ['manage_system', 'view_audit_logs'],
                 'Product Management': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
-                'Marketing': ['manage_quotations', 'view_quotations']
+                'Marketing': ['manage_quotations', 'view_quotations'],
+                'SAM Management': ['manage_products', 'view_products', 'manage_quotations', 'view_quotations']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
@@ -269,7 +280,11 @@ export const Sidebar: React.FC = () => {
                           'Quotation': ['manage_quotations', 'view_quotations'],
                           'Operation Team': ['manage_quotations', 'view_quotations'],
                           'Initial Payment': ['manage_quotations', 'view_quotations'],
-                          'Order Placement': ['manage_quotations', 'view_quotations']
+                          'Order Placement': ['manage_quotations', 'view_quotations'],
+                          'SAM Calculator': ['view_products', 'manage_products', 'manage_quotations', 'view_quotations'],
+                          'SAM Configurations': ['manage_products', 'manage_system'],
+                          'Reports': ['view_products', 'manage_products', 'manage_quotations', 'view_quotations'],
+                          'Fabric SAM': ['view_products', 'manage_products']
                         };
 
                         const requiredSubPerms = subPermissionMap[sub.label] || [];

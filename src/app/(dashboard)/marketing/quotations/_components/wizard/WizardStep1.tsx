@@ -17,9 +17,15 @@ interface WizardStep1Props {
   setQuoteNo: (no: string) => void;
   coverLetter: string;
   setCoverLetter: (letter: string) => void;
+  salesType: string;
+  setSalesType: (type: string) => void;
+  customerType: string;
+  setCustomerType: (type: string) => void;
   isAnalyzing: boolean;
   onNext: () => void;
   generateAutoCoverLetter: () => void;
+  previousOrders: any[];
+  onSelectPreviousOrder: (order: any) => void;
 }
 
 export default function WizardStep1({
@@ -32,9 +38,15 @@ export default function WizardStep1({
   setQuoteNo,
   coverLetter,
   setCoverLetter,
+  salesType,
+  setSalesType,
+  customerType,
+  setCustomerType,
   isAnalyzing,
   onNext,
   generateAutoCoverLetter,
+  previousOrders,
+  onSelectPreviousOrder,
 }: WizardStep1Props) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -66,6 +78,33 @@ export default function WizardStep1({
         </div>
 
         <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Sales Channel Type</label>
+          <Select
+            options={[
+              { label: 'Wholesale (B2B)', value: 'WHOLESALE' },
+              { label: 'Retail (B2C)', value: 'RETAIL' }
+            ]}
+            value={salesType}
+            onChange={setSalesType}
+            placeholder="Select Sales Type..."
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Customer Category</label>
+          <Select
+            options={[
+              { label: 'Direct', value: 'DIRECT' },
+              { label: 'Agent', value: 'AGENT' },
+              { label: 'Best', value: 'BEST' }
+            ]}
+            value={customerType}
+            onChange={setCustomerType}
+            placeholder="Select Customer Category..."
+          />
+        </div>
+
+        <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Manual Quote No (Optional)</label>
           <Input
             placeholder="e.g. QT-99081 (Leave blank to auto generate)"
@@ -74,6 +113,44 @@ export default function WizardStep1({
           />
         </div>
       </div>
+
+      {selectedOrgId && (
+        <div className="space-y-4 border-t border-zinc-100 pt-6">
+          <div className="relative">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Previous Orders / Quotations Registry</h4>
+            <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Click any order card to copy its product details and edit them</p>
+          </div>
+          {previousOrders.length === 0 ? (
+            <p className="text-[10px] text-zinc-400 font-bold italic bg-zinc-50 border border-zinc-250/60 p-4 rounded-xl">No previous orders found for this organization.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {previousOrders.map((q, idx) => (
+                <div
+                  key={q.id || idx}
+                  onClick={() => onSelectPreviousOrder(q)}
+                  className="bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] rounded-2xl p-4 cursor-pointer transition-all flex flex-col justify-between h-28 group relative"
+                >
+                  <div>
+                    <p className="text-xs font-black text-[#3a525d] group-hover:text-[#2d8d9b] truncate">{q.title}</p>
+                    <p className="text-[9px] font-bold text-zinc-400 mt-1">
+                      Quote No: {q.quotation_no || 'Auto'} | Date: {new Date(q.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center mt-3">
+                    <span className="font-mono text-xs font-black text-emerald-600">₹{parseFloat(q.final_quote_value || 0).toFixed(2)}</span>
+                    <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200">
+                      {q.status}
+                    </span>
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-[8px] font-black uppercase bg-[#2d8d9b] text-white px-2 py-0.5 rounded-[4px]">
+                    Use Order Details
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4 border-t border-zinc-100 pt-6">
         <div className="flex justify-between items-center flex-wrap gap-2">

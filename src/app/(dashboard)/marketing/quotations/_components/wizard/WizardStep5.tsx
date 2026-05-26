@@ -46,7 +46,7 @@ export default function WizardStep5({
   onSave,
 }: WizardStep5Props) {
   const customerName = organizations.find((o) => String(o.id) === String(selectedOrgId))?.name || 'Customer';
-  
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
@@ -131,13 +131,13 @@ export default function WizardStep5({
                           <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
                           <td className="p-3 text-zinc-500">{fabricName}</td>
                           <td className="p-3 font-mono">
-                            {item.sam_value ? `$${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                            {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
                           </td>
                           <td className="p-3">{item.design_number || 'N/A'}</td>
                           <td className="p-3 text-right font-black">{item.quantity}</td>
-                          <td className="p-3 text-right font-mono">${parseFloat(item.price || '0').toFixed(2)}</td>
+                          <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
                           <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
-                            ${((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
+                            ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
                           </td>
                         </tr>
                       );
@@ -164,7 +164,7 @@ export default function WizardStep5({
             </div>
             <div className="flex justify-between">
               <span>Production Expenses:</span>
-              <span className="font-mono text-zinc-850 font-black">${calculatedExpenses.total.toFixed(2)}</span>
+              <span className="font-mono text-zinc-850 font-black">₹{calculatedExpenses.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Markup Margin %:</span>
@@ -172,15 +172,15 @@ export default function WizardStep5({
             </div>
             <div className="flex justify-between border-t border-dashed border-zinc-200 pt-2">
               <span>Subtotal (Pre-Tax):</span>
-              <span className="font-mono text-zinc-800 font-black">${quoteTotals.subtotal.toFixed(2)}</span>
+              <span className="font-mono text-zinc-800 font-black">₹{quoteTotals.subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-red-500">
               <span>GST Tax ({gstPercent}%):</span>
-              <span className="font-mono font-black">+${quoteTotals.gstValue.toFixed(2)}</span>
+              <span className="font-mono font-black">+₹{quoteTotals.gstValue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs text-zinc-400 pt-1">
               <span>Suggested unit retail (Pre-Tax):</span>
-              <span className="font-mono">${quoteTotals.avgSellingPrice.toFixed(2)}</span>
+              <span className="font-mono">₹{quoteTotals.avgSellingPrice.toFixed(2)}</span>
             </div>
 
             <div className="border-t border-zinc-200 pt-4 flex justify-between items-end">
@@ -189,7 +189,7 @@ export default function WizardStep5({
                   Total Contract Value (With GST)
                 </p>
                 <p className="text-3xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
-                  ${quoteTotals.finalValue.toFixed(2)}
+                  ₹{quoteTotals.finalValue.toFixed(2)}
                 </p>
               </div>
             </div>

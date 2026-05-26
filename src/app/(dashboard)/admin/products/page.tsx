@@ -13,10 +13,12 @@ interface Product {
   id: number;
   name: string;
   art_number: string;
+  design_number?: string | null;
   gender: string;
   category: string;
   measurements: string[];
   materials: string;
+  images?: string[];
   sam_value?: number | null;
   retail_sam_value?: number | null;
   entry_methods?: string[];
@@ -26,10 +28,8 @@ interface Product {
   main_fabric?: number | null;
   attachment_fabric1?: number | null;
   attachment_fabric2?: number | null;
-  button_id?: string | null;
-  thread_id?: string | null;
-  buttons?: { name: string } | null;
-  threads?: { name: string } | null;
+  button_count?: number | null;
+  thread_count?: number | null;
   created_at: string;
   base_size?: string | null;
   fit?: string | null;
@@ -77,8 +77,6 @@ export default function ProductManagement() {
   const [genders, setGenders] = useState<any[]>([]);
   const [patterns, setPatterns] = useState<any[]>([]);
   const [fabrics, setFabrics] = useState<any[]>([]);
-  const [buttons, setButtons] = useState<any[]>([]);
-  const [threads, setThreads] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -94,11 +92,12 @@ export default function ProductManagement() {
   const [selectedPattern, setSelectedPattern] = useState('');
   const [baseSize, setBaseSize] = useState('');
   const [fit, setFit] = useState('');
+  const [nextDesignNumber, setNextDesignNumber] = useState('');
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, fabricRes, buttonRes, threadRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, fabricRes, nextDnRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
         api.get('/size-charts'),
@@ -107,8 +106,7 @@ export default function ProductManagement() {
         api.get('/art-number-hub/genders').catch(() => ({ data: [] })),
         api.get('/art-number-hub/patterns').catch(() => ({ data: [] })),
         api.get('/inventory/fabrics').catch(() => ({ data: [] })),
-        api.get('/inventory/buttons').catch(() => ({ data: [] })),
-        api.get('/inventory/threads').catch(() => ({ data: [] }))
+        api.get('/products/next-design-number').catch(() => ({ data: { nextDesignNumber: 'DN-0001' } }))
       ]);
       setProducts(prodRes.data);
       setMeasureConfig(configRes.data);
@@ -118,8 +116,7 @@ export default function ProductManagement() {
       setGenders(genderRes.data);
       setPatterns(patternRes.data);
       setFabrics(fabricRes.data);
-      setButtons(buttonRes.data);
-      setThreads(threadRes.data);
+      setNextDesignNumber(nextDnRes.data.nextDesignNumber || 'DN-0001');
     } catch (err) {
       toast.error('Failed to load catalog data');
     } finally {
@@ -150,6 +147,18 @@ export default function ProductManagement() {
     }
   }, [editingProduct, isAdding, dresses, genders, patterns]);
 
+  useEffect(() => {
+    if (isAdding && !editingProduct) {
+      api.get('/products/next-design-number')
+        .then(res => {
+          setNextDesignNumber(res.data.nextDesignNumber || 'DN-0001');
+        })
+        .catch(() => {
+          setNextDesignNumber('DN-0001');
+        });
+    }
+  }, [isAdding, editingProduct]);
+
   const productFields: FormField[] = [
     {
       name: 'name',
@@ -158,6 +167,15 @@ export default function ProductManagement() {
       placeholder: 'e.g. Cotton Shirt',
       required: true,
       defaultValue: editingProduct?.name
+    },
+    {
+      name: 'design_number',
+      label: 'Design Number',
+      type: 'text',
+      value: editingProduct ? (editingProduct.design_number || '') : nextDesignNumber,
+      readOnly: true,
+      required: true,
+      placeholder: 'Generating design number...'
     },
     {
       name: 'gender_code',
@@ -253,7 +271,7 @@ export default function ProductManagement() {
       label: 'Main Fabric (meters)',
       type: 'number',
       placeholder: 'e.g. 2',
-      defaultValue: editingProduct?.main_fabric !== null && editingProduct?.main_fabric !== undefined ? String(editingProduct.main_fabric) : '0',
+      defaultValue: editingProduct?.main_fabric !== null && editingProduct?.main_fabric !== undefined ? String(editingProduct.main_fabric) : '',
       required: true,
       step: '1'
     },
@@ -276,49 +294,42 @@ export default function ProductManagement() {
       step: '1'
     },
     {
-      name: 'button_id',
-      label: 'Buttons Selection',
-      type: 'select',
-      options: [
-        { label: 'Select Button Style', value: '' },
-        ...buttons.map(b => ({ label: b.name, value: b.id }))
-      ],
-      defaultValue: editingProduct?.button_id || '',
+      name: 'button_count',
+      label: 'Buttons Count',
+      type: 'number',
+      placeholder: 'e.g. 6',
+      defaultValue: editingProduct?.button_count !== null && editingProduct?.button_count !== undefined ? String(editingProduct.button_count) : '',
       required: true
     },
     {
-      name: 'thread_id',
-      label: 'Thread Colour',
-      type: 'select',
-      options: [
-        { label: 'Select Thread Colour', value: '' },
-        ...threads.map(t => ({ label: t.name, value: t.id }))
-      ],
-      defaultValue: editingProduct?.thread_id || '',
+      name: 'thread_count',
+      label: 'Thread Count (cones/meters)',
+      type: 'number',
+      placeholder: 'e.g. 1',
+      defaultValue: editingProduct?.thread_count !== null && editingProduct?.thread_count !== undefined ? String(editingProduct.thread_count) : '',
       required: true
     },
     {
       name: 'materials',
-      label: 'Composition / Materials',
+      label: 'Description',
       type: 'text',
-      placeholder: 'e.g. 100% Cotton',
+      placeholder: 'e.g. Cotton shirt with chest pocket',
       defaultValue: editingProduct?.materials
     },
     {
       name: 'sam_value',
-      label: 'Production SAM Price (₹)',
+      label: 'SAM Value',
       type: 'number',
       placeholder: 'e.g. 1.25',
       step: 'any',
       defaultValue: editingProduct?.sam_value !== null && editingProduct?.sam_value !== undefined ? String(editingProduct.sam_value) : ''
     },
     {
-      name: 'retail_sam_value',
-      label: 'Retail SAM Price (₹)',
-      type: 'number',
-      placeholder: 'e.g. 1.50',
-      step: 'any',
-      defaultValue: editingProduct?.retail_sam_value !== null && editingProduct?.retail_sam_value !== undefined ? String(editingProduct.retail_sam_value) : ''
+      name: 'images',
+      label: 'Product Images',
+      type: 'image-upload',
+      defaultValue: editingProduct?.images || [],
+      className: 'md:col-span-2'
     },
     {
       name: 'category',
@@ -387,8 +398,8 @@ export default function ProductManagement() {
     data.attachment_fabric1 = data.attachment_fabric1 !== '' && data.attachment_fabric1 !== null && data.attachment_fabric1 !== undefined ? parseInt(data.attachment_fabric1, 10) : null;
     data.attachment_fabric2 = data.attachment_fabric2 !== '' && data.attachment_fabric2 !== null && data.attachment_fabric2 !== undefined ? parseInt(data.attachment_fabric2, 10) : null;
 
-    if (!data.button_id || data.button_id === '') data.button_id = null;
-    if (!data.thread_id || data.thread_id === '') data.thread_id = null;
+    data.button_count = data.button_count !== '' && data.button_count !== null && data.button_count !== undefined ? parseInt(data.button_count, 10) : 0;
+    data.thread_count = data.thread_count !== '' && data.thread_count !== null && data.thread_count !== undefined ? parseInt(data.thread_count, 10) : 0;
     if (!data.product_type_id || data.product_type_id === '') data.product_type_id = null;
     else data.product_type_id = parseInt(data.product_type_id);
 
@@ -396,8 +407,8 @@ export default function ProductManagement() {
     if (!data.sam_value || data.sam_value === '') data.sam_value = null;
     else data.sam_value = parseFloat(data.sam_value);
 
-    if (!data.retail_sam_value || data.retail_sam_value === '') data.retail_sam_value = null;
-    else data.retail_sam_value = parseFloat(data.retail_sam_value);
+    data.retail_sam_value = null;
+    data.images = data.images || [];
 
     // Generate dynamic art_number and map gender name
     data.art_number = (selectedGender && selectedDress && selectedPattern)
@@ -409,6 +420,7 @@ export default function ProductManagement() {
     // Set base size and fit
     data.base_size = baseSize.trim() || null;
     data.fit = fit || null;
+    data.design_number = data.design_number || (editingProduct ? editingProduct.design_number : nextDesignNumber) || null;
 
     try {
       if (editingProduct) {
@@ -445,12 +457,18 @@ export default function ProductManagement() {
       header: 'Product Details',
       accessor: (p) => (
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-[#3a525d] border border-zinc-100 shadow-inner">
-            <Box size={24} />
+          <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-[#3a525d] border border-zinc-100 shadow-inner overflow-hidden flex-shrink-0">
+            {p.images && p.images.length > 0 ? (
+              <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+            ) : (
+              <Box size={24} />
+            )}
           </div>
           <div>
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{p.name}</p>
-            <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-1">SN: {p.art_number}</p>
+            <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-1">
+              {p.design_number ? `DN: ${p.design_number} | ` : ''}SN: {p.art_number}
+            </p>
             {(p.base_size || p.fit) && (
               <div className="grid items-center gap-1.5 mt-1 text-[9px] font-bold text-zinc-400 uppercase">
                 {p.base_size && (
@@ -513,13 +531,12 @@ export default function ProductManagement() {
             )}
           <div className="grid items-center gap-1 mt-1 text-[10px] text-zinc-500 font-medium">
             <span className="flex items-center gap-1">
-              <span className="font-bold text-zinc-400">Button:</span>
-              <span className="text-zinc-700 font-semibold">{p.buttons?.name || '—'}</span>
+              <span className="font-bold text-zinc-400">Buttons:</span>
+              <span className="text-zinc-700 font-semibold">{p.button_count !== null && p.button_count !== undefined ? `${p.button_count} pcs` : '—'}</span>
             </span>
-            {/* <span className="w-1 h-1 rounded-full bg-zinc-300" /> */}
             <span className="flex items-center gap-1">
               <span className="font-bold text-zinc-400">Thread:</span>
-              <span className="text-zinc-700 font-semibold">{p.threads?.name || '—'}</span>
+              <span className="text-zinc-700 font-semibold">{p.thread_count !== null && p.thread_count !== undefined ? `${p.thread_count} unit(s)` : '—'}</span>
             </span>
           </div>
         </div>
@@ -560,36 +577,15 @@ export default function ProductManagement() {
     //   )
     // },
     {
-      header: 'SAM Prices',
+      header: 'SAM Value',
       accessor: (p) => (
-        <div className="flex flex-col gap-1">
-          {p.sam_value !== null && p.sam_value !== undefined ? (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-bold text-[#3a525d] uppercase w-10">Prod:</span>
-              <span className="px-2 py-0.5 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-lg text-[10px] font-black text-[#2d8d9b] font-mono">
-                ₹{Number(p.sam_value).toFixed(2)}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-bold text-zinc-400 uppercase w-10">Prod:</span>
-              <span className="text-[10px] italic text-zinc-300">—</span>
-            </div>
-          )}
-          {p.retail_sam_value !== null && p.retail_sam_value !== undefined ? (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-bold text-[#3a525d] uppercase w-10">Retail:</span>
-              <span className="px-2 py-0.5 bg-purple-50 border border-purple-100 rounded-lg text-[10px] font-black text-purple-600 font-mono">
-                ₹{Number(p.retail_sam_value).toFixed(2)}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-bold text-zinc-400 uppercase w-10">Retail:</span>
-              <span className="text-[10px] italic text-zinc-300">—</span>
-            </div>
-          )}
-        </div>
+        p.sam_value !== null && p.sam_value !== undefined ? (
+          <span className="px-2 py-0.5 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-lg text-[10px] font-black text-[#2d8d9b] font-mono">
+            {Number(p.sam_value).toFixed(2)}
+          </span>
+        ) : (
+          <span className="text-[10px] italic text-zinc-300">—</span>
+        )
       )
     },
     {

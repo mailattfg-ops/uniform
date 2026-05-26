@@ -13,14 +13,16 @@ import {
   CreditCard,
   History,
   Plus,
-  DollarSign,
+
   CheckCircle2,
   AlertTriangle,
   Clock,
   ArrowLeft,
   Calendar,
   X,
-  FileText
+  FileText,
+  Trash2,
+  IndianRupee
 } from 'lucide-react';
 
 interface Quotation {
@@ -50,7 +52,7 @@ interface Payment {
 export default function InitialPaymentPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState<'awaiting' | 'completed'>('awaiting');
+  const [activeSubTab, setActiveSubTab] = useState<'awaiting' | 'completed' | 'cancelled'>('awaiting');
 
   // Modal / Drawer state for recording payment
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -75,11 +77,11 @@ export default function InitialPaymentPage() {
     setIsLoading(true);
     try {
       const response = await api.get('/quotations');
-      // Filter for approved quotations
-      const approved = response.data.filter((q: Quotation) => q.status === 'Approved');
-      setQuotations(approved);
+      // Filter for approved or cancelled quotations
+      const approvedOrCancelled = response.data.filter((q: Quotation) => q.status === 'Approved' || q.status === 'Cancelled');
+      setQuotations(approvedOrCancelled);
     } catch (err: any) {
-      toast.error('Failed to load approved quotations: ' + (err.response?.data?.error || err.message));
+      toast.error('Failed to load quotations: ' + (err.response?.data?.error || err.message));
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +124,7 @@ export default function InitialPaymentPage() {
 
     const remaining = selectedQuotation.final_quote_value - (selectedQuotation.paid_amount || 0);
     if (amount > remaining + 0.01) {
-      if (!confirm(`Warning: The entered amount ($${amount}) exceeds the remaining balance ($${remaining.toFixed(2)}). Do you wish to proceed?`)) {
+      if (!confirm(`Warning: The entered amount (₹${amount}) exceeds the remaining balance (₹${remaining.toFixed(2)}). Do you wish to proceed?`)) {
         return;
       }
     }
@@ -148,6 +150,51 @@ export default function InitialPaymentPage() {
     }
   };
 
+  const handleCancelPayment = async (paymentId: number) => {
+    if (!confirm('Are you sure you want to cancel/delete this payment transaction? This will adjust the quotation\'s paid balance and status.')) {
+      return;
+    }
+    try {
+      await api.delete(`/payments/${paymentId}`);
+      toast.success('Payment transaction cancelled successfully.');
+      
+      // Refresh history list
+      if (selectedQuotation) {
+        setIsLoadingHistory(true);
+        const response = await api.get(`/payments/quotation/${selectedQuotation.id}`);
+        setPaymentHistory(response.data || []);
+        setIsLoadingHistory(false);
+      }
+      
+      // Refresh main quotations list
+      fetchQuotations();
+    } catch (err: any) {
+      toast.error('Failed to cancel payment: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleCancelQuotation = async (id: number) => {
+    if (!confirm('Are you sure you want to cancel this quotation order? This will mark its status as Cancelled.')) {
+      return;
+    }
+    const loadingToast = toast.loading('Cancelling quotation...');
+    try {
+      const res = await api.get(`/quotations/${id}`);
+      const fullQuote = res.data;
+      
+      await api.put(`/quotations/${id}`, {
+        ...fullQuote,
+        status: 'Cancelled'
+      });
+      
+      toast.success('Quotation order cancelled successfully.', { id: loadingToast });
+      fetchQuotations();
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to cancel quotation: ' + (err.response?.data?.error || err.message), { id: loadingToast });
+    }
+  };
+
   // Math Statistics
   const stats = React.useMemo(() => {
     const totalApprovedVal = quotations.reduce((sum, q) => sum + parseFloat(q.final_quote_value as any || 0), 0);
@@ -168,9 +215,11 @@ export default function InitialPaymentPage() {
   // Filter lists based on tab
   const displayedQuotations = React.useMemo(() => {
     if (activeSubTab === 'awaiting') {
-      return quotations.filter(q => q.payment_status !== 'Paid');
+      return quotations.filter(q => q.status === 'Approved' && q.payment_status !== 'Paid');
+    } else if (activeSubTab === 'completed') {
+      return quotations.filter(q => q.status === 'Approved' && q.payment_status === 'Paid');
     } else {
-      return quotations.filter(q => q.payment_status === 'Paid');
+      return quotations.filter(q => q.status === 'Cancelled');
     }
   }, [quotations, activeSubTab]);
 
@@ -196,7 +245,7 @@ export default function InitialPaymentPage() {
       header: 'Quotation Value',
       accessor: (item) => (
         <span className="font-black text-[#2d8d9b] text-base">
-          ${parseFloat(item.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          ₹{parseFloat(item.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
@@ -204,7 +253,7 @@ export default function InitialPaymentPage() {
       header: 'Collected',
       accessor: (item) => (
         <span className="font-bold text-emerald-600 text-sm">
-          ${parseFloat(item.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          ₹{parseFloat(item.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
@@ -214,7 +263,7 @@ export default function InitialPaymentPage() {
         const remaining = Math.max(0, item.final_quote_value - (item.paid_amount || 0));
         return (
           <span className={`font-black text-sm ${remaining > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>
-            ${remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       }
@@ -247,18 +296,30 @@ export default function InitialPaymentPage() {
       header: 'Actions',
       accessor: (item) => {
         const isPaid = item.payment_status === 'Paid';
+        const isCancelled = item.status === 'Cancelled';
         return (
           <div className="flex gap-2">
-            {!isPaid && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleOpenPaymentModal(item)}
-                className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-[#2d8d9b]"
-              >
-                <Plus size={12} strokeWidth={3} />
-                Record Payment
-              </Button>
+            {!isPaid && !isCancelled && (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleOpenPaymentModal(item)}
+                  className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-[#2d8d9b]"
+                >
+                  <Plus size={12} strokeWidth={3} />
+                  Record Payment
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleCancelQuotation(item.id)}
+                  className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-red-50 hover:bg-red-500 text-red-650 hover:text-white border border-red-150"
+                >
+                  <X size={12} strokeWidth={3} />
+                  Cancel Order
+                </Button>
+              </>
             )}
             <Button
               variant="secondary"
@@ -291,12 +352,12 @@ export default function InitialPaymentPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-[#fce4d4]/10">
           <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
-            <DollarSign size={24} />
+            <IndianRupee size={24} />
           </div>
           <div>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Contract Value</p>
             <p className="text-xl font-black text-[#3a525d] mt-0.5">
-              ${stats.totalApprovedVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{stats.totalApprovedVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </Card>
@@ -308,7 +369,7 @@ export default function InitialPaymentPage() {
           <div>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Collected Revenue</p>
             <p className="text-xl font-black text-emerald-600 mt-0.5">
-              ${stats.totalCollectedVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{stats.totalCollectedVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </Card>
@@ -320,7 +381,7 @@ export default function InitialPaymentPage() {
           <div>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Outstanding Balance</p>
             <p className="text-xl font-black text-amber-600 mt-0.5">
-              ${stats.totalOutstandingVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{stats.totalOutstandingVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </Card>
@@ -347,7 +408,7 @@ export default function InitialPaymentPage() {
               : 'border-transparent text-zinc-400 hover:text-zinc-600'
             }`}
         >
-          Awaiting Payment ({quotations.filter(q => q.payment_status !== 'Paid').length})
+          Awaiting Payment ({quotations.filter(q => q.status === 'Approved' && q.payment_status !== 'Paid').length})
         </button>
         <button
           onClick={() => setActiveSubTab('completed')}
@@ -356,7 +417,16 @@ export default function InitialPaymentPage() {
               : 'border-transparent text-zinc-400 hover:text-zinc-600'
             }`}
         >
-          Paid & Completed ({quotations.filter(q => q.payment_status === 'Paid').length})
+          Paid & Completed ({quotations.filter(q => q.status === 'Approved' && q.payment_status === 'Paid').length})
+        </button>
+        <button
+          onClick={() => setActiveSubTab('cancelled')}
+          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'cancelled'
+              ? 'border-[#2d8d9b] text-[#2d8d9b]'
+              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+            }`}
+        >
+          Cancelled ({quotations.filter(q => q.status === 'Cancelled').length})
         </button>
       </div>
 
@@ -364,7 +434,13 @@ export default function InitialPaymentPage() {
       <DataTable
         columns={columns}
         data={displayedQuotations}
-        title={activeSubTab === 'awaiting' ? 'Quotations Awaiting Payment' : 'Paid & Settled Quotations'}
+        title={
+          activeSubTab === 'awaiting' 
+            ? 'Quotations Awaiting Payment' 
+            : activeSubTab === 'completed' 
+              ? 'Paid & Settled Quotations' 
+              : 'Cancelled Quotation Orders'
+        }
         subtitle="Tracking deposit entries and ledger transitions in real time"
         isLoading={isLoading}
         searchPlaceholder="Filter by quotation no, customer, title..."
@@ -397,7 +473,7 @@ export default function InitialPaymentPage() {
                       Quotation Final Value
                     </label>
                     <div className="bg-zinc-50 rounded-2xl py-3.5 px-4 font-mono font-black text-[#3a525d] border border-zinc-100 text-sm">
-                      ${parseFloat(selectedQuotation.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{parseFloat(selectedQuotation.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
 
@@ -406,7 +482,7 @@ export default function InitialPaymentPage() {
                       Paid Till Date
                     </label>
                     <div className="bg-zinc-50 rounded-2xl py-3.5 px-4 font-mono font-bold text-emerald-600 border border-zinc-100 text-sm">
-                      ${parseFloat(selectedQuotation.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{parseFloat(selectedQuotation.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
 
@@ -415,7 +491,7 @@ export default function InitialPaymentPage() {
                       Remaining Balance
                     </label>
                     <div className="bg-zinc-50 rounded-2xl py-3.5 px-4 font-mono font-bold text-amber-600 border border-zinc-100 text-sm">
-                      ${Math.max(0, selectedQuotation.final_quote_value - (selectedQuotation.paid_amount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{Math.max(0, selectedQuotation.final_quote_value - (selectedQuotation.paid_amount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 </div>
@@ -544,15 +620,15 @@ export default function InitialPaymentPage() {
               <div className="grid grid-cols-3 gap-4 bg-[#fce4d4]/10 rounded-2xl p-4 border border-[#fce4d4]/40 shrink-0 text-center">
                 <div>
                   <span className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest">Quote Value</span>
-                  <span className="font-black text-sm text-[#3a525d]">${parseFloat(selectedQuotation.final_quote_value as any || 0).toFixed(2)}</span>
+                  <span className="font-black text-sm text-[#3a525d]">₹{parseFloat(selectedQuotation.final_quote_value as any || 0).toFixed(2)}</span>
                 </div>
                 <div>
                   <span className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest font-black">Total Paid</span>
-                  <span className="font-black text-sm text-emerald-600">${parseFloat(selectedQuotation.paid_amount as any || 0).toFixed(2)}</span>
+                  <span className="font-black text-sm text-emerald-600">₹{parseFloat(selectedQuotation.paid_amount as any || 0).toFixed(2)}</span>
                 </div>
                 <div>
                   <span className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest">Balance</span>
-                  <span className="font-black text-sm text-amber-600">${Math.max(0, selectedQuotation.final_quote_value - (selectedQuotation.paid_amount || 0)).toFixed(2)}</span>
+                  <span className="font-black text-sm text-amber-600">₹{Math.max(0, selectedQuotation.final_quote_value - (selectedQuotation.paid_amount || 0)).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -577,7 +653,7 @@ export default function InitialPaymentPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-black text-sm text-zinc-800">${parseFloat(p.amount as any || 0).toFixed(2)}</span>
+                            <span className="font-black text-sm text-zinc-800">₹{parseFloat(p.amount as any || 0).toFixed(2)}</span>
                             <span className="text-[9px] font-black uppercase bg-zinc-100 px-2 py-0.5 rounded text-zinc-600 tracking-wider">
                               {p.payment_method}
                             </span>
@@ -588,20 +664,31 @@ export default function InitialPaymentPage() {
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        {p.reference_no && (
-                          <div className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
-                            Ref: {p.reference_no}
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="text-right">
+                          {p.reference_no && (
+                            <div className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
+                              Ref: {p.reference_no}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-zinc-400 font-bold mt-1 flex items-center gap-1 justify-end">
+                            <Calendar size={10} />
+                            {new Date(p.paid_at).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
                           </div>
-                        )}
-                        <div className="text-[10px] text-zinc-400 font-bold mt-1 flex items-center gap-1 justify-end">
-                          <Calendar size={10} />
-                          {new Date(p.paid_at).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelPayment(p.id)}
+                          className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-100 transition-all font-black uppercase text-[10px] tracking-wider flex items-center gap-1.5"
+                          title="Cancel/Delete Payment"
+                        >
+                          <Trash2 size={13} strokeWidth={2.5} />
+                          Delete
+                        </button>
                       </div>
                     </div>
                   ))}

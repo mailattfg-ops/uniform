@@ -14,9 +14,15 @@ interface Item {
   code: string;
   name: string;
   brand_name?: string;
+  brand_type?: string;
+  quality?: string;
+  description?: string;
   quantity?: number;
   shade?: string;
   width?: string;
+  image?: string;
+  type?: string;
+  unit_price?: number | null;
 }
 
 interface CatalogManagerProps {
@@ -54,6 +60,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const handleSubmit = async (data: any) => {
     const loadingToast = toast.loading(editingItem ? 'Updating...' : 'Adding...');
     try {
+      if (type === 'fabrics') {
+        // Extract the first image from the image array if it exists
+        data.image = data.image && data.image.length > 0 ? data.image[0] : null;
+      }
       if (editingItem) {
         await api.put(`/inventory/${type}/${editingItem.id}`, data);
         toast.success(`${title} updated`, { id: loadingToast });
@@ -82,37 +92,104 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   };
 
   const columns: Column<Item>[] = [
-    { header: 'Code', accessor: 'code', className: 'font-black text-[#2d8d9b]' },
-    { header: 'Name', accessor: 'name' },
+    { 
+      header: type === 'fabrics' 
+        ? 'Fabric Number' 
+        : type === 'buttons'
+          ? 'Button Number'
+          : 'Thread Number', 
+      accessor: 'code', 
+      className: 'font-black text-[#2d8d9b]' 
+    },
+    { 
+      header: type === 'fabrics' 
+        ? 'Fabric Name' 
+        : type === 'buttons'
+          ? 'Button Name'
+          : 'Thread Name', 
+      accessor: ((item: Item) => (
+        <div className="flex items-center gap-3">
+          {type === 'fabrics' && (
+            <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {item.image ? (
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
+              )}
+            </div>
+          )}
+          <div>
+            <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
+            {item.description && (
+              <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 max-w-[200px]">{item.description}</p>
+            )}
+          </div>
+        </div>
+      )) as any
+    },
     ...(type === 'fabrics' ? [
-      { 
-        header: 'Brand', 
+      {
+        header: 'Brand Details',
         accessor: ((item: Item) => (
-          <span className="text-xs font-bold text-zinc-600">{item.brand_name || '—'}</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-bold text-[#3a525d]">{item.brand_name || '—'}</span>
+            {item.brand_type && (
+              <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider leading-none mt-0.5">{item.brand_type}</span>
+            )}
+          </div>
         )) as any
       },
-      { 
-        header: 'Quantity', 
+
+      {
+        header: 'Quantity',
         accessor: ((item: Item) => (
           <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">
             {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'}
           </span>
         )) as any
       },
-      { 
-        header: 'Shade', 
+      {
+        header: 'Shade',
         accessor: ((item: Item) => (
           <span className="text-xs font-bold text-zinc-600">{item.shade || '—'}</span>
         )) as any
       },
-      { 
-        header: 'Width', 
+      {
+        header: 'Width',
         accessor: ((item: Item) => (
-          item.width 
+          item.width
             ? <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-[11px] font-black text-[#2d8d9b]">{item.width}&quot;</span>
             : <span className="text-[10px] italic text-zinc-300">—</span>
         )) as any
       },
+    ] : []),
+    ...(type === 'threads' ? [
+      {
+        header: 'Thread Type',
+        accessor: ((item: Item) => (
+          <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-[11px] font-black text-[#2d8d9b]">
+            {item.type || '—'}
+          </span>
+        )) as any
+      },
+      {
+        header: 'Unit Price (₹)',
+        accessor: ((item: Item) => (
+          item.unit_price !== null && item.unit_price !== undefined
+            ? <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">₹{Number(item.unit_price).toFixed(2)}</span>
+            : <span className="text-[10px] italic text-zinc-300">—</span>
+        )) as any
+      }
+    ] : []),
+    ...(type === 'buttons' ? [
+      {
+        header: 'Unit Price (₹)',
+        accessor: ((item: Item) => (
+          item.unit_price !== null && item.unit_price !== undefined
+            ? <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">₹{Number(item.unit_price).toFixed(2)}</span>
+            : <span className="text-[10px] italic text-zinc-300">—</span>
+        )) as any
+      }
     ] : []),
     {
       header: 'Actions',
@@ -124,14 +201,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               setView('edit');
             }}
             variant="secondary"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none"
           >
             <Edit2 size={16} />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
             variant="secondary"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none"
           >
             <Trash2 size={16} />
           </Button>
@@ -155,23 +232,138 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
           <ArrowLeft size={14} />
           Back to List
         </Button>
-        
+
         <div className="max-w-2xl mx-auto">
-          <DynamicForm 
+          <DynamicForm
             title={editingItem ? `Edit ${title}` : `Add New ${title}`}
             fields={[
-              { name: 'code', label: 'Item Code', type: 'text', required: true, defaultValue: editingItem?.code, allowSpecialCharacters: true },
-              { name: 'name', label: 'Item Name', type: 'text', required: true, defaultValue: editingItem?.name },
+              { 
+                name: 'code', 
+                label: type === 'fabrics' 
+                  ? 'Fabric Number' 
+                  : type === 'buttons' 
+                    ? 'Button Number' 
+                    : 'Thread Number', 
+                type: 'text', 
+                required: true, 
+                defaultValue: editingItem?.code, 
+                allowSpecialCharacters: true 
+              },
+              { 
+                name: 'name', 
+                label: type === 'fabrics' 
+                  ? 'Fabric Name' 
+                  : type === 'buttons' 
+                    ? 'Button Name' 
+                    : 'Thread Name', 
+                type: 'text', 
+                required: true, 
+                defaultValue: editingItem?.name 
+              },
+              ...(type === 'buttons' ? [
+                {
+                  name: 'description',
+                  label: 'Description',
+                  type: 'text' as const,
+                  placeholder: 'Description of the button',
+                  defaultValue: editingItem?.description || ''
+                },
+                {
+                  name: 'unit_price',
+                  label: 'Unit Price (₹)',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 0.50',
+                  defaultValue: editingItem?.unit_price !== null && editingItem?.unit_price !== undefined ? String(editingItem.unit_price) : ''
+                }
+              ] : []),
+              ...(type === 'threads' ? [
+                {
+                  name: 'type',
+                  label: 'Thread Type',
+                  type: 'text' as const,
+                  placeholder: 'e.g. Polyester, Cotton, Silk',
+                  defaultValue: editingItem?.type || ''
+                },
+                {
+                  name: 'description',
+                  label: 'Description',
+                  type: 'text' as const,
+                  placeholder: 'Description of the thread',
+                  defaultValue: editingItem?.description || ''
+                },
+                {
+                  name: 'unit_price',
+                  label: 'Unit Price (₹)',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 25.00',
+                  defaultValue: editingItem?.unit_price !== null && editingItem?.unit_price !== undefined ? String(editingItem.unit_price) : ''
+                }
+              ] : []),
               ...(type === 'fabrics' ? [
-                { name: 'brand_name', label: 'Brand Name', type: 'text' as const, placeholder: 'e.g. Raymond, Arvind', defaultValue: editingItem?.brand_name || '' },
-                { name: 'quantity', label: 'Quantity', type: 'number' as const, step: 'any', placeholder: 'e.g. 100.50', defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : '' },
-                { name: 'shade', label: 'Shade', type: 'text' as const, placeholder: 'e.g. Navy Blue, Charcoal Grey', defaultValue: editingItem?.shade || '' },
-                { name: 'width', label: 'Width (inches)', type: 'select' as const, options: [
-                  { label: 'Select Width', value: '' },
-                  { label: '36"', value: '36' },
-                  { label: '44"', value: '44' },
-                  { label: '58"', value: '58' }
-                ], defaultValue: editingItem?.width || '' },
+                { 
+                  name: 'brand_name', 
+                  label: 'Brand Name', 
+                  type: 'text' as const, 
+                  placeholder: 'e.g. Raymond, Arvind', 
+                  defaultValue: editingItem?.brand_name || '' 
+                },
+                { 
+                  name: 'brand_type', 
+                  label: 'Brand Type', 
+                  type: 'select' as const, 
+                  options: [
+                    { label: 'Select Brand Type', value: '' },
+                    { label: 'Branded', value: 'Branded' },
+                    { label: 'Semi-Branded', value: 'Semi-Branded' },
+                    { label: 'Non-Branded', value: 'Non-Branded' }
+                  ], 
+                  defaultValue: editingItem?.brand_type || '' 
+                },
+
+                { 
+                  name: 'description', 
+                  label: 'Description', 
+                  type: 'text' as const, 
+                  placeholder: 'Description of the fabric', 
+                  defaultValue: editingItem?.description || '' 
+                },
+                { 
+                  name: 'quantity', 
+                  label: 'Quantity', 
+                  type: 'number' as const, 
+                  step: 'any', 
+                  placeholder: 'e.g. 100.50', 
+                  defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : '' 
+                },
+                { 
+                  name: 'shade', 
+                  label: 'Shade', 
+                  type: 'text' as const, 
+                  placeholder: 'e.g. Navy Blue, Charcoal Grey', 
+                  defaultValue: editingItem?.shade || '' 
+                },
+                {
+                  name: 'width', 
+                  label: 'Width (inches)', 
+                  type: 'select' as const, 
+                  options: [
+                    { label: 'Select Width', value: '' },
+                    { label: '36"', value: '36' },
+                    { label: '44"', value: '44' },
+                    { label: '58"', value: '58' }
+                  ], 
+                  defaultValue: editingItem?.width || ''
+                },
+                {
+                  name: 'image',
+                  label: 'Fabric Image',
+                  type: 'image-upload' as const,
+                  maxImages: 1,
+                  uploadLabel: 'Upload Fabric Image',
+                  defaultValue: editingItem?.image ? [editingItem.image] : []
+                }
               ] : [])
             ]}
             onSubmit={handleSubmit}
@@ -188,14 +380,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
 
   return (
     <>
-      <DataTable 
+      <DataTable
         title={title}
         subtitle={subtitle}
         columns={columns}
         data={items}
         isLoading={isLoading}
         headerAction={
-          <Button 
+          <Button
             onClick={() => setView('add')}
             className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20"
           >
@@ -205,7 +397,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         }
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={deleteConfirm.isOpen}
         title={`Delete ${title}?`}
         message="This action cannot be undone."

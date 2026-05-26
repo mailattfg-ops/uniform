@@ -16,8 +16,10 @@ import {
   Shield, 
   MapPin,
   FileText,
-  Layers
+  Layers,
+  Camera
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const getFieldIcon = (name: string) => {
   const n = name.toLowerCase();
@@ -40,7 +42,7 @@ const getFieldIcon = (name: string) => {
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password';
+  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password' | 'image-upload';
   placeholder?: string;
   options?: { label: string; value: string }[];
   required?: boolean;
@@ -57,6 +59,8 @@ export interface FormField {
   pattern?: string;
   step?: string;
   onChange?: (value: any) => void;
+  maxImages?: number;
+  uploadLabel?: string;
 }
 
 interface DynamicFormProps {
@@ -79,23 +83,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   columns = 2
 }) => {
   const [checkboxState, setCheckboxState] = useState<Record<string, string[]>>({});
+  const [imagesState, setImagesState] = useState<Record<string, string[]>>({});
   const lastDefaultValues = useRef<string>('');
 
   useEffect(() => {
-    // Only update checkboxState if defaultValues have actually changed (e.g. switching products)
+    // Only update checkboxState and imagesState if defaultValues have actually changed (e.g. switching products)
     const currentDefaults = fields
-      .filter(f => f.type === 'checkbox-group')
+      .filter(f => f.type === 'checkbox-group' || f.type === 'image-upload')
       .map(f => `${f.name}:${JSON.stringify(f.defaultValue)}`)
       .join('|');
 
     if (currentDefaults !== lastDefaultValues.current) {
-      const initialState: Record<string, string[]> = {};
+      const initialCheckboxState: Record<string, string[]> = {};
+      const initialImagesState: Record<string, string[]> = {};
       fields.forEach(f => {
         if (f.type === 'checkbox-group') {
-          initialState[f.name] = f.defaultValue || [];
+          initialCheckboxState[f.name] = f.defaultValue || [];
+        } else if (f.type === 'image-upload') {
+          initialImagesState[f.name] = f.defaultValue || [];
         }
       });
-      setCheckboxState(initialState);
+      setCheckboxState(initialCheckboxState);
+      setImagesState(initialImagesState);
       lastDefaultValues.current = currentDefaults;
     }
   }, [fields]);
@@ -122,6 +131,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     fields.forEach(f => {
       if (f.type === 'checkbox-group') {
         data[f.name] = checkboxState[f.name] || [];
+      } else if (f.type === 'image-upload') {
+        data[f.name] = imagesState[f.name] || [];
       } else {
         data[f.name] = formData.get(f.name);
       }
@@ -189,6 +200,90 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                        </label>
                      ))}
                    </div>
+                </div>
+              ) : field.type === 'image-upload' ? (
+                <div className={`space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 transition-all ${field.disabled ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
+                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1">
+                     {field.label}
+                   </label>
+                   
+                   {(() => {
+                     const maxImg = field.maxImages || 3;
+                     const labelText = field.uploadLabel || (maxImg === 1 ? 'Upload Image' : 'Upload Images (2-3 Option)');
+                     const currentImages = imagesState[field.name] || [];
+                     return (
+                       <div className="flex flex-col gap-4">
+                         <div className="flex items-center gap-3">
+                           <input 
+                             type="file"
+                             accept="image/*"
+                             multiple={maxImg > 1}
+                             disabled={field.disabled || currentImages.length >= maxImg}
+                             onChange={(e) => {
+                               const files = Array.from(e.target.files || []);
+                               if (files.length === 0) return;
+                               
+                               if (currentImages.length + files.length > maxImg) {
+                                 toast.error(`You can upload a maximum of ${maxImg} image${maxImg > 1 ? 's' : ''}.`);
+                                 return;
+                               }
+                               
+                               files.forEach(file => {
+                                 const reader = new FileReader();
+                                 reader.onloadend = () => {
+                                   const base64 = reader.result as string;
+                                   setImagesState(prev => {
+                                     const existing = prev[field.name] || [];
+                                     if (existing.length >= maxImg) return prev;
+                                     const updated = [...existing, base64];
+                                     if (field.onChange) field.onChange(updated);
+                                     return { ...prev, [field.name]: updated };
+                                   });
+                                 };
+                                 reader.readAsDataURL(file);
+                               });
+                             }}
+                             className="hidden"
+                             id={`file-upload-${field.name}`}
+                           />
+                           <label 
+                             htmlFor={`file-upload-${field.name}`}
+                             className={`h-12 px-6 bg-white border-2 border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm ${currentImages.length >= maxImg ? 'opacity-50 cursor-not-allowed' : ''}`}
+                           >
+                             <Camera size={16} />
+                             <span>{labelText}</span>
+                           </label>
+                           <span className="text-[10px] font-bold text-zinc-400">
+                             {currentImages.length} of {maxImg} uploaded
+                           </span>
+                         </div>
+
+                         {/* Previews */}
+                         {currentImages.length > 0 && (
+                           <div className="flex flex-wrap gap-4 mt-2">
+                             {currentImages.map((img, idx) => (
+                               <div key={idx} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-zinc-200 bg-white group shadow-sm">
+                                 <img src={img} alt="preview" className="w-full h-full object-cover" />
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     setImagesState(prev => {
+                                       const updated = (prev[field.name] || []).filter((_, i) => i !== idx);
+                                       if (field.onChange) field.onChange(updated);
+                                       return { ...prev, [field.name]: updated };
+                                     });
+                                   }}
+                                   className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all font-black text-[10px] uppercase cursor-pointer"
+                                 >
+                                   Remove
+                                 </button>
+                               </div>
+                             ))}
+                           </div>
+                         )}
+                       </div>
+                     );
+                   })()}
                 </div>
               ) : (
                 <Input 

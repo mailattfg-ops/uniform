@@ -64,11 +64,31 @@ export interface ManualItem {
   id: number;
   product_type_id: string;
   product_id?: string;
+  // Main Fabric — mandatory
   fabric_id: string;
+  main_fabric_meters: string;
+  main_fabric_rate: string;
+  main_fabric_sam: string; // Fabric SAM (minutes)
+  // Attachment Fabric 1 — optional
+  attachment_fabric1_id: string;
+  attachment_fabric1_meters: string;
+  attachment_fabric1_rate: string;
+  attachment_fabric1_sam: string; // Fabric SAM (minutes)
+  // Attachment Fabric 2 — optional
+  attachment_fabric2_id: string;
+  attachment_fabric2_meters: string;
+  attachment_fabric2_rate: string;
+  attachment_fabric2_sam: string; // Fabric SAM (minutes)
+  // Accessories — optional
+  button_id: string;
+  button_count: string;
+  thread_id: string;
+  thread_count: string;
+  // SAM & meta
   sam_value: string;
   design_number: string;
   quantity: string;
-  price: string;
+  price: string; // computed unit cost
 }
 
 export interface TemplateLineItem {
@@ -98,6 +118,11 @@ export default function QuotationsPage() {
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Quotation | null>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
+  const [buttonsList, setButtonsList] = useState<any[]>([]);
+  const [threadsList, setThreadsList] = useState<any[]>([]);
+  const [inwardRates, setInwardRates] = useState<any[]>([]);
+  const [fabricMargins, setFabricMargins] = useState<any[]>([]);
+  const [samConfigurations, setSamConfigurations] = useState<any[]>([]);
 
   // Load all baseline data
   const fetchQuotations = async () => {
@@ -145,6 +170,51 @@ export default function QuotationsPage() {
     }
   };
 
+  const fetchButtons = async () => {
+    try {
+      const res = await api.get('/inventory/buttons');
+      setButtonsList(res.data || []);
+    } catch (err) {
+      console.error('Failed to load buttons list', err);
+    }
+  };
+
+  const fetchThreads = async () => {
+    try {
+      const res = await api.get('/inventory/threads');
+      setThreadsList(res.data || []);
+    } catch (err) {
+      console.error('Failed to load threads list', err);
+    }
+  };
+
+  const fetchInwardRates = async () => {
+    try {
+      const res = await api.get('/sam-management/fabric/inward-transportation');
+      setInwardRates(res.data || []);
+    } catch (err) {
+      console.error('Failed to load inward rates', err);
+    }
+  };
+
+  const fetchFabricMargins = async () => {
+    try {
+      const res = await api.get('/sam-management/fabric/margins');
+      setFabricMargins(res.data || []);
+    } catch (err) {
+      console.error('Failed to load fabric margins', err);
+    }
+  };
+
+  const fetchSamConfigurations = async () => {
+    try {
+      const res = await api.get('/sam-management/configurations');
+      setSamConfigurations(res.data || []);
+    } catch (err) {
+      console.error('Failed to load SAM configurations', err);
+    }
+  };
+
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
@@ -154,7 +224,12 @@ export default function QuotationsPage() {
           fetchOrganizations(),
           fetchProductTypes(),
           fetchFabrics(),
-          fetchProducts()
+          fetchProducts(),
+          fetchButtons(),
+          fetchThreads(),
+          fetchInwardRates(),
+          fetchFabricMargins(),
+          fetchSamConfigurations()
         ]);
       } catch (err) {
         console.error('Error loading baseline data', err);
@@ -261,6 +336,11 @@ export default function QuotationsPage() {
           productTypes={productTypes}
           fabricsList={fabricsList}
           allProducts={allProducts}
+          buttonsList={buttonsList}
+          threadsList={threadsList}
+          inwardRates={inwardRates}
+          fabricMargins={fabricMargins}
+          samConfigurations={samConfigurations}
           onClose={() => {
             setEditingQuotationId(null);
             setActiveTab('list');
