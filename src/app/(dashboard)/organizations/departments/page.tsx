@@ -56,11 +56,6 @@ export default function DepartmentManagement() {
       
       setOrganizations(orgsData);
       setDepartments(deptsData);
-
-      // Auto-select first organization if none selected
-      if (!selectedOrg && orgsData.length > 0) {
-        setSelectedOrg(orgsData[0].id.toString());
-      }
     } catch (err) {
       toast.error('Failed to load department data');
     } finally {
@@ -227,7 +222,10 @@ export default function DepartmentManagement() {
                 <Select 
                   placeholder="All Organizations"
                   value={selectedOrg}
-                  options={organizations.map(o => ({ label: o.name, value: o.id.toString() }))}
+                  options={[
+                    { label: 'All Organizations', value: '' },
+                    ...organizations.map(o => ({ label: o.name, value: o.id.toString() }))
+                  ]}
                   onChange={(val: string) => setSelectedOrg(val)}
                 />
               </div>

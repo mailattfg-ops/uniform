@@ -271,7 +271,7 @@ export default function FabricSAMConfigPage() {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Fabric SAM Configurator</h1>
+          <h1 className="text-4xl font-black tracking-tighter text-[#3a525d]">Fabric SAM Configurator</h1>
           <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] mt-1 opacity-80">
             Set Inward Transport Rates and Profit Margin Slabs
           </p>

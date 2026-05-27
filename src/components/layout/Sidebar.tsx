@@ -42,10 +42,9 @@ const modules: ModuleItem[] = [
   {
     icon: Building2, label: 'Sector Operations', href: '/organizations/registry',
     subsections: [
-      { label: 'Member Organizations', href: '/organizations/registry' },
+      { label: 'Organization', href: '/organizations/registry' },
       { label: 'Department Units', href: '/organizations/departments' },
-      { label: 'Entity Registry', href: '/entities/directory' },
-      // { label: 'Functional Groups', href: '/entities/groups' }
+      { label: 'Entity', href: '/entities/directory' }
     ]
   },
   {
@@ -70,11 +69,12 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Box, label: 'Product Management', href: '/admin/products',
+    icon: Box, label: 'Product Managment', href: '/admin/products',
     subsections: [
       { label: 'Product Registry', href: '/admin/products' },
       { label: 'Product Types', href: '/admin/product-types' },
-      { label: 'Design Catalog', href: '/admin/designs' },
+      { label: 'Group Design Catalog', href: '/admin/designs' },
+      { label: 'Design Number Catalog', href: '/admin/design-numbers' },
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
@@ -100,7 +100,7 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Calculator, label: 'SAM Management', href: '/sam-management/calculator',
+    icon: Calculator, label: 'SAM Managment', href: '/sam-management/calculator',
     subsections: [
       { label: 'SAM Calculator', href: '/sam-management/calculator' },
       { label: 'SAM Configurations', href: '/sam-management/configurations' },
@@ -111,8 +111,7 @@ const modules: ModuleItem[] = [
   {
     icon: Settings, label: 'Settings', href: '/settings/profile',
     subsections: [
-      { label: 'Profile', href: '/settings/profile' },
-      // { label: 'Company Info', href: '/settings/company' }
+      { label: 'Profile', href: '/settings/profile' }
     ]
   },
 ];
@@ -169,47 +168,43 @@ export const Sidebar: React.FC = () => {
         lg:translate-x-0 transition-all duration-300 ease-in-out
         fixed lg:static inset-y-0 left-0 z-50
         ${isExpanded ? 'w-72' : 'w-24'}
-        bg-[#F5CAAD] text-[#1a1d21]/70 flex flex-col border-r border-black/5 shadow-2xl
+        bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full
       `}>
         {/* Brand Identity Section */}
-        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all bg-black/6 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
+        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all border-b border-white/5 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
           <div className="flex items-center gap-3">
             {!isExpanded ? (
-              <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                <Image
-                  src="/logosmall.jpeg"
-                  alt="Inland Logo"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                  priority
-                />
+              <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center animate-in fade-in duration-500 shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
+                </svg>
               </div>
             ) : (
-              <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                <Image
-                  src="/logoimg.jpeg"
-                  alt="Inland Logo"
-                  width={140}
-                  height={40}
-                  className="object-contain"
-                  priority
-                />
+              <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-4 duration-500 shrink-0">
+                <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
+                  </svg>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black tracking-[0.2em] text-white leading-none">FORMA</span>
+                  <span className="text-[8px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
+                </div>
               </div>
             )}
           </div>
 
           <button
             onClick={toggleSidebar}
-            className={`w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
+            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
           >
-            <ChevronLeft size={16} className="text-[#1a1d21]" />
+            <ChevronLeft size={16} className="text-white" />
           </button>
         </div>
 
         {/* Navigation Container */}
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
-          <nav className="flex-1 overflow-y-auto no-scrollbar py-4 space-y-2">
+          <nav className="flex-1 overflow-y-auto no-scrollbar py-2 space-y-1.5">
             {modules.map((item) => {
               // Use the user state loaded in useEffect
               const userPermissions = user?.permissions || [];
@@ -220,9 +215,9 @@ export const Sidebar: React.FC = () => {
                 'Sector Operations': ['view_schools', 'manage_schools', 'view_students', 'register_students'],
                 'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
                 'Admin Controls': ['manage_system', 'view_audit_logs'],
-                'Product Management': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
+                'Product Managment': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
                 'Marketing': ['manage_quotations', 'view_quotations'],
-                'SAM Management': ['manage_products', 'view_products', 'manage_quotations', 'view_quotations']
+                'SAM Managment': ['manage_products', 'view_products', 'manage_quotations', 'view_quotations']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
@@ -238,37 +233,36 @@ export const Sidebar: React.FC = () => {
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
 
               return (
-                <div key={item.label} className={`transition-all ${isExpanded ? 'px-4' : 'px-0 flex flex-col items-center'}`}>
+                <div key={item.label} className={`transition-all ${isExpanded ? 'px-3' : 'px-0 flex flex-col items-center'}`}>
                   <div
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full bg-black/6 cursor-pointer ${isPathActive ? '!bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
+                    className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 w-full cursor-pointer ${isPathActive ? '!bg-[#CC9448] text-white shadow-xl scale-102 font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'
                       }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className="shrink-0">
-                        <Icon size={20} strokeWidth={isPathActive ? 2.5 : 2} />
+                        <Icon size={18} strokeWidth={isPathActive ? 2.5 : 2} />
                       </div>
                       {isExpanded && (
-                        <span className="text-sm font-black tracking-tight animate-in fade-in slide-in-from-left-4">
+                        <span className="text-xs font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
                           {item.label}
                         </span>
                       )}
                     </div>
                     {isExpanded && item.subsections.length > 0 && (
-                      <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={12} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                     )}
                   </div>
 
                   {isExpanded && isOpen && item.subsections.length > 0 && (
-                    <div className="ml-10 mt-3 space-y-3 animate-in fade-in slide-in-from-top-4 duration-700 pb-2">
+                    <div className="relative ml-9 mt-2 pl-4 border-l border-[#CC9448]/30 space-y-2.5 animate-in fade-in slide-in-from-top-4 duration-500 pb-2 pt-1">
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
 
                         // Sub-permission logic - Labels MUST match subsections array labels
                         const subPermissionMap: Record<string, string[]> = {
-                          'Member Organizations': ['view_schools', 'manage_schools'],
-                          'Department Units': ['view_schools', 'manage_schools'],
-                          'Entity Registry': ['view_students', 'register_students'],
+                          'Organization': ['view_schools', 'manage_schools'],
+                          'Entity': ['view_students', 'register_students'],
                           'Record Entry': ['manage_measurements'],
                           'History': ['view_measurements'],
                           'Industry Templates': ['manage_measurements'],
@@ -277,7 +271,8 @@ export const Sidebar: React.FC = () => {
                           'Measurements Approvals': ['manage_system'],
                           'Product Registry': ['manage_products', 'view_products'],
                           'Product Types': ['manage_products', 'view_products'],
-                          'Design Catalog': ['manage_products', 'view_products'],
+                          'Group Design Catalog': ['manage_products', 'view_products'],
+                          'Design Number Catalog': ['manage_products', 'view_products'],
                           'Audit Logs': ['view_audit_logs'],
                           'Staff Management': ['manage_employees', 'view_employees'],
                           'System Settings': ['manage_system'],
@@ -309,11 +304,17 @@ export const Sidebar: React.FC = () => {
                             key={idx}
                             href={sub.href}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
-                            className={`flex items-center gap-3 group text-xs font-bold transition-all ${isSubActive ? 'text-[#1a1d21]' : 'text-[#1a1d21]/40 hover:text-[#1a1d21]'
+                            className={`relative flex items-center gap-2.5 group text-[11px] transition-all py-1.5 px-3 rounded-xl ${isSubActive
+                              ? 'text-white bg-[#CC9448]/20 font-bold shadow-inner'
+                              : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'
                               }`}
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isSubActive ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-black/20 group-hover:bg-black'
-                              }`} />
+                            {/* Horizontal gold line connector */}
+                            <div
+                              className={`absolute -left-4 transition-all duration-300 ${isSubActive ? 'w-4 h-[2px] bg-[#CC9448]' : 'w-3.5 h-[1px] bg-[#CC9448]/30'
+                                }`}
+                              style={{ top: '50%' }}
+                            />
                             {sub.label}
                           </Link>
                         );
@@ -327,24 +328,27 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* User Profile Footer */}
-        <div className={`mt-auto p-4 border-t border-black/10 ${!isExpanded && 'flex justify-center'}`}>
-          <div className={`flex items-center gap-3 p-3 rounded-2xl bg-black/5 group hover:bg-black/10 transition-all cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
-            <div className="w-10 h-10 rounded-xl bg-red-600/10 flex items-center justify-center shrink-0 overflow-hidden border border-black/5 group-hover:border-red-500/30 transition-all">
-              {user?.avatar_url ? (
-                <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <User size={20} className="text-red-500" />
+        <div className={`mt-auto p-4 border-t border-white/5 ${!isExpanded && 'flex justify-center'}`}>
+          <div className={`flex items-center justify-between p-3 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0">
+                <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
+              </div>
+              {isExpanded && (
+                <div className="flex flex-col min-w-0">
+                  <p className="text-xs font-bold truncate leading-tight text-white">
+                    {user?.fullName || 'John Lee'}
+                  </p>
+                  <p className="text-[9px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none">
+                    {user?.role || 'Admin'}
+                  </p>
+                </div>
               )}
             </div>
             {isExpanded && (
-              <div className="flex flex-col min-w-0 pr-4">
-                <p className="text-xs font-black truncate leading-tight text-[#1a1d21]">
-                  {user?.fullName || 'User Profile'}
-                </p>
-                <p className="text-[10px] font-bold text-[#1a1d21]/40 uppercase tracking-widest mt-0.5">
-                  {user?.role || 'Portal'}
-                </p>
-              </div>
+              <svg className="w-4 h-4 text-white/85 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+              </svg>
             )}
           </div>
         </div>

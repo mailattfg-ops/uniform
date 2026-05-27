@@ -214,7 +214,7 @@ export default function SAMCalculator() {
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* Page Header */}
       <div>
-        <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">SAM Cost Calculator</h1>
+        <h1 className="text-4xl font-black tracking-tighter text-[#3a525d]">SAM Cost Calculator</h1>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
           Standard Allowed Minutes costing engine
         </p>

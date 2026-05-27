@@ -226,7 +226,7 @@ export const MeasurementTable: React.FC = () => {
       header: 'Entity / Organization',
       accessor: (r) => (
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] opacity-80">{r.registry_members?.organizations?.name || 'Inland ERP'}</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] opacity-80">{r.registry_members?.organizations?.name || 'Forma ERP'}</p>
           <span className="text-[8px] font-black text-[#2d8d9b] uppercase tracking-widest bg-zinc-50 px-2 py-0.5 rounded mt-1 inline-block border border-zinc-100">Verified System Data</span>
         </div>
       ),

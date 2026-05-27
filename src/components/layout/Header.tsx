@@ -57,42 +57,27 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-24 bg-white/70 backdrop-blur-xl sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between border-b border-zinc-100/50 shadow-sm transition-all duration-300">
+    <header className="h-24 bg-transparent sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between border-b border-zinc-200/20 transition-all duration-300">
       {/* Left: Mobile Toggle & Breadcrumbs/Title */}
       <div className="flex items-center gap-6">
         <Button
           onClick={toggleSidebar}
           variant="secondary"
-          className="p-3 rounded-2xl bg-white shadow-xl shadow-zinc-200/50 border border-zinc-100 hover:bg-[#3a525d] hover:text-white transition-all lg:hidden active:scale-90"
+          className="p-3 rounded-2xl bg-white shadow-xl shadow-zinc-200/50 border border-zinc-100 hover:bg-[#CC9448] hover:text-white transition-all lg:hidden active:scale-90"
         >
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
 
         <div className="hidden sm:flex flex-col">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#f2994a] animate-pulse" />
-            <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#3a525d]">Forma Apparels Enterprise</h1>
+            <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse shadow-[0_0_8px_#CC9448]" />
+            <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#030303]">Forma Apparels Enterprise</h1>
           </div>
-          {/* <p className="text-[9px] font-bold text-[#2d8d9b] opacity-60 ml-4 font-mono">STABLE // REV 2.4.0</p> */}
         </div>
       </div>
 
       {/* Right: Actions & User */}
       <div className="flex items-center gap-6">
-        {/* <div className="hidden md:flex items-center gap-2">
-            <div className="p-2 space-y-1">
-                <div className="w-12 h-1 bg-zinc-100 rounded-full overflow-hidden">
-                    <div className="w-2/3 h-full bg-[#2d8d9b]" />
-                </div>
-                <p className="text-[8px] font-black text-zinc-400 text-right uppercase tracking-tighter">System Load</p>
-            </div>
-        </div> */}
-
-        {/* <Button variant="ghost" className="p-2.5 h-auto rounded-2xl relative hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-zinc-100">
-          <Bell size={20} className="text-[#3a525d]" />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#f2994a] rounded-full border-2 border-white ring-2 ring-[#f2994a]/20" />
-        </Button> */}
-
         <div className="h-6 w-[1px] bg-zinc-200 hidden sm:block" />
 
         {/* User Dropdown */}
@@ -100,9 +85,9 @@ export const Header: React.FC = () => {
           <Button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             variant="secondary"
-            className="flex items-center gap-3 p-1.5 pr-4 rounded-[1.5rem] bg-white shadow-sm border border-zinc-100 hover:shadow-xl hover:border-[#2d8d9b]/20 transition-all active:scale-95 group h-auto"
+            className="flex items-center gap-3 p-1.5 pr-4 rounded-[1.5rem] bg-white shadow-sm border border-zinc-100 hover:shadow-xl hover:border-[#CC9448]/20 transition-all active:scale-95 group h-auto"
           >
-            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-[#2d8d9b]/10 group-hover:border-[#2d8d9b]/40 transition-all shadow-inner flex items-center justify-center bg-zinc-50 font-black text-[#2d8d9b]">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-[#CC9448]/10 group-hover:border-[#CC9448]/40 transition-all shadow-inner flex items-center justify-center bg-zinc-50 font-black text-[#CC9448]">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -114,58 +99,22 @@ export const Header: React.FC = () => {
               )}
             </div>
             <div className="hidden lg:flex flex-col items-start">
-              <p className="text-[10px] font-black text-[#3a525d] leading-none mb-1">{userName}</p>
+              <p className="text-[10px] font-black text-[#030303] leading-none mb-1">{userName}</p>
               <div className="flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-green-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none">{userRole}</p>
               </div>
             </div>
-            <ChevronDown size={12} className={`text-[#3a525d] transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={12} className={`text-[#030303] transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
           </Button>
 
           {/* Premium Dropdown Menu */}
           {isMenuOpen && (
             <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-zinc-100 p-2 animate-in fade-in slide-in-from-top-4 duration-300 scale-100 origin-top-right z-50 overflow-hidden">
-              {/* <div className="px-6 py-6 bg-zinc-50/50 rounded-[1.5rem] mb-2">
-                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden border border-zinc-100 font-black text-[#2d8d9b] text-xl">
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
-                        ) : (
-                          userName.charAt(0).toUpperCase()
-                        )}
-                    </div>
-                    <div>
-                        <p className="text-sm font-black text-[#3a525d] leading-none mb-1">{userName}</p>
-                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest">{userRole}</p>
-                    </div>
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <div className="h-1 flex-1 bg-zinc-200 rounded-full overflow-hidden">
-                        <div className="w-full h-full bg-green-500" />
-                    </div>
-                    <span className="text-[9px] font-black text-green-600 uppercase">Live Account</span>
-                 </div>
-               </div> */}
-
               <div className="p-2 space-y-1">
-                {/* <Link 
-                   href="/profile" 
-                   className="flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-[#2d8d9b] hover:text-white transition-all group"
-                 >
-                   <User size={18} className="text-zinc-400 group-hover:text-white/70" />
-                   Security Profile
-                 </Link>
-                 <Link 
-                   href="/settings" 
-                   className="flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-[#2d8d9b] hover:text-white transition-all group"
-                 >
-                   <Settings size={18} className="text-zinc-400 group-hover:text-white/70" />
-                   System Config
-                 </Link> */}
                 <Button
                   onClick={handleLogout}
-                  className="w-full mt-2 flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#3a525d] hover:bg-[#3a525e] transition-all shadow-lg hover:shadow-error/20 group border-none h-auto"
+                  className="w-full mt-2 flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#030303] hover:bg-[#CC9448] transition-all shadow-lg hover:shadow-[#CC9448]/20 group border-none h-auto"
                 >
                   <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
                   Secure Logout

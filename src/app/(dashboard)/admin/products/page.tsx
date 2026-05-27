@@ -29,6 +29,9 @@ interface Product {
   main_fabric?: number | null;
   attachment_fabric1?: number | null;
   attachment_fabric2?: number | null;
+  main_fabric_id?: string | number | null;
+  button_id?: string | null;
+  thread_id?: string | null;
   button_count?: number | null;
   thread_count?: number | null;
   created_at: string;
@@ -85,6 +88,72 @@ export default function ProductManagement() {
     isOpen: false,
     id: null
   });
+
+  // Variant design number states
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<any | null>(null);
+  const [productVariants, setProductVariants] = useState<any[]>([]);
+  const [newVariantBtn, setNewVariantBtn] = useState('');
+  const [newVariantBtnCount, setNewVariantBtnCount] = useState('0');
+  const [newVariantThread, setNewVariantThread] = useState('');
+  const [newVariantThreadCount, setNewVariantThreadCount] = useState('0');
+  const [isCreatingVariant, setIsCreatingVariant] = useState(false);
+
+  const fetchProductVariants = async (prodId: any) => {
+    try {
+      const res = await api.get(`/products/${prodId}/variants`);
+      setProductVariants(res.data || []);
+    } catch (err) {
+      toast.error('Failed to load product variants');
+    }
+  };
+
+  useEffect(() => {
+    if (selectedProductForVariants) {
+      fetchProductVariants(selectedProductForVariants.id);
+      setNewVariantBtn('');
+      setNewVariantBtnCount('0');
+      setNewVariantThread('');
+      setNewVariantThreadCount('0');
+    }
+  }, [selectedProductForVariants]);
+
+  const handleCreateVariant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProductForVariants) return;
+
+    if (!newVariantBtn && !newVariantThread) {
+      toast.error('Please specify at least a button or thread type for the variant combination.');
+      return;
+    }
+
+    setIsCreatingVariant(true);
+    const loadingToast = toast.loading('Registering variant combination...');
+    try {
+      await api.post(`/products/${selectedProductForVariants.id}/variants`, {
+        button_id: newVariantBtn || null,
+        button_count: parseInt(newVariantBtnCount, 10) || 0,
+        thread_id: newVariantThread || null,
+        thread_count: parseInt(newVariantThreadCount, 10) || 0
+      });
+      toast.success('Variant Design Number registered!', { id: loadingToast });
+      fetchProductVariants(selectedProductForVariants.id);
+      setNewVariantBtn('');
+      setNewVariantBtnCount('0');
+      setNewVariantThread('');
+      setNewVariantThreadCount('0');
+      fetchData();
+    } catch (err: any) {
+      const errMsg = err.response?.data?.error || 'Failed to create variant';
+      const code = err.response?.data?.design_number;
+      if (code) {
+        toast.error(`${errMsg} (Design Code: ${code})`, { id: loadingToast, duration: 6000 });
+      } else {
+        toast.error(errMsg, { id: loadingToast });
+      }
+    } finally {
+      setIsCreatingVariant(false);
+    }
+  };
 
   // Local state for dynamic form reactivity
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['manual']);
@@ -474,8 +543,12 @@ export default function ProductManagement() {
 
     try {
       if (editingProduct) {
-        await api.put(`/products/${editingProduct.id}`, data);
-        toast.success('Product updated!', { id: loadingToast });
+        const res = await api.put(`/products/${editingProduct.id}`, data);
+        if (res.data?.variant_created) {
+          toast.success('Product updated! A new Design Number was auto-created for the changed button/thread combination.', { id: loadingToast, duration: 5000 });
+        } else {
+          toast.success('Product updated!', { id: loadingToast });
+        }
       } else {
         await api.post('/products', data);
         toast.success('Product created!', { id: loadingToast });
@@ -648,12 +721,21 @@ export default function ProductManagement() {
               setIsAdding(true);
             }}
             className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10"
+            title="Edit Product"
           >
             <Edit2 size={16} />
           </button>
           <button
+            onClick={() => setSelectedProductForVariants(p)}
+            className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-100"
+            title="Manage Design Variants"
+          >
+            <Layers size={16} />
+          </button>
+          <button
             onClick={() => setDeleteConfirm({ isOpen: true, id: p.id })}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
+            title="Delete Product"
           >
             <Trash2 size={16} />
           </button>
@@ -713,6 +795,136 @@ export default function ProductManagement() {
         confirmLabel="Confirm Deletion"
         variant="danger"
       />
+
+      {/* Product Variants Modal */}
+      {selectedProductForVariants && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-zinc-100 rounded-[2.5rem] shadow-2xl max-w-4xl w-full p-8 max-h-[85vh] overflow-y-auto space-y-6 flex flex-col">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-2xl font-black italic text-[#3a525d]">Manage Design Variants</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1">
+                  Product: {selectedProductForVariants.name} ({selectedProductForVariants.art_number})
+                </p>
+                <p className="text-xs text-zinc-400 mt-1 font-semibold">
+                  Default Design Number: <span className="text-[#3a525d] font-bold">{selectedProductForVariants.design_number}</span>
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedProductForVariants(null)}
+                className="text-zinc-400 hover:text-zinc-600 font-bold text-xs uppercase bg-zinc-50 border border-zinc-200 px-4 py-2 rounded-xl transition-all"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start overflow-y-auto pr-1">
+              
+              {/* LIST OF VARIANTS */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d] border-b border-zinc-100 pb-2">
+                  Registered Design Numbers ({productVariants.length})
+                </h4>
+                {productVariants.length === 0 ? (
+                  <div className="bg-zinc-50 border border-zinc-150 p-6 rounded-2xl text-center text-zinc-400 text-xs font-medium">
+                    No variant design numbers registered for this product. Use the form to add one.
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
+                    {productVariants.map((v) => (
+                      <div key={v.id} className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl flex flex-col gap-1.5 relative hover:border-[#2d8d9b]/35 transition-all">
+                        <div className="flex justify-between items-center">
+                          <span className="px-2 py-0.5 bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 text-[9px] font-black uppercase rounded">
+                            {v.design_code}
+                          </span>
+                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-green-50 text-green-600 border border-green-100 rounded">
+                            {v.variant_status}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-zinc-500 font-semibold grid grid-cols-2 gap-2 mt-1">
+                          <div>
+                            <span className="font-bold text-zinc-400">Buttons: </span>
+                            <span className="text-[#3a525d]">{v.button_name} ({v.button_count} pcs)</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-zinc-400">Thread: </span>
+                            <span className="text-[#3a525d]">{v.thread_name} ({v.thread_count} unit)</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* CREATE VARIANT FORM */}
+              <form onSubmit={handleCreateVariant} className="bg-zinc-50/50 border border-zinc-200/60 p-6 rounded-3xl space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d] border-b border-zinc-100 pb-2">
+                  Create Design Variant
+                </h4>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Button Brand</label>
+                  <select
+                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
+                    value={newVariantBtn}
+                    onChange={(e) => setNewVariantBtn(e.target.value)}
+                  >
+                    <option value="">Select button...</option>
+                    {buttonsList.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Buttons Count (pcs)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
+                    value={newVariantBtnCount}
+                    onChange={(e) => setNewVariantBtnCount(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Thread Brand/Color</label>
+                  <select
+                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
+                    value={newVariantThread}
+                    onChange={(e) => setNewVariantThread(e.target.value)}
+                  >
+                    <option value="">Select thread...</option>
+                    {threadsList.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Thread Count (units)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
+                    value={newVariantThreadCount}
+                    onChange={(e) => setNewVariantThreadCount(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingVariant}
+                  className="w-full py-3 bg-[#3a525d] hover:bg-[#2d8d9b] disabled:bg-zinc-300 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg"
+                >
+                  {isCreatingVariant ? 'Registering...' : 'Register Variant Design Number'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

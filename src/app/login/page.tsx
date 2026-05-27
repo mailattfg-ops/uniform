@@ -59,7 +59,7 @@ export default function LoginPage() {
               <span className="text-white text-xl font-black tracking-[0.2em] uppercase">Forma Apparels</span>
             </div>
 
-            <h2 className="text-5xl font-black italic text-white leading-[1.1] mb-6">
+            <h2 className="text-5xl font-black text-white leading-[1.1] mb-6">
               Normal <br />
               <span className="text-[#f2994a]">Administrative</span> <br />
               Login.
@@ -69,7 +69,7 @@ export default function LoginPage() {
 
         <div className="p-8 md:p-16 flex flex-col justify-center">
           <div className="space-y-2 mb-10">
-            <h1 className="text-3xl md:text-4xl font-black italic tracking-tighter text-[#3a525d]">System Access</h1>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-[#3a525d]">System Access</h1>
             <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] opacity-70">Enter Username & Password</p>
           </div>
 

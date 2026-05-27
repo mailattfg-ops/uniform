@@ -163,7 +163,7 @@ export default function QuotationList({
             <Layers size={24} />
           </div>
           <div>
-            <p className="text-2xl font-black italic text-[#3a525d]">{quotations.length}</p>
+            <p className="text-2xl font-black text-[#3a525d]">{quotations.length}</p>
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Quotations</p>
           </div>
         </Card>
@@ -173,7 +173,7 @@ export default function QuotationList({
             <CheckCircle2 size={24} />
           </div>
           <div>
-            <p className="text-2xl font-black italic text-green-600">
+            <p className="text-2xl font-black text-green-600">
               {quotations.filter(q => q.status === 'Approved').length}
             </p>
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Approved Quotes</p>
@@ -185,7 +185,7 @@ export default function QuotationList({
             <Scale size={24} />
           </div>
           <div>
-            <p className="text-2xl font-black italic text-[#3a525d]">
+            <p className="text-2xl font-black text-[#3a525d]">
               ₹{quotations.reduce((acc, q) => acc + Number(q.final_quote_value), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </p>
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Registry Value</p>
@@ -197,7 +197,7 @@ export default function QuotationList({
             <Clock size={24} />
           </div>
           <div>
-            <p className="text-2xl font-black italic text-amber-600">
+            <p className="text-2xl font-black text-amber-600">
               {quotations.filter(q => q.status === 'Draft').length}
             </p>
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Pending Drafts</p>

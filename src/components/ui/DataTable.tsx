@@ -88,7 +88,7 @@ export function DataTable<T extends { id: string | number }>({
       {(title || subtitle || searchPlaceholder) && (
         <div className="p-4 md:p-8 border-b border-[#fce4d4] flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-[#fce4d4]/10">
           <div className="space-y-1">
-            {title && <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-[#3a525d]">{title}</h3>}
+            {title && <h3 className="text-xl md:text-2xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
             {subtitle && (
               <p className="text-[9px] md:text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] opacity-80">
                 {subtitle}

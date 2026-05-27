@@ -284,7 +284,7 @@ export default function QuotationsPage() {
       {/* HEADER CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d] flex items-center gap-3">
+          <h1 className="text-4xl font-black tracking-tighter text-[#3a525d] flex items-center gap-3">
             Marketing Quotations
           </h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">

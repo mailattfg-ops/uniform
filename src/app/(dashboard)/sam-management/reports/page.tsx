@@ -296,7 +296,7 @@ export default function SAMReports() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">SAM Intelligence</h1>
+          <h1 className="text-4xl font-black tracking-tighter text-[#3a525d]">SAM Intelligence</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             Reports & performance analysis cockpit
           </p>

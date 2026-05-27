@@ -152,7 +152,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       
       {(title || subtitle) && (
         <div className="bg-[#fce4d4]/20 p-5 md:p-8 border-b border-[#fce4d4] rounded-t-[2rem] md:rounded-t-[3rem]">
-          {title && <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-[#3a525d]">{title}</h3>}
+          {title && <h3 className="text-xl md:text-2xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
           {subtitle && (
             <p className="text-[9px] md:text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] opacity-80 mt-1">
               {subtitle}

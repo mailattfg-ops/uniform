@@ -13,32 +13,37 @@
   --color-warning: rgb(var(--color-warning));
   --color-error: rgb(var(--color-error));
 
-  /* Image Specific Palette */
-  --color-teal-deep: #2d8d9b;
-  --color-teal-light: #6fa1ac;
-  --color-peach: #fce4d4;
-  --color-orange-accent: #f2994a;
-  --color-sidebar-bg: #3a525d;
+  /* Brand Typography & Layout Colors */
+  --color-brand-gold: #CC9448;
+  --color-brand-black: #030303;
+  --color-brand-white: #F5F4F2;
 
-  --font-sans: var(--font-geist-sans);
+  /* Keep legacy variables but map them smoothly */
+  --color-teal-deep: #CC9448;
+  --color-teal-light: #dcb37b;
+  --color-peach: #F5F4F2;
+  --color-orange-accent: #CC9448;
+  --color-sidebar-bg: #030303;
+
+  --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 :root {
-  --color-primary: 45 141 155;
-  --color-primary-foreground: 255 255 255;
-  --color-background: 81 109 122;
-  --color-foreground: 26 26 26;
+  --color-primary: 204 148 72; /* #CC9448 */
+  --color-primary-foreground: 3 3 3; /* #030303 */
+  --color-background: 3 3 3; /* #030303 */
+  --color-foreground: 245 244 242; /* #F5F4F2 */
 
-  --color-muted: 243 244 246;
-  --color-muted-foreground: 107 114 128;
+  --color-muted: 229 231 235;
+  --color-muted-foreground: 115 115 115;
 
   --color-border: 229 231 235;
   --color-input: 255 255 255;
 
   --color-success: 34 197 94;
-  --color-warning: 242 153 74;
-  --color-error: 235 87 87;
+  --color-warning: 204 148 72;
+  --color-error: 239 68 68;
 }
 
 @layer base {
@@ -48,6 +53,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased h-screen overflow-hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-style: normal !important;
+    font-weight: 600 !important;
   }
 
   .no-scrollbar::-webkit-scrollbar {
