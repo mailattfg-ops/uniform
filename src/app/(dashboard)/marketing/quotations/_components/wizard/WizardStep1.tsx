@@ -26,6 +26,9 @@ interface WizardStep1Props {
   generateAutoCoverLetter: () => void;
   previousOrders: any[];
   onSelectPreviousOrder: (order: any) => void;
+  groupDesignCombinations: any[];
+  selectedGroupDesignId: string;
+  onSelectGroupDesign: (gdnId: string) => void;
 }
 
 export default function WizardStep1({
@@ -47,6 +50,9 @@ export default function WizardStep1({
   generateAutoCoverLetter,
   previousOrders,
   onSelectPreviousOrder,
+  groupDesignCombinations,
+  selectedGroupDesignId,
+  onSelectGroupDesign,
 }: WizardStep1Props) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -110,6 +116,21 @@ export default function WizardStep1({
             placeholder="e.g. QT-99081 (Leave blank to auto generate)"
             value={quoteNo}
             onChange={(e) => setQuoteNo(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+            Load Product Combination / Group Design Number
+          </label>
+          <Select
+            options={(groupDesignCombinations || []).map(c => ({
+              label: `${c.code} (${(c.products || []).map((p: any) => p.name).join(', ')})`,
+              value: String(c.id)
+            }))}
+            value={selectedGroupDesignId}
+            onChange={onSelectGroupDesign}
+            placeholder="Choose product combination..."
           />
         </div>
       </div>

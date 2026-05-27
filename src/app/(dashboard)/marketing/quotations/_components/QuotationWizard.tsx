@@ -98,6 +98,8 @@ export default function QuotationWizard({
   const [quoteTitle, setQuoteTitle] = useState('');
   const [quoteNo, setQuoteNo] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState('');
+  const [groupDesignCombinations, setGroupDesignCombinations] = useState<any[]>([]);
+  const [selectedGroupDesignId, setSelectedGroupDesignId] = useState<string>('');
   const [coverLetter, setCoverLetter] = useState('');
   const [gstPercent, setGstPercent] = useState('18');
   const [salesType, setSalesType] = useState<string>('WHOLESALE');
@@ -250,16 +252,65 @@ export default function QuotationWizard({
   const [allQuotations, setAllQuotations] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchAllQuotes = async () => {
+    const fetchAllQuotesAndCombinations = async () => {
       try {
-        const res = await api.get('/quotations');
-        setAllQuotations(res.data || []);
+        const [quotesRes, groupDesignsRes] = await Promise.all([
+          api.get('/quotations'),
+          api.get('/quotations/group-designs')
+        ]);
+        setAllQuotations(quotesRes.data || []);
+        setGroupDesignCombinations(groupDesignsRes.data || []);
       } catch (err) {
-        console.error('Failed to load quotations list in wizard', err);
+        console.error('Failed to load startup registry data in wizard', err);
       }
     };
-    fetchAllQuotes();
+    fetchAllQuotesAndCombinations();
   }, []);
+
+  const handleSelectGroupDesign = (gdnId: string) => {
+    setSelectedGroupDesignId(gdnId);
+    if (!gdnId) return;
+
+    const combination = groupDesignCombinations.find(c => String(c.id) === String(gdnId));
+    if (!combination || !combination.products || combination.products.length === 0) {
+      toast.error("No products found in this combination.");
+      return;
+    }
+
+    const mapped = combination.products.map((prod: any) => {
+      // Find matching fabric rate/brand if main_fabric is set
+      const fabric = fabricsList.find((f: any) => String(f.id) === String(prod.main_fabric));
+      
+      return {
+        id: Date.now() + Math.random(),
+        product_type_id: String(prod.product_type_id || ''),
+        product_id: String(prod.id || ''),
+        fabric_id: String(prod.main_fabric || ''),
+        main_fabric_meters: '1.25', // sensible default for manual creation
+        main_fabric_rate: fabric ? String(fabric.cost_per_meter || '0.00') : '0.00',
+        main_fabric_sam: String(prod.sam_value || ''),
+        attachment_fabric1_id: String(prod.attachment_fabric1 || ''),
+        attachment_fabric1_meters: prod.attachment_fabric1 ? '0.5' : '',
+        attachment_fabric1_rate: '0.00',
+        attachment_fabric1_sam: '',
+        attachment_fabric2_id: String(prod.attachment_fabric2 || ''),
+        attachment_fabric2_meters: prod.attachment_fabric2 ? '0.5' : '',
+        attachment_fabric2_rate: '0.00',
+        attachment_fabric2_sam: '',
+        button_id: String(prod.button_id || buttonsList[0]?.id || ''),
+        button_count: String(prod.button_count || '0'),
+        thread_id: String(prod.thread_id || threadsList[0]?.id || ''),
+        thread_count: String(prod.thread_count || '0'),
+        sam_value: String(prod.sam_value || ''),
+        design_number: String(prod.design_number || ''),
+        quantity: '1',
+        price: ''
+      };
+    });
+
+    setManualItems(mapped);
+    toast.success(`Loaded combination ${combination.code} with ${mapped.length} products`);
+  };
 
   const previousOrders = allQuotations.filter(
     (q: any) => String(q.organization_id) === String(selectedOrgId) && q.id !== editingQuotationId
@@ -703,7 +754,7 @@ export default function QuotationWizard({
     const contractTitle = quoteTitle.trim() || 'Uniform Contract Proposal';
     const template = `Dear Team at ${orgName},
 
-Thank you for giving Inland Uniforms the opportunity to submit our proposal for the "${contractTitle}".
+Thank you for giving Forma Apparels the opportunity to submit our proposal for the "${contractTitle}".
 
 We are pleased to present our comprehensive uniform solutions tailored specifically for your organization. Based on our sizing audit and detailed requirements analysis, we have compiled an optimized production schedule and cost estimate to ensure maximum comfort, perfect fit compliance, and durability.
 
@@ -714,7 +765,7 @@ Should you have any questions or require custom modifications to this proposal, 
 Sincerely,
 
 Operations & Accounts Team
-Inland Uniforms Co.`;
+Forma Apparels Co.`;
     setCoverLetter(template);
   };
 
@@ -819,6 +870,9 @@ Inland Uniforms Co.`;
             generateAutoCoverLetter={generateAutoCoverLetter}
             previousOrders={previousOrders}
             onSelectPreviousOrder={handleSelectPreviousOrder}
+            groupDesignCombinations={groupDesignCombinations}
+            selectedGroupDesignId={selectedGroupDesignId}
+            onSelectGroupDesign={handleSelectGroupDesign}
           />
         )}
 

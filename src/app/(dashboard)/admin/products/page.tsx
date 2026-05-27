@@ -8,6 +8,7 @@ import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Card } from '@/components/ui/Card';
 
 interface Product {
   id: number;
@@ -94,10 +95,17 @@ export default function ProductManagement() {
   const [fit, setFit] = useState('');
   const [nextDesignNumber, setNextDesignNumber] = useState('');
 
+  // Design Catalog tab states
+  const [activeTab, setActiveTab] = useState<'products' | 'designs'>('products');
+  const [groupDesigns, setGroupDesigns] = useState<any[]>([]);
+  const [editingCombination, setEditingCombination] = useState<any | null>(null);
+  const [buttonsList, setButtonsList] = useState<any[]>([]);
+  const [threadsList, setThreadsList] = useState<any[]>([]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, fabricRes, nextDnRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, fabricRes, nextDnRes, gdRes, buttonsRes, threadsRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
         api.get('/size-charts'),
@@ -106,7 +114,10 @@ export default function ProductManagement() {
         api.get('/art-number-hub/genders').catch(() => ({ data: [] })),
         api.get('/art-number-hub/patterns').catch(() => ({ data: [] })),
         api.get('/inventory/fabrics').catch(() => ({ data: [] })),
-        api.get('/products/next-design-number').catch(() => ({ data: { nextDesignNumber: 'DN-0001' } }))
+        api.get('/products/next-design-number').catch(() => ({ data: { nextDesignNumber: 'DNS-0001' } })),
+        api.get('/quotations/group-designs').catch(() => ({ data: [] })),
+        api.get('/inventory/buttons').catch(() => ({ data: [] })),
+        api.get('/inventory/threads').catch(() => ({ data: [] }))
       ]);
       setProducts(prodRes.data);
       setMeasureConfig(configRes.data);
@@ -116,7 +127,10 @@ export default function ProductManagement() {
       setGenders(genderRes.data);
       setPatterns(patternRes.data);
       setFabrics(fabricRes.data);
-      setNextDesignNumber(nextDnRes.data.nextDesignNumber || 'DN-0001');
+      setNextDesignNumber(nextDnRes.data.nextDesignNumber || 'DNS-0001');
+      setGroupDesigns(gdRes.data || []);
+      setButtonsList(buttonsRes.data || []);
+      setThreadsList(threadsRes.data || []);
     } catch (err) {
       toast.error('Failed to load catalog data');
     } finally {
@@ -151,10 +165,10 @@ export default function ProductManagement() {
     if (isAdding && !editingProduct) {
       api.get('/products/next-design-number')
         .then(res => {
-          setNextDesignNumber(res.data.nextDesignNumber || 'DN-0001');
+          setNextDesignNumber(res.data.nextDesignNumber || 'DNS-0001');
         })
         .catch(() => {
-          setNextDesignNumber('DN-0001');
+          setNextDesignNumber('DNS-0001');
         });
     }
   }, [isAdding, editingProduct]);
@@ -267,6 +281,17 @@ export default function ProductManagement() {
       required: true
     },
     {
+      name: 'main_fabric_id',
+      label: 'Fabric Type (Inventory Link)',
+      type: 'select',
+      options: [
+        { label: 'Select Fabric brand...', value: '' },
+        ...fabrics.map(f => ({ label: `${f.name} (${f.code})`, value: f.id }))
+      ],
+      defaultValue: editingProduct?.main_fabric_id || '',
+      required: false
+    },
+    {
       name: 'main_fabric',
       label: 'Main Fabric (meters)',
       type: 'number',
@@ -294,12 +319,34 @@ export default function ProductManagement() {
       step: '1'
     },
     {
+      name: 'button_id',
+      label: 'Button Brand (Inventory Link)',
+      type: 'select',
+      options: [
+        { label: 'Select Button brand...', value: '' },
+        ...buttonsList.map(b => ({ label: b.name, value: b.id }))
+      ],
+      defaultValue: editingProduct?.button_id || '',
+      required: false
+    },
+    {
       name: 'button_count',
       label: 'Buttons Count',
       type: 'number',
       placeholder: 'e.g. 6',
       defaultValue: editingProduct?.button_count !== null && editingProduct?.button_count !== undefined ? String(editingProduct.button_count) : '',
       required: true
+    },
+    {
+      name: 'thread_id',
+      label: 'Thread Color (Inventory Link)',
+      type: 'select',
+      options: [
+        { label: 'Select Thread brand/color...', value: '' },
+        ...threadsList.map(t => ({ label: `${t.name} (${t.code})`, value: t.id }))
+      ],
+      defaultValue: editingProduct?.thread_id || '',
+      required: false
     },
     {
       name: 'thread_count',
@@ -392,6 +439,9 @@ export default function ProductManagement() {
     data.entry_methods = normalize(data.entry_methods);
 
     if (!data.size_chart_id) data.size_chart_id = null;
+    if (!data.main_fabric_id || data.main_fabric_id === '') data.main_fabric_id = null;
+    if (!data.button_id || data.button_id === '') data.button_id = null;
+    if (!data.thread_id || data.thread_id === '') data.thread_id = null;
 
     // Process fabric meters as integers
     data.main_fabric = data.main_fabric !== '' && data.main_fabric !== null && data.main_fabric !== undefined ? parseInt(data.main_fabric, 10) : 0;

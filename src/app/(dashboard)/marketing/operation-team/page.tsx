@@ -99,6 +99,7 @@ interface Quotation {
     pre_tax_subtotal?: number;
   };
   created_at: string;
+  pdf_html?: string;
 }
 
 export default function OperationTeamPage() {
@@ -137,12 +138,37 @@ export default function OperationTeamPage() {
   const [messageChannel, setMessageChannel] = useState<'email' | 'whatsapp'>('email');
   const [messagePhone, setMessagePhone] = useState('');
 
+  const [companySettings, setCompanySettings] = useState<any>({
+    company_name: 'Forma Apparels',
+    address: '63/3608, CD Tower, Arayidathupalam, Kozhikode, Kerala - 673 004, India',
+    phone: '(+91) 7902 499 990 | 0495 2 922 992',
+    email: 'info@formaapparels.com',
+    website: 'www.formaapparels.com',
+    bank_name: 'HDFC BANK',
+    account_no: '50200076116064',
+    branch_name: 'MAJESTIC CENTER',
+    ifsc_code: 'HDFC0001255',
+    upi_id: '7902 499 991'
+  });
+
+  const fetchCompanySettings = async () => {
+    try {
+      const res = await api.get('/company-settings');
+      if (res.data?.success && res.data.data) {
+        setCompanySettings(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load company settings', err);
+    }
+  };
+
   // Load baseline data
   useEffect(() => {
     fetchQuotations();
     fetchOrganizations();
     fetchProductTypes();
     fetchFabrics();
+    fetchCompanySettings();
   }, []);
 
   const fetchQuotations = async () => {
@@ -213,8 +239,8 @@ export default function OperationTeamPage() {
     };
   };
 
-  // PDF Downloader for operations
-  const handleDownloadPDF = (quote: Quotation) => {
+  // Helper to compile full HTML layout for PDF printing/saving
+  const compileQuotationHTML = (quote: Quotation) => {
     const pricing = getSelectedQuotePricing(quote);
     const orgName = quote.organizations?.name || 'Customer';
     const dateStr = new Date(quote.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
@@ -249,14 +275,7 @@ export default function OperationTeamPage() {
       });
     }
 
-    // Build overall print document
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Failed to open PDF generation window. Please allow popups.');
-      return;
-    }
-
-    const htmlContent = `
+    return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -348,10 +367,10 @@ export default function OperationTeamPage() {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.61 3.51a6 6 0 0 1 5.98 10.86Z" />
                   </svg>
                 </div>
-                <span class="text-xl font-black italic tracking-tighter text-[#3a525d] font-outfit">INLAND UNIFORMS</span>
+                 <span class="text-xl font-black italic tracking-tighter text-[#3a525d] font-outfit">${companySettings.company_name.toUpperCase()}</span>
               </div>
               <p class="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1.5 pl-0.5">Corporate Apparel & Sizing Specialists</p>
-              <p class="text-[10px] text-gray-400 mt-2 font-medium">102 Industrial Avenue, Sector 4, New Delhi<br/>info@inlanduniforms.com | +91 9988776655</p>
+              <p class="text-[10px] text-gray-400 mt-2 font-medium">${companySettings.address}<br/>${companySettings.phone} | ${companySettings.email}</p>
             </div>
 
             <div class="text-right">
@@ -430,12 +449,27 @@ export default function OperationTeamPage() {
             </div>
           </div>
 
+          <!-- BANK PAYMENT DETAILS -->
+          <div class="mt-8 p-6 bg-gray-50/50 border border-gray-150 rounded-2xl text-[10px] text-gray-600 font-semibold grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Bank Transfer Details</p>
+              <p><span class="text-gray-400">Bank Name:</span> ${companySettings.bank_name}</p>
+              <p class="mt-1"><span class="text-gray-400">Account No:</span> <span class="font-mono text-gray-800 font-black">${companySettings.account_no}</span></p>
+              <p class="mt-1"><span class="text-gray-400">Branch Name:</span> ${companySettings.branch_name}</p>
+            </div>
+            <div>
+              <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Alternative/UPI Payment</p>
+              <p><span class="text-gray-400">IFSC Code:</span> <span class="font-mono text-gray-800 font-black">${companySettings.ifsc_code}</span></p>
+              <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#2d8d9b] font-black">${companySettings.upi_id}</span></p>
+            </div>
+          </div>
+
           <!-- SIGNATURES BLOCK -->
           <div class="grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-gray-100 text-xs">
             <div class="space-y-12">
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Authorized By</p>
               <div class="border-t border-gray-200 pt-3">
-                <p class="font-black text-gray-800">Inland Uniforms Representative</p>
+                <p class="font-black text-gray-800">Forma Apparels Representative</p>
                 <p class="text-gray-400 text-[10px] font-medium mt-0.5">Title: Operations Desk Manager</p>
               </div>
             </div>
@@ -452,7 +486,16 @@ export default function OperationTeamPage() {
       </body>
       </html>
     `;
+  };
 
+  // PDF Downloader for operations
+  const handleDownloadPDF = (quote: Quotation) => {
+    const htmlContent = compileQuotationHTML(quote);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Failed to open PDF generation window. Please allow popups.');
+      return;
+    }
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
@@ -485,7 +528,7 @@ export default function OperationTeamPage() {
     const contractTitle = editedTitle.trim() || 'Uniform Contract Proposal';
     const template = `Dear Team at ${orgName},
 
-Thank you for giving Inland Uniforms the opportunity to submit our proposal for the "${contractTitle}".
+Thank you for giving Forma Apparels the opportunity to submit our proposal for the "${contractTitle}".
 
 We are pleased to present our comprehensive uniform solutions tailored specifically for your organization. Based on our sizing audit and detailed requirements analysis, we have compiled an optimized production schedule and cost estimate to ensure maximum comfort, perfect fit compliance, and durability.
 
@@ -496,7 +539,7 @@ Should you have any questions or require custom modifications to this proposal, 
 Sincerely,
 
 Operations & Accounts Team
-Inland Uniforms Co.`;
+Forma Apparels Co.`;
     setEditedCoverLetter(template);
   };
 
@@ -520,26 +563,31 @@ Inland Uniforms Co.`;
 
   // Immediate Approve
   const handleApproveQuotation = async (quote: Quotation) => {
-    const loadingToast = toast.loading('Approving quotation...');
+    const loadingToast = toast.loading('Approving quotation & compiling proposal...');
     try {
       // Fetch full details if not loaded
       const res = await api.get(`/quotations/${quote.id}`);
       const fullQuote = res.data;
 
+      // Compile the HTML PDF preview at the time of approval
+      const compiledHtml = compileQuotationHTML(fullQuote);
+
       const payload = {
         ...fullQuote,
-        status: 'Approved'
+        status: 'Approved',
+        pdf_html: compiledHtml
       };
 
       await api.put(`/quotations/${quote.id}`, payload);
-      toast.success('Quotation approved successfully!', { id: loadingToast });
+      toast.success('Quotation approved & proposal PDF stored successfully!', { id: loadingToast });
       fetchQuotations();
 
       // Update selected quotation view if active
       if (selectedQuotation && selectedQuotation.id === quote.id) {
         setSelectedQuotation({
           ...selectedQuotation,
-          status: 'Approved'
+          status: 'Approved',
+          pdf_html: compiledHtml
         });
       }
     } catch (err: any) {
@@ -580,21 +628,24 @@ Inland Uniforms Co.`;
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
     const recipient = `info@${orgCleanName}.com`;
-    const subject = `Quotation Proposal #${quote.quotation_no} - Inland Uniforms`;
+    const subject = `Quotation Proposal #${quote.quotation_no} - Forma Apparels`;
 
     // Highly professional premium pre-filled mail body
     const body = `Dear Team,
 
 We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${quote.title}" (${quote.quotation_no}).
 
-The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled and is securely enclosed as an attachment.
+The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled.
 
-Please review the attached documents and let us know if you have any questions or are ready to proceed with contract execution.
+You can view and download your official Proposal PDF here:
+${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
+
+Please review the proposal and let us know if you have any questions or are ready to proceed with contract execution.
 
 Best regards,
 
 Operations Desk Team
-Inland Uniforms Co.`;
+Forma Apparels Co.`;
 
     setMessageCandidate(quote);
     setMessageRecipient(recipient);
@@ -616,13 +667,16 @@ We are pleased to inform you that the operations desk has reviewed and approved 
 
 Total finalized contract value: *₹${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}* (inclusive of GST).
 
-The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled. We have dispatched a copy to your email, and you can also download or view the details directly under your Inland Uniforms portal.
+Download your official Proposal PDF directly here:
+${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005/api').replace('/api', '')}/api/quotations/${messageCandidate.id}/share
+
+The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled. We have dispatched a copy to your email, and you can also download or view the details directly under your Forma Apparels portal.
 
 Please let us know if you have any questions or are ready to proceed with contract execution!
 
 Best regards,
 *Operations Desk Team*
-*Inland Uniforms Co.*`;
+*Forma Apparels Co.*`;
 
     setMessageBody(waBody);
   };
@@ -636,14 +690,17 @@ Best regards,
 
 We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${messageCandidate.title}" (${messageCandidate.quotation_no}).
 
-The total contract value is finalized at ₹${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled and is securely enclosed as an attachment.
+The total contract value is finalized at ₹${Number(messageCandidate.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled.
 
-Please review the attached documents and let us know if you have any questions or are ready to proceed with contract execution.
+You can view and download your official Proposal PDF here:
+${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005/api').replace('/api', '')}/api/quotations/${messageCandidate.id}/share
+
+Please review the proposal and let us know if you have any questions or are ready to proceed with contract execution.
 
 Best regards,
 
 Operations Desk Team
-Inland Uniforms Co.`;
+Forma Apparels Co.`;
 
     setMessageBody(emailBody);
   };
@@ -721,6 +778,35 @@ Inland Uniforms Co.`;
     const gstRate = parseFloat(editedGstPercent) || 0;
     const preTaxSubtotal = editedFinalValue / (1 + gstRate / 100);
 
+    let compiledHtml = undefined;
+    if (nextStatus === 'Approved') {
+      const mockQuote = {
+        ...selectedQuotation,
+        title: editedTitle.trim(),
+        quotation_no: editedQuoteNo.trim(),
+        organization_id: parseInt(editedOrgId),
+        status: nextStatus,
+        estimated_expenses: editedExpenses,
+        total_estimated_time: editedTime,
+        production_days_estimate: editedDays,
+        expected_delivery_date: editedDeliveryDate || null,
+        profit_margin_percent: editedMargin,
+        final_quote_value: editedFinalValue,
+        items: editedItems.map(item => ({
+          ...item,
+          product_types: item.product_types || productTypes.find(p => p.id === item.product_type_id)
+        })),
+        metrics_summary: {
+          ...(selectedQuotation.metrics_summary || {}),
+          total_entities: finalTotalQty,
+          cover_letter: editedCoverLetter,
+          gst_percent: gstRate,
+          pre_tax_subtotal: Math.round(preTaxSubtotal * 100) / 100
+        }
+      };
+      compiledHtml = compileQuotationHTML(mockQuote);
+    }
+
     const payload = {
       title: editedTitle.trim(),
       quotation_no: editedQuoteNo.trim(),
@@ -739,6 +825,7 @@ Inland Uniforms Co.`;
         gst_percent: gstRate,
         pre_tax_subtotal: Math.round(preTaxSubtotal * 100) / 100
       },
+      pdf_html: compiledHtml,
       items: editedItems.map(item => ({
         product_type_id: item.product_type_id,
         quantity: item.quantity,

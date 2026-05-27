@@ -128,7 +128,7 @@ export function DataTable<T extends { id: string | number }>({
           <thead>
             <tr className="bg-[#fce4d4]/20">
               {columns.map((col, idx) => (
-                <th key={idx} className={`p-6 text-[11px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] border-b border-[#fce4d4] ${col.className || ''}`}>
+                <th key={idx} className={`p-6 text-[11px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] border-b border-[#fce4d4] whitespace-nowrap ${col.className || ''}`}>
                   {col.header}
                 </th>
               ))}
@@ -149,7 +149,7 @@ export function DataTable<T extends { id: string | number }>({
               paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
                   {columns.map((col, idx) => (
-                    <td key={idx} className={`p-6 text-sm font-medium text-foreground ${col.className || ''}`}>
+                    <td key={idx} className={`p-6 text-sm font-medium text-foreground whitespace-nowrap ${col.className || ''}`}>
                       {typeof col.accessor === 'function' 
                         ? col.accessor(item) 
                         : (item[col.accessor] as React.ReactNode)

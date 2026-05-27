@@ -222,7 +222,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
             </div>
             <div>
                <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] mb-1">Confidential Note</h4>
-               <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">Upon onboarding, the system will automatically architect a unique login package. This includes a hashed password and a professional domain-mapped username for the Inland Uniform Enterprise Portal.</p>
+               <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">Upon onboarding, the system will automatically architect a unique login package. This includes a hashed password and a professional domain-mapped username for the Forma Apparels Enterprise Portal.</p>
             </div>
          </div>
       </div>

@@ -19,6 +19,7 @@ import {
   Box,
   TrendingUp,
   Calculator,
+  Package,
 } from 'lucide-react';
 
 interface Subsection {
@@ -63,7 +64,7 @@ const modules: ModuleItem[] = [
       { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
       { label: 'Audit Logs', href: '/admin/audit' },
       { label: 'Staff Management', href: '/admin/employees' },
-      // { label: 'System Settings', href: '/admin/settings' },
+      { label: 'Company Profile & Bank', href: '/admin/company' },
       { label: 'User Roles', href: '/admin/roles' },
       { label: 'US Size Charts', href: '/admin/size-charts' }
     ]
@@ -73,11 +74,20 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Product Registry', href: '/admin/products' },
       { label: 'Product Types', href: '/admin/product-types' },
+      { label: 'Design Catalog', href: '/admin/designs' },
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
-      { label: 'Stock & Thresholds', href: '/admin/stock' },
       { label: 'Purchase Orders', href: '/admin/purchase-orders' },
+    ]
+  },
+  {
+    icon: Package, label: 'Inventory', href: '/admin/inventory/product-stock',
+    subsections: [
+      { label: 'Product Stock', href: '/admin/inventory/product-stock' },
+      { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
+      { label: 'Thread Stock', href: '/admin/inventory/thread-stock' },
+      { label: 'Button Stock', href: '/admin/inventory/button-stock' }
     ]
   },
   {
@@ -267,6 +277,7 @@ export const Sidebar: React.FC = () => {
                           'Measurements Approvals': ['manage_system'],
                           'Product Registry': ['manage_products', 'view_products'],
                           'Product Types': ['manage_products', 'view_products'],
+                          'Design Catalog': ['manage_products', 'view_products'],
                           'Audit Logs': ['view_audit_logs'],
                           'Staff Management': ['manage_employees', 'view_employees'],
                           'System Settings': ['manage_system'],

@@ -18,6 +18,7 @@ interface Item {
   quality?: string;
   description?: string;
   quantity?: number;
+  low_stock_threshold?: number;
   shade?: string;
   width?: string;
   image?: string;
@@ -173,6 +174,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         )) as any
       },
       {
+        header: 'Quantity',
+        accessor: ((item: Item) => (
+          <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">
+            {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(0) : '0'} spools
+          </span>
+        )) as any
+      },
+      {
         header: 'Unit Price (₹)',
         accessor: ((item: Item) => (
           item.unit_price !== null && item.unit_price !== undefined
@@ -182,6 +191,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       }
     ] : []),
     ...(type === 'buttons' ? [
+      {
+        header: 'Quantity',
+        accessor: ((item: Item) => (
+          <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">
+            {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(0) : '0'} pieces
+          </span>
+        )) as any
+      },
       {
         header: 'Unit Price (₹)',
         accessor: ((item: Item) => (
@@ -275,6 +292,22 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   step: 'any',
                   placeholder: 'e.g. 0.50',
                   defaultValue: editingItem?.unit_price !== null && editingItem?.unit_price !== undefined ? String(editingItem.unit_price) : ''
+                },
+                {
+                  name: 'quantity',
+                  label: 'Stock Quantity',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 100',
+                  defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : ''
+                },
+                {
+                  name: 'low_stock_threshold',
+                  label: 'Low Stock Threshold',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 10',
+                  defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : ''
                 }
               ] : []),
               ...(type === 'threads' ? [
@@ -299,6 +332,22 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   step: 'any',
                   placeholder: 'e.g. 25.00',
                   defaultValue: editingItem?.unit_price !== null && editingItem?.unit_price !== undefined ? String(editingItem.unit_price) : ''
+                },
+                {
+                  name: 'quantity',
+                  label: 'Stock Quantity',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 100',
+                  defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : ''
+                },
+                {
+                  name: 'low_stock_threshold',
+                  label: 'Low Stock Threshold',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 10',
+                  defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : ''
                 }
               ] : []),
               ...(type === 'fabrics' ? [

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Inland Uniform",
-  description: "Inland Uniform",
+  title: "Forma Apparels",
+  description: "Forma Apparels",
 };
 
 export default function RootLayout({

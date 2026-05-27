@@ -60,6 +60,16 @@ export default function QuotationList({
       )
     },
     {
+      header: 'Group Design',
+      accessor: (q) => (
+        <div>
+          <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+            {q.group_design_number?.code || '—'}
+          </span>
+        </div>
+      )
+    },
+    {
       header: 'Quote Value',
       accessor: (q) => (
         <div>

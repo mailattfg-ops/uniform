@@ -71,7 +71,7 @@ export const Header: React.FC = () => {
         <div className="hidden sm:flex flex-col">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-[#f2994a] animate-pulse" />
-            <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#3a525d]">Inland Uniform Enterprise</h1>
+            <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#3a525d]">Forma Apparels Enterprise</h1>
           </div>
           {/* <p className="text-[9px] font-bold text-[#2d8d9b] opacity-60 ml-4 font-mono">STABLE // REV 2.4.0</p> */}
         </div>

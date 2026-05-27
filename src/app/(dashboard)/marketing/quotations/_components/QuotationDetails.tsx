@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Building2, Edit, Scale, Clock, Calendar, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 import { Quotation } from '../page';
 
 interface QuotationDetailsProps {
@@ -20,6 +21,33 @@ export default function QuotationDetails({
   onBack,
   onStartEdit,
 }: QuotationDetailsProps) {
+
+  const [companySettings, setCompanySettings] = useState<any>({
+    company_name: 'Forma Apparels',
+    address: '63/3608, CD Tower, Arayidathupalam, Kozhikode, Kerala - 673 004, India',
+    phone: '(+91) 7902 499 990 | 0495 2 922 992',
+    email: 'info@formaapparels.com',
+    website: 'www.formaapparels.com',
+    bank_name: 'HDFC BANK',
+    account_no: '50200076116064',
+    branch_name: 'MAJESTIC CENTER',
+    ifsc_code: 'HDFC0001255',
+    upi_id: '7902 499 991'
+  });
+
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const res = await api.get('/company-settings');
+        if (res.data?.success && res.data.data) {
+          setCompanySettings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load company settings in QuotationDetails', err);
+      }
+    };
+    fetchCompanySettings();
+  }, []);
 
   const getSelectedQuotePricing = (quote: Quotation) => {
     const finalValue = Number(quote.final_quote_value) || 0;
@@ -49,7 +77,7 @@ export default function QuotationDetails({
         const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
         const fabricId = item.size_breakdown?.fabric_id;
         const fabricBrand = fabricsList.find((f: any) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
-        const designNum = item.size_breakdown?.design_number || '—';
+        const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
         const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
         const qty = item.quantity || 0;
         const price = Number(item.unit_price) || 0;
@@ -168,10 +196,10 @@ export default function QuotationDetails({
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.61 3.51a6 6 0 0 1 5.98 10.86Z" />
                   </svg>
                 </div>
-                <span class="text-xl font-black italic tracking-tighter text-[#3a525d] font-outfit">INLAND UNIFORMS</span>
+                 <span class="text-xl font-black italic tracking-tighter text-[#3a525d] font-outfit">${companySettings.company_name.toUpperCase()}</span>
               </div>
               <p class="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1.5 pl-0.5">Corporate Apparel & Sizing Specialists</p>
-              <p class="text-[10px] text-gray-400 mt-2 font-medium">102 Industrial Avenue, Sector 4, New Delhi<br/>info@inlanduniforms.com | +91 9988776655</p>
+              <p class="text-[10px] text-gray-400 mt-2 font-medium">${companySettings.address}<br/>${companySettings.phone} | ${companySettings.email}</p>
             </div>
 
             <div class="text-right">
@@ -184,11 +212,16 @@ export default function QuotationDetails({
           </div>
 
           <!-- CLIENT & TARGET INFO -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-gray-100 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-gray-100 text-xs">
             <div>
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prepared For</p>
               <p class="text-sm font-black text-gray-800 mt-1">${orgName}</p>
               <p class="text-gray-500 mt-0.5 font-medium">Associated Uniform Contract Client</p>
+            </div>
+            <div class="md:text-center">
+              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Group Design Number</p>
+              <p class="text-sm font-black text-[#2d8d9b] mt-1">${quote.group_design_number?.code || '—'}</p>
+              <p class="text-gray-500 mt-0.5 font-medium">Auto-generated Design Collection</p>
             </div>
             <div class="md:text-right">
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
@@ -250,12 +283,27 @@ export default function QuotationDetails({
             </div>
           </div>
 
+          <!-- BANK PAYMENT DETAILS -->
+          <div class="mt-8 p-6 bg-gray-50/50 border border-gray-150 rounded-2xl text-[10px] text-gray-600 font-semibold grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Bank Transfer Details</p>
+              <p><span class="text-gray-400">Bank Name:</span> ${companySettings.bank_name}</p>
+              <p class="mt-1"><span class="text-gray-400">Account No:</span> <span class="font-mono text-gray-800 font-black">${companySettings.account_no}</span></p>
+              <p class="mt-1"><span class="text-gray-400">Branch Name:</span> ${companySettings.branch_name}</p>
+            </div>
+            <div>
+              <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Alternative/UPI Payment</p>
+              <p><span class="text-gray-400">IFSC Code:</span> <span class="font-mono text-gray-800 font-black">${companySettings.ifsc_code}</span></p>
+              <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#2d8d9b] font-black">${companySettings.upi_id}</span></p>
+            </div>
+          </div>
+
           <!-- SIGNATURES BLOCK -->
           <div class="grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-gray-100 text-xs">
             <div class="space-y-12">
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Authorized By</p>
               <div class="border-t border-gray-200 pt-3">
-                <p class="font-black text-gray-800">Inland Uniforms Representative</p>
+                <p class="font-black text-gray-800">Forma Apparels Representative</p>
                 <p class="text-gray-400 text-[10px] font-medium mt-0.5">Title: Operations Desk Manager</p>
               </div>
             </div>
@@ -339,6 +387,13 @@ export default function QuotationDetails({
               </Card>
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Group Design Number</p>
+                <p className="text-base font-black text-[#2d8d9b] mt-1">
+                  {selectedQuotation.group_design_number?.code || '—'}
+                </p>
+              </Card>
+
+              <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Target Product</p>
                 <p className="text-base font-black text-[#3a525d] mt-1">
                   {selectedQuotation.items && selectedQuotation.items.some((item: any) => item.size_breakdown?.is_manual)
@@ -411,7 +466,14 @@ export default function QuotationDetails({
                             <td className="p-3 font-mono">
                               {item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A'}
                             </td>
-                            <td className="p-3">{item.size_breakdown?.design_number || 'N/A'}</td>
+                            <td className="p-3">
+                              {item.size_breakdown?.product_design_number ? (
+                                <span className="font-bold text-[#2d8d9b] block">{item.size_breakdown.product_design_number}</span>
+                              ) : null}
+                              {item.size_breakdown?.design_number ? (
+                                <span className="text-zinc-500 text-[10px] font-semibold">{item.size_breakdown.design_number}</span>
+                              ) : '—'}
+                            </td>
                             <td className="p-3 text-right font-black">{item.quantity}</td>
                             <td className="p-3 text-right font-mono">₹{Number(item.unit_price).toFixed(2)}</td>
                             <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{Number(item.total_price).toFixed(2)}</td>

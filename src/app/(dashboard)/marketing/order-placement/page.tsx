@@ -185,7 +185,77 @@ export default function OrderPlacementPage() {
   };
 
   const triggerBrowserPrint = () => {
-    window.print();
+    const printContent = document.getElementById('print-label-container');
+    if (!printContent) {
+      toast.error('Print container not found');
+      return;
+    }
+
+    // Create temporary hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.zIndex = '-9999';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      toast.error('Could not open printer document');
+      return;
+    }
+
+    // Capture stylesheet references to keep Tailwind classes working inside the iframe
+    let headHtml = '';
+    const styleSheets = document.querySelectorAll('link[rel="stylesheet"], style');
+    styleSheets.forEach(sheet => {
+      headHtml += sheet.outerHTML;
+    });
+
+    doc.open();
+    doc.write(`
+      <html>
+        <head>
+          <title>Print Label</title>
+          ${headHtml}
+          <style>
+            @page {
+              size: 4in 3in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0.1in;
+              box-sizing: border-box;
+              width: 4in;
+              height: 3in;
+              background-color: white;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          </style>
+        </head>
+        <body>
+          <div style="width: 3.8in; height: 2.8in; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+            ${printContent.innerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                  window.frameElement.remove();
+                }, 500);
+              }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    doc.close();
   };
 
   // Counter Mathematics
@@ -351,34 +421,7 @@ export default function OrderPlacementPage() {
   ];
 
   return (
-    <div className="p-4 md:p-8 space-y-8 bg-zinc-50/50 min-h-screen no-print-view">
-      {/* CSS Stylesheet Injector for standard 4x3 vector labels printing */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #print-label-container, #print-label-container * {
-            visibility: visible !important;
-          }
-          #print-label-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 4in !important;
-            height: 3in !important;
-            margin: 0 !important;
-            padding: 0.1in !important;
-            box-sizing: border-box !important;
-            background: white !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-          .no-print-view {
-            display: none !important;
-          }
-        }
-      `}</style>
+    <div className="p-4 md:p-8 space-y-8 bg-zinc-50/50 min-h-screen">
 
       {/* Top Title Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -609,7 +652,7 @@ export default function OrderPlacementPage() {
                       {/* Label Tag Header */}
                       <div className="flex justify-between items-start">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-black uppercase tracking-widest leading-none text-[#2d8d9b]">INLAND UNIFORMS</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest leading-none text-[#2d8d9b]">FORMA APPARELS</span>
                           <span className="text-[6px] text-zinc-500 font-bold mt-0.5">ORDER FULFILLMENT LABEL</span>
                         </div>
                         <div className="text-right flex flex-col items-end">

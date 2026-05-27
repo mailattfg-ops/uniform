@@ -56,7 +56,7 @@ export default function LoginPage() {
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl">
                 <Grid className="text-[#3a525d]" size={28} />
               </div>
-              <span className="text-white text-xl font-black tracking-[0.2em] uppercase">Inland Uniform</span>
+              <span className="text-white text-xl font-black tracking-[0.2em] uppercase">Forma Apparels</span>
             </div>
 
             <h2 className="text-5xl font-black italic text-white leading-[1.1] mb-6">

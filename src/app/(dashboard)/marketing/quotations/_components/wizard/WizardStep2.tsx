@@ -238,9 +238,9 @@ export default function WizardStep2({
                     if (prod.thread_count !== null && prod.thread_count !== undefined)
                       updates.thread_count = String(prod.thread_count);
 
-                    updates.main_fabric_sam = '162.648'; // Default Fabric SAM value (rupees per meter)
-                    updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '162.648' : '';
-                    updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '162.648' : '';
+                    updates.main_fabric_sam = '6.777'; // Default Fabric SAM value
+                    updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
+                    updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
 
                     updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
                   } else {
@@ -358,7 +358,12 @@ export default function WizardStep2({
                       className={selectCls}
                       value={item.fabric_id}
                       onChange={(e) => {
-                        updateItem(index, { fabric_id: e.target.value, main_fabric_rate: '0.00' });
+                        const val = e.target.value;
+                        const updates: Partial<ManualItem> = { fabric_id: val, main_fabric_rate: '0.00' };
+                        if (val && !item.main_fabric_sam) {
+                          updates.main_fabric_sam = '6.777';
+                        }
+                        updateItem(index, updates);
                       }}
                     >
                       <option value="">Select fabric...</option>
@@ -425,7 +430,12 @@ export default function WizardStep2({
                       className={selectCls}
                       value={item.attachment_fabric1_id}
                       onChange={(e) => {
-                        updateItem(index, { attachment_fabric1_id: e.target.value, attachment_fabric1_rate: '0.00' });
+                        const val = e.target.value;
+                        const updates: Partial<ManualItem> = { attachment_fabric1_id: val, attachment_fabric1_rate: '0.00' };
+                        if (val && !item.attachment_fabric1_sam) {
+                          updates.attachment_fabric1_sam = '6.777';
+                        }
+                        updateItem(index, updates);
                       }}
                     >
                       <option value="">Optional...</option>
@@ -493,7 +503,12 @@ export default function WizardStep2({
                       className={selectCls}
                       value={item.attachment_fabric2_id}
                       onChange={(e) => {
-                        updateItem(index, { attachment_fabric2_id: e.target.value, attachment_fabric2_rate: '0.00' });
+                        const val = e.target.value;
+                        const updates: Partial<ManualItem> = { attachment_fabric2_id: val, attachment_fabric2_rate: '0.00' };
+                        if (val && !item.attachment_fabric2_sam) {
+                          updates.attachment_fabric2_sam = '6.777';
+                        }
+                        updateItem(index, updates);
                       }}
                     >
                       <option value="">Optional...</option>

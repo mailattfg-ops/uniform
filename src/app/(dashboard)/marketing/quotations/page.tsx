@@ -58,6 +58,8 @@ export interface Quotation {
     pre_tax_subtotal?: number;
   };
   created_at: string;
+  pdf_html?: string;
+  group_design_number?: { code: string };
 }
 
 export interface ManualItem {
