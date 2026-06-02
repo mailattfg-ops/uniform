@@ -42,7 +42,7 @@ const getFieldIcon = (name: string) => {
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password' | 'image-upload';
+  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password' | 'image-upload' | 'custom';
   placeholder?: string;
   options?: { label: string; value: string }[];
   required?: boolean;
@@ -61,6 +61,7 @@ export interface FormField {
   onChange?: (value: any) => void;
   maxImages?: number;
   uploadLabel?: string;
+  render?: (value: any, onChange: (val: any) => void) => React.ReactNode;
 }
 
 interface DynamicFormProps {
@@ -89,18 +90,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   useEffect(() => {
     // Only update checkboxState and imagesState if defaultValues have actually changed (e.g. switching products)
     const currentDefaults = fields
-      .filter(f => f.type === 'checkbox-group' || f.type === 'image-upload')
-      .map(f => `${f.name}:${JSON.stringify(f.defaultValue)}`)
+      .filter(f => f.type === 'checkbox-group' || f.type === 'image-upload' || f.type === 'custom')
+      .map(f => `${f.name}:${JSON.stringify(f.defaultValue || f.value)}`)
       .join('|');
 
     if (currentDefaults !== lastDefaultValues.current) {
-      const initialCheckboxState: Record<string, string[]> = {};
+      const initialCheckboxState: Record<string, any> = {};
       const initialImagesState: Record<string, string[]> = {};
       fields.forEach(f => {
         if (f.type === 'checkbox-group') {
           initialCheckboxState[f.name] = f.defaultValue || [];
         } else if (f.type === 'image-upload') {
           initialImagesState[f.name] = f.defaultValue || [];
+        } else if (f.type === 'custom') {
+          initialCheckboxState[f.name] = f.value !== undefined ? f.value : (f.defaultValue !== undefined ? f.defaultValue : null);
         }
       });
       setCheckboxState(initialCheckboxState);
@@ -133,6 +136,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         data[f.name] = checkboxState[f.name] || [];
       } else if (f.type === 'image-upload') {
         data[f.name] = imagesState[f.name] || [];
+      } else if (f.type === 'custom') {
+        data[f.name] = checkboxState[f.name] !== undefined ? checkboxState[f.name] : (f.value !== undefined ? f.value : f.defaultValue);
       } else {
         data[f.name] = formData.get(f.name);
       }
@@ -284,6 +289,19 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                        </div>
                      );
                    })()}
+                </div>
+              ) : field.type === 'custom' ? (
+                <div className={`space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 transition-all ${field.disabled ? 'opacity-30 grayscale pointer-events-none' : ''} ${field.className || ''}`}>
+                  <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 block mb-2">
+                    {field.label}
+                  </label>
+                  {field.render && field.render(
+                    checkboxState[field.name] !== undefined ? checkboxState[field.name] : (field.value !== undefined ? field.value : field.defaultValue),
+                    (val) => {
+                      setCheckboxState(prev => ({ ...prev, [field.name]: val }));
+                      if (field.onChange) field.onChange(val);
+                    }
+                  )}
                 </div>
               ) : (
                 <Input 

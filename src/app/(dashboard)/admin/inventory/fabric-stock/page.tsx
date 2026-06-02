@@ -12,7 +12,9 @@ import {
   Loader2, 
   RotateCw, 
   ChevronRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  X,
+  Calendar
 } from 'lucide-react';
 
 interface Fabric {
@@ -26,6 +28,7 @@ interface Fabric {
   low_stock_threshold: number;
   created_at: string;
   updated_at: string;
+  description: string | null;
 }
 
 export default function FabricStockPage() {
@@ -41,12 +44,34 @@ export default function FabricStockPage() {
   const [newThreshold, setNewThreshold] = useState<number>(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Batches of lumps states
+  const [adjustmentMode, setAdjustmentMode] = useState<'SIMPLE' | 'BATCH_LUMPS'>('SIMPLE');
+  const [lumpTransactionType, setLumpTransactionType] = useState<'REPLENISH' | 'CONSUME'>('REPLENISH');
+  const [lumps, setLumps] = useState<Array<{ id: number; width: string; length: string }>>([
+    { id: 1, width: '1.5', length: '10' }
+  ]);
+  const [modalTab, setModalTab] = useState<'BATCH_LEDGER' | 'ADD_BATCH' | 'THRESHOLD'>('BATCH_LEDGER');
+  const [batchNo, setBatchNo] = useState<string>('');
+
   // Stats states
   const [stats, setStats] = useState({
     totalFabrics: 0,
     lowStockCount: 0,
     outOfStockCount: 0
   });
+
+  const totalBatchLength = lumps.reduce((sum, l) => {
+    const w = parseFloat(l.width) || 0;
+    const len = parseFloat(l.length) || 0;
+    return sum + (w * len);
+  }, 0);
+
+  useEffect(() => {
+    if (adjustmentMode === 'BATCH_LUMPS') {
+      const multiplier = lumpTransactionType === 'REPLENISH' ? 1 : -1;
+      setPhysicalDelta(Number((totalBatchLength * multiplier).toFixed(2)));
+    }
+  }, [lumps, lumpTransactionType, adjustmentMode, totalBatchLength]);
 
   const fetchStockData = async () => {
     setIsLoading(true);
@@ -91,8 +116,26 @@ export default function FabricStockPage() {
   const handleOpenFabricAdjust = (fabric: Fabric) => {
     setSelectedFabric(fabric);
     setPhysicalDelta(0);
+    setAdjustmentMode('BATCH_LUMPS');
+    setLumpTransactionType('REPLENISH');
+    setLumps([{ id: Date.now(), width: '1.5', length: '10' }]);
+    setBatchNo('');
+    setModalTab('BATCH_LEDGER');
     setNewThreshold(Number(fabric.low_stock_threshold) ?? 10);
     setIsAdjustModalOpen(true);
+  };
+
+  const parseFabricBatches = (descriptionText: string | null) => {
+    try {
+      if (!descriptionText) return [];
+      const parsed = JSON.parse(descriptionText);
+      if (parsed && parsed.type === 'batch_wise_inventory' && Array.isArray(parsed.batches)) {
+        return parsed.batches;
+      }
+    } catch (e) {
+      // Not JSON
+    }
+    return [];
   };
 
   const handleAdjustSubmit = async (e: React.FormEvent) => {
@@ -104,18 +147,79 @@ export default function FabricStockPage() {
     const loadingToast = toast.loading(`Updating stock for ${targetName}...`);
     
     try {
-      const payload: any = {
+      let finalDelta = physicalDelta;
+      let updatedDesc = selectedFabric.description;
+
+      if (modalTab === 'ADD_BATCH') {
+        if (!batchNo.trim()) {
+          toast.error('Batch No / Lot Code is required', { id: loadingToast });
+          setIsSubmitting(false);
+          return;
+        }
+
+        const multiplier = lumpTransactionType === 'REPLENISH' ? 1 : -1;
+        const batchTotalQty = Number(totalBatchLength.toFixed(2));
+        finalDelta = batchTotalQty * multiplier;
+
+        let parsedDesc = { type: 'batch_wise_inventory', text_description: '', batches: [] as any[] };
+        try {
+          if (selectedFabric.description) {
+            const parsed = JSON.parse(selectedFabric.description);
+            if (parsed && parsed.type === 'batch_wise_inventory') {
+              parsedDesc = parsed;
+            } else {
+              parsedDesc.text_description = selectedFabric.description;
+            }
+          }
+        } catch (e) {
+          parsedDesc.text_description = selectedFabric.description || '';
+        }
+
+        const newBatchRecord = {
+          id: `BATCH-${Date.now()}`,
+          batch_no: batchNo.trim(),
+          transaction_type: lumpTransactionType,
+          created_at: new Date().toISOString(),
+          total_quantity: batchTotalQty,
+          lumps: lumps.map((l, index) => ({
+            id: index + 1,
+            width: parseFloat(l.width) || 0,
+            length: parseFloat(l.length) || 0,
+            total_length: Number((parseFloat(l.width) * parseFloat(l.length)).toFixed(2))
+          }))
+        };
+
+        parsedDesc.batches = [newBatchRecord, ...(parsedDesc.batches || [])];
+        updatedDesc = JSON.stringify(parsedDesc);
+      }
+
+      // 1. Post to adjust API to update total quantity & trigger auto-POs
+      await api.post('/inventory/stock/adjust', {
         fabric_id: selectedFabric.id,
-        quantity_delta: physicalDelta,
+        quantity_delta: finalDelta,
         low_stock_threshold: newThreshold
-      };
+      });
 
-      await api.post('/inventory/stock/adjust', payload);
+      // 2. Put to update fabric to persist the batch metadata in the description column
+      const currentQty = Number(selectedFabric.quantity) || 0;
+      const newTotalQty = Math.max(0, currentQty + finalDelta);
+      
+      await api.put(`/inventory/fabrics/${selectedFabric.id}`, {
+        code: selectedFabric.code,
+        name: selectedFabric.name,
+        brand_name: selectedFabric.brand_name,
+        shade: selectedFabric.shade,
+        width: selectedFabric.width,
+        quantity: newTotalQty,
+        low_stock_threshold: newThreshold,
+        description: updatedDesc
+      });
 
-      toast.success('Fabric stock adjusted successfully!', { id: loadingToast });
+      toast.success('Fabric stock batch entry saved successfully!', { id: loadingToast });
       setIsAdjustModalOpen(false);
       fetchStockData();
     } catch (err: any) {
+      console.error(err);
       const errorMsg = err.response?.data?.error || 'Failed to adjust stock. Make sure you have administrator permissions.';
       toast.error(errorMsg, { id: loadingToast });
     } finally {
@@ -407,132 +511,315 @@ export default function FabricStockPage() {
       {isAdjustModalOpen && selectedFabric && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div 
-            className="w-full max-w-lg bg-white rounded-[3rem] p-8 border border-[#fce4d4] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500"
+            className="w-full max-w-2xl bg-white rounded-[3rem] p-8 border border-[#fce4d4] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header decor */}
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#3a525d] via-[#2d8d9b] to-[#fce4d4]" />
             
-            <div className="flex items-center gap-3 border-b border-zinc-100 pb-5 mt-2">
+            <div className="flex items-center gap-3 border-b border-zinc-100 pb-5 mt-2 shrink-0">
               <div className="w-12 h-12 bg-[#2d8d9b]/10 rounded-2xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
                 <SlidersHorizontal size={20} />
               </div>
-              <div>
-                <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">Adjust Fabric Stock</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-0.5">
-                  {selectedFabric.name}
-                </p>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">Adjust Fabric Stock</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-0.5">
+                      {selectedFabric.name} ({selectedFabric.code})
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 block">Current Stock</span>
+                    <span className="text-lg font-black text-[#3a525d] font-mono leading-none">{(Number(selectedFabric.quantity) || 0).toFixed(2)} m</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <form onSubmit={handleAdjustSubmit} className="mt-6 space-y-6">
+            {/* Premium Tab Bar Segment */}
+            <div className="grid grid-cols-3 gap-2 bg-zinc-50 border border-zinc-150 p-1.5 rounded-2xl mt-5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setModalTab('BATCH_LEDGER')}
+                className={`py-2 px-1 rounded-xl text-center text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                  modalTab === 'BATCH_LEDGER' 
+                    ? 'bg-[#3a525d] text-white shadow' 
+                    : 'text-zinc-550 hover:bg-zinc-100'
+                }`}
+              >
+                Batch Ledger
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalTab('ADD_BATCH')}
+                className={`py-2 px-1 rounded-xl text-center text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                  modalTab === 'ADD_BATCH' 
+                    ? 'bg-[#3a525d] text-white shadow' 
+                    : 'text-zinc-550 hover:bg-zinc-100'
+                }`}
+              >
+                Add Batch Entry
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalTab('THRESHOLD')}
+                className={`py-2 px-1 rounded-xl text-center text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                  modalTab === 'THRESHOLD' 
+                    ? 'bg-[#3a525d] text-white shadow' 
+                    : 'text-zinc-550 hover:bg-zinc-100'
+                }`}
+              >
+                Threshold Limit
+              </button>
+            </div>
+
+            <form onSubmit={handleAdjustSubmit} className="mt-5 flex-1 overflow-y-auto pr-1 flex flex-col justify-between space-y-6">
               
-              {/* Stats */}
-              {(() => {
-                const currentQty = Number(selectedFabric.quantity) || 0;
-                const lowThreshold = Number(selectedFabric.low_stock_threshold) || 0;
-                return (
-                  <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 grid grid-cols-2 gap-3 text-center">
-                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Current Fabric Stock</p>
-                      <p className="text-base font-black text-[#3a525d] mt-1">{currentQty.toFixed(2)} meters</p>
+              <div className="flex-1 space-y-5">
+                
+                {/* 1. BATCH LEDGER TAB */}
+                {modalTab === 'BATCH_LEDGER' && (() => {
+                  const savedBatches = parseFabricBatches(selectedFabric.description);
+                  return (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Recorded Batch History</h4>
+                        <p className="text-[9px] text-zinc-400 font-semibold mt-0.5">Historical ledger of raw fabric batches received and consumed.</p>
+                      </div>
+
+                      {savedBatches.length === 0 ? (
+                        <div className="bg-zinc-50 border border-zinc-200 border-dashed rounded-[2rem] p-10 text-center text-zinc-400 flex flex-col justify-center items-center min-h-[220px]">
+                          <Calendar className="text-zinc-300 mb-3" size={28} />
+                          <p className="text-[10px] font-black uppercase tracking-wider">No Batches Recorded Yet</p>
+                          <p className="text-[9px] font-semibold text-zinc-450 mt-1 max-w-[280px] mx-auto leading-relaxed">
+                            To start tracking individual rolls, click the **"Add Batch Entry"** tab above to make a batch wise stock entry.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-1">
+                          {savedBatches.map((batch: any, bIdx: number) => (
+                            <div key={batch.id || bIdx} className="bg-white border border-zinc-150 rounded-2.5xl p-5 shadow-sm space-y-3 hover:border-[#2d8d9b]/25 transition-all">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="px-2 py-0.5 rounded text-[8.5px] font-black uppercase font-mono tracking-widest bg-zinc-100 text-zinc-500 border border-zinc-200">
+                                    {batch.batch_no}
+                                  </span>
+                                  <p className="text-[9px] text-zinc-400 font-bold mt-1">
+                                    {new Date(batch.created_at).toLocaleDateString(undefined, {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+                                    batch.transaction_type === 'REPLENISH' 
+                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-150' 
+                                      : 'bg-red-50 text-red-600 border border-red-150'
+                                  }`}>
+                                    {batch.transaction_type === 'REPLENISH' ? `+${batch.total_quantity} m` : `-${batch.total_quantity} m`}
+                                  </span>
+                                  <p className="text-[8px] text-zinc-400 font-black uppercase tracking-widest mt-1">
+                                    {batch.lumps?.length || 0} lumps (rolls)
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Lumps List within this batch */}
+                              <div className="bg-zinc-50/50 border border-zinc-150 rounded-xl p-3 space-y-1 text-[10px] font-semibold text-zinc-655">
+                                {batch.lumps && batch.lumps.map((lump: any, lIdx: number) => (
+                                  <div key={lIdx} className="flex justify-between font-mono">
+                                    <span>Lump #{lump.id || lIdx + 1}: {lump.width}m width x {lump.length}m length</span>
+                                    <span className="font-black text-[#3a525d]">{lump.total_length} m</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  );
+                })()}
+
+                {/* 2. ADD BATCH ENTRY TAB */}
+                {modalTab === 'ADD_BATCH' && (
+                  <div className="space-y-4">
                     <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Threshold limit</p>
-                      <p className="text-base font-black text-[#2d8d9b] mt-1">{lowThreshold.toFixed(2)} meters</p>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">New Batch Entry</h4>
+                      <p className="text-[9px] text-zinc-400 font-semibold mt-0.5">Register a consignment batch and specify exact lump dimensions.</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Batch Number */}
+                      <div className="space-y-1.5">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Batch No / Lot Code</label>
+                        <input
+                          type="text"
+                          value={batchNo}
+                          onChange={(e) => setBatchNo(e.target.value)}
+                          placeholder="e.g. B-9982"
+                          className="w-full h-11 px-3 bg-white border border-[#fce4d4] rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                        />
+                      </div>
+                      
+                      {/* Batch total summary */}
+                      <div className="space-y-1.5">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Calculated Batch Quantity</label>
+                        <div className="w-full h-11 bg-zinc-50 border border-zinc-150 rounded-xl flex items-center justify-between px-3 text-xs font-black">
+                          <span className={lumpTransactionType === 'REPLENISH' ? 'text-emerald-500' : 'text-red-500'}>
+                            {lumpTransactionType === 'REPLENISH' ? 'Replenish (+)' : 'Consume (-)'}
+                          </span>
+                          <span className="font-mono text-sm text-[#3a525d]">{totalBatchLength.toFixed(2)} m</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Transaction Direction Selection */}
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setLumpTransactionType('REPLENISH')}
+                        className={`flex-1 py-2 text-xs font-black uppercase rounded-xl border tracking-wide transition-all ${
+                          lumpTransactionType === 'REPLENISH'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 font-black'
+                            : 'bg-zinc-50 border-zinc-200 text-zinc-400'
+                        }`}
+                      >
+                        Replenish (+)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLumpTransactionType('CONSUME')}
+                        className={`flex-1 py-2 text-xs font-black uppercase rounded-xl border tracking-wide transition-all ${
+                          lumpTransactionType === 'CONSUME'
+                            ? 'bg-red-500/10 border-red-500/30 text-red-600 font-black'
+                            : 'bg-zinc-50 border-zinc-200 text-zinc-400'
+                        }`}
+                      >
+                        Consume (-)
+                      </button>
+                    </div>
+
+                    {/* Batch Lumps scroll grid */}
+                    <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                      {lumps.map((lump, index) => {
+                        const w = parseFloat(lump.width) || 0;
+                        const len = parseFloat(lump.length) || 0;
+                        const totalLumpLength = w * len;
+
+                        return (
+                          <div key={lump.id} className="p-4 bg-zinc-50 border border-zinc-150 rounded-2xl flex flex-col gap-3 relative hover:border-[#2d8d9b]/25 transition-all">
+                            <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-[#3a525d]">
+                              <span>Lump #{index + 1}</span>
+                              <span className="font-mono text-zinc-550 text-[10px] font-black">
+                                Total: {totalLumpLength.toFixed(2)} m
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-[7.5px] font-black uppercase tracking-widest text-zinc-400">Width (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={lump.width}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setLumps(prev => prev.map(item => item.id === lump.id ? { ...item, width: val } : item));
+                                  }}
+                                  className="w-full h-9 bg-white border border-zinc-200 rounded-lg text-center font-bold text-xs outline-none focus:border-[#2d8d9b]"
+                                  placeholder="1.5"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[7.5px] font-black uppercase tracking-widest text-zinc-400">Length (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={lump.length}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setLumps(prev => prev.map(item => item.id === lump.id ? { ...item, length: val } : item));
+                                  }}
+                                  className="w-full h-9 bg-white border border-zinc-200 rounded-lg text-center font-bold text-xs outline-none focus:border-[#2d8d9b]"
+                                  placeholder="10.0"
+                                />
+                              </div>
+                            </div>
+
+                            {lumps.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setLumps(prev => prev.filter(item => item.id !== lump.id))}
+                                className="absolute top-2 right-2 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setLumps(prev => [...prev, { id: Date.now() + Math.random(), width: '1.5', length: '10' }])}
+                      className="w-full h-10 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl font-black uppercase text-[10px] tracking-widest text-[#3a525d] transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                    >
+                      + Add Another Lump
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. THRESHOLD LIMIT TAB */}
+                {modalTab === 'THRESHOLD' && (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Automated Reorder Threshold</h4>
+                      <p className="text-[9px] text-zinc-400 font-semibold mt-0.5">Determine the low stock threshold. Reaching this limit automatically drafts a PO.</p>
+                    </div>
+
+                    <div className="space-y-4 bg-zinc-50 border border-zinc-150 p-6 rounded-2.5xl">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                          Low Stock Threshold Limit
+                        </label>
+                        <span className="text-[10px] font-black text-[#2d8d9b] bg-[#2d8d9b]/5 px-2.5 py-1 rounded">
+                          Current limit: {newThreshold} meters
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="0"
+                          max="1000"
+                          step="5"
+                          value={newThreshold}
+                          onChange={(e) => setNewThreshold(parseInt(e.target.value) || 0)}
+                          className="flex-1 accent-[#2d8d9b]"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={newThreshold}
+                          onChange={(e) => setNewThreshold(Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-28 h-12 bg-white border border-[#fce4d4] rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                        />
+                      </div>
                     </div>
                   </div>
-                );
-              })()}
+                )}
 
-              {/* Physical Delta Adjustment */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
-                  <label>Physical Inventory Change</label>
-                  <span className={`text-[9px] font-extrabold ${physicalDelta > 0 ? 'text-emerald-500' : physicalDelta < 0 ? 'text-red-500' : 'text-zinc-400'}`}>
-                    {physicalDelta > 0 ? `+${physicalDelta} meters` : physicalDelta < 0 ? `${physicalDelta} meters` : 'No physical adjustment'}
-                  </span>
-                </div>
-                
-                <div className="flex gap-3 items-center">
-                  <button
-                    type="button"
-                    onClick={() => setPhysicalDelta(prev => prev - 5)}
-                    className="w-12 h-12 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl flex items-center justify-center font-bold text-zinc-700 transition-all active:scale-90"
-                  >
-                    -5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPhysicalDelta(prev => prev - 1)}
-                    className="w-12 h-12 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl flex items-center justify-center font-bold text-zinc-700 transition-all active:scale-90"
-                  >
-                    -1
-                  </button>
-                  
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={physicalDelta}
-                    onChange={(e) => setPhysicalDelta(parseFloat(e.target.value) || 0)}
-                    className="flex-1 h-12 bg-white border border-[#fce4d4] rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
-                    placeholder="0"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setPhysicalDelta(prev => prev + 1)}
-                    className="w-12 h-12 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl flex items-center justify-center font-bold text-zinc-700 transition-all active:scale-90"
-                  >
-                    +1
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPhysicalDelta(prev => prev + 5)}
-                    className="w-12 h-12 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl flex items-center justify-center font-bold text-zinc-700 transition-all active:scale-90"
-                  >
-                    +5
-                  </button>
-                </div>
-                <p className="text-[9px] text-zinc-400 font-bold">Use positive values to replenish stock (e.g. PO receiving) or negative for production usage / cutting wastage.</p>
-              </div>
-
-              {/* Threshold level */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
-                    Low Stock Threshold Limit
-                  </label>
-                  <span className="text-[10px] font-black text-[#2d8d9b] bg-[#2d8d9b]/5 px-2 py-0.5 rounded">
-                    Current limit: {newThreshold} meters
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min="0"
-                    max="500"
-                    step="5"
-                    value={newThreshold}
-                    onChange={(e) => setNewThreshold(parseInt(e.target.value) || 0)}
-                    className="flex-1 accent-[#2d8d9b]"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newThreshold}
-                    onChange={(e) => setNewThreshold(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="w-24 h-12 bg-white border border-[#fce4d4] rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
-                  />
-                </div>
-                <p className="text-[9px] text-zinc-400 font-bold">
-                  When available fabric roll physical quantity falls below this limit, the system automatically triggers a Purchase Order.
-                </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-4 pt-4 border-t border-zinc-100">
+              <div className="flex gap-4 pt-5 border-t border-zinc-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAdjustModalOpen(false)}
@@ -540,17 +827,19 @@ export default function FabricStockPage() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 h-14 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#3a525d]/20 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="animate-spin text-white" size={16} />
-                  ) : (
-                    'Save Adjustments'
-                  )}
-                </button>
+                {modalTab !== 'BATCH_LEDGER' && (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 h-14 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#3a525d]/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="animate-spin text-white" size={16} />
+                    ) : (
+                      modalTab === 'ADD_BATCH' ? 'Save Batch Entry' : 'Update Threshold'
+                    )}
+                  </button>
+                )}
               </div>
 
             </form>

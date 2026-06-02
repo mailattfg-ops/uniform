@@ -47,19 +47,39 @@ export interface Quotation {
   final_quote_value: number;
   status: string;
   items?: any[];
-  metrics_summary: {
-    total_entities?: number;
-    measured?: number;
-    pending?: number;
-    missing?: number;
-    sizes?: Record<string, number>;
-    cover_letter?: string;
-    gst_percent?: number;
-    pre_tax_subtotal?: number;
-  };
+    metrics_summary: {
+      total_entities?: number;
+      measured?: number;
+      pending?: number;
+      missing?: number;
+      sizes?: Record<string, number>;
+      cover_letter?: string;
+      gst_percent?: number;
+      pre_tax_subtotal?: number;
+      departments?: Array<{
+        id: number;
+        name: string;
+        division?: string;
+        persons: number;
+        sets: number;
+      }>;
+      sales_type?: string;
+      customer_type?: string;
+      quotation_type?: string;
+      extra_charges?: Array<{ label: string; quantity: string; rate: string }>;
+      separate_fabrics?: SeparateFabricItem[];
+      project_start_date?: string;
+    };
   created_at: string;
   pdf_html?: string;
   group_design_number?: { code: string };
+}
+
+export interface SeparateFabricItem {
+  id: number;
+  fabric_id: string;
+  meters: string;
+  rate: string;
 }
 
 export interface ManualItem {
@@ -91,6 +111,7 @@ export interface ManualItem {
   design_number: string;
   quantity: string;
   price: string; // computed unit cost
+  size_breakdown?: any;
 }
 
 export interface TemplateLineItem {

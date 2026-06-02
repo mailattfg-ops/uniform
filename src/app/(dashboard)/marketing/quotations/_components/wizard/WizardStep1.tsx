@@ -21,6 +21,8 @@ interface WizardStep1Props {
   setSalesType: (type: string) => void;
   customerType: string;
   setCustomerType: (type: string) => void;
+  quotationType?: string;
+  setQuotationType?: (type: string) => void;
   isAnalyzing: boolean;
   onNext: () => void;
   generateAutoCoverLetter: () => void;
@@ -29,6 +31,8 @@ interface WizardStep1Props {
   groupDesignCombinations: any[];
   selectedGroupDesignId: string;
   onSelectGroupDesign: (gdnId: string) => void;
+  orgDepartments?: any[];
+  setOrgDepartments?: (depts: any[]) => void;
 }
 
 export default function WizardStep1({
@@ -45,6 +49,8 @@ export default function WizardStep1({
   setSalesType,
   customerType,
   setCustomerType,
+  quotationType = 'STANDARD',
+  setQuotationType,
   isAnalyzing,
   onNext,
   generateAutoCoverLetter,
@@ -53,6 +59,8 @@ export default function WizardStep1({
   groupDesignCombinations,
   selectedGroupDesignId,
   onSelectGroupDesign,
+  orgDepartments = [],
+  setOrgDepartments,
 }: WizardStep1Props) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -111,67 +119,143 @@ export default function WizardStep1({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Manual Quote No (Optional)</label>
-          <Input
-            placeholder="e.g. QT-99081 (Leave blank to auto generate)"
-            value={quoteNo}
-            onChange={(e) => setQuoteNo(e.target.value)}
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Type</label>
+          <Select
+            options={[
+              { label: 'Readymade', value: 'STANDARD' },
+              { label: 'Trade Readymade', value: 'READYMADE' },
+              { label: 'Set Type', value: 'SET_TYPE' }
+            ]}
+            value={quotationType}
+            onChange={setQuotationType}
+            placeholder="Select Quotation Type..."
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
-            Load Product Combination / Group Design Number
-          </label>
-          <Select
-            options={(groupDesignCombinations || []).map(c => ({
-              label: `${c.code} (${(c.products || []).map((p: any) => p.name).join(', ')})`,
-              value: String(c.id)
-            }))}
-            value={selectedGroupDesignId}
-            onChange={onSelectGroupDesign}
-            placeholder="Choose product combination..."
-          />
-        </div>
       </div>
 
       {selectedOrgId && (
-        <div className="space-y-4 border-t border-zinc-100 pt-6">
-          <div className="relative">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Previous Orders / Quotations Registry</h4>
-            <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Click any order card to copy its product details and edit them</p>
-          </div>
-          {previousOrders.length === 0 ? (
-            <p className="text-[10px] text-zinc-400 font-bold italic bg-zinc-50 border border-zinc-250/60 p-4 rounded-xl">No previous orders found for this organization.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {previousOrders.map((q, idx) => (
-                <div
-                  key={q.id || idx}
-                  onClick={() => onSelectPreviousOrder(q)}
-                  className="bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] rounded-2xl p-4 cursor-pointer transition-all flex flex-col justify-between h-28 group relative"
-                >
-                  <div>
-                    <p className="text-xs font-black text-[#3a525d] group-hover:text-[#2d8d9b] truncate">{q.title}</p>
-                    <p className="text-[9px] font-bold text-zinc-400 mt-1">
-                      Quote No: {q.quotation_no || 'Auto'} | Date: {new Date(q.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex justify-between items-center mt-3">
-                    <span className="font-mono text-xs font-black text-emerald-600">₹{parseFloat(q.final_quote_value || 0).toFixed(2)}</span>
-                    <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200">
-                      {q.status}
-                    </span>
-                  </div>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-[8px] font-black uppercase bg-[#2d8d9b] text-white px-2 py-0.5 rounded-[4px]">
-                    Use Order Details
-                  </div>
-                </div>
-              ))}
+        <>
+          {orgDepartments && orgDepartments.length > 0 && (
+            <div className="space-y-4 border-t border-zinc-100 pt-6">
+              <div>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments for Quotation</h4>
+                <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Choose departments and specify person counts and sets per person</p>
+              </div>
+              <div className="overflow-hidden border border-zinc-200 rounded-3xl bg-white shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-16 text-center">Select</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Department Name</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Division</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-40">No. of Persons</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-40">Sets per Person</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-150/70">
+                    {orgDepartments.map((dept) => (
+                      <tr key={dept.id} className={`hover:bg-zinc-50/50 transition-colors ${dept.selected ? 'bg-[#2d8d9b]/5' : ''}`}>
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={dept.selected}
+                            onChange={(e) => {
+                              if (setOrgDepartments) {
+                                const updated = orgDepartments.map(d => d.id === dept.id ? { ...d, selected: e.target.checked } : d);
+                                setOrgDepartments(updated);
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-[#2d8d9b] border-zinc-300 focus:ring-[#2d8d9b]/25"
+                          />
+                        </td>
+                        <td className="p-4">
+                          <span className="text-xs font-black text-[#3a525d]">{dept.name}</span>
+                        </td>
+                        <td className="p-4">
+                          <span className="text-xs font-bold text-zinc-400">{dept.division || '—'}</span>
+                        </td>
+                        <td className="p-4">
+                          <input
+                            type="number"
+                            placeholder="e.g. 50"
+                            disabled={!dept.selected}
+                            value={dept.persons}
+                            onChange={(e) => {
+                              if (setOrgDepartments) {
+                                const val = e.target.value;
+                                const updated = orgDepartments.map(d => d.id === dept.id ? { ...d, persons: val } : d);
+                                setOrgDepartments(updated);
+                              }
+                            }}
+                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b] disabled:opacity-40 disabled:bg-zinc-100"
+                          />
+                        </td>
+                        <td className="p-4">
+                          <input
+                            type="number"
+                            placeholder="e.g. 2"
+                            disabled={!dept.selected}
+                            value={dept.sets}
+                            onChange={(e) => {
+                              if (setOrgDepartments) {
+                                const val = e.target.value;
+                                const updated = orgDepartments.map(d => d.id === dept.id ? { ...d, sets: val } : d);
+                                setOrgDepartments(updated);
+                              }
+                            }}
+                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b] disabled:opacity-40 disabled:bg-zinc-100"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
-        </div>
+
+        </>
       )}
+      {/* PREVIOUS ORDERS - always visible, all orders */}
+      <div className="space-y-4 border-t border-zinc-100 pt-6">
+        <div className="relative">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Previous Orders / Quotations Registry</h4>
+          <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Click any order card to copy its product details and edit them</p>
+        </div>
+        {previousOrders.length === 0 ? (
+          <p className="text-[10px] text-zinc-400 font-bold italic bg-zinc-50 border border-zinc-200 p-4 rounded-xl">No previous orders in registry yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {previousOrders.map((q, idx) => (
+              <div
+                key={q.id || idx}
+                onClick={() => onSelectPreviousOrder(q)}
+                className="bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] rounded-2xl p-4 cursor-pointer transition-all flex flex-col gap-2 group relative"
+              >
+                <div>
+                  <p className="text-xs font-black text-[#3a525d] group-hover:text-[#2d8d9b] truncate">{q.title}</p>
+                  <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
+                    {q.organizations?.name && (
+                      <span className="text-[#2d8d9b] font-black">{q.organizations.name} · </span>
+                    )}
+                    {q.quotation_no || 'Auto'} · {new Date(q.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs font-black text-emerald-600">₹{parseFloat(q.final_quote_value || 0).toFixed(2)}</span>
+                  <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200">
+                    {q.status}
+                  </span>
+                </div>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-[8px] font-black uppercase bg-[#2d8d9b] text-white px-2 py-0.5 rounded-[4px]">
+                  Use Order Details
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="space-y-4 border-t border-zinc-100 pt-6">
         <div className="flex justify-between items-center flex-wrap gap-2">

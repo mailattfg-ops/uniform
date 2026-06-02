@@ -48,7 +48,18 @@ export default function QuotationList({
           </div>
           <div>
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{q.title}</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{q.quotation_no}</p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{q.quotation_no}</p>
+              {q.metrics_summary?.quotation_type && q.metrics_summary.quotation_type !== 'STANDARD' && (
+                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                  q.metrics_summary.quotation_type === 'HOLD'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : 'bg-[#3a525d]/10 text-[#3a525d] border border-[#3a525d]/20'
+                }`}>
+                  {q.metrics_summary.quotation_type === 'HOLD' ? 'Hold' : 'Set Type'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )

@@ -72,6 +72,89 @@ const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patte
   return { dressCode, genderCode, patternCode };
 };
 
+export const parseMaterialsField = (rawText: string | undefined | null) => {
+  if (!rawText) return { type: '', materials: '' };
+  const match = rawText.match(/^\[ProductType:\s*([^\]]+)\]\s*(.*)$/i);
+  if (match) {
+    return { type: match[1], materials: match[2] };
+  }
+  return { type: '', materials: rawText };
+};
+
+const AccessorySizeInput: React.FC<{
+  sizes: string[];
+  setSizes: (sizes: string[]) => void;
+  onChange: (val: string[]) => void;
+}> = ({ sizes, setSizes, onChange }) => {
+  const [inputVal, setInputVal] = useState('');
+
+  const handleAdd = () => {
+    const trimmed = inputVal.trim();
+    if (!trimmed) return;
+    if (sizes.includes(trimmed)) {
+      toast.error('Size already added.');
+      return;
+    }
+    const updated = [...sizes, trimmed];
+    setSizes(updated);
+    onChange(updated);
+    setInputVal('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  const handleRemove = (index: number) => {
+    const updated = sizes.filter((_, i) => i !== index);
+    setSizes(updated);
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a size (e.g. 24, Large, One Size) and press Enter"
+          className="flex-1 h-12 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="h-12 px-6 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center shadow-md active:scale-95"
+        >
+          Add Size
+        </button>
+      </div>
+
+      {sizes.length > 0 ? (
+        <div className="flex flex-wrap gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-150/50">
+          {sizes.map((size, idx) => (
+            <span
+              key={idx}
+              className="flex items-center gap-1.5 px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] text-xs font-black uppercase rounded-lg hover:bg-red-50 hover:text-red-650 hover:border-red-200 transition-all cursor-pointer group"
+              onClick={() => handleRemove(idx)}
+              title="Click to remove"
+            >
+              {size}
+              <span className="text-[10px] text-[#2d8d9b] group-hover:text-red-500 font-normal">×</span>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[10px] text-zinc-400 font-bold italic ml-1">No sizes added yet. Please specify at least one size option.</p>
+      )}
+    </div>
+  );
+};
+
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [measureConfig, setMeasureConfig] = useState<any[]>([]);
@@ -163,6 +246,8 @@ export default function ProductManagement() {
   const [baseSize, setBaseSize] = useState('');
   const [fit, setFit] = useState('');
   const [nextDesignNumber, setNextDesignNumber] = useState('');
+  const [productType, setProductType] = useState('');
+  const [accessorySizes, setAccessorySizes] = useState<string[]>([]);
 
   // Design Catalog tab states
   const [activeTab, setActiveTab] = useState<'products' | 'designs'>('products');
@@ -220,6 +305,14 @@ export default function ProductManagement() {
       setSelectedPattern(parsed.patternCode);
       setBaseSize(editingProduct.base_size || '');
       setFit(editingProduct.fit || '');
+      
+      const parsedMat = parseMaterialsField(editingProduct.materials);
+      setProductType(parsedMat.type || '');
+      if (parsedMat.type === 'accessories' && editingProduct.base_size) {
+        setAccessorySizes(editingProduct.base_size.split(',').map(s => s.trim()).filter(Boolean));
+      } else {
+        setAccessorySizes([]);
+      }
     } else {
       setSelectedMethods(['manual']);
       setSelectedDress('');
@@ -227,6 +320,8 @@ export default function ProductManagement() {
       setSelectedPattern('');
       setBaseSize('');
       setFit('');
+      setProductType('');
+      setAccessorySizes([]);
     }
   }, [editingProduct, isAdding, dresses, genders, patterns]);
 
@@ -317,13 +412,44 @@ export default function ProductManagement() {
       required: true
     },
     {
+      name: 'product_type',
+      label: 'Product Type',
+      type: 'select',
+      options: [
+        { label: 'Select Product Type', value: '' },
+        { label: 'Readymade', value: 'readymade' },
+        { label: 'Accessories', value: 'accessories' },
+        { label: 'Trade Readymade', value: 'trade_readymade' }
+      ],
+      value: productType,
+      onChange: (val) => setProductType(val),
+      required: true
+    },
+    {
       name: 'base_size',
       label: 'Base Size',
       type: 'text',
       placeholder: 'e.g. 38, M, L',
       required: false,
       value: baseSize,
-      onChange: (val) => setBaseSize(val)
+      onChange: (val) => setBaseSize(val),
+      hidden: productType === 'accessories'
+    },
+    {
+      name: 'base_size_accessories',
+      label: 'Base Size Options (Accessories)',
+      type: 'custom',
+      className: 'md:col-span-2',
+      hidden: productType !== 'accessories',
+      render: (val, onChange) => (
+        <AccessorySizeInput
+          sizes={accessorySizes}
+          setSizes={setAccessorySizes}
+          onChange={onChange}
+        />
+      ),
+      defaultValue: accessorySizes,
+      required: false
     },
     {
       name: 'fit',
@@ -336,14 +462,15 @@ export default function ProductManagement() {
       ],
       required: false,
       value: fit,
-      onChange: (val) => setFit(val)
+      onChange: (val) => setFit(val),
+      hidden: productType === 'accessories'
     },
     {
       name: 'product_type_id',
-      label: 'Product Type',
+      label: 'Garment Category',
       type: 'select',
       options: [
-        { label: 'Select Product Type', value: '' },
+        { label: 'Select Garment Category', value: '' },
         ...productTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
       ],
       defaultValue: editingProduct?.product_type_id?.toString() || editingProduct?.product_types?.id?.toString() || '',
@@ -430,7 +557,7 @@ export default function ProductManagement() {
       label: 'Description',
       type: 'text',
       placeholder: 'e.g. Cotton shirt with chest pocket',
-      defaultValue: editingProduct?.materials
+      defaultValue: parseMaterialsField(editingProduct?.materials).materials
     },
     {
       name: 'sam_value',
@@ -537,9 +664,20 @@ export default function ProductManagement() {
     data.gender = genderObj ? genderObj.name : 'Unisex';
 
     // Set base size and fit
-    data.base_size = baseSize.trim() || null;
-    data.fit = fit || null;
+    if (productType === 'accessories') {
+      data.base_size = accessorySizes.join(', ') || null;
+      data.fit = null;
+    } else {
+      data.base_size = baseSize.trim() || null;
+      data.fit = fit || null;
+    }
+    delete data.base_size_accessories;
     data.design_number = data.design_number || (editingProduct ? editingProduct.design_number : nextDesignNumber) || null;
+
+    // Serialize product_type into materials
+    const pType = data.product_type || '';
+    const pMats = data.materials || '';
+    data.materials = pType ? `[ProductType: ${pType}] ${pMats}` : pMats;
 
     try {
       if (editingProduct) {
@@ -611,19 +749,32 @@ export default function ProductManagement() {
     },
     {
       header: 'Category & Type',
-      accessor: (p) => (
-        <div className="flex flex-col gap-1.5">
-          <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border w-fit ${p.category === 'top_wear' ? 'bg-green-50 text-green-600 border-green-100' :
-            p.category === 'bottom_wear' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-              'bg-zinc-50 text-zinc-600 border-zinc-100'
-            }`}>
-            {p.category?.replace('_', ' ') || 'top wear'}
-          </span>
-          <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded border border-blue-100 w-fit">
-            {p.product_types?.name || 'Standard'}
-          </span>
-        </div>
-      )
+      accessor: (p) => {
+        const { type: parsedType } = parseMaterialsField(p.materials);
+        const typeLabels: Record<string, string> = {
+          readymade: 'Readymade',
+          accessories: 'Accessories',
+          trade_readymade: 'Trade Readymade'
+        };
+        return (
+          <div className="flex flex-col gap-1.5">
+            <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border w-fit ${p.category === 'top_wear' ? 'bg-green-50 text-green-600 border-green-100' :
+              p.category === 'bottom_wear' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                'bg-zinc-50 text-zinc-600 border-zinc-100'
+              }`}>
+              {p.category?.replace('_', ' ') || 'top wear'}
+            </span>
+            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded border border-blue-100 w-fit">
+              {p.product_types?.name || 'Standard'}
+            </span>
+            {parsedType && (
+              <span className="px-2 py-0.5 bg-teal-50 text-teal-600 text-[8px] font-black uppercase rounded border border-teal-100 w-fit">
+                {typeLabels[parsedType] || parsedType}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Technical Specs',

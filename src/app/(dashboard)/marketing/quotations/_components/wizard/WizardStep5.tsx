@@ -16,6 +16,7 @@ interface WizardStep5Props {
   selectedProductTypeId: string;
   orgAnalysis: any;
   manualItems: ManualItem[];
+  separateFabrics?: any[];
   fabricsList: any[];
   profitMargin: string;
   calculatedExpenses: { fabric: number; accessories: number; labor: number; total: number };
@@ -24,6 +25,9 @@ interface WizardStep5Props {
   editingQuotationId: number | null;
   onBack: () => void;
   onSave: () => void;
+  orgDepartments?: any[];
+  departmentItems?: Record<string, ManualItem[]>;
+  quotationType?: string;
 }
 
 export default function WizardStep5({
@@ -36,6 +40,7 @@ export default function WizardStep5({
   selectedProductTypeId,
   orgAnalysis,
   manualItems,
+  separateFabrics = [],
   fabricsList,
   profitMargin,
   calculatedExpenses,
@@ -44,8 +49,26 @@ export default function WizardStep5({
   editingQuotationId,
   onBack,
   onSave,
+  orgDepartments = [],
+  departmentItems = {},
+  quotationType = 'STANDARD',
 }: WizardStep5Props) {
   const customerName = organizations.find((o) => String(o.id) === String(selectedOrgId))?.name || 'Customer';
+
+  const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
+  const hasDepartments = selectedDepts.length > 0;
+
+  const getDeptItemsCount = () => {
+    let total = 0;
+    if (departmentItems) {
+      Object.values(departmentItems).forEach(items => {
+        items.forEach(it => {
+          total += parseInt(it.quantity) || 0;
+        });
+      });
+    }
+    return total;
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -104,6 +127,65 @@ export default function WizardStep5({
                 ))}
               </div>
             </Card>
+          ) : hasDepartments ? (
+            <div className="space-y-6">
+              {selectedDepts.map((dept) => {
+                const items = departmentItems[String(dept.id)] || [];
+                if (items.length === 0) return null;
+                return (
+                  <Card key={dept.id} className="p-8 border border-zinc-100 rounded-3xl space-y-4">
+                    <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                        Department: {dept.name} {dept.division ? `(${dept.division})` : ''}
+                      </h4>
+                      <span className="text-[10px] font-bold text-zinc-400">
+                        {dept.persons} Persons × {dept.sets} Sets
+                      </span>
+                    </div>
+                    <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                            <th className="p-3">Product Type</th>
+                            <th className="p-3">{quotationType === 'READYMADE' ? 'Product Name' : 'Fabric Option'}</th>
+                            {quotationType !== 'READYMADE' && <th className="p-3">SAM Cost</th>}
+                            <th className="p-3">Design Number</th>
+                            <th className="p-3 text-right">Quantity</th>
+                            <th className="p-3 text-right">Unit Price</th>
+                            <th className="p-3 text-right">Total Price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
+                          {items.map((item, idx) => {
+                            const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
+                            const fabricName = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Custom';
+                            return (
+                              <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
+                                <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
+                                <td className="p-3 text-zinc-500">
+                                  {quotationType === 'READYMADE' ? 'Ready-made Product' : fabricName}
+                                </td>
+                                {quotationType !== 'READYMADE' && (
+                                  <td className="p-3 font-mono">
+                                    {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                                  </td>
+                                )}
+                                <td className="p-3">{item.design_number || 'N/A'}</td>
+                                <td className="p-3 text-right font-black">{item.quantity}</td>
+                                <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
+                                <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                                  ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           ) : (
             <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
@@ -114,8 +196,8 @@ export default function WizardStep5({
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
                       <th className="p-3">Product Type</th>
-                      <th className="p-3">Fabric Option</th>
-                      <th className="p-3">SAM Cost</th>
+                      <th className="p-3">{quotationType === 'READYMADE' ? 'Product Name' : 'Fabric Option'}</th>
+                      {quotationType !== 'READYMADE' && <th className="p-3">SAM Cost</th>}
                       <th className="p-3">Design Number</th>
                       <th className="p-3 text-right">Quantity</th>
                       <th className="p-3 text-right">Unit Price</th>
@@ -124,21 +206,96 @@ export default function WizardStep5({
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                     {manualItems.map((item, idx) => {
+                      const isSet = item.size_breakdown?.is_set;
+                      
+                      if (isSet) {
+                        const setName = item.size_breakdown?.set_name || 'Custom Set';
+                        const products = item.size_breakdown?.products || [];
+                        return (
+                          <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
+                            <td className="p-3">
+                              <div className="space-y-1">
+                                <div className="font-black text-[#2d8d9b] uppercase text-[11px]">🎁 SET: {setName}</div>
+                                <ul className="list-disc list-inside pl-2 text-zinc-500 text-[10px] space-y-0.5 font-bold">
+                                  {products.map((p: any, pIdx: number) => (
+                                    <li key={pIdx}>
+                                      {p.product_type_name} {p.product_name ? `(${p.product_name})` : ''}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </td>
+                            <td className="p-3 text-zinc-400 font-bold">—</td>
+                            {quotationType !== 'READYMADE' && <td className="p-3 font-mono text-zinc-400">—</td>}
+                            <td className="p-3 text-zinc-500">{item.design_number || 'N/A'}</td>
+                            <td className="p-3 text-right font-black">{item.quantity}</td>
+                            <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
+                            <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                              ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      }
+
                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
                       const fabricName = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Custom';
                       return (
                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
-                          <td className="p-3 text-zinc-500">{fabricName}</td>
-                          <td className="p-3 font-mono">
-                            {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                          <td className="p-3 text-zinc-500">
+                            {quotationType === 'READYMADE' ? 'Ready-made Product' : fabricName}
                           </td>
+                          {quotationType !== 'READYMADE' && (
+                            <td className="p-3 font-mono">
+                              {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                            </td>
+                          )}
                           <td className="p-3">{item.design_number || 'N/A'}</td>
                           <td className="p-3 text-right font-black">{item.quantity}</td>
                           <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
                           <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
                             ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
                           </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {separateFabrics.length > 0 && (
+            <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4 mt-6">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
+                Separate Fabric Materials Supplied
+              </h4>
+              <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                      <th className="p-3 pl-4">Fabric Details</th>
+                      <th className="p-3 text-right">Meters</th>
+                      <th className="p-3 text-right">Rate/Meter</th>
+                      <th className="p-3 text-right pr-4">Total Price</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 font-semibold text-[#3a525d]">
+                    {separateFabrics.map((sf: any, idx: number) => {
+                      const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
+                      const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+                      const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
+                      const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                      const meters = Number(sf.meters) || 0;
+                      const rate = Number(sf.rate) || 0;
+                      const total = meters * rate;
+
+                      return (
+                        <tr key={idx} className="hover:bg-zinc-50/50 bg-white transition-colors">
+                          <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                          <td className="p-3 text-right">{meters} m</td>
+                          <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
+                          <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -159,7 +316,11 @@ export default function WizardStep5({
             <div className="flex justify-between">
               <span>Total Items count:</span>
               <span className="font-black text-[#3a525d]">
-                {hasMeasurements ? orgAnalysis.total_entities : manualItems.reduce((acc, it) => acc + (parseInt(it.quantity) || 0), 0)} Units
+                {hasMeasurements
+                  ? orgAnalysis.total_entities
+                  : hasDepartments
+                    ? getDeptItemsCount()
+                    : manualItems.reduce((acc, it) => acc + (parseInt(it.quantity) || 0), 0)} Units
               </span>
             </div>
             <div className="flex justify-between">

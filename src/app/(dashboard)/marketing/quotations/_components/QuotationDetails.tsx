@@ -73,20 +73,72 @@ export default function QuotationDetails({
     // Construct items HTML
     let itemsHtml = '';
     if (quote.items && quote.items.length > 0) {
-      quote.items.forEach((item: any) => {
+      const standardItems = quote.items.filter((item: any) => !item.size_breakdown?.is_separate_fabric);
+      standardItems.forEach((item: any) => {
         const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
-        const fabricId = item.size_breakdown?.fabric_id;
-        const fabricBrand = fabricsList.find((f: any) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
+        const deptId = item.size_breakdown?.department_id;
+        const deptName = item.size_breakdown?.department_name;
+        const qty = Number(item.quantity) || 0;
+        
+        let firstCellHtml = '';
+        let fabricStyleCellHtml = '';
+        
+        if (deptName) {
+          const deptMeta = quote.metrics_summary?.departments?.find((d: any) => String(d.id) === String(deptId));
+          let deptHeader = '';
+          if (deptMeta) {
+            deptHeader = `${deptName} _ ${deptMeta.persons}*${deptMeta.sets}`;
+          } else {
+            const assumedSets = 2;
+            const assumedPersons = Math.ceil(qty / assumedSets);
+            deptHeader = `${deptName} _ ${assumedPersons}*${assumedSets}`;
+          }
+          
+          const designNotes = item.size_breakdown?.design_number || '';
+          const productLine = designNotes ? `* ${pTypeName} - ${designNotes}` : `* ${pTypeName}`;
+          
+          const fabricId = item.size_breakdown?.fabric_id;
+          const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+          const mainFabricLine = fabricId ? `FAB(M) - ${fabricBrand}` : '';
+          
+          const att1Id = item.size_breakdown?.attachment_fabric1_id;
+          const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
+          const att1Brand = att1Fabric ? (att1Fabric.brand_name || att1Fabric.name) : '';
+          const att1Line = att1Id ? `FAB(A) - ${att1Brand}` : '';
+          
+          const att2Id = item.size_breakdown?.attachment_fabric2_id;
+          const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
+          const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
+          const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
+          
+          firstCellHtml = `
+            <div class="space-y-0.5 py-1 text-left">
+              <div class="font-black text-gray-800 uppercase text-[11px]">${deptHeader}</div>
+              <div class="font-semibold text-gray-600 text-xs">${productLine}</div>
+              ${mainFabricLine ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${mainFabricLine}</div>` : ''}
+              ${att1Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att1Line}</div>` : ''}
+              ${att2Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att2Line}</div>` : ''}
+            </div>
+          `;
+          fabricStyleCellHtml = '—';
+        } else {
+          const fabricId = item.size_breakdown?.fabric_id;
+          const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+          firstCellHtml = `<span class="font-bold text-gray-800 text-xs">${pTypeName}</span>`;
+          fabricStyleCellHtml = fabricBrand;
+        }
+
         const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
         const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
-        const qty = item.quantity || 0;
         const price = Number(item.unit_price) || 0;
         const total = Number(item.total_price) || 0;
 
         itemsHtml += `
           <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="py-3.5 px-4 font-bold text-gray-800 text-xs">${pTypeName}</td>
-            <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricBrand}</td>
+            <td class="py-3.5 px-4">${firstCellHtml}</td>
+            <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricStyleCellHtml}</td>
             <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
             <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
             <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
@@ -95,6 +147,51 @@ export default function QuotationDetails({
           </tr>
         `;
       });
+    }
+
+    let separateFabricsHtml = '';
+    const separateFabricsList = quote.metrics_summary?.separate_fabrics;
+    if (separateFabricsList && separateFabricsList.length > 0) {
+      let sfRowsHtml = '';
+      separateFabricsList.forEach((sf: any) => {
+        const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
+        const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+        const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
+        const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+        const meters = Number(sf.meters) || 0;
+        const rate = Number(sf.rate) || 0;
+        const total = meters * rate;
+        
+        sfRowsHtml += `
+          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <td class="py-3.5 px-4">${fabricName}${shade}${width}</td>
+            <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${meters} m</td>
+            <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${rate.toFixed(2)}</td>
+            <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+      
+      separateFabricsHtml = `
+        <div class="py-8 page-break">
+          <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Separate Fabric Materials Supplied</p>
+          <div class="border border-gray-150 rounded-2xl overflow-hidden shadow-sm">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                  <th class="py-3 px-4">Fabric Details</th>
+                  <th class="py-3 px-4 text-right font-mono">Meters</th>
+                  <th class="py-3 px-4 text-right w-36">Rate/Meter</th>
+                  <th class="py-3 px-4 text-right w-36">Total Price</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 font-semibold">
+                ${sfRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
     }
 
     // Build overall print document
@@ -240,6 +337,48 @@ export default function QuotationDetails({
             </div>
           ` : ''}
 
+          <!-- DEPARTMENTS BREAKDOWN SECTION -->
+          ${quote.metrics_summary?.departments && quote.metrics_summary.departments.length > 0 ? `
+            <div class="py-8 border-b border-gray-100">
+              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Target Departments Sizing Breakdown</p>
+              <div class="border border-gray-150 rounded-2xl overflow-hidden shadow-sm max-w-2xl bg-white">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                      <th class="py-3 px-4">Department Name</th>
+                      <th class="py-3 px-4">Division</th>
+                      <th class="py-3 px-4 text-right">No. of Persons</th>
+                      <th class="py-3 px-4 text-right">Sets per Person</th>
+                      <th class="py-3 px-4 text-right font-mono">Total Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100 font-semibold text-xs text-gray-650">
+                    ${quote.metrics_summary.departments.map((dept: any) => `
+                      <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="py-3 px-4 font-black text-gray-800">${dept.name}</td>
+                        <td class="py-3 px-4 text-gray-400">${dept.division || '—'}</td>
+                        <td class="py-3 px-4 text-right">${dept.persons}</td>
+                        <td class="py-3 px-4 text-right">${dept.sets}</td>
+                        <td class="py-3 px-4 text-right font-black text-[#2d8d9b]">${dept.persons * dept.sets}</td>
+                      </tr>
+                    `).join('')}
+                    <!-- Total Row -->
+                    <tr class="bg-gray-50/30 border-t border-gray-150 text-[10px] font-black uppercase text-gray-800">
+                      <td class="py-3 px-4" colspan="2">Total</td>
+                      <td class="py-3 px-4 text-right">
+                        ${quote.metrics_summary.departments.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
+                      </td>
+                      <td class="py-3 px-4"></td>
+                      <td class="py-3 px-4 text-right text-[#2d8d9b]">
+                        ${quote.metrics_summary.departments.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- SPECIFICATIONS TABLE -->
           <div class="py-8 page-break">
             <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Quotation Product Specifications</p>
@@ -262,6 +401,8 @@ export default function QuotationDetails({
               </table>
             </div>
           </div>
+
+          ${separateFabricsHtml}
 
           <!-- PRICING & GST COMPILATION -->
           <div class="flex justify-end py-6 border-t border-gray-100">
@@ -411,7 +552,7 @@ export default function QuotationDetails({
               </Card>
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Expected Delivery Schedule</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">Expected Delivery Schedule</p>
                 <p className="text-base font-black text-[#2d8d9b] mt-1">
                   {selectedQuotation.expected_delivery_date
                     ? new Date(selectedQuotation.expected_delivery_date).toLocaleDateString(undefined, {
@@ -420,6 +561,15 @@ export default function QuotationDetails({
                         year: 'numeric',
                       })
                     : 'N/A'}
+                </p>
+              </Card>
+
+              <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
+                <p className="text-base font-black text-[#3a525d] mt-1">
+                  {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'HOLD') && 'Readymade'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'SET_TYPE' && 'Set Type'}
+                  {(!selectedQuotation.metrics_summary?.quotation_type || selectedQuotation.metrics_summary.quotation_type === 'STANDARD') && 'Standard'}
                 </p>
               </Card>
             </div>
@@ -455,14 +605,84 @@ export default function QuotationDetails({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
-                      {selectedQuotation.items.map((item: any, idx: number) => {
-                        const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
-                        const fabricId = item.size_breakdown?.fabric_id;
-                        const fabricBrand = fabricsList.find((f) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
+                      {selectedQuotation.items
+                        .filter((item: any) => !item.size_breakdown?.is_separate_fabric)
+                        .map((item: any, idx: number) => {
+                          const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+                          const deptId = item.size_breakdown?.department_id;
+                          const deptName = item.size_breakdown?.department_name;
+                          const qty = Number(item.quantity) || 0;
+                        
+                        let firstCellJSX = null;
+                        let fabricStyleJSX = null;
+                        
+                        if (item.size_breakdown?.is_set) {
+                          const setName = item.size_breakdown.set_name || 'Custom Set';
+                          const productsList = item.size_breakdown.products || [];
+                          firstCellJSX = (
+                            <div className="space-y-1.5 py-1.5 text-left">
+                              <div className="font-black text-[#2d8d9b] uppercase text-xs">🎁 SET: {setName}</div>
+                              <div className="text-zinc-400 text-[9px] font-black uppercase tracking-widest pl-2">Included Garments:</div>
+                              <ul className="list-disc list-inside pl-3 text-zinc-650 text-xs space-y-0.5 font-bold">
+                                {productsList.map((p: any, pIdx: number) => (
+                                  <li key={pIdx}>
+                                    {p.product_type_name} {p.product_name ? `— ${p.product_name}` : ''}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                          fabricStyleJSX = <span className="text-zinc-350">—</span>;
+                        } else if (deptName) {
+                          const deptMeta = selectedQuotation.metrics_summary?.departments?.find((d: any) => String(d.id) === String(deptId));
+                          let deptHeader = '';
+                          if (deptMeta) {
+                            deptHeader = `${deptName} _ ${deptMeta.persons}*${deptMeta.sets}`;
+                          } else {
+                            const assumedSets = 2;
+                            const assumedPersons = Math.ceil(qty / assumedSets);
+                            deptHeader = `${deptName} _ ${assumedPersons}*${assumedSets}`;
+                          }
+                          const designNotes = item.size_breakdown?.design_number || '';
+                          const productLine = designNotes ? `* ${pTypeName} - ${designNotes}` : `* ${pTypeName}`;
+                          
+                          const fabricId = item.size_breakdown?.fabric_id;
+                          const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+                          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+                          const mainFabricLine = fabricId ? `FAB(M) - ${fabricBrand}` : '';
+                          
+                          const att1Id = item.size_breakdown?.attachment_fabric1_id;
+                          const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
+                          const att1Brand = att1Fabric ? (att1Fabric.brand_name || att1Fabric.name) : '';
+                          const att1Line = att1Id ? `FAB(A) - ${att1Brand}` : '';
+                          
+                          const att2Id = item.size_breakdown?.attachment_fabric2_id;
+                          const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
+                          const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
+                          const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
+                          
+                          firstCellJSX = (
+                            <div className="space-y-0.5 py-1 text-left">
+                              <div className="font-black text-[#3a525d] uppercase text-xs">{deptHeader}</div>
+                              <div className="font-semibold text-zinc-650 text-xs">{productLine}</div>
+                              {mainFabricLine && <div className="text-zinc-450 text-[10px] pl-2 font-medium">{mainFabricLine}</div>}
+                              {att1Line && <div className="text-zinc-455 text-[10px] pl-2 font-medium">{att1Line}</div>}
+                              {att2Line && <div className="text-zinc-455 text-[10px] pl-2 font-medium">{att2Line}</div>}
+                            </div>
+                          );
+                          fabricStyleJSX = <span className="text-zinc-350">—</span>;
+                        } else {
+                          const fabricId = item.size_breakdown?.fabric_id;
+                          const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+                          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+                          firstCellJSX = <span className="font-black text-[#3a525d]">{pTypeName}</span>;
+                          fabricStyleJSX = <span className="text-zinc-500">{fabricBrand}</span>;
+                        }
+
                         return (
                           <tr key={item.id || idx}>
-                            <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
-                            <td className="p-3 text-zinc-500">{fabricBrand}</td>
+                            <td className="p-3">{firstCellJSX}</td>
+                            <td className="p-3">{fabricStyleJSX}</td>
                             <td className="p-3 font-mono">
                               {item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A'}
                             </td>
@@ -494,6 +714,87 @@ export default function QuotationDetails({
                         <strong>{sz}</strong>: {selectedQuotation.metrics_summary.sizes?.[sz] || 0} Units
                       </div>
                     ))}
+                </div>
+              </div>
+            )}
+
+            {/* SEPARATE FABRICS TABLE */}
+            {selectedQuotation.metrics_summary?.separate_fabrics && selectedQuotation.metrics_summary.separate_fabrics.length > 0 && (
+              <div className="space-y-3 pt-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Separate Fabric Materials Supplied</h4>
+                <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                        <th className="p-3 pl-4">Fabric Details</th>
+                        <th className="p-3 text-right">Meters</th>
+                        <th className="p-3 text-right">Rate/Meter</th>
+                        <th className="p-3 text-right pr-4">Total Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
+                      {selectedQuotation.metrics_summary.separate_fabrics.map((sf: any, idx: number) => {
+                        const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
+                        const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+                        const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
+                        const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                        const meters = Number(sf.meters) || 0;
+                        const rate = Number(sf.rate) || 0;
+                        const total = meters * rate;
+
+                        return (
+                          <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                            <td className="p-3 text-right">{meters} m</td>
+                            <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
+                            <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* DEPARTMENTS BREAKDOWN TABLE */}
+            {selectedQuotation.metrics_summary?.departments && selectedQuotation.metrics_summary.departments.length > 0 && (
+              <div className="space-y-3 pt-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Departments Included</h4>
+                <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                        <th className="p-3 pl-4">Department Name</th>
+                        <th className="p-3">Division</th>
+                        <th className="p-3 text-right">No. of Persons</th>
+                        <th className="p-3 text-right">Sets / Person</th>
+                        <th className="p-3 text-right pr-4">Total Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
+                      {selectedQuotation.metrics_summary.departments.map((dept: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                          <td className="p-3 pl-4 font-black text-[#3a525d]">{dept.name}</td>
+                          <td className="p-3 text-zinc-400">{dept.division || '—'}</td>
+                          <td className="p-3 text-right">{dept.persons}</td>
+                          <td className="p-3 text-right">{dept.sets}</td>
+                          <td className="p-3 text-right font-black text-[#2d8d9b] pr-4">{dept.persons * dept.sets}</td>
+                        </tr>
+                      ))}
+                      {/* Total Row */}
+                      <tr className="bg-zinc-50/50 border-t border-zinc-250/60 text-[10px] font-black uppercase text-[#3a525d]">
+                        <td className="p-3 pl-4" colSpan={2}>Total</td>
+                        <td className="p-3 text-right">
+                          {selectedQuotation.metrics_summary.departments.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
+                        </td>
+                        <td className="p-3"></td>
+                        <td className="p-3 text-right text-[#2d8d9b] pr-4">
+                          {selectedQuotation.metrics_summary.departments.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

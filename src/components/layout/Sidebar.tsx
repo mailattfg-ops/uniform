@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 import {
   Star,
   Settings,
@@ -20,6 +21,7 @@ import {
   TrendingUp,
   Calculator,
   Package,
+  LogOut,
 } from 'lucide-react';
 
 interface Subsection {
@@ -108,12 +110,6 @@ const modules: ModuleItem[] = [
       { label: 'Fabric SAM', href: '/sam-management/fabric' }
     ]
   },
-  {
-    icon: Settings, label: 'Settings', href: '/settings/profile',
-    subsections: [
-      { label: 'Profile', href: '/settings/profile' }
-    ]
-  },
 ];
 
 import { useLayout } from '@/hooks/useLayout';
@@ -125,6 +121,8 @@ export const Sidebar: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Load user on mount and sync with identity updates
   const loadUser = () => {
@@ -139,6 +137,25 @@ export const Sidebar: React.FC = () => {
     window.addEventListener('storage', loadUser);
     return () => window.removeEventListener('storage', loadUser);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    Cookies.remove('auth_token');
+    localStorage.removeItem('user');
+    router.push('/login');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
 
   const toggleSidebar = () => setIsExpanded(!isExpanded);
 
@@ -328,8 +345,40 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* User Profile Footer */}
-        <div className={`mt-auto p-4 border-t border-white/5 ${!isExpanded && 'flex justify-center'}`}>
-          <div className={`flex items-center justify-between p-3 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
+        <div className={`mt-auto p-4 border-t border-white/5 relative ${!isExpanded && 'flex justify-center'}`} ref={dropdownRef}>
+          {isDropdownOpen && (
+            <div className={`absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${
+              isExpanded ? 'left-4 right-4' : 'left-4 w-48'
+            }`}>
+              <div className="flex flex-col gap-1">
+                <Link
+                  href="/settings/profile"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                      setIsSidebarOpen(false);
+                    }
+                  }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <User size={16} className="text-[#CC9448]" />
+                  <span>Profile Settings</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left w-full"
+                >
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={`flex items-center justify-between p-3 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}
+          >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0">
                 <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
@@ -346,7 +395,7 @@ export const Sidebar: React.FC = () => {
               )}
             </div>
             {isExpanded && (
-              <svg className="w-4 h-4 text-white/85 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+              <svg className={`w-4 h-4 text-white/85 shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
               </svg>
             )}
