@@ -246,6 +246,7 @@ export default function ProductManagement() {
   const [baseSize, setBaseSize] = useState('');
   const [fit, setFit] = useState('');
   const [nextDesignNumber, setNextDesignNumber] = useState('');
+  const [nextPatternCode, setNextPatternCode] = useState('');
   const [productType, setProductType] = useState('');
   const [accessorySizes, setAccessorySizes] = useState<string[]>([]);
 
@@ -259,7 +260,7 @@ export default function ProductManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, fabricRes, nextDnRes, gdRes, buttonsRes, threadsRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fabricRes, nextDnRes, gdRes, buttonsRes, threadsRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
         api.get('/size-charts'),
@@ -267,6 +268,7 @@ export default function ProductManagement() {
         api.get('/art-number-hub/dresses').catch(() => ({ data: [] })),
         api.get('/art-number-hub/genders').catch(() => ({ data: [] })),
         api.get('/art-number-hub/patterns').catch(() => ({ data: [] })),
+        api.get('/art-number-hub/patterns/next').catch(() => ({ data: { nextCode: '001' } })),
         api.get('/inventory/fabrics').catch(() => ({ data: [] })),
         api.get('/products/next-design-number').catch(() => ({ data: { nextDesignNumber: 'DNS-0001' } })),
         api.get('/quotations/group-designs').catch(() => ({ data: [] })),
@@ -280,6 +282,7 @@ export default function ProductManagement() {
       setDresses(dressRes.data);
       setGenders(genderRes.data);
       setPatterns(patternRes.data);
+      setNextPatternCode(nextPatternRes.data.nextCode || '001');
       setFabrics(fabricRes.data);
       setNextDesignNumber(nextDnRes.data.nextDesignNumber || 'DNS-0001');
       setGroupDesigns(gdRes.data || []);
@@ -322,6 +325,8 @@ export default function ProductManagement() {
       setFit('');
       setProductType('');
       setAccessorySizes([]);
+      // Refresh next pattern code on form open
+      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data.nextCode || '001')).catch(() => {});
     }
   }, [editingProduct, isAdding, dresses, genders, patterns]);
 
@@ -388,24 +393,17 @@ export default function ProductManagement() {
     {
       name: 'pattern_code',
       label: 'Pattern Code',
-      type: 'select',
-      options: [
-        { label: 'Select Pattern Code', value: '' },
-        ...patterns.map(p => ({
-          label: `${p.code} (${p.name})`,
-          value: p.code
-        }))
-      ],
-      required: true,
-      value: selectedPattern,
-      onChange: (val) => setSelectedPattern(val)
+      type: 'text',
+      value: editingProduct ? selectedPattern : nextPatternCode,
+      readOnly: true,
+      placeholder: 'Auto-generating...'
     },
     {
       name: 'art_number',
       label: 'Generated Art Number',
       type: 'text',
-      value: (selectedGender && selectedDress && selectedPattern)
-        ? `${selectedGender}-${selectedDress}${selectedPattern}`
+      value: (selectedGender && selectedDress)
+        ? `${selectedGender}-${selectedDress}${editingProduct ? selectedPattern : nextPatternCode}`
         : '',
       readOnly: true,
       placeholder: 'Will generate automatically...',
@@ -515,34 +513,12 @@ export default function ProductManagement() {
       step: '1'
     },
     {
-      name: 'button_id',
-      label: 'Button Brand (Inventory Link)',
-      type: 'select',
-      options: [
-        { label: 'Select Button brand...', value: '' },
-        ...buttonsList.map(b => ({ label: b.name, value: b.id }))
-      ],
-      defaultValue: editingProduct?.button_id || '',
-      required: false
-    },
-    {
       name: 'button_count',
       label: 'Buttons Count',
       type: 'number',
       placeholder: 'e.g. 6',
       defaultValue: editingProduct?.button_count !== null && editingProduct?.button_count !== undefined ? String(editingProduct.button_count) : '',
       required: true
-    },
-    {
-      name: 'thread_id',
-      label: 'Thread Color (Inventory Link)',
-      type: 'select',
-      options: [
-        { label: 'Select Thread brand/color...', value: '' },
-        ...threadsList.map(t => ({ label: `${t.name} (${t.code})`, value: t.id }))
-      ],
-      defaultValue: editingProduct?.thread_id || '',
-      required: false
     },
     {
       name: 'thread_count',
@@ -554,7 +530,7 @@ export default function ProductManagement() {
     },
     {
       name: 'materials',
-      label: 'Description',
+      label: 'Specification',
       type: 'text',
       placeholder: 'e.g. Cotton shirt with chest pocket',
       defaultValue: parseMaterialsField(editingProduct?.materials).materials
@@ -657,8 +633,9 @@ export default function ProductManagement() {
     data.images = data.images || [];
 
     // Generate dynamic art_number and map gender name
-    data.art_number = (selectedGender && selectedDress && selectedPattern)
-      ? `${selectedGender}-${selectedDress}${selectedPattern}`
+    const effectivePattern = editingProduct ? selectedPattern : nextPatternCode;
+    data.art_number = (selectedGender && selectedDress && effectivePattern)
+      ? `${selectedGender}-${selectedDress}${effectivePattern}`
       : '';
     const genderObj = genders.find(g => g.code === selectedGender);
     data.gender = genderObj ? genderObj.name : 'Unisex';
