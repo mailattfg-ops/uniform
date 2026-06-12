@@ -552,9 +552,11 @@ export default function WizardStep4({
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
                       <p className="text-xs font-black text-[#3a525d] mt-1 uppercase">
-                        {(selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE' || selectedQuoteDetail.metrics_summary?.quotation_type === 'HOLD') && 'Readymade'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'SET_TYPE' && 'Set Type'}
-                        {(!selectedQuoteDetail.metrics_summary?.quotation_type || selectedQuoteDetail.metrics_summary.quotation_type === 'STANDARD') && 'Standard'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymade Set'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC_SET' && 'Fabric Set'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' && 'Readymade Normal'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC' && 'Fabric Normal'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'MANUAL' && 'Manual'}
                       </p>
                     </div>
 

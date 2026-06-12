@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { DynamicForm } from '@/components/ui/DynamicForm';
-import { Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowLeft, X } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -22,9 +22,304 @@ interface Item {
   shade?: string;
   width?: string;
   image?: string;
+  images?: string[];
+  latest_sam?: number | string;
+  vendors?: any[];
   type?: string;
   unit_price?: number | null;
+  garment_category?: string;
 }
+
+const VendorChecklistInput: React.FC<{
+  value: any[];
+  onChange: (val: any[]) => void;
+}> = ({ value = [], onChange }) => {
+  const [globalVendors, setGlobalVendors] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Modal Form State
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+
+  const loadVendors = () => {
+    api.get('/vendors')
+      .then(res => {
+        setGlobalVendors((res.data || []).filter((v: any) => v.status === 'active'));
+      })
+      .catch(err => {
+        console.error('Failed to load global vendors list:', err);
+      });
+  };
+
+  useEffect(() => {
+    loadVendors();
+  }, []);
+
+  // Normalize selected value array to string IDs for robust comparison.
+  const selectedIds = (value || []).map(v => 
+    typeof v === 'object' && v !== null ? (v.id || v.code) : v
+  ).map(String);
+
+  const handleToggle = (id: any) => {
+    const stringId = String(id);
+    let updatedIds;
+    if (selectedIds.includes(stringId)) {
+      updatedIds = selectedIds.filter(x => x !== stringId);
+    } else {
+      updatedIds = [...selectedIds, stringId];
+    }
+
+    const typedUpdated = updatedIds.map(val => {
+      const match = globalVendors.find(v => String(v.id) === val);
+      return match ? match.id : val;
+    });
+
+    onChange(typedUpdated);
+  };
+
+  const handleRegisterVendor = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error('Vendor name is required');
+      return;
+    }
+
+    setIsSaving(true);
+    const loadingToast = toast.loading('Registering new vendor...');
+    try {
+      const payload = {
+        code: code.trim() || undefined,
+        name: trimmedName,
+        contact_person: contactPerson.trim() || null,
+        phone: phone.trim() || null,
+        email: email.trim() || null,
+        address: address.trim() || null,
+        status: 'active'
+      };
+
+      const res = await api.post('/vendors', payload);
+      toast.success('Vendor registered successfully!', { id: loadingToast });
+      
+      // Reset form & close modal
+      setCode('');
+      setName('');
+      setContactPerson('');
+      setPhone('');
+      setEmail('');
+      setAddress('');
+      setIsModalOpen(false);
+
+      // Refresh local vendors registry and auto-check the newly registered vendor
+      const newVendor = res.data;
+      if (newVendor && newVendor.id) {
+        // Resolve original values
+        const typedUpdated = selectedIds.map(val => {
+          const match = globalVendors.find(v => String(v.id) === val);
+          return match ? match.id : val;
+        });
+        onChange([...typedUpdated, newVendor.id]);
+      }
+      loadVendors();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to register vendor', { id: loadingToast });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleRegisterVendor();
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center px-1">
+        <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Supplying Vendors</label>
+        <button 
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="text-[10px] font-black text-[#2d8d9b] hover:text-[#3a525d] hover:underline uppercase tracking-wider transition-all cursor-pointer bg-transparent border-none outline-none"
+        >
+          + Register New Vendor
+        </button>
+      </div>
+      
+      {globalVendors.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/50 p-4 rounded-2xl border border-zinc-150/50 max-h-56 overflow-y-auto shadow-inner">
+          {globalVendors.map(v => {
+            const isChecked = selectedIds.includes(String(v.id));
+            return (
+              <label 
+                key={v.id} 
+                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all duration-250 active:scale-98 ${
+                  isChecked 
+                    ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] text-[#2d8d9b] shadow-sm' 
+                    : 'bg-white border-zinc-200 text-[#3a525d] hover:border-zinc-300 hover:bg-zinc-50/50'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => handleToggle(v.id)}
+                  className="rounded border-zinc-300 text-[#2d8d9b] focus:ring-[#2d8d9b]/25 h-4 w-4 transition-all"
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs font-black leading-tight">{v.name}</span>
+                  <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider mt-0.5">
+                    {v.code}{v.contact_person ? ` · ${v.contact_person}` : ''}{v.phone ? ` · ${v.phone}` : ''}
+                  </span>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-[10px] text-zinc-400 font-bold italic ml-1 bg-zinc-50 p-3 rounded-xl border border-zinc-150/30">
+          No active vendors registered in the registry. Please register vendors first.
+        </p>
+      )}
+
+      {/* Register Vendor Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            onClick={() => { if (!isSaving) setIsModalOpen(false); }}
+          />
+          
+          <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-[0_20px_70px_-10px_rgba(0,0,0,0.4)] border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col h-full max-h-[90vh]">
+              {/* Header */}
+              <div className="bg-[#fce4d4]/20 p-6 border-b border-[#fce4d4] flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">Register New Supplier</h3>
+                  <p className="text-[9px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-0.5">
+                    Add to Global Vendors Registry
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSaving}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-zinc-100 transition-colors text-zinc-400 border border-zinc-150/50 cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="p-6 overflow-y-auto space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Vendor Code (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Leave blank to auto-generate"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d] uppercase"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Vendor Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Raymond Ltd"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      required
+                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Contact Person</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mr. Anil Sharma"
+                      value={contactPerson}
+                      onChange={(e) => setContactPerson(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +91 98765 43210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="e.g. sales@raymond.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Address / Notes</label>
+                    <input
+                      type="text"
+                      placeholder="Registered company address or notes..."
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3 bg-zinc-50/50">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSaving}
+                  className="px-5 h-11 rounded-xl font-black uppercase tracking-wider text-[10px] text-zinc-500 hover:text-zinc-700 bg-white border border-zinc-200 transition-all active:scale-95 cursor-pointer disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => handleRegisterVendor()}
+                  disabled={isSaving}
+                  className="px-6 h-11 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase tracking-wider text-[10px] flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-[#2d8d9b]/20 cursor-pointer disabled:opacity-40"
+                >
+                  {isSaving ? 'Registering...' : 'Register Vendor'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface CatalogManagerProps {
   type: 'fabrics' | 'buttons' | 'threads';
@@ -62,8 +357,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     const loadingToast = toast.loading(editingItem ? 'Updating...' : 'Adding...');
     try {
       if (type === 'fabrics') {
-        // Extract the first image from the image array if it exists
-        data.image = data.image && data.image.length > 0 ? data.image[0] : null;
+        // Extract the first image from the images array if it exists
+        data.image = data.images && data.images.length > 0 ? data.images[0] : null;
       }
       if (editingItem) {
         await api.put(`/inventory/${type}/${editingItem.id}`, data);
@@ -138,6 +433,18 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider leading-none mt-0.5">{item.brand_type}</span>
             )}
           </div>
+        )) as any
+      },
+      {
+        header: 'Garment Category',
+        accessor: ((item: Item) => (
+          item.garment_category ? (
+            <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-xl text-[11px] font-black text-amber-700">
+              {item.garment_category}
+            </span>
+          ) : (
+            <span className="text-[10px] italic text-zinc-350">—</span>
+          )
         )) as any
       },
 
@@ -257,13 +564,15 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               { 
                 name: 'code', 
                 label: type === 'fabrics' 
-                  ? 'Fabric Number' 
+                  ? 'Fabric Number (auto-generated)' 
                   : type === 'buttons' 
-                    ? 'Button Number' 
+                    ? 'Button Number (auto-generated)' 
                     : 'Thread Number', 
                 type: 'text', 
-                required: true, 
+                required: type !== 'fabrics' && type !== 'buttons', 
                 defaultValue: editingItem?.code, 
+                readOnly: type === 'fabrics' || type === 'buttons',
+                placeholder: (type === 'fabrics' || type === 'buttons') ? 'Auto-generating...' : undefined,
                 allowSpecialCharacters: true 
               },
               { 
@@ -280,26 +589,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               ...(type === 'buttons' ? [
                 {
                   name: 'description',
-                  label: 'Description',
-                  type: 'text' as const,
-                  placeholder: 'Description of the button',
+                  label: 'Specifications',
+                  type: 'textarea' as const,
+                  placeholder: 'Detailed specifications of the button',
                   defaultValue: editingItem?.description || ''
-                },
-                {
-                  name: 'unit_price',
-                  label: 'Unit Price (₹)',
-                  type: 'number' as const,
-                  step: 'any',
-                  placeholder: 'e.g. 0.50',
-                  defaultValue: editingItem?.unit_price !== null && editingItem?.unit_price !== undefined ? String(editingItem.unit_price) : ''
-                },
-                {
-                  name: 'quantity',
-                  label: 'Stock Quantity',
-                  type: 'number' as const,
-                  step: 'any',
-                  placeholder: 'e.g. 100',
-                  defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : ''
                 },
                 {
                   name: 'low_stock_threshold',
@@ -308,6 +601,27 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   step: 'any',
                   placeholder: 'e.g. 10',
                   defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : ''
+                },
+                {
+                  name: 'images',
+                  label: 'Button Images',
+                  type: 'image-upload' as const,
+                  maxImages: 5,
+                  uploadLabel: 'Upload Button Images',
+                  defaultValue: editingItem?.images || []
+                },
+                {
+                  name: 'vendors',
+                  label: 'Button Supplying Vendors',
+                  type: 'custom' as const,
+                  className: 'md:col-span-2',
+                  defaultValue: editingItem?.vendors || [],
+                  render: (val: any, onChange: (v: any) => void) => (
+                    <VendorChecklistInput
+                      value={val || []}
+                      onChange={onChange}
+                    />
+                  )
                 }
               ] : []),
               ...(type === 'threads' ? [
@@ -320,26 +634,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 },
                 {
                   name: 'description',
-                  label: 'Description',
-                  type: 'text' as const,
-                  placeholder: 'Description of the thread',
+                  label: 'Specification',
+                  type: 'textarea' as const,
+                  placeholder: 'Detailed specifications of the thread',
                   defaultValue: editingItem?.description || ''
-                },
-                {
-                  name: 'unit_price',
-                  label: 'Unit Price (₹)',
-                  type: 'number' as const,
-                  step: 'any',
-                  placeholder: 'e.g. 25.00',
-                  defaultValue: editingItem?.unit_price !== null && editingItem?.unit_price !== undefined ? String(editingItem.unit_price) : ''
-                },
-                {
-                  name: 'quantity',
-                  label: 'Stock Quantity',
-                  type: 'number' as const,
-                  step: 'any',
-                  placeholder: 'e.g. 100',
-                  defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : ''
                 },
                 {
                   name: 'low_stock_threshold',
@@ -348,6 +646,27 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   step: 'any',
                   placeholder: 'e.g. 10',
                   defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : ''
+                },
+                {
+                  name: 'images',
+                  label: 'Thread Images',
+                  type: 'image-upload' as const,
+                  maxImages: 5,
+                  uploadLabel: 'Upload Thread Images',
+                  defaultValue: editingItem?.images || []
+                },
+                {
+                  name: 'vendors',
+                  label: 'Thread Supplying Vendors',
+                  type: 'custom' as const,
+                  className: 'md:col-span-2',
+                  defaultValue: editingItem?.vendors || [],
+                  render: (val: any, onChange: (v: any) => void) => (
+                    <VendorChecklistInput
+                      value={val || []}
+                      onChange={onChange}
+                    />
+                  )
                 }
               ] : []),
               ...(type === 'fabrics' ? [
@@ -357,6 +676,18 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   type: 'text' as const, 
                   placeholder: 'e.g. Raymond, Arvind', 
                   defaultValue: editingItem?.brand_name || '' 
+                },
+                { 
+                  name: 'garment_category', 
+                  label: 'Garment Category', 
+                  type: 'select' as const, 
+                  options: [
+                    { label: 'Select Category', value: '' },
+                    { label: 'BOTTOM', value: 'BOTTOM' },
+                    { label: 'SHIRTING', value: 'SHIRTING' },
+                    { label: 'SUITING', value: 'SUITING' }
+                  ], 
+                  defaultValue: editingItem?.garment_category || '' 
                 },
                 { 
                   name: 'brand_type', 
@@ -370,21 +701,28 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   ], 
                   defaultValue: editingItem?.brand_type || '' 
                 },
-
-                { 
-                  name: 'description', 
-                  label: 'Description', 
-                  type: 'text' as const, 
-                  placeholder: 'Description of the fabric', 
-                  defaultValue: editingItem?.description || '' 
+                {
+                  name: 'quality',
+                  label: 'Quality',
+                  type: 'text' as const,
+                  placeholder: 'e.g. Super 120s, Cotton Blend',
+                  defaultValue: editingItem?.quality || ''
                 },
                 { 
-                  name: 'quantity', 
-                  label: 'Quantity', 
-                  type: 'number' as const, 
-                  step: 'any', 
-                  placeholder: 'e.g. 100.50', 
-                  defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : '' 
+                  name: 'description', 
+                  label: 'Fabric Specification', 
+                  type: 'textarea' as const, 
+                  placeholder: 'Detailed specifications of the fabric', 
+                  defaultValue: editingItem?.description || '' 
+                },
+                {
+                  name: 'low_stock_threshold',
+                  label: 'Low Stock Threshold (Optional)',
+                  type: 'number' as const,
+                  step: 'any',
+                  placeholder: 'e.g. 10',
+                  defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : '',
+                  required: false
                 },
                 { 
                   name: 'shade', 
@@ -406,12 +744,34 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   defaultValue: editingItem?.width || ''
                 },
                 {
-                  name: 'image',
-                  label: 'Fabric Image',
+                  name: 'latest_sam',
+                  label: 'Latest SAM',
+                  type: 'number' as const,
+                  step: 'any',
+                  readOnly: true,
+                  placeholder: 'Auto-updated from quotations',
+                  defaultValue: editingItem?.latest_sam !== null && editingItem?.latest_sam !== undefined ? String(editingItem.latest_sam) : '0'
+                },
+                {
+                  name: 'images',
+                  label: 'Fabric Images',
                   type: 'image-upload' as const,
-                  maxImages: 1,
-                  uploadLabel: 'Upload Fabric Image',
-                  defaultValue: editingItem?.image ? [editingItem.image] : []
+                  maxImages: 5,
+                  uploadLabel: 'Upload Fabric Images',
+                  defaultValue: editingItem?.images || (editingItem?.image ? [editingItem.image] : [])
+                },
+                {
+                  name: 'vendors',
+                  label: 'Fabric Supplying Vendors',
+                  type: 'custom' as const,
+                  className: 'md:col-span-2',
+                  defaultValue: editingItem?.vendors || [],
+                  render: (val: any, onChange: (v: any) => void) => (
+                    <VendorChecklistInput
+                      value={val || []}
+                      onChange={onChange}
+                    />
+                  )
                 }
               ] : [])
             ]}

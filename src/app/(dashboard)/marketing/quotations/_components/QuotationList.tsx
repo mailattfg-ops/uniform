@@ -50,13 +50,21 @@ export default function QuotationList({
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{q.title}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{q.quotation_no}</p>
-              {q.metrics_summary?.quotation_type && q.metrics_summary.quotation_type !== 'STANDARD' && (
+              {q.metrics_summary?.quotation_type && (
                 <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                  q.metrics_summary.quotation_type === 'HOLD'
+                  q.metrics_summary.quotation_type === 'FABRIC_SET'
                     ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : q.metrics_summary.quotation_type === 'FABRIC'
+                    ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                    : q.metrics_summary.quotation_type === 'STANDARD'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
                     : 'bg-[#3a525d]/10 text-[#3a525d] border border-[#3a525d]/20'
                 }`}>
-                  {q.metrics_summary.quotation_type === 'HOLD' ? 'Hold' : 'Set Type'}
+                  {q.metrics_summary.quotation_type === 'FABRIC_SET' && 'Fabric Set'}
+                  {q.metrics_summary.quotation_type === 'READYMADE_SET' && 'Readymade Set'}
+                  {q.metrics_summary.quotation_type === 'FABRIC' && 'Fabric Normal'}
+                  {q.metrics_summary.quotation_type === 'STANDARD' && 'Readymade Normal'}
+                  {q.metrics_summary.quotation_type === 'MANUAL' && 'Manual'}
                 </span>
               )}
             </div>

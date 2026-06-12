@@ -24,6 +24,7 @@ interface WizardStep2Props {
   separateFabrics: SeparateFabricItem[];
   setSeparateFabrics: (items: SeparateFabricItem[]) => void;
   orgDepartments?: any[];
+  setOrgDepartments?: (depts: any[]) => void;
   departmentItems?: Record<string, ManualItem[]>;
   setDepartmentItems?: (items: Record<string, ManualItem[]>) => void;
   productTypes: ProductType[];
@@ -56,6 +57,7 @@ export default function WizardStep2({
   separateFabrics,
   setSeparateFabrics,
   orgDepartments = [],
+  setOrgDepartments,
   departmentItems = {},
   setDepartmentItems,
   productTypes,
@@ -259,157 +261,198 @@ export default function WizardStep2({
       <div key={item.id} className="bg-white border border-zinc-200 rounded-3xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
 
         {/* ── Card Header ── */}
-        <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
-          <div className="flex items-start gap-4 flex-wrap">
-            {/* Product Type */}
-            <div className="min-w-[150px]">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
-              <select
-                className={selectCls}
-                value={item.product_type_id}
-                onChange={(e) => updateItem(index, {
-                  product_type_id: e.target.value,
-                  product_id: '', sam_value: '', design_number: ''
-                })}
-              >
-                <option value="">Select type...</option>
-                {productTypes.map(pt => (
-                  <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Product */}
-            <div className="flex-1 min-w-[200px]">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
-              <select
-                className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                value={item.product_id || ''}
-                disabled={!item.product_type_id}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const prod = allProducts.find(p => String(p.id) === val);
-                  const updates: Partial<ManualItem> = { product_id: val };
-                  if (prod) {
-                    updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
-                    if (prod.main_fabric !== null && prod.main_fabric !== undefined)
-                      updates.main_fabric_meters = String(prod.main_fabric);
-                    if (prod.attachment_fabric1 !== null && prod.attachment_fabric1 !== undefined)
-                      updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
-                    if (prod.attachment_fabric2 !== null && prod.attachment_fabric2 !== undefined)
-                      updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
-                    if (prod.button_count !== null && prod.button_count !== undefined)
-                      updates.button_count = String(prod.button_count);
-                    if (prod.thread_count !== null && prod.thread_count !== undefined)
-                      updates.thread_count = String(prod.thread_count);
-
-                    updates.main_fabric_sam = '6.777'; // Default Fabric SAM value
-                    updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
-                    updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
-
-                    updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
-                  } else {
-                    updates.sam_value = '';
-                    updates.main_fabric_sam = '';
-                    updates.attachment_fabric1_sam = '';
-                    updates.attachment_fabric2_sam = '';
-                    updates.design_number = '';
-                  }
-                  updateItem(index, updates);
-                }}
-              >
-                <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
-                {filteredProducts.map(p => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.name}{p.art_number ? ` (${p.art_number})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Product SAM */}
-            {quotationType !== 'READYMADE' && (
+        {quotationType === 'FABRIC' ? (
+          <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {/* Quantity */}
               <div className="w-24">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
                 <input
-                  type="number" step="any" min="0" placeholder="0"
-                  value={item.sam_value}
-                  onChange={(e) => updateItem(index, { sam_value: e.target.value })}
+                  type="number" min="1" placeholder="50"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(index, { quantity: e.target.value })}
                   className={inputCls}
                 />
               </div>
-            )}
 
-            {/* Final SAM Price */}
-            {quotationType !== 'READYMADE' && (
-              <div className="w-28 text-right self-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Final SAM Price</p>
-                <p className="text-sm font-black text-[#8b6b5a] font-mono mt-2">
-                  ₹{samCost.toFixed(2)}
+              <div className="flex items-center gap-6 ml-auto">
+                {/* Unit Cost Display */}
+                <div className="text-right self-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</p>
+                  <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                    ₹{unitTotal.toFixed(2)}
+                  </p>
+                  {parseInt(item.quantity) > 1 && (
+                    <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
+                      × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Delete */}
+                <button
+                  onClick={() => setManualItems(manualItems.filter((_, i) => i !== index))}
+                  disabled={manualItems.length === 1}
+                  className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-center disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
+            <div className="flex items-start gap-4 flex-wrap">
+              {/* Product Type */}
+              <div className="min-w-[150px]">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
+                <select
+                  className={selectCls}
+                  value={item.product_type_id}
+                  onChange={(e) => updateItem(index, {
+                    product_type_id: e.target.value,
+                    product_id: '', sam_value: '', design_number: ''
+                  })}
+                >
+                  <option value="">Select type...</option>
+                  {productTypes.map(pt => (
+                    <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Product */}
+              <div className="flex-1 min-w-[200px]">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
+                <select
+                  className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  value={item.product_id || ''}
+                  disabled={!item.product_type_id}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const prod = allProducts.find(p => String(p.id) === val);
+                    const updates: Partial<ManualItem> = { product_id: val };
+                    if (prod) {
+                      updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
+                      if (prod.main_fabric !== null && prod.main_fabric !== undefined)
+                        updates.main_fabric_meters = String(prod.main_fabric);
+                      if (prod.attachment_fabric1 !== null && prod.attachment_fabric1 !== undefined)
+                        updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
+                      if (prod.attachment_fabric2 !== null && prod.attachment_fabric2 !== undefined)
+                        updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
+                      if (prod.button_count !== null && prod.button_count !== undefined)
+                        updates.button_count = String(prod.button_count);
+                      if (prod.thread_count !== null && prod.thread_count !== undefined)
+                        updates.thread_count = String(prod.thread_count);
+
+                      updates.main_fabric_sam = '6.777'; // Default Fabric SAM value
+                      updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
+                      updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
+
+                      updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                    } else {
+                      updates.sam_value = '';
+                      updates.main_fabric_sam = '';
+                      updates.attachment_fabric1_sam = '';
+                      updates.attachment_fabric2_sam = '';
+                      updates.design_number = '';
+                    }
+                    updateItem(index, updates);
+                  }}
+                >
+                  <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
+                  {filteredProducts.map(p => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name}{p.art_number ? ` (${p.art_number})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Product SAM */}
+              {quotationType !== 'READYMADE' && (
+                <div className="w-24">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
+                  <input
+                    type="number" step="any" min="0" placeholder="0"
+                    value={item.sam_value}
+                    onChange={(e) => updateItem(index, { sam_value: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {/* Final SAM Price */}
+              {quotationType !== 'READYMADE' && (
+                <div className="w-28 text-right self-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Final SAM Price</p>
+                  <p className="text-sm font-black text-[#8b6b5a] font-mono mt-2">
+                    ₹{samCost.toFixed(2)}
+                  </p>
+                </div>
+              )}
+
+              {/* Unit Price (for READYMADE) */}
+              {quotationType === 'READYMADE' && (
+                <div className="w-28">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Unit Price</p>
+                  <input
+                    type="number" step="any" min="0" placeholder="0.00"
+                    value={item.price}
+                    onChange={(e) => updateItem(index, { price: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div className="w-24">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
+                <input
+                  type="number" min="1" placeholder="50"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+
+              {/* Unit Cost Display */}
+              <div className="ml-auto text-right self-center">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                  {quotationType === 'READYMADE' ? 'Unit Price' : 'Unit Cost'}
                 </p>
+                <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                  ₹{unitTotal.toFixed(2)}
+                </p>
+                {parseInt(item.quantity) > 1 && (
+                  <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
+                    × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
+                  </p>
+                )}
               </div>
-            )}
 
-            {/* Unit Price (for READYMADE) */}
-            {quotationType === 'READYMADE' && (
-              <div className="w-28">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Unit Price</p>
-                <input
-                  type="number" step="any" min="0" placeholder="0.00"
-                  value={item.price}
-                  onChange={(e) => updateItem(index, { price: e.target.value })}
-                  className={inputCls}
-                />
-              </div>
-            )}
+              {/* Delete */}
+              <button
+                onClick={() => setManualItems(manualItems.filter((_, i) => i !== index))}
+                disabled={manualItems.length === 1}
+                className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-start mt-5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-50 disabled:hover:text-red-400"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
 
-            {/* Quantity */}
-            <div className="w-24">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
+            {/* Notes / Design */}
+            <div className="mt-3">
               <input
-                type="number" min="1" placeholder="50"
-                value={item.quantity}
-                onChange={(e) => updateItem(index, { quantity: e.target.value })}
-                className={inputCls}
+                type="text"
+                value={item.design_number}
+                onChange={(e) => updateItem(index, { design_number: e.target.value })}
+                className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
+                placeholder="Design notes, color, fit details..."
               />
             </div>
-
-            {/* Unit Cost Display */}
-            <div className="ml-auto text-right self-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                {quotationType === 'READYMADE' ? 'Unit Price' : 'Unit Cost'}
-              </p>
-              <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
-                ₹{unitTotal.toFixed(2)}
-              </p>
-              {parseInt(item.quantity) > 1 && (
-                <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-                  × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
-                </p>
-              )}
-            </div>
-
-            {/* Delete */}
-            <button
-              onClick={() => setManualItems(manualItems.filter((_, i) => i !== index))}
-              disabled={manualItems.length === 1}
-              className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-start mt-5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-50 disabled:hover:text-red-400"
-            >
-              <Trash2 size={14} />
-            </button>
           </div>
-
-          {/* Notes / Design */}
-          <div className="mt-3">
-            <input
-              type="text"
-              value={item.design_number}
-              onChange={(e) => updateItem(index, { design_number: e.target.value })}
-              className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
-              placeholder="Design notes, color, fit details..."
-            />
-          </div>
-        </div>
+        )}
 
         {/* ── Costing Breakdown Table ── */}
         <div className="p-5" style={{ display: quotationType === 'READYMADE' ? 'none' : 'block' }}>
@@ -1336,7 +1379,32 @@ export default function WizardStep2({
                     </span>
                   </div>
 
-                  {selectedDepts.map((dept: any) => {
+                  {(() => {
+                    const grouped: Record<string, any[]> = {};
+                    selectedDepts.forEach((d: any) => {
+                      const name = d.name || 'General';
+                      if (!grouped[name]) {
+                        grouped[name] = [];
+                      }
+                      grouped[name].push(d);
+                    });
+
+                    return Object.entries(grouped).map(([deptName, deptsInGroup]) => (
+                      <div key={deptName} className="rounded-[2rem] overflow-hidden border-2 border-zinc-200 hover:border-[#2d8d9b]/30 transition-all shadow-sm bg-white p-6 space-y-6">
+                        <div className="flex items-center gap-4 border-b border-zinc-100 pb-4">
+                          <div className="w-10 h-10 rounded-xl bg-[#3a525d]/10 flex items-center justify-center flex-shrink-0">
+                            <Layers size={18} className="text-[#3a525d]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-[#3a525d]">{deptName}</p>
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                              {deptsInGroup.length} Division{deptsInGroup.length !== 1 ? 's' : ''} under this Department
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-8 divide-y divide-zinc-200 pt-2">
+                          {deptsInGroup.map((dept: any) => {
                     const deptId = String(dept.id);
                     const deptItems = (departmentItems || {})[deptId] || [];
                     const personsCount = parseInt(dept.persons) || 0;
@@ -1384,32 +1452,91 @@ export default function WizardStep2({
                       }
                     };
 
-                    return (
-                      <div key={dept.id} className="rounded-[2rem] overflow-hidden border-2 border-zinc-200 hover:border-[#2d8d9b]/30 transition-all shadow-sm">
-                        {/* Department Header */}
-                        <div className="bg-gradient-to-r from-[#3a525d]/5 via-transparent to-transparent px-6 py-4 border-b border-zinc-150 flex items-center gap-4 flex-wrap">
-                          <div className="w-10 h-10 rounded-xl bg-[#3a525d]/10 flex items-center justify-center flex-shrink-0">
-                            <Layers size={18} className="text-[#3a525d]" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-black text-[#3a525d]">{dept.name}</p>
-                            {dept.division && (
-                              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{dept.division}</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Persons × Sets</p>
-                              <p className="text-xs font-black text-[#2d8d9b] font-mono">{personsCount} × {setsCount} = <span className="text-[#3a525d]">{totalUnits} Units</span></p>
-                            </div>
-                            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-zinc-100 text-zinc-600 border border-zinc-200 tracking-widest">
-                              {deptItems.length} Line{deptItems.length !== 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        </div>
+                            return (
+                              <div key={dept.id} className="pt-6 first:pt-0 space-y-4">
+                                {/* Division Header with Sizing & Persons config */}
+                                <div className="flex items-center justify-between gap-4 flex-wrap bg-zinc-50 p-4 rounded-2xl border border-zinc-150">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider bg-zinc-200/50 px-3 py-1 rounded-lg">
+                                      {dept.division ? `Division: ${dept.division}` : 'Main Division'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-4 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                      <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">No. of Persons</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={dept.persons}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (setOrgDepartments) {
+                                            const updatedDepts = orgDepartments.map(d => {
+                                              if (d.id === dept.id) {
+                                                const newTotal = (parseInt(val) || 0) * (parseInt(d.sets) || 0);
+                                                if (setDepartmentItems && departmentItems[deptId]) {
+                                                  const updatedItems = departmentItems[deptId].map(item => ({
+                                                    ...item,
+                                                    quantity: String(newTotal || 1)
+                                                  }));
+                                                  setDepartmentItems({
+                                                    ...departmentItems,
+                                                    [deptId]: updatedItems
+                                                  });
+                                                }
+                                                return { ...d, persons: val };
+                                              }
+                                              return d;
+                                            });
+                                            setOrgDepartments(updatedDepts);
+                                          }
+                                        }}
+                                        className="w-20 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Sets per Person</label>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        placeholder="2"
+                                        value={dept.sets}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (setOrgDepartments) {
+                                            const updatedDepts = orgDepartments.map(d => {
+                                              if (d.id === dept.id) {
+                                                const newTotal = (parseInt(d.persons) || 0) * (parseInt(val) || 0);
+                                                if (setDepartmentItems && departmentItems[deptId]) {
+                                                  const updatedItems = departmentItems[deptId].map(item => ({
+                                                    ...item,
+                                                    quantity: String(newTotal || 1)
+                                                  }));
+                                                  setDepartmentItems({
+                                                    ...departmentItems,
+                                                    [deptId]: updatedItems
+                                                  });
+                                                }
+                                                return { ...d, sets: val };
+                                              }
+                                              return d;
+                                            });
+                                            setOrgDepartments(updatedDepts);
+                                          }
+                                        }}
+                                        className="w-16 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                      />
+                                    </div>
+                                    <div className="text-right min-w-[90px] border-l border-zinc-200 pl-4">
+                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Units</p>
+                                      <p className="text-xs font-mono font-black text-[#2d8d9b]">{totalUnits} Units</p>
+                                    </div>
+                                  </div>
+                                </div>
 
-                        {/* Department Product Items */}
-                        <div className="p-5 bg-white space-y-4">
+                                {/* Department Product Items */}
+                                <div className="space-y-4">
                           {deptItems.length === 0 ? (
                             <div className="text-center py-8 border-2 border-dashed border-zinc-200 rounded-2xl">
                               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">No product lines added yet</p>
@@ -1438,127 +1565,166 @@ export default function WizardStep2({
 
                                 return (
                                   <div key={item.id || idx} className="bg-zinc-50/50 border border-zinc-200 rounded-2xl overflow-hidden hover:shadow-sm transition-all">
-                                    {/* Item Header Row */}
-                                    <div className="p-4 bg-white border-b border-zinc-100">
-                                      <div className="flex items-start gap-4 flex-wrap">
-                                        {/* Product Type */}
-                                        <div className="min-w-[140px]">
-                                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
-                                          <select
-                                            className={selectCls}
-                                            value={item.product_type_id}
-                                            onChange={(e) => updateDeptItem(idx, { product_type_id: e.target.value, product_id: '', sam_value: '', design_number: '' })}
-                                          >
-                                            <option value="">Select type...</option>
-                                            {productTypes.map((pt: any) => (
-                                              <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
-                                            ))}
-                                          </select>
-                                        </div>
-
-                                        {/* Product */}
-                                        <div className="flex-1 min-w-[180px]">
-                                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
-                                          <select
-                                            className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={item.product_id || ''}
-                                            disabled={!item.product_type_id}
-                                            onChange={(e) => {
-                                              const val = e.target.value;
-                                              const prod = allProducts.find((p: any) => String(p.id) === val);
-                                              const updates: Partial<ManualItem> = { product_id: val };
-                                              if (prod) {
-                                                updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
-                                                if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
-                                                if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
-                                                if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
-                                                if (prod.button_count != null) updates.button_count = String(prod.button_count);
-                                                if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
-                                                updates.main_fabric_sam = '6.777';
-                                                updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
-                                                updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
-                                                updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
-                                              }
-                                              updateDeptItem(idx, updates);
-                                            }}
-                                          >
-                                            <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
-                                            {deptFilteredProducts.map((p: any) => (
-                                              <option key={p.id} value={String(p.id)}>
-                                                {p.name}{p.art_number ? ` (${p.art_number})` : ''}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </div>
-
-                                        {/* SAM / Unit Price */}
-                                        {quotationType === 'READYMADE' ? (
+                                    {quotationType === 'FABRIC_SET' ? (
+                                      <div className="p-4 bg-white border-b border-zinc-100">
+                                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                                          {/* Quantity */}
                                           <div className="w-24">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Unit Price</p>
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
                                             <input
-                                              type="number" step="any" min="0" placeholder="0.00"
-                                              value={item.price}
-                                              onChange={(e) => updateDeptItem(idx, { price: e.target.value })}
+                                              type="number" min="1" placeholder="1"
+                                              value={item.quantity}
+                                              onChange={(e) => updateDeptItem(idx, { quantity: e.target.value })}
                                               className={inputCls}
                                             />
                                           </div>
-                                        ) : (
-                                          <div className="w-24">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
+
+                                          <div className="flex items-center gap-6 ml-auto">
+                                            {/* Unit Cost Display */}
+                                            <div className="text-right self-center">
+                                              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</p>
+                                              <p className="text-xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                                                ₹{unitTotal.toFixed(2)}
+                                              </p>
+                                              {parseInt(item.quantity) > 1 && (
+                                                <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
+                                                  × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
+                                                </p>
+                                              )}
+                                            </div>
+
+                                            {/* Delete */}
+                                            <button
+                                              onClick={() => removeDeptItem(idx)}
+                                              className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-center"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="p-4 bg-white border-b border-zinc-100">
+                                        <div className="flex items-start gap-4 flex-wrap">
+                                          {/* Product Type */}
+                                          <div className="min-w-[140px]">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
+                                            <select
+                                              className={selectCls}
+                                              value={item.product_type_id}
+                                              onChange={(e) => updateDeptItem(idx, { product_type_id: e.target.value, product_id: '', sam_value: '', design_number: '' })}
+                                            >
+                                              <option value="">Select type...</option>
+                                              {productTypes.map((pt: any) => (
+                                                <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+
+                                          {/* Product */}
+                                          <div className="flex-1 min-w-[180px]">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
+                                            <select
+                                              className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                              value={item.product_id || ''}
+                                              disabled={!item.product_type_id}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                const prod = allProducts.find((p: any) => String(p.id) === val);
+                                                const updates: Partial<ManualItem> = { product_id: val };
+                                                if (prod) {
+                                                  updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
+                                                  if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
+                                                  if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
+                                                  if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
+                                                  if (prod.button_count != null) updates.button_count = String(prod.button_count);
+                                                  if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
+                                                  updates.main_fabric_sam = '6.777';
+                                                  updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
+                                                  updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
+                                                  updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                                                }
+                                                updateDeptItem(idx, updates);
+                                              }}
+                                            >
+                                              <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
+                                              {deptFilteredProducts.map((p: any) => (
+                                                <option key={p.id} value={String(p.id)}>
+                                                  {p.name}{p.art_number ? ` (${p.art_number})` : ''}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+
+                                          {/* SAM / Unit Price */}
+                                          {quotationType === 'READYMADE' ? (
+                                            <div className="w-24">
+                                              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Unit Price</p>
+                                              <input
+                                                type="number" step="any" min="0" placeholder="0.00"
+                                                value={item.price}
+                                                onChange={(e) => updateDeptItem(idx, { price: e.target.value })}
+                                                className={inputCls}
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="w-24">
+                                              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
+                                              <input
+                                                type="number" step="any" min="0" placeholder="0"
+                                                value={item.sam_value}
+                                                onChange={(e) => updateDeptItem(idx, { sam_value: e.target.value })}
+                                                className={inputCls}
+                                              />
+                                            </div>
+                                          )}
+
+                                          {/* Quantity */}
+                                          <div className="w-20">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
                                             <input
-                                              type="number" step="any" min="0" placeholder="0"
-                                              value={item.sam_value}
-                                              onChange={(e) => updateDeptItem(idx, { sam_value: e.target.value })}
+                                              type="number" min="1" placeholder="1"
+                                              value={item.quantity}
+                                              onChange={(e) => updateDeptItem(idx, { quantity: e.target.value })}
                                               className={inputCls}
                                             />
                                           </div>
-                                        )}
 
-                                        {/* Quantity */}
-                                        <div className="w-20">
-                                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
+                                          {/* Unit Cost Display */}
+                                          <div className="ml-auto text-right self-center">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                                              {quotationType === 'READYMADE' ? 'Unit Price' : 'Unit Cost'}
+                                            </p>
+                                            <p className="text-xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                                              ₹{unitTotal.toFixed(2)}
+                                            </p>
+                                            {parseInt(item.quantity) > 1 && (
+                                              <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
+                                                × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
+                                              </p>
+                                            )}
+                                          </div>
+
+                                          {/* Delete */}
+                                          <button
+                                            onClick={() => removeDeptItem(idx)}
+                                            className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-start mt-5"
+                                          >
+                                            <Trash2 size={14} />
+                                          </button>
+                                        </div>
+                                        {/* Design Notes */}
+                                        <div className="mt-3">
                                           <input
-                                            type="number" min="1" placeholder="1"
-                                            value={item.quantity}
-                                            onChange={(e) => updateDeptItem(idx, { quantity: e.target.value })}
-                                            className={inputCls}
+                                            type="text"
+                                            value={item.design_number || ''}
+                                            onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
+                                            className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
+                                            placeholder="Design notes, color, fit details..."
                                           />
                                         </div>
-
-                                        {/* Unit Cost Display */}
-                                        <div className="ml-auto text-right self-center">
-                                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                                            {quotationType === 'READYMADE' ? 'Unit Price' : 'Unit Cost'}
-                                          </p>
-                                          <p className="text-xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
-                                            ₹{unitTotal.toFixed(2)}
-                                          </p>
-                                          {parseInt(item.quantity) > 1 && (
-                                            <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-                                              × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
-                                            </p>
-                                          )}
-                                        </div>
-
-                                        {/* Delete */}
-                                        <button
-                                          onClick={() => removeDeptItem(idx)}
-                                          className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-start mt-5"
-                                        >
-                                          <Trash2 size={14} />
-                                        </button>
                                       </div>
-                      {/* Design Notes */}
-                                      <div className="mt-3">
-                                        <input
-                                          type="text"
-                                          value={item.design_number || ''}
-                                          onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
-                                          className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
-                                          placeholder="Design notes, color, fit details..."
-                                        />
-                                      </div>
-                                    </div>
+                                    )}
 
                                     {/* Material Cost Breakdown (STANDARD only) */}
                                     {quotationType !== 'READYMADE' && (
@@ -1921,17 +2087,21 @@ export default function WizardStep2({
                               })}
                             </div>
                           )}
-
-                          <Button
-                            onClick={addDeptItem}
-                            className="h-10 px-5 bg-[#3a525d]/8 hover:bg-[#3a525d] hover:!text-white !text-[#3a525d] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#3a525d]/20 transition-all"
-                          >
-                            <Plus size={13} strokeWidth={3} /> Add Product Line for {dept.name}
-                          </Button>
                         </div>
-                      </div>
-                    );
-                  })}
+
+                        <Button
+                                    onClick={addDeptItem}
+                                    className="h-10 px-5 bg-[#3a525d]/8 hover:bg-[#3a525d] hover:!text-white !text-[#3a525d] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#3a525d]/20 transition-all mt-4"
+                                  >
+                                    <Plus size={13} strokeWidth={3} /> Add Product Line for {dept.division ? `${deptName} (${dept.division})` : deptName}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                  })()}
                 </div>
               );
             }

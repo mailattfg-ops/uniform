@@ -42,7 +42,7 @@ const getFieldIcon = (name: string) => {
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password' | 'image-upload' | 'custom';
+  type: 'text' | 'textarea' | 'select' | 'number' | 'email' | 'tel' | 'checkbox-group' | 'password' | 'image-upload' | 'custom';
   placeholder?: string;
   options?: { label: string; value: string }[];
   required?: boolean;
@@ -302,6 +302,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                       if (field.onChange) field.onChange(val);
                     }
                   )}
+                </div>
+              ) : field.type === 'textarea' ? (
+                <div className={`flex flex-col gap-2 w-full group ${field.disabled ? 'opacity-40' : ''}`}>
+                  {field.label && (
+                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 transition-colors group-focus-within:text-[#2d8d9b]">
+                      {field.label}
+                    </label>
+                  )}
+                  <textarea
+                    name={field.name}
+                    placeholder={field.placeholder}
+                    required={field.required}
+                    defaultValue={field.value !== undefined ? undefined : field.defaultValue}
+                    value={field.value}
+                    disabled={field.disabled}
+                    readOnly={field.readOnly}
+                    rows={4}
+                    onChange={(e: any) => {
+                      if (field.onChange) field.onChange(e.target.value);
+                    }}
+                    className="w-full px-5 py-3.5 bg-white border-2 border-zinc-200 hover:border-[#2d8d9b]/50 rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-sm font-bold text-[#3a525d] placeholder:text-zinc-400 shadow-sm"
+                  />
                 </div>
               ) : (
                 <Input 

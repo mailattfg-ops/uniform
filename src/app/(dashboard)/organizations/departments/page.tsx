@@ -15,9 +15,95 @@ interface DepartmentRecord {
   name: string;
   organization_id: number;
   division?: string;
+  section?: string;
   organizations: { name: string };
   created_at: string;
 }
+
+const MultiEntryInput: React.FC<{
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}> = ({ value = '', onChange, placeholder = 'Add section...' }) => {
+  const [inputValue, setInputValue] = useState('');
+  
+  const items = value
+    ? value.split(',').map(item => item.trim()).filter(Boolean)
+    : [];
+
+  const handleAdd = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    
+    if (items.includes(trimmed)) {
+      toast.error('This item already exists in the list');
+      return;
+    }
+
+    const updated = [...items, trimmed];
+    onChange(updated.join(', '));
+    setInputValue('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  const handleRemove = (indexToRemove: number) => {
+    const updated = items.filter((_, idx) => idx !== indexToRemove);
+    onChange(updated.join(', '));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="px-5 h-11 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase tracking-wider text-[10px] flex items-center justify-center transition-all active:scale-95 shadow-md shadow-[#2d8d9b]/20 cursor-pointer border-none outline-none"
+        >
+          Add
+        </button>
+      </div>
+
+      {items.length > 0 ? (
+        <div className="flex flex-wrap gap-2 p-3 bg-zinc-50/50 rounded-2xl border border-zinc-150/50 min-h-12 items-center">
+          {items.map((item, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] shadow-sm animate-in zoom-in-95 duration-200"
+            >
+              {item}
+              <button
+                type="button"
+                onClick={() => handleRemove(idx)}
+                className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-50 hover:text-red-500 text-zinc-450 transition-colors cursor-pointer border-none outline-none font-bold text-[10px]"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[10px] text-zinc-400 font-bold italic ml-1">
+          No divisions/sections added yet.
+        </p>
+      )}
+    </div>
+  );
+};
 
 export default function DepartmentManagement() {
   const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
@@ -88,10 +174,15 @@ export default function DepartmentManagement() {
     {
       name: 'division',
       label: 'Division / Section (Optional)',
-      type: 'text',
-      placeholder: 'e.g. A, B, North, South',
-      required: false,
-      defaultValue: editingDept?.division
+      type: 'custom',
+      defaultValue: editingDept?.division || editingDept?.section || '',
+      render: (val: any, onChange: (v: any) => void) => (
+        <MultiEntryInput 
+          value={val || ''} 
+          onChange={onChange} 
+          placeholder="e.g. A, B, North, South (press Enter or click Add)"
+        />
+      )
     }
   ];
 
@@ -139,9 +230,9 @@ export default function DepartmentManagement() {
           </div>
           <div>
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{d.name || 'N/A'}</p>
-            {d.division && (
+            {(d.division || d.section) && (
               <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-0.5 opacity-70">
-                Div: {d.division}
+                Div: {d.division || d.section}
               </p>
             )}
           </div>

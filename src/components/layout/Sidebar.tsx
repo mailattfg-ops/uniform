@@ -42,11 +42,10 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   {
-    icon: Building2, label: 'Sector Operations', href: '/organizations/registry',
+    icon: Building2, label: 'Customer & Lead Management', href: '/organizations/registry',
     subsections: [
+      { label: 'Leads Registry', href: '/organizations/leads' },
       { label: 'Organization', href: '/organizations/registry' },
-      { label: 'Department Units', href: '/organizations/departments' },
-      { label: 'Entity', href: '/entities/directory' }
     ]
   },
   {
@@ -67,7 +66,9 @@ const modules: ModuleItem[] = [
       { label: 'Staff Management', href: '/admin/employees' },
       { label: 'Company Profile & Bank', href: '/admin/company' },
       { label: 'User Roles', href: '/admin/roles' },
-      { label: 'US Size Charts', href: '/admin/size-charts' }
+      { label: 'US Size Charts', href: '/admin/size-charts' },
+      { label: 'Dress Prefixes', href: '/admin/dress-prefixes' },
+      { label: 'Vendors Manager', href: '/admin/vendors' }
     ]
   },
   {
@@ -183,7 +184,7 @@ export const Sidebar: React.FC = () => {
       <aside className={`
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 transition-all duration-300 ease-in-out
-        fixed lg:static inset-y-0 left-0 z-50
+        fixed lg:static inset-y-0 left-0 z-[100]
         ${isExpanded ? 'w-72' : 'w-24'}
         bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full
       `}>
@@ -292,9 +293,10 @@ export const Sidebar: React.FC = () => {
                           'Design Number Catalog': ['manage_products', 'view_products'],
                           'Audit Logs': ['view_audit_logs'],
                           'Staff Management': ['manage_employees', 'view_employees'],
-                          'System Settings': ['manage_system'],
                           'User Roles': ['manage_system'],
                           'US Size Charts': ['manage_size_charts', 'view_size_charts'],
+                          'Dress Prefixes': ['manage_system'],
+                          'Vendors Manager': ['manage_system'],
                           'Fabric Catalog': ['manage_inventory', 'view_inventory'],
                           'Button Catalog': ['manage_inventory', 'view_inventory'],
                           'Thread Catalog': ['manage_inventory', 'view_inventory'],
@@ -347,9 +349,8 @@ export const Sidebar: React.FC = () => {
         {/* User Profile Footer */}
         <div className={`mt-auto p-4 border-t border-white/5 relative ${!isExpanded && 'flex justify-center'}`} ref={dropdownRef}>
           {isDropdownOpen && (
-            <div className={`absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${
-              isExpanded ? 'left-4 right-4' : 'left-4 w-48'
-            }`}>
+            <div className={`absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${isExpanded ? 'left-4 right-4' : 'left-4 w-48'
+              }`}>
               <div className="flex flex-col gap-1">
                 <Link
                   href="/settings/profile"

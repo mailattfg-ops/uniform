@@ -122,9 +122,11 @@ export default function WizardStep1({
           <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Type</label>
           <Select
             options={[
-              { label: 'Readymade', value: 'STANDARD' },
-              { label: 'Trade Readymade', value: 'READYMADE' },
-              { label: 'Set Type', value: 'SET_TYPE' }
+              { label: 'Fabric Set (with Departments)', value: 'FABRIC_SET' },
+              { label: 'Readymade Set (with Departments)', value: 'READYMADE_SET' },
+              { label: 'Fabric Normal', value: 'FABRIC' },
+              { label: 'Readymade Normal', value: 'STANDARD' },
+              { label: 'Manual (Individual-wise)', value: 'MANUAL' }
             ]}
             value={quotationType}
             onChange={setQuotationType}
@@ -136,11 +138,11 @@ export default function WizardStep1({
 
       {selectedOrgId && (
         <>
-          {orgDepartments && orgDepartments.length > 0 && (
+          {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET') && (
             <div className="space-y-4 border-t border-zinc-100 pt-6">
               <div>
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments for Quotation</h4>
-                <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Choose departments and specify person counts and sets per person</p>
+                <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Check the departments to include — person counts and sets are configured in the next step</p>
               </div>
               <div className="overflow-hidden border border-zinc-200 rounded-3xl bg-white shadow-sm">
                 <table className="w-full text-left border-collapse">
@@ -148,9 +150,7 @@ export default function WizardStep1({
                     <tr className="bg-zinc-50 border-b border-zinc-200">
                       <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-16 text-center">Select</th>
                       <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Department Name</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Division</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-40">No. of Persons</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-40">Sets per Person</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Division / Section</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-150/70">
@@ -174,38 +174,6 @@ export default function WizardStep1({
                         </td>
                         <td className="p-4">
                           <span className="text-xs font-bold text-zinc-400">{dept.division || '—'}</span>
-                        </td>
-                        <td className="p-4">
-                          <input
-                            type="number"
-                            placeholder="e.g. 50"
-                            disabled={!dept.selected}
-                            value={dept.persons}
-                            onChange={(e) => {
-                              if (setOrgDepartments) {
-                                const val = e.target.value;
-                                const updated = orgDepartments.map(d => d.id === dept.id ? { ...d, persons: val } : d);
-                                setOrgDepartments(updated);
-                              }
-                            }}
-                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b] disabled:opacity-40 disabled:bg-zinc-100"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <input
-                            type="number"
-                            placeholder="e.g. 2"
-                            disabled={!dept.selected}
-                            value={dept.sets}
-                            onChange={(e) => {
-                              if (setOrgDepartments) {
-                                const val = e.target.value;
-                                const updated = orgDepartments.map(d => d.id === dept.id ? { ...d, sets: val } : d);
-                                setOrgDepartments(updated);
-                              }
-                            }}
-                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b] disabled:opacity-40 disabled:bg-zinc-100"
-                          />
                         </td>
                       </tr>
                     ))}

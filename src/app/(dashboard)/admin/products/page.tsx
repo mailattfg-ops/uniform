@@ -37,6 +37,10 @@ interface Product {
   created_at: string;
   base_size?: string | null;
   fit?: string | null;
+  other_sizes?: string | null;
+  other_fits?: string | null;
+  measurement_type?: string | null;
+  class_fabric_consumption?: Record<string, Record<string, string>> | null;
 }
 
 const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patterns: any[]) => {
@@ -299,6 +303,18 @@ export default function ProductManagement() {
     fetchData();
   }, []);
 
+  // Additional states for new fields
+  const [otherSizes, setOtherSizes] = useState('');
+  const [otherFits, setOtherFits] = useState('');
+  const [measurementType, setMeasurementType] = useState('both');
+  const [classFabricConsumption, setClassFabricConsumption] = useState<Record<string, Record<string, string>>>({});
+
+  const classesList = [
+    'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
+    'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
+    'C1', 'C2', 'Corporate'
+  ];
+
   useEffect(() => {
     if (editingProduct) {
       setSelectedMethods(editingProduct.entry_methods || ['manual']);
@@ -308,7 +324,11 @@ export default function ProductManagement() {
       setSelectedPattern(parsed.patternCode);
       setBaseSize(editingProduct.base_size || '');
       setFit(editingProduct.fit || '');
-      
+      setOtherSizes(editingProduct.other_sizes || '');
+      setOtherFits(editingProduct.other_fits || '');
+      setMeasurementType(editingProduct.measurement_type || 'both');
+      setClassFabricConsumption(editingProduct.class_fabric_consumption || {});
+
       const parsedMat = parseMaterialsField(editingProduct.materials);
       setProductType(parsedMat.type || '');
       if (parsedMat.type === 'accessories' && editingProduct.base_size) {
@@ -323,10 +343,14 @@ export default function ProductManagement() {
       setSelectedPattern('');
       setBaseSize('');
       setFit('');
+      setOtherSizes('');
+      setOtherFits('');
+      setMeasurementType('both');
+      setClassFabricConsumption({});
       setProductType('');
       setAccessorySizes([]);
       // Refresh next pattern code on form open
-      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data.nextCode || '001')).catch(() => {});
+      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data.nextCode || '001')).catch(() => { });
     }
   }, [editingProduct, isAdding, dresses, genders, patterns]);
 
@@ -344,21 +368,29 @@ export default function ProductManagement() {
 
   const productFields: FormField[] = [
     {
-      name: 'name',
-      label: 'Product Name',
-      type: 'text',
-      placeholder: 'e.g. Cotton Shirt',
-      required: true,
-      defaultValue: editingProduct?.name
+      name: 'product_type',
+      label: 'Product Type',
+      type: 'select',
+      options: [
+        { label: 'Select Product Type', value: '' },
+        { label: 'Readymade (Manufactured)', value: 'readymade' },
+        { label: 'Readymade (Trade)', value: 'trade_readymade' },
+        { label: 'Accessories', value: 'accessories' },
+      ],
+      value: productType,
+      onChange: (val) => setProductType(val),
+      required: true
     },
     {
-      name: 'design_number',
-      label: 'Design Number',
-      type: 'text',
-      value: editingProduct ? (editingProduct.design_number || '') : nextDesignNumber,
-      readOnly: true,
-      required: true,
-      placeholder: 'Generating design number...'
+      name: 'product_type_id',
+      label: 'Garment Category',
+      type: 'select',
+      options: [
+        { label: 'Select Garment Category', value: '' },
+        ...productTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
+      ],
+      defaultValue: editingProduct?.product_type_id?.toString() || editingProduct?.product_types?.id?.toString() || '',
+      required: true
     },
     {
       name: 'gender_code',
@@ -410,18 +442,19 @@ export default function ProductManagement() {
       required: true
     },
     {
-      name: 'product_type',
-      label: 'Product Type',
-      type: 'select',
-      options: [
-        { label: 'Select Product Type', value: '' },
-        { label: 'Readymade', value: 'readymade' },
-        { label: 'Accessories', value: 'accessories' },
-        { label: 'Trade Readymade', value: 'trade_readymade' }
-      ],
-      value: productType,
-      onChange: (val) => setProductType(val),
-      required: true
+      name: 'name',
+      label: 'Product Name',
+      type: 'text',
+      placeholder: 'e.g. Cotton Shirt',
+      required: true,
+      defaultValue: editingProduct?.name
+    },
+    {
+      name: 'materials',
+      label: 'Specification',
+      type: 'textarea',
+      placeholder: 'e.g. Cotton shirt with chest pocket',
+      defaultValue: parseMaterialsField(editingProduct?.materials).materials
     },
     {
       name: 'base_size',
@@ -450,8 +483,16 @@ export default function ProductManagement() {
       required: false
     },
     {
+      name: 'other_sizes',
+      label: 'Other Sizes',
+      type: 'text',
+      placeholder: 'e.g. S, L, XL, XXL (comma-separated)',
+      value: otherSizes,
+      onChange: (val) => setOtherSizes(val)
+    },
+    {
       name: 'fit',
-      label: 'Fit',
+      label: 'Base Fit',
       type: 'select',
       options: [
         { label: 'Select Fit Type', value: '' },
@@ -464,26 +505,40 @@ export default function ProductManagement() {
       hidden: productType === 'accessories'
     },
     {
-      name: 'product_type_id',
-      label: 'Garment Category',
+      name: 'other_fits',
+      label: 'Other Fits',
+      type: 'text',
+      placeholder: 'e.g. Loose Fit, Comfort Fit (comma-separated)',
+      value: otherFits,
+      onChange: (val) => setOtherFits(val)
+    },
+    {
+      name: 'sam_value',
+      label: 'SAM Value',
+      type: 'number',
+      placeholder: 'e.g. 1.25',
+      step: 'any',
+      defaultValue: editingProduct?.sam_value !== null && editingProduct?.sam_value !== undefined ? String(editingProduct.sam_value) : ''
+    },
+    {
+      name: 'measurement_type',
+      label: 'Measurement Types (Size, custom, or both)',
       type: 'select',
       options: [
-        { label: 'Select Garment Category', value: '' },
-        ...productTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
+        { label: 'Standard Size Chart only', value: 'size' },
+        { label: 'Custom Measurements only', value: 'custom' },
+        { label: 'Both Size & Custom', value: 'both' }
       ],
-      defaultValue: editingProduct?.product_type_id?.toString() || editingProduct?.product_types?.id?.toString() || '',
+      value: measurementType,
+      onChange: (val) => setMeasurementType(val),
       required: true
     },
     {
-      name: 'main_fabric_id',
-      label: 'Fabric Type (Inventory Link)',
-      type: 'select',
-      options: [
-        { label: 'Select Fabric brand...', value: '' },
-        ...fabrics.map(f => ({ label: `${f.name} (${f.code})`, value: f.id }))
-      ],
-      defaultValue: editingProduct?.main_fabric_id || '',
-      required: false
+      name: 'images',
+      label: 'Product Images',
+      type: 'image-upload',
+      defaultValue: editingProduct?.images || [],
+      className: 'md:col-span-2'
     },
     {
       name: 'main_fabric',
@@ -492,7 +547,7 @@ export default function ProductManagement() {
       placeholder: 'e.g. 2',
       defaultValue: editingProduct?.main_fabric !== null && editingProduct?.main_fabric !== undefined ? String(editingProduct.main_fabric) : '',
       required: true,
-      step: '1'
+      step: 'any'
     },
     {
       name: 'attachment_fabric1',
@@ -501,7 +556,7 @@ export default function ProductManagement() {
       placeholder: 'e.g. 1',
       defaultValue: editingProduct?.attachment_fabric1 !== null && editingProduct?.attachment_fabric1 !== undefined ? String(editingProduct.attachment_fabric1) : '',
       required: false,
-      step: '1'
+      step: 'any'
     },
     {
       name: 'attachment_fabric2',
@@ -510,7 +565,7 @@ export default function ProductManagement() {
       placeholder: 'e.g. 1',
       defaultValue: editingProduct?.attachment_fabric2 !== null && editingProduct?.attachment_fabric2 !== undefined ? String(editingProduct.attachment_fabric2) : '',
       required: false,
-      step: '1'
+      step: 'any'
     },
     {
       name: 'button_count',
@@ -529,39 +584,96 @@ export default function ProductManagement() {
       required: true
     },
     {
-      name: 'materials',
-      label: 'Specification',
-      type: 'text',
-      placeholder: 'e.g. Cotton shirt with chest pocket',
-      defaultValue: parseMaterialsField(editingProduct?.materials).materials
-    },
-    {
-      name: 'sam_value',
-      label: 'SAM Value',
-      type: 'number',
-      placeholder: 'e.g. 1.25',
-      step: 'any',
-      defaultValue: editingProduct?.sam_value !== null && editingProduct?.sam_value !== undefined ? String(editingProduct.sam_value) : ''
-    },
-    {
-      name: 'images',
-      label: 'Product Images',
-      type: 'image-upload',
-      defaultValue: editingProduct?.images || [],
-      className: 'md:col-span-2'
-    },
-    {
-      name: 'category',
-      label: 'Product Category',
-      type: 'select',
-      options: [
-        { label: 'Top Wear', value: 'top_wear' },
-        { label: 'Bottom Wear', value: 'bottom_wear' },
-        { label: 'Accessory', value: 'accessory' },
-        { label: 'Other', value: 'other' }
-      ],
-      defaultValue: editingProduct?.category || 'top_wear',
-      required: true
+      name: 'class_fabric_consumption',
+      label: 'Fabric Consumption details for Classes & Corporate (Optional)',
+      type: 'custom',
+      className: 'md:col-span-2',
+      defaultValue: classFabricConsumption,
+      required: false,
+      onChange: (val) => setClassFabricConsumption(val),
+      render: (val, onChange) => {
+        const handleCellChange = (cls: string, field: string, value: string) => {
+          const currentObj = val || {};
+          const updatedCls = { ...(currentObj[cls] || {}), [field]: value };
+          const updatedObj = { ...currentObj, [cls]: updatedCls };
+          onChange(updatedObj);
+        };
+
+        return (
+          <div className="overflow-x-auto border border-zinc-150 rounded-2xl bg-white shadow-sm p-4">
+            <table className="min-w-full text-xs font-bold text-zinc-700">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-zinc-50 text-left">
+                  <th className="p-3 uppercase tracking-wider">Class / Corporate</th>
+                  <th className="p-3 uppercase tracking-wider">Main Fabric (m)</th>
+                  <th className="p-3 uppercase tracking-wider">Att Fabric 1 (m)</th>
+                  <th className="p-3 uppercase tracking-wider">Att Fabric 2 (m)</th>
+                  <th className="p-3 uppercase tracking-wider">Buttons (pcs)</th>
+                  <th className="p-3 uppercase tracking-wider">Thread (cones)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classesList.map((cls) => {
+                  const rowData = (val && val[cls]) || {};
+                  return (
+                    <tr key={cls} className="border-b border-zinc-100 hover:bg-zinc-50/50">
+                      <td className="p-3 text-[#3a525d] font-black">{cls === 'Corporate' ? 'Corporate' : cls}</td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={rowData.main_fabric || ''}
+                          onChange={(e) => handleCellChange(cls, 'main_fabric', e.target.value)}
+                          placeholder="e.g. 1.25"
+                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={rowData.attachment_fabric1 || ''}
+                          onChange={(e) => handleCellChange(cls, 'attachment_fabric1', e.target.value)}
+                          placeholder="e.g. 0.5"
+                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={rowData.attachment_fabric2 || ''}
+                          onChange={(e) => handleCellChange(cls, 'attachment_fabric2', e.target.value)}
+                          placeholder="e.g. 0.2"
+                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={rowData.button_count || ''}
+                          onChange={(e) => handleCellChange(cls, 'button_count', e.target.value)}
+                          placeholder="e.g. 6"
+                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={rowData.thread_count || ''}
+                          onChange={(e) => handleCellChange(cls, 'thread_count', e.target.value)}
+                          placeholder="e.g. 1"
+                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
     },
     {
       name: 'entry_methods',
@@ -615,10 +727,10 @@ export default function ProductManagement() {
     if (!data.button_id || data.button_id === '') data.button_id = null;
     if (!data.thread_id || data.thread_id === '') data.thread_id = null;
 
-    // Process fabric meters as integers
-    data.main_fabric = data.main_fabric !== '' && data.main_fabric !== null && data.main_fabric !== undefined ? parseInt(data.main_fabric, 10) : 0;
-    data.attachment_fabric1 = data.attachment_fabric1 !== '' && data.attachment_fabric1 !== null && data.attachment_fabric1 !== undefined ? parseInt(data.attachment_fabric1, 10) : null;
-    data.attachment_fabric2 = data.attachment_fabric2 !== '' && data.attachment_fabric2 !== null && data.attachment_fabric2 !== undefined ? parseInt(data.attachment_fabric2, 10) : null;
+    // Process fabric meters as float numbers to support decimals
+    data.main_fabric = data.main_fabric !== '' && data.main_fabric !== null && data.main_fabric !== undefined ? parseFloat(data.main_fabric) : 0;
+    data.attachment_fabric1 = data.attachment_fabric1 !== '' && data.attachment_fabric1 !== null && data.attachment_fabric1 !== undefined ? parseFloat(data.attachment_fabric1) : null;
+    data.attachment_fabric2 = data.attachment_fabric2 !== '' && data.attachment_fabric2 !== null && data.attachment_fabric2 !== undefined ? parseFloat(data.attachment_fabric2) : null;
 
     data.button_count = data.button_count !== '' && data.button_count !== null && data.button_count !== undefined ? parseInt(data.button_count, 10) : 0;
     data.thread_count = data.thread_count !== '' && data.thread_count !== null && data.thread_count !== undefined ? parseInt(data.thread_count, 10) : 0;
@@ -631,6 +743,12 @@ export default function ProductManagement() {
 
     data.retail_sam_value = null;
     data.images = data.images || [];
+
+    // Map new fields
+    data.other_sizes = otherSizes.trim() || null;
+    data.other_fits = otherFits.trim() || null;
+    data.measurement_type = measurementType || 'both';
+    data.class_fabric_consumption = data.class_fabric_consumption || {};
 
     // Generate dynamic art_number and map gender name
     const effectivePattern = editingProduct ? selectedPattern : nextPatternCode;
@@ -874,7 +992,7 @@ export default function ProductManagement() {
 
   if (isAdding) {
     return (
-      <div className="py-10 animate-in zoom-in duration-500">
+      <div className="py-10 animate-in zoom-in duration-500">Product Type
         <DynamicForm
           title={editingProduct ? "Edit Product Details" : "New Product Specification"}
           subtitle={editingProduct ? `Refining ${editingProduct.name}` : "Define a new article for the catalog"}
@@ -938,7 +1056,7 @@ export default function ProductManagement() {
                   Default Design Number: <span className="text-[#3a525d] font-bold">{selectedProductForVariants.design_number}</span>
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedProductForVariants(null)}
                 className="text-zinc-400 hover:text-zinc-600 font-bold text-xs uppercase bg-zinc-50 border border-zinc-200 px-4 py-2 rounded-xl transition-all"
               >
@@ -947,7 +1065,7 @@ export default function ProductManagement() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start overflow-y-auto pr-1">
-              
+
               {/* LIST OF VARIANTS */}
               <div className="space-y-4">
                 <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d] border-b border-zinc-100 pb-2">

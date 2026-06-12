@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-24 bg-transparent sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between border-b border-zinc-200/20 transition-all duration-300">
+    <header className="sm:sticky md:hidden h-20  sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between border-b border-white/10 lg:border-zinc-200/40 transition-all duration-300">
       {/* Left: Mobile Toggle & Breadcrumbs/Title */}
       <div className="flex items-center gap-6">
         <Button
@@ -112,9 +112,17 @@ export const Header: React.FC = () => {
           {isMenuOpen && (
             <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-zinc-100 p-2 animate-in fade-in slide-in-from-top-4 duration-300 scale-100 origin-top-right z-50 overflow-hidden">
               <div className="p-2 space-y-1">
+                <Link
+                  href="/settings/profile"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-black text-zinc-700 hover:text-white hover:bg-[#CC9448] transition-all group border-none"
+                >
+                  <User size={18} className="text-[#CC9448] group-hover:text-white transition-colors" />
+                  Profile Settings
+                </Link>
                 <Button
                   onClick={handleLogout}
-                  className="w-full mt-2 flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#030303] hover:bg-[#CC9448] transition-all shadow-lg hover:shadow-[#CC9448]/20 group border-none h-auto"
+                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#030303] hover:bg-[#CC9448] transition-all shadow-lg hover:shadow-[#CC9448]/20 group border-none h-auto"
                 >
                   <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
                   Secure Logout

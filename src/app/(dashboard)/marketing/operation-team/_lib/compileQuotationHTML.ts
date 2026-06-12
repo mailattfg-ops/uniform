@@ -11,6 +11,7 @@ export interface ProductType {
 export interface Fabric {
   id: string;
   brand_name: string;
+  name?: string;
 }
 
 export interface QuotationItem {
@@ -28,6 +29,10 @@ export interface QuotationItem {
     sam_value?: number | null;
     design_number?: string | null;
     is_manual?: boolean;
+    department_id?: string | null;
+    department_name?: string | null;
+    attachment_fabric1_id?: string | null;
+    attachment_fabric2_id?: string | null;
   };
   product_types?: {
     id: number;
@@ -58,6 +63,7 @@ export interface Quotation {
     cover_letter?: string;
     gst_percent?: number;
     pre_tax_subtotal?: number;
+    departments?: any[];
   };
   created_at: string;
   pdf_html?: string;
@@ -86,31 +92,145 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
     ? new Date(quote.expected_delivery_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
     : 'N/A';
 
+  // Helpers for department and division cleanup
+  const getCleanDeptName = (name: string) => {
+    if (!name) return 'General Items';
+    return name.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  };
+
+  const getCleanDivision = (name: string, fallbackDiv?: string) => {
+    if (fallbackDiv) return fallbackDiv;
+    if (!name) return '';
+    const match = name.match(/\(([^)]+)\)/);
+    return match ? match[1].trim() : '';
+  };
+
   // Construct items HTML
   let itemsHtml = '';
   if (quote.items && quote.items.length > 0) {
-    quote.items.forEach((item: any) => {
-      const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
-      const fabricId = item.size_breakdown?.fabric_id;
-      const fabricBrand = fabricsList.find((f: any) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
-      const designNum = item.size_breakdown?.design_number || '—';
-      const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
-      const qty = item.quantity || 0;
-      const price = Number(item.unit_price) || 0;
-      const total = Number(item.total_price) || 0;
+    const standardItems = quote.items.filter((item: any) => !item.size_breakdown?.is_separate_fabric);
+    const hasDeptItems = standardItems.some((item: any) => item.size_breakdown?.department_name);
 
-      itemsHtml += `
-        <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-          <td class="py-3.5 px-4 font-bold text-gray-800 text-xs">${pTypeName}</td>
-          <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricBrand}</td>
-          <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
-          <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
-          <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
-          <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
-          <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
-        </tr>
-      `;
-    });
+    if (hasDeptItems) {
+      const groups: Record<string, any[]> = {};
+      standardItems.forEach((item: any) => {
+        const deptName = item.size_breakdown?.department_name || 'General Items';
+        const cleanDept = getCleanDeptName(deptName);
+        if (!groups[cleanDept]) {
+          groups[cleanDept] = [];
+        }
+        groups[cleanDept].push(item);
+      });
+
+      Object.entries(groups).forEach(([cleanDeptName, groupItems]) => {
+        itemsHtml += `
+          <tr class="bg-gray-50/80 border-t border-b border-gray-150 text-[10px] font-black uppercase text-[#3a525d] tracking-wider">
+            <td colspan="7" class="py-2.5 px-4 font-black">DEPARTMENT: ${cleanDeptName}</td>
+          </tr>
+        `;
+
+        groupItems.forEach((item: any) => {
+          const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+          const deptId = item.size_breakdown?.department_id;
+          const qty = Number(item.quantity) || 0;
+          
+          let firstCellHtml = '';
+          let fabricStyleCellHtml = '';
+          
+          const deptMeta = quote.metrics_summary?.departments?.find((d: any) => String(d.id) === String(deptId));
+          let divisionName = '';
+          if (deptMeta && deptMeta.division) {
+            divisionName = deptMeta.division;
+          } else if (String(deptId).includes('_')) {
+            divisionName = String(deptId).split('_')[1];
+          }
+          if (!divisionName && item.size_breakdown?.department_name) {
+            divisionName = getCleanDivision(item.size_breakdown.department_name);
+          }
+
+          const persons = deptMeta ? deptMeta.persons : Math.ceil(qty / 2);
+          const sets = deptMeta ? deptMeta.sets : 2;
+          const divisionLabel = divisionName ? `Division: ${divisionName}` : 'Main Division';
+          const deptHeader = `${divisionLabel} (${persons} Persons × ${sets} Sets)`;
+          
+          const designNotes = item.size_breakdown?.design_number || '';
+          const productLine = designNotes ? `* ${pTypeName} - ${designNotes}` : `* ${pTypeName}`;
+          
+          const fabricId = item.size_breakdown?.fabric_id;
+          const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+          const mainFabricLine = fabricId ? `FAB(M) - ${fabricBrand}` : '';
+          
+          const att1Id = item.size_breakdown?.attachment_fabric1_id;
+          const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
+          const att1Brand = att1Fabric ? (att1Fabric.brand_name || att1Fabric.name) : '';
+          const att1Line = att1Id ? `FAB(A) - ${att1Brand}` : '';
+          
+          const att2Id = item.size_breakdown?.attachment_fabric2_id;
+          const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
+          const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
+          const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
+          
+          firstCellHtml = `
+            <div class="space-y-0.5 py-1 text-left">
+              <div class="font-bold text-gray-500 uppercase text-[9px] tracking-wider">${deptHeader}</div>
+              <div class="font-bold text-gray-800 text-xs">${productLine}</div>
+              ${mainFabricLine ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${mainFabricLine}</div>` : ''}
+              ${att1Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att1Line}</div>` : ''}
+              ${att2Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att2Line}</div>` : ''}
+            </div>
+          `;
+          fabricStyleCellHtml = '—';
+
+          const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
+          const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
+          const price = Number(item.unit_price) || 0;
+          const total = Number(item.total_price) || 0;
+
+          itemsHtml += `
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <td class="py-3.5 px-4">${firstCellHtml}</td>
+              <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricStyleCellHtml}</td>
+              <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
+              <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
+              <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
+              <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
+              <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+            </tr>
+          `;
+        });
+      });
+    } else {
+      standardItems.forEach((item: any) => {
+        const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+        const fabricId = item.size_breakdown?.fabric_id;
+        const fabricBrand = fabricsList.find((f: any) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
+        
+        const className = item.size_breakdown?.class_name;
+        const classPrefix = className ? `[${className}] ` : '';
+        
+        const firstCellHtml = `<span class="font-bold text-gray-800 text-xs">${classPrefix}${pTypeName}</span>`;
+        const fabricStyleCellHtml = fabricBrand;
+
+        const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
+        const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
+        const price = Number(item.unit_price) || 0;
+        const total = Number(item.total_price) || 0;
+        const qty = Number(item.quantity) || 0;
+
+        itemsHtml += `
+          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <td class="py-3.5 px-4">${firstCellHtml}</td>
+            <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricStyleCellHtml}</td>
+            <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
+            <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
+            <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
+            <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
+            <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+    }
   }
 
   return `

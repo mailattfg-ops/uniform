@@ -65,6 +65,8 @@ export default function WizardStep3({
   quotationType = 'STANDARD',
   allProducts = [],
 }: WizardStep3Props) {
+  const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
+  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
   const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
   const hasDepartments = selectedDepts.length > 0;
   return (
@@ -100,116 +102,23 @@ export default function WizardStep3({
           {!hasMeasurements && (
             <div className="space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
-                {quotationType === 'SET_TYPE' ? 'Custom Sets Expenses Summary' : quotationType === 'READYMADE' ? 'Readymade Items Expenses Summary' : 'Manual Items Expenses Summary (Branch B)'}
+                {isSetType ? 'Department Sets Expenses Summary' : 'Manual Items Expenses Summary'}
               </h4>
               <div className="border border-zinc-150 rounded-3xl overflow-hidden bg-white shadow-sm text-xs">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
                       <th className="p-3">Product Type / Set</th>
-                      <th className="p-3">{quotationType === 'SET_TYPE' ? 'Included Garments' : quotationType === 'READYMADE' ? 'Product' : 'Fabric Option'}</th>
-                      {quotationType !== 'SET_TYPE' && quotationType !== 'READYMADE' && (
-                        <>
-                          <th className="p-3 text-right">Fabric Cost (Unit)</th>
-                          <th className="p-3 text-right">Labor Cost (Unit)</th>
-                        </>
-                      )}
+                      <th className="p-3">{isSetType ? 'Garment Product Line' : 'Fabric Option'}</th>
+                      <th className="p-3 text-right">Fabric Cost (Unit)</th>
+                      {!isFabric && <th className="p-3 text-right">Labor Cost (Unit)</th>}
                       <th className="p-3 text-right">Unit Expense</th>
                       <th className="p-3 text-right">Quantity</th>
                       <th className="p-3 text-right">Total Expense</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
-                    {quotationType === 'SET_TYPE' ? (
-                      manualItems.map((item, index) => {
-                        const setName = item.size_breakdown?.set_name || 'Custom Set';
-                        const productsList = item.size_breakdown?.products || [];
-                        const qty = parseInt(item.quantity) || 0;
-                        const unitExpense = parseFloat(item.price) || 0;
-                        return (
-                          <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
-                            <td className="p-3 font-black text-[#2d8d9b] align-middle">
-                              🎁 SET: {setName}
-                            </td>
-                            <td className="p-3 text-zinc-500 align-middle">
-                              <ul className="list-disc list-inside space-y-0.5 font-bold text-[10px] text-zinc-550">
-                                {productsList.map((p: any, pIdx: number) => (
-                                  <li key={pIdx}>
-                                    {p.product_type_name} {p.product_name ? `— ${p.product_name}` : ''}
-                                  </li>
-                                ))}
-                              </ul>
-                            </td>
-                            <td className="p-3 text-right font-black text-zinc-800 align-middle">{qty} Sets</td>
-                            <td className="p-3 text-right font-mono align-middle">₹{unitExpense.toFixed(2)}</td>
-                            <td className="p-3 text-right font-black text-[#2d8d9b] font-mono align-middle">
-                              ₹{(unitExpense * qty).toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : quotationType === 'READYMADE' ? (
-                      hasDepartments ? (
-                        selectedDepts.flatMap((dept) => {
-                          const items = departmentItems[String(dept.id)] || [];
-                          return items.map((item, index) => {
-                            const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
-                            const product = allProducts.find((p) => String(p.id) === String(item.product_id));
-                            const productName = product ? `${product.name}${product.art_number ? ` (${product.art_number})` : ''}` : 'Select Product...';
-                            const qty = parseInt(item.quantity) || 0;
-                            const unitExpense = parseFloat(item.price) || 0;
-                            return (
-                              <tr key={`${dept.id}-${item.id || index}`} className="hover:bg-zinc-50/50 bg-white">
-                                <td className="p-3 font-black text-[#3a525d] align-middle">
-                                  {pTypeName} <span className="text-[10px] text-zinc-400 font-bold">({dept.name})</span>
-                                </td>
-                                <td className="p-3 text-zinc-500 align-middle">
-                                  {productName}
-                                  {item.design_number && (
-                                    <span className="block text-[10px] text-zinc-400 font-bold mt-0.5">
-                                      {item.design_number}
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="p-3 text-right font-mono align-middle">₹{unitExpense.toFixed(2)}</td>
-                                <td className="p-3 text-right font-black text-zinc-800 align-middle">{qty}</td>
-                                <td className="p-3 text-right font-black text-[#2d8d9b] font-mono align-middle">
-                                  ₹{(unitExpense * qty).toFixed(2)}
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })
-                      ) : (
-                        manualItems.map((item, index) => {
-                          const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
-                          const product = allProducts.find((p) => String(p.id) === String(item.product_id));
-                          const productName = product ? `${product.name}${product.art_number ? ` (${product.art_number})` : ''}` : 'Select Product...';
-                          const qty = parseInt(item.quantity) || 0;
-                          const unitExpense = parseFloat(item.price) || 0;
-                          return (
-                            <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
-                              <td className="p-3 font-black text-[#3a525d] align-middle">
-                                {pTypeName}
-                              </td>
-                              <td className="p-3 text-zinc-500 align-middle">
-                                {productName}
-                                {item.design_number && (
-                                  <span className="block text-[10px] text-zinc-400 font-bold mt-0.5">
-                                    {item.design_number}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-3 text-right font-mono align-middle">₹{unitExpense.toFixed(2)}</td>
-                              <td className="p-3 text-right font-black text-zinc-800 align-middle">{qty}</td>
-                              <td className="p-3 text-right font-black text-[#2d8d9b] font-mono align-middle">
-                                ₹{(unitExpense * qty).toFixed(2)}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )
-                    ) : hasDepartments ? (
+                    {hasDepartments ? (
                       selectedDepts.flatMap((dept) => {
                         const items = departmentItems[String(dept.id)] || [];
                         return items.map((item, index) => {
@@ -222,7 +131,7 @@ export default function WizardStep3({
                           const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
                           const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
                           const itemFabricCost = mainCost + att1Cost + att2Cost;
-                          const itemLaborCost = calculateProductSAMCost(item.sam_value, item.quantity);
+                          const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
                           const unitExpense = itemFabricCost + itemLaborCost;
                           
                           return (
@@ -230,15 +139,17 @@ export default function WizardStep3({
                               <td className="p-3 font-black text-[#3a525d]">
                                 {pTypeName} <span className="text-[10px] text-zinc-400 font-bold">({dept.name})</span>
                               </td>
-                              <td className="p-3 text-zinc-400">{fabricBrand}</td>
+                              <td className="p-3 text-zinc-450">{fabricBrand}</td>
                               <td className="p-3 text-right font-mono">
                                 ₹{itemFabricCost.toFixed(2)}
                                 <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
                               </td>
-                              <td className="p-3 text-right font-mono">
-                                ₹{itemLaborCost.toFixed(2)}
-                                <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
-                              </td>
+                              {!isFabric && (
+                                <td className="p-3 text-right font-mono">
+                                  ₹{itemLaborCost.toFixed(2)}
+                                  <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
+                                </td>
+                              )}
                               <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
                               <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
                               <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
@@ -249,39 +160,47 @@ export default function WizardStep3({
                         });
                       })
                     ) : (
-                      manualItems.map((item, index) => {
-                        const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
-                        const fabricBrand = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.name || 'Fabric';
-                        const qty = parseInt(item.quantity) || 0;
+                      manualItems
+                        .map((item, index) => {
+                          const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
+                          const fabricBrand = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.name || 'Fabric';
+                          const qty = parseInt(item.quantity) || 0;
 
-                        // Dynamic breakdowns
-                        const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-                        const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-                        const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
-                        const itemFabricCost = mainCost + att1Cost + att2Cost;
-                        const itemLaborCost = calculateProductSAMCost(item.sam_value, item.quantity);
-                        const unitExpense = itemFabricCost + itemLaborCost;
+                          // Dynamic breakdowns
+                          const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+                          const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+                          const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+                          const itemFabricCost = mainCost + att1Cost + att2Cost;
+                          const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
+                          const unitExpense = itemFabricCost + itemLaborCost;
 
-                        return (
-                          <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
-                            <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
-                            <td className="p-3 text-zinc-450">{fabricBrand}</td>
-                            <td className="p-3 text-right font-mono">
-                              ₹{itemFabricCost.toFixed(2)}
-                              <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
-                            </td>
-                            <td className="p-3 text-right font-mono">
-                              ₹{itemLaborCost.toFixed(2)}
-                              <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
-                            </td>
-                            <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
-                            <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
-                            <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
-                              ₹{(unitExpense * qty).toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      })
+                          const className = item.size_breakdown?.class_name;
+                          const classPrefix = className ? `[${className}] ` : '';
+
+                          return (
+                            <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
+                              <td className="p-3 font-black text-[#3a525d]">
+                                {classPrefix}{pTypeName}
+                              </td>
+                              <td className="p-3 text-zinc-450">{fabricBrand}</td>
+                              <td className="p-3 text-right font-mono">
+                                ₹{itemFabricCost.toFixed(2)}
+                                <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
+                              </td>
+                              {!isFabric && (
+                                <td className="p-3 text-right font-mono">
+                                  ₹{itemLaborCost.toFixed(2)}
+                                  <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
+                                </td>
+                              )}
+                              <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
+                              <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
+                              <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                                ₹{(unitExpense * qty).toFixed(2)}
+                              </td>
+                            </tr>
+                          );
+                        })
                     )}
                   </tbody>
                 </table>
@@ -340,20 +259,24 @@ export default function WizardStep3({
               <h4 className="text-xs font-black uppercase tracking-widest">Compiler Outputs</h4>
             </div>
 
-            {quotationType === 'SET_TYPE' || quotationType === 'READYMADE' ? (
-              <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
-                <div className="flex justify-between py-2 text-zinc-500">
-                  <span>{quotationType === 'SET_TYPE' ? 'Custom Sets Price:' : 'Readymade Items Price:'}</span>
-                  <span className="font-mono text-[#2d8d9b] font-black">₹{calculatedExpenses.total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-2 text-zinc-500">
-                  <span>Sizing Audit Type:</span>
-                  <span className="text-[#3a525d] font-black uppercase text-[10px] tracking-wider bg-[#3a525d]/10 px-2 py-0.5 rounded-md border border-[#3a525d]/15">
-                    {quotationType === 'SET_TYPE' ? 'Set Level pricing' : 'Readymade Product Selling'}
-                  </span>
-                </div>
-              </div>
-            ) : (() => {
+            {(() => {
+              const isReadymade = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
+              if (isReadymade) {
+                return (
+                  <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
+                    <div className="flex justify-between py-2 text-zinc-500">
+                      <span>{isSetType ? 'Department Readymade Price:' : 'Readymade Items Price:'}</span>
+                      <span className="font-mono text-[#2d8d9b] font-black">₹{calculatedExpenses.total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 text-zinc-500">
+                      <span>Pricing Type:</span>
+                      <span className="text-[#3a525d] font-black uppercase text-[10px] tracking-wider bg-[#3a525d]/10 px-2 py-0.5 rounded-md border border-[#3a525d]/15">
+                        {quotationType === 'READYMADE_SET' ? 'Dept Readymade Set' : quotationType === 'MANUAL' ? 'Manual Individual' : 'Readymade Normal'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
               const separateFabricsCost = separateFabrics.reduce((sum, sf) => sum + (parseFloat(sf.meters) || 0) * (parseFloat(sf.rate) || 0), 0);
               const garmentFabricExpense = Math.max(0, calculatedExpenses.fabric - separateFabricsCost);
 

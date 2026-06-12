@@ -106,7 +106,26 @@ export default function QuotationWizard({
   const [salesType, setSalesType] = useState<string>('WHOLESALE');
   const [customerType, setCustomerType] = useState<string>('DIRECT');
   const [quotationType, setQuotationType] = useState<string>('STANDARD');
+  const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
+  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
   const [orgDepartments, setOrgDepartments] = useState<any[]>([]);
+  const [orgClasses, setOrgClasses] = useState<any[]>([
+    { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
+    { id: 'Class2', name: 'Class2', selected: false, persons: '', sets: '2' },
+    { id: 'Class3', name: 'Class3', selected: false, persons: '', sets: '2' },
+    { id: 'Class4', name: 'Class4', selected: false, persons: '', sets: '2' },
+    { id: 'Class5', name: 'Class5', selected: false, persons: '', sets: '2' },
+    { id: 'Class6', name: 'Class6', selected: false, persons: '', sets: '2' },
+    { id: 'Class7', name: 'Class7', selected: false, persons: '', sets: '2' },
+    { id: 'Class8', name: 'Class8', selected: false, persons: '', sets: '2' },
+    { id: 'Class9', name: 'Class9', selected: false, persons: '', sets: '2' },
+    { id: 'Class10', name: 'Class10', selected: false, persons: '', sets: '2' },
+    { id: 'Class11', name: 'Class11', selected: false, persons: '', sets: '2' },
+    { id: 'Class12', name: 'Class12', selected: false, persons: '', sets: '2' },
+    { id: 'C1', name: 'C1', selected: false, persons: '', sets: '2' },
+    { id: 'C2', name: 'C2', selected: false, persons: '', sets: '2' },
+    { id: 'Corporate', name: 'Corporate', selected: false, persons: '', sets: '2' }
+  ]);
   const [departmentItems, setDepartmentItems] = useState<Record<string, ManualItem[]>>({});
 
   // Dynamic Branching & Manual Data states
@@ -161,43 +180,23 @@ export default function QuotationWizard({
 
   // If in edit mode, fetch detailed quotation data and initialize state
   useEffect(() => {
-    if (quotationType === 'SET_TYPE') {
-      setManualItems(prev => {
-        const sets = prev.filter(item => item.size_breakdown?.is_set === true);
-        if (sets.length === 0) {
-          return [{
-            id: Date.now(), product_type_id: '', product_id: '',
-            fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-            attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-            attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-            button_id: '', button_count: '', thread_id: '', thread_count: '',
-            sam_value: '', design_number: '', quantity: '1', price: '0',
-            size_breakdown: {
-              is_set: true,
-              set_name: '',
-              products: []
-            }
-          }];
-        }
-        return sets;
-      });
-    } else {
-      setManualItems(prev => {
-        const nonSets = prev.filter(item => !item.size_breakdown?.is_set);
-        if (nonSets.length === 0) {
-          return [{
-            id: Date.now(), product_type_id: '', product_id: '',
-            fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-            attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-            attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-            button_id: '', button_count: '', thread_id: '', thread_count: '',
-            sam_value: '', design_number: '', quantity: '1', price: '',
-            size_breakdown: {}
-          }];
-        }
-        return nonSets;
-      });
-    }
+    const classesList = [
+      'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
+      'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
+      'C1', 'C2', 'Corporate'
+    ];
+
+    // Reset manual items when quotation type changes
+    setManualItems([{
+      id: Date.now(), product_type_id: '', product_id: '',
+      fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
+      attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
+      attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
+      button_id: '', button_count: '', thread_id: '', thread_count: '',
+      sam_value: '', design_number: '', quantity: '1', price: '',
+      size_breakdown: {}
+    }]);
+    setDepartmentItems({});
   }, [quotationType]);
 
   // If in edit mode, fetch detailed quotation data and initialize state
@@ -236,31 +235,63 @@ export default function QuotationWizard({
           });
           const deptIdsFromItems = new Set(Object.keys(deptQtyMap));
 
-          const mappedDepts = dbDepts.map((d: any) => {
-            const saved = savedDepts.find((sd: any) => String(sd.id) === String(d.id));
-            const isSelected = !!saved || deptIdsFromItems.has(String(d.id));
-            
-            let persons = '';
-            let sets = '2';
-            
-            if (saved) {
-              persons = String(saved.persons);
-              sets = String(saved.sets || '2');
-            } else if (isSelected) {
-              // Fallback for older quotes: infer from first item quantity, default sets is 2
-              const qty = deptQtyMap[String(d.id)] || 2;
-              sets = '2';
-              persons = String(Math.ceil(qty / 2));
+          const mappedDepts: any[] = [];
+          dbDepts.forEach((d: any) => {
+            const divString = d.division || d.section || '';
+            if (divString.includes(',')) {
+              const parts = divString.split(',').map((p: any) => p.trim()).filter(Boolean);
+              parts.forEach((part: string) => {
+                const uniqueId = `${d.id}_${part}`;
+                const saved = savedDepts.find((sd: any) => String(sd.id) === uniqueId);
+                const isSelected = !!saved || deptIdsFromItems.has(uniqueId);
+                
+                let persons = '';
+                let sets = '2';
+                
+                if (saved) {
+                  persons = String(saved.persons);
+                  sets = String(saved.sets || '2');
+                } else if (isSelected) {
+                  const qty = deptQtyMap[uniqueId] || 2;
+                  sets = '2';
+                  persons = String(Math.ceil(qty / 2));
+                }
+                
+                mappedDepts.push({
+                  id: uniqueId,
+                  name: d.name,
+                  division: part,
+                  selected: isSelected,
+                  persons: persons,
+                  sets: sets
+                });
+              });
+            } else {
+              const uniqueId = String(d.id);
+              const saved = savedDepts.find((sd: any) => String(sd.id) === uniqueId);
+              const isSelected = !!saved || deptIdsFromItems.has(uniqueId);
+              
+              let persons = '';
+              let sets = '2';
+              
+              if (saved) {
+                persons = String(saved.persons);
+                sets = String(saved.sets || '2');
+              } else if (isSelected) {
+                const qty = deptQtyMap[uniqueId] || 2;
+                sets = '2';
+                persons = String(Math.ceil(qty / 2));
+              }
+              
+              mappedDepts.push({
+                id: uniqueId,
+                name: d.name,
+                division: divString,
+                selected: isSelected,
+                persons: persons,
+                sets: sets
+              });
             }
-            
-            return {
-              id: d.id,
-              name: d.name,
-              division: d.division || d.section || '',
-              selected: isSelected,
-              persons: persons,
-              sets: sets
-            };
           });
           setOrgDepartments(mappedDepts);
         } catch (err) {
@@ -569,14 +600,32 @@ export default function QuotationWizard({
 
     try {
       const res = await api.get(`/departments?orgId=${orgId}`);
-      const mappedDepts = (res.data || []).map((dept: any) => ({
-        id: dept.id,
-        name: dept.name,
-        division: dept.division || dept.section || '',
-        selected: false,
-        persons: '',
-        sets: '2'
-      }));
+      const mappedDepts: any[] = [];
+      (res.data || []).forEach((dept: any) => {
+        const divString = dept.division || dept.section || '';
+        if (divString.includes(',')) {
+          const parts = divString.split(',').map((p: any) => p.trim()).filter(Boolean);
+          parts.forEach((part: string) => {
+            mappedDepts.push({
+              id: `${dept.id}_${part}`,
+              name: dept.name,
+              division: part,
+              selected: false,
+              persons: '',
+              sets: '2'
+            });
+          });
+        } else {
+          mappedDepts.push({
+            id: String(dept.id),
+            name: dept.name,
+            division: divString,
+            selected: false,
+            persons: '',
+            sets: '2'
+          });
+        }
+      });
       setOrgDepartments(mappedDepts);
     } catch (err) {
       console.error('Failed to fetch organization departments', err);
@@ -585,15 +634,17 @@ export default function QuotationWizard({
   };
 
   const handleStep1Next = () => {
+    if (!isSetType) {
+      // Clear selected departments for Normal/Flat types
+      const cleared = orgDepartments.map(d => ({ ...d, selected: false }));
+      setOrgDepartments(cleared);
+      setCurrentStep(2);
+      return;
+    }
+
     // Validate selected departments if any
     const selectedDepts = orgDepartments.filter(d => d.selected);
     if (selectedDepts.length > 0) {
-      const hasInvalidInputs = selectedDepts.some(d => !d.persons || parseInt(d.persons, 10) <= 0 || !d.sets || parseInt(d.sets, 10) <= 0);
-      if (hasInvalidInputs) {
-        toast.error('Please enter valid No. of Persons and Sets for all selected departments.');
-        return;
-      }
-      
       // Auto-calculate total quantity from selected departments
       const totalSets = selectedDepts.reduce((sum, d) => sum + (parseInt(d.persons, 10) * parseInt(d.sets, 10)), 0);
       if (totalSets > 0) {
@@ -608,20 +659,11 @@ export default function QuotationWizard({
   };
 
   const isManualItemsValid = () => {
-    if (quotationType === 'SET_TYPE') {
-      if (manualItems.length === 0) return false;
-      return manualItems.every(item => {
-        const isSet = item.size_breakdown?.is_set;
-        const setName = item.size_breakdown?.set_name;
-        const products = item.size_breakdown?.products || [];
-        return isSet && setName && setName.trim() !== '' && products.length > 0 && parseInt(item.quantity) > 0 && parseFloat(item.price) >= 0;
-      });
-    }
-
-    if (quotationType === 'READYMADE') {
+    // READYMADE_SET and MANUAL: department items with product + manually entered price
+    if (quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') {
       const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepartments = selectedDepts.length > 0;
-      if (hasDepartments) {
+      const hasDepts = selectedDepts.length > 0;
+      if (hasDepts) {
         return selectedDepts.every(dept => {
           const items = departmentItems[String(dept.id)] || [];
           if (items.length === 0) return false;
@@ -644,29 +686,46 @@ export default function QuotationWizard({
       );
     }
 
-    const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-    const hasDepartments = selectedDepts.length > 0;
-
-    if (hasDepartments) {
-      return selectedDepts.every(dept => {
-        const items = departmentItems[String(dept.id)] || [];
-        if (items.length === 0) return false;
-        return items.every(item =>
-          item.product_type_id !== '' &&
-          item.fabric_id !== '' &&
-          parseFloat(item.main_fabric_meters) > 0 &&
-          parseFloat(item.main_fabric_sam) > 0 &&
-          parseInt(item.quantity) > 0
-        );
-      });
+    // FABRIC_SET: department or flat items with fabric + meters (no SAM)
+    if (quotationType === 'FABRIC_SET') {
+      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
+      const hasDepts = selectedDepts.length > 0;
+      if (hasDepts) {
+        return selectedDepts.every(dept => {
+          const items = departmentItems[String(dept.id)] || [];
+          if (items.length === 0) return false;
+          return items.every(item =>
+            item.fabric_id !== '' &&
+            parseFloat(item.main_fabric_meters) > 0 &&
+            parseInt(item.quantity) > 0
+          );
+        });
+      }
+      if (manualItems.length === 0) return false;
+      return manualItems.every(item =>
+        item.fabric_id !== '' &&
+        parseFloat(item.main_fabric_meters) > 0 &&
+        parseInt(item.quantity) > 0
+      );
     }
 
+    // FABRIC (normal): flat items with fabric + meters (no SAM, no departments)
+    if (quotationType === 'FABRIC') {
+      if (manualItems.length === 0) return false;
+      return manualItems.every(item =>
+        item.fabric_id !== '' &&
+        parseFloat(item.main_fabric_meters) > 0 &&
+        parseInt(item.quantity) > 0
+      );
+    }
+
+    // STANDARD (Readymade Normal): flat items requiring product type + product + main fabric + meters
     if (manualItems.length === 0) return false;
     return manualItems.every(item =>
       item.product_type_id !== '' &&
+      item.product_id !== '' &&
       item.fabric_id !== '' &&
       parseFloat(item.main_fabric_meters) > 0 &&
-      parseFloat(item.main_fabric_sam) > 0 &&
       parseInt(item.quantity) > 0
     );
   };
@@ -716,7 +775,7 @@ export default function QuotationWizard({
     const fabric = fabricsList.find((f: any) => String(f.id) === fabricId);
     if (!fabric) return 0;
     
-    // Determine category from Product Type Name
+    // Determine category from Product Type Name or Fabric Name fallback
     const pType = productTypes.find((pt: any) => String(pt.id) === String(productTypeId));
     const pTypeName = (pType?.name || '').toLowerCase();
     let category = 'SHIRTING';
@@ -724,6 +783,13 @@ export default function QuotationWizard({
       category = 'SUITING';
     } else if (pTypeName.includes('pant') || pTypeName.includes('trouser') || pTypeName.includes('bottom') || pTypeName.includes('skirt') || pTypeName.includes('salwar')) {
       category = 'BOTTOM';
+    } else if (!productTypeId || pTypeName === '') {
+      const fabricName = (fabric.name || '').toLowerCase();
+      if (fabricName.includes('suiting')) {
+        category = 'SUITING';
+      } else if (fabricName.includes('bottom') || fabricName.includes('pant') || fabricName.includes('trouser')) {
+        category = 'BOTTOM';
+      }
     }
     
     const widthStr = String(fabric.width || '');
@@ -755,7 +821,7 @@ export default function QuotationWizard({
   };
 
   const computeItemUnitCost = (item: ManualItem) => {
-    const productSAMCost = calculateProductSAMCost(item.sam_value, item.quantity);
+    const productSAMCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
     const mainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
     const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
     const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
@@ -801,7 +867,7 @@ export default function QuotationWizard({
       } else {
         // Calculate from manual entry inputs
         manualItems.forEach(item => {
-          const sam = parseFloat(item.sam_value) || 0;
+          const sam = isFabric ? 0 : (parseFloat(item.sam_value) || 0);
           const qty = parseInt(item.quantity) || 0;
           totalHours += (sam * qty) / 60;
         });
@@ -840,27 +906,15 @@ export default function QuotationWizard({
 
   // Run dynamic expense calculations based on active sizes
   const getCalculatedExpenses = () => {
-    if (quotationType === 'SET_TYPE') {
-      let totalSetCost = 0;
-      manualItems.forEach(item => {
-        totalSetCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
-      });
-      return {
-        fabric: 0,
-        accessories: 0,
-        labor: totalSetCost,
-        total: totalSetCost
-      };
-    }
-
-    if (quotationType === 'READYMADE') {
+    // For department price-entry types (READYMADE_SET, MANUAL): sum price * qty directly
+    if (quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') {
       let totalCost = 0;
       const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepartments = selectedDepts.length > 0;
-      if (hasDepartments) {
-        selectedDepts.forEach(dept => {
+      const hasDepts = selectedDepts.length > 0;
+      if (hasDepts) {
+        selectedDepts.forEach((dept: any) => {
           const items = departmentItems[String(dept.id)] || [];
-          items.forEach(item => {
+          items.forEach((item: any) => {
             totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
           });
         });
@@ -869,12 +923,7 @@ export default function QuotationWizard({
           totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
         });
       }
-      return {
-        fabric: 0,
-        accessories: 0,
-        labor: totalCost,
-        total: totalCost
-      };
+      return { fabric: 0, accessories: 0, labor: totalCost, total: totalCost };
     }
 
     const baseFabric = parseFloat(baseFabricCost) || 0;
@@ -926,7 +975,7 @@ export default function QuotationWizard({
 
         totalAccExpense += 0;
 
-        const productSAMCost = calculateProductSAMCost(item.sam_value, item.quantity);
+        const productSAMCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
         totalLaborExpense += productSAMCost * qty;
       });
     }
@@ -1093,37 +1142,39 @@ export default function QuotationWizard({
       }];
     } else {
       // Map manual items with extended material breakdown
-      payloadItems = manualItems.map(item => {
-        const qty = parseInt(item.quantity) || 0;
-        const unitCost = (quotationType === 'SET_TYPE' || quotationType === 'READYMADE') 
-          ? (parseFloat(item.price) || 0) 
-          : computeItemUnitCost(item);
-        const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
-        totalQty += qty;
+      payloadItems = manualItems
+        .map(item => {
+          const qty = parseInt(item.quantity) || 0;
+          // Price-based types use entered price; all others use computeItemUnitCost
+          const isPriceBased = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
+          const unitCost = isPriceBased ? (parseFloat(item.price) || 0) : computeItemUnitCost(item);
+          const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
+          totalQty += qty;
 
-        if (quotationType === 'SET_TYPE') {
-          return {
-            product_type_id: null,
-            product_type_name: 'Set Type Package',
-            quantity: qty,
-            unit_price: unitCost,
-            total_price: qty * unitCost,
-            size_breakdown: {
-              ...(item.size_breakdown || {}),
-              is_set: true,
-              set_name: item.size_breakdown?.set_name || 'Custom Set',
-              products: item.size_breakdown?.products || []
-            },
-            fabric_cost_per_item: 0,
-            accessories_cost_per_item: 0,
-            labor_cost_per_item: 0
-          };
-        }
+          if (isPriceBased) {
+            return {
+              product_type_id: parseInt(item.product_type_id) || null,
+              product_type_name: selectedProduct?.name || 'Item',
+              quantity: qty,
+              unit_price: unitCost,
+              total_price: qty * unitCost,
+              is_manual: true,
+              size_breakdown: {
+                is_manual: true,
+                product_id: item.product_id || null,
+                design_number: item.design_number || null,
+                computed_unit_cost: unitCost,
+                is_readymade: true
+              },
+              fabric_cost_per_item: 0,
+              accessories_cost_per_item: 0,
+              labor_cost_per_item: 0
+            };
+          }
 
-        if (quotationType === 'READYMADE') {
           return {
-            product_type_id: parseInt(item.product_type_id) || null,
-            product_type_name: selectedProduct?.name || 'Readymade Item',
+            product_type_id: parseInt(item.product_type_id),
+            product_type_name: selectedProduct?.name || 'Uniform Item',
             quantity: qty,
             unit_price: unitCost,
             total_price: qty * unitCost,
@@ -1131,53 +1182,34 @@ export default function QuotationWizard({
             size_breakdown: {
               is_manual: true,
               product_id: item.product_id || null,
+              fabric_id: item.fabric_id || null,
+              main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
+              main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
+              main_fabric_sam: parseFloat(item.main_fabric_sam) || null,
+              attachment_fabric1_id: item.attachment_fabric1_id || null,
+              attachment_fabric1_meters: parseFloat(item.attachment_fabric1_meters) || null,
+              attachment_fabric1_rate: parseFloat(item.attachment_fabric1_rate) || null,
+              attachment_fabric1_sam: parseFloat(item.attachment_fabric1_sam) || null,
+              attachment_fabric2_id: item.attachment_fabric2_id || null,
+              attachment_fabric2_meters: parseFloat(item.attachment_fabric2_meters) || null,
+              attachment_fabric2_rate: parseFloat(item.attachment_fabric2_rate) || null,
+              attachment_fabric2_sam: parseFloat(item.attachment_fabric2_sam) || null,
+              button_id: item.button_id || null,
+              button_count: parseFloat(item.button_count) || null,
+              thread_id: item.thread_id || null,
+              thread_count: parseFloat(item.thread_count) || null,
+              sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
               computed_unit_cost: unitCost,
-              is_readymade: true
+              class_name: item.size_breakdown?.class_name || null
             },
-            fabric_cost_per_item: 0,
+            fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
+                                  calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
+                                  calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id),
             accessories_cost_per_item: 0,
-            labor_cost_per_item: 0
+            labor_cost_per_item: isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity)
           };
-        }
-
-        return {
-          product_type_id: parseInt(item.product_type_id),
-          product_type_name: selectedProduct?.name || 'Uniform Item',
-          quantity: qty,
-          unit_price: unitCost,
-          total_price: qty * unitCost,
-          is_manual: true,
-          size_breakdown: {
-            is_manual: true,
-            product_id: item.product_id || null,
-            fabric_id: item.fabric_id || null,
-            main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
-            main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
-            main_fabric_sam: parseFloat(item.main_fabric_sam) || null,
-            attachment_fabric1_id: item.attachment_fabric1_id || null,
-            attachment_fabric1_meters: parseFloat(item.attachment_fabric1_meters) || null,
-            attachment_fabric1_rate: parseFloat(item.attachment_fabric1_rate) || null,
-            attachment_fabric1_sam: parseFloat(item.attachment_fabric1_sam) || null,
-            attachment_fabric2_id: item.attachment_fabric2_id || null,
-            attachment_fabric2_meters: parseFloat(item.attachment_fabric2_meters) || null,
-            attachment_fabric2_rate: parseFloat(item.attachment_fabric2_rate) || null,
-            attachment_fabric2_sam: parseFloat(item.attachment_fabric2_sam) || null,
-            button_id: item.button_id || null,
-            button_count: parseFloat(item.button_count) || null,
-            thread_id: item.thread_id || null,
-            thread_count: parseFloat(item.thread_count) || null,
-            sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
-            design_number: item.design_number || null,
-            computed_unit_cost: unitCost
-          },
-          fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
-                                calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
-                                calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id),
-          accessories_cost_per_item: 0,
-          labor_cost_per_item: calculateProductSAMCost(item.sam_value, item.quantity)
-        };
-      });
+        });
     }
 
     // Append separate fabrics as standard items in the quotation payload
@@ -1239,27 +1271,37 @@ export default function QuotationWizard({
           division: d.division,
           persons: parseInt(d.persons, 10) || 0,
           sets: parseInt(d.sets, 10) || 0
-        }))
+        })),
+        classes: []
       },
       items: payloadItems
     };
 
     const loadingToast = toast.loading(editingQuotationId ? 'Updating Formal Quotation...' : 'Compiling and saving Formal Quotation...');
     try {
+      let response;
       if (editingQuotationId) {
         // Find existing status so we don't break validation
         const resList = await api.get('/quotations');
         const originalStatus = resList.data?.find((q: any) => q.id === editingQuotationId)?.status || 'Pending';
         const updatedStatus = originalStatus === 'Rejected' ? 'Pending' : originalStatus;
-        await api.put(`/quotations/${editingQuotationId}`, {
+        response = await api.put(`/quotations/${editingQuotationId}`, {
           ...payload,
           status: updatedStatus
         });
         toast.success('Formal Quotation updated successfully!', { id: loadingToast });
       } else {
-        await api.post('/quotations', payload);
+        response = await api.post('/quotations', payload);
         toast.success('Formal Quotation compiled and saved to registry!', { id: loadingToast });
       }
+
+      if (response && response.data && response.data.designNumberAlreadyExists) {
+        toast('Design Number already exists for this combination.', {
+          icon: 'ℹ️',
+          duration: 5000,
+        });
+      }
+
       resetWizard();
       onSaveSuccess();
     } catch (err: any) {
@@ -1293,6 +1335,23 @@ Forma Apparels Co.`;
     setQuoteNo('');
     setSelectedOrgId('');
     setOrgDepartments([]);
+    setOrgClasses([
+      { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
+      { id: 'Class2', name: 'Class2', selected: false, persons: '', sets: '2' },
+      { id: 'Class3', name: 'Class3', selected: false, persons: '', sets: '2' },
+      { id: 'Class4', name: 'Class4', selected: false, persons: '', sets: '2' },
+      { id: 'Class5', name: 'Class5', selected: false, persons: '', sets: '2' },
+      { id: 'Class6', name: 'Class6', selected: false, persons: '', sets: '2' },
+      { id: 'Class7', name: 'Class7', selected: false, persons: '', sets: '2' },
+      { id: 'Class8', name: 'Class8', selected: false, persons: '', sets: '2' },
+      { id: 'Class9', name: 'Class9', selected: false, persons: '', sets: '2' },
+      { id: 'Class10', name: 'Class10', selected: false, persons: '', sets: '2' },
+      { id: 'Class11', name: 'Class11', selected: false, persons: '', sets: '2' },
+      { id: 'Class12', name: 'Class12', selected: false, persons: '', sets: '2' },
+      { id: 'C1', name: 'C1', selected: false, persons: '', sets: '2' },
+      { id: 'C2', name: 'C2', selected: false, persons: '', sets: '2' },
+      { id: 'Corporate', name: 'Corporate', selected: false, persons: '', sets: '2' }
+    ]);
     setDepartmentItems({});
     setSelectedProductTypeId('');
     setBaseFabricCost('15.00');
@@ -1417,6 +1476,7 @@ Forma Apparels Co.`;
             separateFabrics={separateFabrics}
             setSeparateFabrics={setSeparateFabrics}
             orgDepartments={orgDepartments}
+            setOrgDepartments={setOrgDepartments}
             departmentItems={departmentItems}
             setDepartmentItems={setDepartmentItems}
             productTypes={productTypes}

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid, Eye, ChevronDown } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid, Eye, ChevronDown, ChevronRight, Package } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -12,10 +13,15 @@ import { CredentialsModal } from '@/components/ui/CredentialsModal';
 
 interface Organization {
   id: number;
+  customer_code: string | null;
   name: string;
   address: string;
   industry_id: number;
   industries?: { name: string };
+  relationship_manager_id: number | null;
+  relationship_manager?: { id: number; full_name: string; employee_id: string } | null;
+  assigned_operator_id: number | null;
+  assigned_operator?: { id: number; full_name: string; employee_id: string } | null;
   created_at: string;
 }
 
@@ -25,6 +31,7 @@ interface Industry {
 }
 
 export default function OrganizationsRegistry() {
+  const router = useRouter();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,14 +45,7 @@ export default function OrganizationsRegistry() {
     isOpen: false,
     data: null
   });
-  const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
-  const [orgDetails, setOrgDetails] = useState<any>(null);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [assignedStaff, setAssignedStaff] = useState<any[]>([]);
-  const [selectedStaffIds, setSelectedStaffIds] = useState<number[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isAssigning, setIsAssigning] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -69,73 +69,68 @@ export default function OrganizationsRegistry() {
     fetchData();
   }, []);
 
-  const handleViewDetails = async (org: Organization) => {
-    setViewingOrg(org);
-    setIsLoadingDetails(true);
-    try {
-      const [detailsRes, staffRes] = await Promise.all([
-        api.get(`/organizations/${org.id}/details`),
-        api.get(`/organizations/${org.id}/staff`)
-      ]);
-      setOrgDetails(detailsRes.data);
-      
-      const assigned = staffRes.data.data || [];
-      setAssignedStaff(assigned);
-      setSelectedStaffIds(assigned.map((s: any) => s.employee_id));
-    } catch (err) {
-      toast.error('Failed to load organization details');
-    } finally {
-      setIsLoadingDetails(false);
-    }
-  };
-
-  const handleSaveStaff = async () => {
-    if (!viewingOrg) return;
-    setIsAssigning(true);
-    const loadingToast = toast.loading('Updating staff assignments...');
-    try {
-      await api.post(`/organizations/${viewingOrg.id}/staff`, { employee_ids: selectedStaffIds });
-      toast.success('Staff assignments updated successfully!', { id: loadingToast });
-      setIsDropdownOpen(false);
-    } catch (err) {
-      toast.error('Failed to update staff assignments', { id: loadingToast });
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-
-  const toggleStaffSelection = (id: number) => {
-    setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const handleViewDetails = (org: Organization) => {
+    router.push(`/organizations/registry/${org.id}`);
   };
 
   const generateInitialPassword = () => Math.random().toString(36).slice(-6).toUpperCase();
 
   const orgFields: FormField[] = [
-    { 
-      name: 'name', 
-      label: 'Organization Name', 
-      type: 'text', 
-      placeholder: 'Only letters allowed', 
-      required: true, 
+    {
+      name: 'name',
+      label: 'Organization Name',
+      type: 'text',
+      placeholder: 'Only letters allowed',
+      required: true,
       pattern: "[a-zA-Z\\s]*",
-      defaultValue: editingOrg?.name 
+      defaultValue: editingOrg?.name
     },
-    { 
-      name: 'industry_id', 
-      label: 'Industry Sector', 
-      type: 'select', 
+    {
+      name: 'industry_id',
+      label: 'Industry Sector',
+      type: 'select',
       options: industries.map(i => ({ label: i.name, value: String(i.id) })),
-      required: true, 
+      required: true,
       defaultValue: editingOrg?.industry_id ? String(editingOrg.industry_id) : undefined
     },
-    { 
-      name: 'address', 
-      label: 'Full Address', 
-      type: 'text', 
-      placeholder: 'Street, City, Country', 
+    {
+      name: 'address',
+      label: 'Full Address',
+      type: 'text',
+      placeholder: 'Street, City, Country',
       maxLength: 200,
-      defaultValue: editingOrg?.address 
+      defaultValue: editingOrg?.address
     },
+    {
+      name: 'relationship_manager_id',
+      label: 'Assign Relationship Manager (Staff)',
+      type: 'select',
+      options: [
+        { label: 'Unassigned', value: '' },
+        ...employees.map(e => ({
+          label: `${e.full_name} (${e.employee_id})`,
+          value: String(e.id)
+        }))
+      ],
+      required: false,
+      defaultValue: editingOrg?.relationship_manager_id ? String(editingOrg.relationship_manager_id) : undefined
+    },
+    ...(editingOrg && editingOrg.assigned_operator_id ? [
+      {
+        name: 'assigned_operator_id',
+        label: 'Assign Marketing Operator (Staff)',
+        type: 'select' as const,
+        options: [
+          { label: 'Unassigned', value: '' },
+          ...employees.map(e => ({
+            label: `${e.full_name} (${e.employee_id})`,
+            value: String(e.id)
+          }))
+        ],
+        required: false,
+        defaultValue: editingOrg?.assigned_operator_id ? String(editingOrg.assigned_operator_id) : undefined
+      }
+    ] : []),
     ...(!editingOrg ? [
       { name: 'username', label: 'Admin Username', type: 'text' as const, placeholder: 'Max 20 chars', required: true, maxLength: 20 }
     ] : [])
@@ -143,18 +138,32 @@ export default function OrganizationsRegistry() {
 
   const handleAddOrUpdate = async (formData: any) => {
     const loadingToast = toast.loading(editingOrg ? 'Updating organization...' : 'Registering organization...');
+
+    // Normalize fields
+    const payload = {
+      name: formData.name,
+      industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
+      address: formData.address || null,
+      relationship_manager_id: formData.relationship_manager_id ? parseInt(formData.relationship_manager_id, 10) : null,
+      assigned_operator_id: formData.assigned_operator_id ? parseInt(formData.assigned_operator_id, 10) : null
+    };
+
     try {
       if (editingOrg) {
-        await api.put(`/organizations/${editingOrg.id}`, formData);
+        await api.put(`/organizations/${editingOrg.id}`, payload);
         toast.success('Organization updated successfully!', { id: loadingToast });
       } else {
         // Auto-generate password for new organization
         const autoPassword = generateInitialPassword();
-        const submissionData = { ...formData, password: autoPassword };
-        
-        const response = await api.post('/organizations', submissionData);
+        const submissionData = {
+          ...payload,
+          username: formData.username,
+          password: autoPassword
+        };
+
+        await api.post('/organizations', submissionData);
         toast.success('Organization registered successfully!', { id: loadingToast });
-        
+
         setCredsModal({
           isOpen: true,
           data: {
@@ -174,7 +183,7 @@ export default function OrganizationsRegistry() {
 
   const handleConfirmedDelete = async () => {
     if (!deleteConfirm.id) return;
-    
+
     const loadingToast = toast.loading('Purging record...');
     setDeleteConfirm({ isOpen: false, id: null });
     try {
@@ -191,9 +200,9 @@ export default function OrganizationsRegistry() {
     try {
       const response = await api.post(`/organizations/${org.id}/reset-password`);
       const { newPassword, username } = response.data;
-      
+
       toast.success('Credentials Reset Successfully!', { id: loadingToast });
-      
+
       setCredsModal({
         isOpen: true,
         data: {
@@ -217,14 +226,52 @@ export default function OrganizationsRegistry() {
           </div>
           <div>
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{o.name}</p>
-            <div className="flex items-center gap-2 mt-1">
-               <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">ID: #{o.id}</p>
-               <span className="w-1 h-1 rounded-full bg-zinc-300" />
-               <p className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">{o.industries?.name || 'School'}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                {o.customer_code ? `Code: ${o.customer_code}` : `ID: #${o.id}`}
+              </p>
+              <span className="w-1 h-1 rounded-full bg-zinc-300" />
+              <p className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">{o.industries?.name || 'School'}</p>
             </div>
           </div>
         </div>
       ),
+    },
+    {
+      header: 'Relationship Manager',
+      accessor: (o) => (
+        o.relationship_manager ? (
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+              <Users size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-black text-[#3a525d]">{o.relationship_manager.full_name}</p>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">{o.relationship_manager.employee_id}</p>
+            </div>
+          </div>
+        ) : (
+          <span className="px-2 py-0.5 bg-zinc-50 border border-zinc-150 rounded-lg text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Unassigned</span>
+        )
+      )
+    },
+    {
+      header: 'Marketing Operator',
+      accessor: (o) => (
+        o.assigned_operator ? (
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b]">
+              <Users size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-black text-[#3a525d]">{o.assigned_operator.full_name}</p>
+              <p className="text-[9px] font-bold text-zinc-455 uppercase tracking-wider mt-0.5">{o.assigned_operator.employee_id} (Lead)</p>
+            </div>
+          </div>
+        ) : (
+          <span className="text-[10px] text-zinc-300 font-bold uppercase tracking-wider">—</span>
+        )
+      )
     },
     {
       header: 'Location',
@@ -238,12 +285,12 @@ export default function OrganizationsRegistry() {
     {
       header: 'System Log',
       accessor: (o) => (
-          <div className="flex flex-col">
-              <span className="text-xs font-black text-[#3a525d]">
-                  {o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-              </span>
-              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Registered Date</span>
-          </div>
+        <div className="flex flex-col">
+          <span className="text-xs font-black text-[#3a525d]">
+            {o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+          </span>
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Registered Date</span>
+        </div>
       )
     },
     {
@@ -253,32 +300,32 @@ export default function OrganizationsRegistry() {
           <Button
             onClick={() => handleViewDetails(o)}
             variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all shadow-sm p-0"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all shadow-sm !p-0"
             title="View Details"
           >
             <Eye size={16} />
           </Button>
           <Button
             onClick={() => {
-                setEditingOrg(o);
-                setIsAdding(true);
+              setEditingOrg(o);
+              setIsAdding(true);
             }}
             variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
           >
             <Edit2 size={16} />
           </Button>
           <Button
             onClick={() => handleResetPassword(o)}
             variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm p-0"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm !p-0"
           >
             <Key size={16} />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: o.id })}
             variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm p-0"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm !p-0"
           >
             <Trash2 size={16} />
           </Button>
@@ -290,14 +337,14 @@ export default function OrganizationsRegistry() {
   if (isAdding) {
     return (
       <div className="max-w-4xl mx-auto py-10">
-        <DynamicForm 
+        <DynamicForm
           title={editingOrg ? "Edit Organization" : "Register New Organization"}
           subtitle={editingOrg ? `Update profile for ${editingOrg.name}` : "Configure a new industry organization"}
           fields={orgFields}
           onSubmit={handleAddOrUpdate}
           onCancel={() => {
-              setIsAdding(false);
-              setEditingOrg(null);
+            setIsAdding(false);
+            setEditingOrg(null);
           }}
           submitLabel={editingOrg ? "Save Changes" : "Register Organization"}
           columns={1}
@@ -356,7 +403,7 @@ export default function OrganizationsRegistry() {
         </div>
       </div>
 
-      <DataTable 
+      <DataTable
         title="Organizations Registry"
         subtitle="Manage all multi-industry partners and sectors"
         columns={columns}
@@ -364,7 +411,7 @@ export default function OrganizationsRegistry() {
         isLoading={isLoading}
         searchPlaceholder="Search by name, ID or industry..."
         headerAction={
-          <Button 
+          <Button
             onClick={() => setIsAdding(true)}
             className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3"
           >
@@ -374,7 +421,7 @@ export default function OrganizationsRegistry() {
         }
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={deleteConfirm.isOpen}
         title="De-Register Organization?"
         message="This will remove the organization and all linked departments and member records. This action cannot be reversed."
@@ -384,174 +431,11 @@ export default function OrganizationsRegistry() {
         variant="danger"
       />
 
-      <CredentialsModal 
+      <CredentialsModal
         isOpen={credsModal.isOpen}
         onClose={() => setCredsModal({ isOpen: false, data: null })}
         data={credsModal.data}
       />
-
-      {/* View Organization Modal */}
-      {viewingOrg && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setViewingOrg(null)} />
-          
-          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="bg-[#3a525d] p-8 text-white">
-              <div className="flex items-center justify-between mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                   <Building2 size={24} />
-                </div>
-                <Button variant="secondary" onClick={() => setViewingOrg(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors bg-transparent border-none shadow-none text-white">
-                  <X size={20} />
-                </Button>
-              </div>
-              <h3 className="text-2xl font-black italic">{viewingOrg.name}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">ID: #{viewingOrg.id}</p>
-                <span className="w-1 h-1 rounded-full bg-white/30" />
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{viewingOrg.industries?.name || 'Unknown Industry'}</p>
-              </div>
-            </div>
-
-            <div className="p-8 space-y-8">
-              {/* Organization Info */}
-              <div className="grid grid-cols-2 gap-6">
-                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <label className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">
-                      <MapPin size={12} />
-                      Location Address
-                    </label>
-                    <p className="text-sm font-semibold text-[#3a525d]">{viewingOrg.address || 'Address not provided'}</p>
-                 </div>
-                 
-                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <label className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">
-                      <Calendar size={12} />
-                      Registration Date
-                    </label>
-                    <p className="text-sm font-semibold text-[#3a525d]">
-                      {viewingOrg.created_at ? new Date(viewingOrg.created_at).toLocaleString(undefined, {
-                        dateStyle: 'long',
-                        timeStyle: 'short'
-                      }) : 'N/A'}
-                    </p>
-                 </div>
-              </div>
-
-              {/* Advanced Details */}
-              {isLoadingDetails ? (
-                <div className="flex items-center justify-center p-8">
-                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2d8d9b]"></div>
-                </div>
-              ) : orgDetails ? (
-                <div className="space-y-8">
-                  {/* Departments */}
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
-                       <Grid size={14} /> Departments ({orgDetails.departments?.length || 0})
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                       {orgDetails.departments?.length > 0 ? (
-                         orgDetails.departments.map((dept: any) => (
-                           <div key={dept.id} className="px-4 py-2 bg-[#2d8d9b]/10 text-[#2d8d9b] rounded-xl text-xs font-bold border border-[#2d8d9b]/20">
-                             {dept.name} {dept.section ? `(${dept.section})` : ''}
-                           </div>
-                         ))
-                       ) : (
-                         <p className="text-xs font-medium text-zinc-400">No departments found.</p>
-                       )}
-                    </div>
-                  </div>
-
-                  {/* Measurement Status */}
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
-                       <Users size={14} /> Measurement Status
-                    </h4>
-                    <div className="grid grid-cols-3 gap-4">
-                       <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
-                          <p className="text-2xl font-black text-[#3a525d]">{orgDetails.measurements?.total || 0}</p>
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mt-1">Total Members</p>
-                       </div>
-                       <div className="p-4 bg-green-50 rounded-2xl border border-green-100 text-center">
-                          <p className="text-2xl font-black text-green-600">{orgDetails.measurements?.completed || 0}</p>
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-green-500 mt-1">Completed</p>
-                       </div>
-                       <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 text-center">
-                          <p className="text-2xl font-black text-orange-500">{orgDetails.measurements?.pending || 0}</p>
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-orange-400 mt-1">Pending</p>
-                       </div>
-                    </div>
-                  </div>
-
-                  {/* Staff Assignment */}
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
-                       <School size={14} /> Assigned Measurement Staff
-                    </h4>
-                    <div className="flex gap-3 items-start relative">
-                       <div className="flex-1 relative">
-                          <Button
-                            variant="secondary"
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-sm font-semibold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors shadow-none"
-                          >
-                            <span className="truncate">
-                               {selectedStaffIds.length === 0 
-                                  ? 'Select Staff Members...' 
-                                  : `${selectedStaffIds.length} staff member(s) selected`}
-                            </span>
-                            <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                          </Button>
-                          
-                          {/* Custom Dropdown */}
-                          {isDropdownOpen && (
-                             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-zinc-100 p-2 z-50 max-h-60 overflow-y-auto custom-scrollbar">
-                                {employees.map(emp => {
-                                  const isSelected = selectedStaffIds.includes(emp.id);
-                                  return (
-                                    <div 
-                                      key={emp.id} 
-                                      onClick={() => toggleStaffSelection(emp.id)}
-                                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-50 cursor-pointer transition-colors"
-                                    >
-                                      <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'}`}>
-                                        {isSelected && <Check size={12} strokeWidth={4} />}
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-bold text-[#3a525d]">{emp.full_name}</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{emp.employee_id} • {emp.department}</p>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                                {employees.length === 0 && (
-                                  <div className="p-4 text-center text-sm font-medium text-zinc-400">No employees found</div>
-                                )}
-                             </div>
-                          )}
-                       </div>
-                       <Button 
-                         onClick={handleSaveStaff}
-                         disabled={isAssigning}
-                         className="h-12 px-8 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] whitespace-nowrap"
-                       >
-                         {isAssigning ? 'Updating...' : 'Save Staff'}
-                       </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex justify-end pt-6 border-t border-zinc-100">
-                <Button variant="outline" onClick={() => setViewingOrg(null)} className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest text-zinc-400">
-                   Close Details
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
