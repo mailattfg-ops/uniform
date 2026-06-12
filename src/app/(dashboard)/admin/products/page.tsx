@@ -3,12 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Edit2, Trash2, Box, Tag, Layers } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Layers, Camera } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Card } from '@/components/ui/Card';
+
+interface RemarkEntry {
+  title: string;
+  changes: string;
+  added: string;
+  removed: string;
+  images: string[];
+}
 
 interface Product {
   id: number;
@@ -41,6 +49,7 @@ interface Product {
   other_fits?: string | null;
   measurement_type?: string | null;
   class_fabric_consumption?: Record<string, Record<string, string>> | null;
+  remarks?: RemarkEntry[] | null;
 }
 
 const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patterns: any[]) => {
@@ -308,6 +317,7 @@ export default function ProductManagement() {
   const [otherFits, setOtherFits] = useState('');
   const [measurementType, setMeasurementType] = useState('both');
   const [classFabricConsumption, setClassFabricConsumption] = useState<Record<string, Record<string, string>>>({});
+  const [remarks, setRemarks] = useState<RemarkEntry[]>([]);
 
   const classesList = [
     'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
@@ -328,6 +338,7 @@ export default function ProductManagement() {
       setOtherFits(editingProduct.other_fits || '');
       setMeasurementType(editingProduct.measurement_type || 'both');
       setClassFabricConsumption(editingProduct.class_fabric_consumption || {});
+      setRemarks(editingProduct.remarks || []);
 
       const parsedMat = parseMaterialsField(editingProduct.materials);
       setProductType(parsedMat.type || '');
@@ -347,6 +358,7 @@ export default function ProductManagement() {
       setOtherFits('');
       setMeasurementType('both');
       setClassFabricConsumption({});
+      setRemarks([]);
       setProductType('');
       setAccessorySizes([]);
       // Refresh next pattern code on form open
@@ -707,6 +719,224 @@ export default function ProductManagement() {
       defaultValue: editingProduct?.measurements || [],
       className: 'md:col-span-2',
       disabled: !selectedMethods.includes('manual')
+    },
+    {
+      name: 'remarks',
+      label: 'Remarks & Variant History (Multi-entry record list)',
+      type: 'custom',
+      className: 'md:col-span-2',
+      defaultValue: remarks,
+      required: false,
+      onChange: (val) => setRemarks(val),
+      render: (val, onChange) => {
+        let currentRemarksList: RemarkEntry[] = [];
+        if (Array.isArray(val)) {
+          currentRemarksList = val;
+        } else if (val && typeof val === 'object') {
+          currentRemarksList = [{
+            title: `Remark #1 (${(val as any).type || 'Notes'})`,
+            changes: (val as any).type === 'changes' ? ((val as any).text || '') : '',
+            added: (val as any).type === 'add' ? ((val as any).text || '') : '',
+            removed: (val as any).type === 'remove' ? ((val as any).text || '') : '',
+            images: (val as any).images || []
+          }];
+        }
+
+        const handleAddRemark = () => {
+          const newRemark: RemarkEntry = {
+            title: `Remark #${currentRemarksList.length + 1}`,
+            changes: '',
+            added: '',
+            removed: '',
+            images: []
+          };
+          onChange([...currentRemarksList, newRemark]);
+        };
+
+        const handleUpdateRemark = (index: number, updatedFields: Partial<RemarkEntry>) => {
+          const updatedList = currentRemarksList.map((item, idx) => {
+            if (idx === index) {
+              return { ...item, ...updatedFields };
+            }
+            return item;
+          });
+          onChange(updatedList);
+        };
+
+        const handleRemoveRemark = (index: number) => {
+          const updatedList = currentRemarksList.filter((_, idx) => idx !== index);
+          onChange(updatedList);
+        };
+
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-[#fce4d4]/10 p-4 rounded-2xl border border-[#fce4d4]/30">
+              <div>
+                <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider block font-sans">Product Remarks History</span>
+                <span className="text-[10px] text-zinc-400 font-bold block mt-0.5 font-sans">Manage separate log entries for variant changes, additions, and removals</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddRemark}
+                className="py-2.5 px-5 bg-[#2d8d9b] text-white hover:bg-[#3a525d] rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Plus size={14} /> Add Remark Entry
+              </button>
+            </div>
+
+            {currentRemarksList.length === 0 ? (
+              <div className="text-center py-8 bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
+                <p className="text-xs text-zinc-400 font-bold italic font-sans">No remarks recorded yet. Click 'Add Remark Entry' to create one.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {currentRemarksList.map((item, index) => (
+                  <div key={index} className="p-6 bg-white border border-zinc-150 rounded-3xl shadow-sm hover:shadow-md transition-shadow relative space-y-4">
+                    <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
+                      <div className="flex-1 max-w-md">
+                        <input
+                          type="text"
+                          value={item.title || ''}
+                          onChange={(e) => handleUpdateRemark(index, { title: e.target.value })}
+                          placeholder="e.g. Design Variant v2"
+                          className="w-full bg-transparent border-b border-dashed border-zinc-200 focus:border-[#2d8d9b] focus:outline-none text-xs font-black uppercase tracking-wider text-[#3a525d] py-1 font-sans"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRemark(index)}
+                        className="p-2 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all cursor-pointer"
+                        title="Remove this remark"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-[#8b6b5a] uppercase tracking-wider block font-sans">Changes Made</label>
+                        <textarea
+                          value={item.changes || ''}
+                          onChange={(e) => handleUpdateRemark(index, { changes: e.target.value })}
+                          placeholder="Dimensions, style updates..."
+                          rows={3}
+                          className="w-full px-3 py-2 bg-zinc-50 border-2 border-zinc-100 hover:border-[#2d8d9b]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-xs font-bold text-[#3a525d] placeholder:text-zinc-400"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-[#8b6b5a] uppercase tracking-wider block font-sans">Items Added</label>
+                        <textarea
+                          value={item.added || ''}
+                          onChange={(e) => handleUpdateRemark(index, { added: e.target.value })}
+                          placeholder="New pockets, packaging specs..."
+                          rows={3}
+                          className="w-full px-3 py-2 bg-zinc-50 border-2 border-zinc-100 hover:border-[#2d8d9b]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-xs font-bold text-[#3a525d] placeholder:text-zinc-400"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-[#8b6b5a] uppercase tracking-wider block font-sans">Items Removed</label>
+                        <textarea
+                          value={item.removed || ''}
+                          onChange={(e) => handleUpdateRemark(index, { removed: e.target.value })}
+                          placeholder="Old materials, accessory references..."
+                          rows={3}
+                          className="w-full px-3 py-2 bg-zinc-50 border-2 border-zinc-100 hover:border-[#2d8d9b]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-xs font-bold text-[#3a525d] placeholder:text-zinc-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 border-t border-zinc-100 pt-3">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black text-[#8b6b5a] uppercase tracking-wider block font-sans">
+                          Photos / Attachments (Max 4 images)
+                        </label>
+                        <span className="text-[9px] font-bold text-zinc-400">
+                          {(item.images || []).length} of 4 uploaded
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            disabled={(item.images || []).length >= 4}
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (files.length === 0) return;
+
+                              const existingImages = item.images || [];
+                              if (existingImages.length + files.length > 4) {
+                                toast.error('You can upload a maximum of 4 images for this remark entry.');
+                                return;
+                              }
+
+                              const updatedImages = [...existingImages];
+                              let filesProcessed = 0;
+
+                              files.forEach((file) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  const base64 = reader.result as string;
+                                  if (updatedImages.length < 4) {
+                                    updatedImages.push(base64);
+                                  }
+                                  filesProcessed++;
+                                  if (filesProcessed === files.length) {
+                                    handleUpdateRemark(index, { images: updatedImages });
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              });
+                            }}
+                            className="hidden"
+                            id={`remarks-file-input-${index}`}
+                          />
+                          <label
+                            htmlFor={`remarks-file-input-${index}`}
+                            className={`h-9 px-4 bg-white border-2 border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm ${
+                              (item.images || []).length >= 4 ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            <Camera size={12} />
+                            <span>Upload Remark Images</span>
+                          </label>
+                        </div>
+
+                        {(item.images || []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {(item.images || []).map((img: string, imgIdx: number) => (
+                              <div
+                                key={imgIdx}
+                                className="relative w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 bg-white group shadow-sm"
+                              >
+                                <img src={img} alt="preview" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = (item.images || []).filter((_: any, i: number) => i !== imgIdx);
+                                    handleUpdateRemark(index, { images: updated });
+                                  }}
+                                  className="absolute inset-0 bg-red-500/85 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all font-black text-[8px] uppercase cursor-pointer"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
     }
   ];
 
@@ -749,6 +979,7 @@ export default function ProductManagement() {
     data.other_fits = otherFits.trim() || null;
     data.measurement_type = measurementType || 'both';
     data.class_fabric_consumption = data.class_fabric_consumption || {};
+    data.remarks = remarks && remarks.length > 0 ? remarks : null;
 
     // Generate dynamic art_number and map gender name
     const effectivePattern = editingProduct ? selectedPattern : nextPatternCode;
@@ -992,7 +1223,7 @@ export default function ProductManagement() {
 
   if (isAdding) {
     return (
-      <div className="py-10 animate-in zoom-in duration-500">Product Type
+      <div className="py-10 animate-in zoom-in duration-500">
         <DynamicForm
           title={editingProduct ? "Edit Product Details" : "New Product Specification"}
           subtitle={editingProduct ? `Refining ${editingProduct.name}` : "Define a new article for the catalog"}

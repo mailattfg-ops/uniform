@@ -45,6 +45,8 @@ interface WizardStep2Props {
   onNext: () => void;
   isManualItemsValid: () => boolean;
   quotationType?: string;
+  organizations?: any[];
+  selectedOrgId?: string;
 }
 
 export default function WizardStep2({
@@ -78,6 +80,8 @@ export default function WizardStep2({
   onNext,
   isManualItemsValid,
   quotationType = 'STANDARD',
+  organizations = [],
+  selectedOrgId = '',
 }: WizardStep2Props) {
 
   // Deduplicate template line items by product_id
@@ -1629,23 +1633,47 @@ export default function WizardStep2({
                                               value={item.product_id || ''}
                                               disabled={!item.product_type_id}
                                               onChange={(e) => {
-                                                const val = e.target.value;
-                                                const prod = allProducts.find((p: any) => String(p.id) === val);
-                                                const updates: Partial<ManualItem> = { product_id: val };
-                                                if (prod) {
-                                                  updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
-                                                  if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
-                                                  if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
-                                                  if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
-                                                  if (prod.button_count != null) updates.button_count = String(prod.button_count);
-                                                  if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
-                                                  updates.main_fabric_sam = '6.777';
-                                                  updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
-                                                  updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
-                                                  updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
-                                                }
-                                                updateDeptItem(idx, updates);
-                                              }}
+                                                 const val = e.target.value;
+                                                 const prod = allProducts.find((p: any) => String(p.id) === val);
+                                                 const updates: Partial<ManualItem> = { product_id: val };
+                                                 if (prod) {
+                                                   updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
+                                                   
+                                                   const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
+                                                   if (isSetType) {
+                                                     const selectedOrg = organizations?.find((org: any) => String(org.id) === String(selectedOrgId));
+                                                     const isSchool = selectedOrg?.industries?.name === 'School';
+                                                     const lookupName = isSchool ? (dept.name || '') : 'Corporate';
+                                                     const consumption = prod.class_fabric_consumption?.[lookupName];
+
+                                                     if (consumption) {
+                                                       updates.main_fabric_meters = consumption.main_fabric != null && consumption.main_fabric !== '' ? String(consumption.main_fabric) : (prod.main_fabric != null ? String(prod.main_fabric) : '');
+                                                       updates.attachment_fabric1_meters = consumption.attachment_fabric1 != null && consumption.attachment_fabric1 !== '' ? String(consumption.attachment_fabric1) : (prod.attachment_fabric1 != null ? String(prod.attachment_fabric1) : '');
+                                                       updates.attachment_fabric2_meters = consumption.attachment_fabric2 != null && consumption.attachment_fabric2 !== '' ? String(consumption.attachment_fabric2) : (prod.attachment_fabric2 != null ? String(prod.attachment_fabric2) : '');
+                                                       updates.button_count = consumption.button_count != null && consumption.button_count !== '' ? String(consumption.button_count) : (prod.button_count != null ? String(prod.button_count) : '');
+                                                       updates.thread_count = consumption.thread_count != null && consumption.thread_count !== '' ? String(consumption.thread_count) : (prod.thread_count != null ? String(prod.thread_count) : '');
+                                                     } else {
+                                                       if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
+                                                       if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
+                                                       if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
+                                                       if (prod.button_count != null) updates.button_count = String(prod.button_count);
+                                                       if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
+                                                     }
+                                                   } else {
+                                                     if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
+                                                     if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
+                                                     if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
+                                                     if (prod.button_count != null) updates.button_count = String(prod.button_count);
+                                                     if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
+                                                   }
+
+                                                   updates.main_fabric_sam = '6.777';
+                                                   updates.attachment_fabric1_sam = (updates.attachment_fabric1_meters && updates.attachment_fabric1_meters !== '0' && updates.attachment_fabric1_meters !== '') ? '6.777' : '';
+                                                   updates.attachment_fabric2_sam = (updates.attachment_fabric2_meters && updates.attachment_fabric2_meters !== '0' && updates.attachment_fabric2_meters !== '') ? '6.777' : '';
+                                                   updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                                                 }
+                                                 updateDeptItem(idx, updates);
+                                               }}
                                             >
                                               <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
                                               {deptFilteredProducts.map((p: any) => (

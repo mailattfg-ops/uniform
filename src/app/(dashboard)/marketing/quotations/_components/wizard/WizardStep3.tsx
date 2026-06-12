@@ -94,10 +94,10 @@ export default function WizardStep3({
 
       {/* COST SCALING ENGINE REPORT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Tables Column */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Garments Table */}
           {!hasMeasurements && (
             <div className="space-y-4">
@@ -109,7 +109,7 @@ export default function WizardStep3({
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
                       <th className="p-3">Product Type / Set</th>
-                      <th className="p-3">{isSetType ? 'Garment Product Line' : 'Fabric Option'}</th>
+                      <th className="p-3">{isFabric ? 'Fabric Option' : 'Garment Product Line'}</th>
                       <th className="p-3 text-right">Fabric Cost (Unit)</th>
                       {!isFabric && <th className="p-3 text-right">Labor Cost (Unit)</th>}
                       <th className="p-3 text-right">Unit Expense</th>
@@ -123,9 +123,10 @@ export default function WizardStep3({
                         const items = departmentItems[String(dept.id)] || [];
                         return items.map((item, index) => {
                           const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
-                          const fabricBrand = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.name || 'Fabric';
+                          const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
+                          const fabricDisplayName = isFabric ? (fabric?.name || fabric?.brand_name || 'Fabric') : (fabric?.brand_name || fabric?.name || 'Fabric');
                           const qty = parseInt(item.quantity) || 0;
-                          
+
                           // Dynamic breakdowns
                           const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
                           const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
@@ -133,13 +134,21 @@ export default function WizardStep3({
                           const itemFabricCost = mainCost + att1Cost + att2Cost;
                           const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
                           const unitExpense = itemFabricCost + itemLaborCost;
-                          
+
+                          const isFabricType = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
+                          const displayName = isFabricType ? (fabric?.garment_category || 'Garment') : pTypeName;
+
+                          const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
+                          const prodName = product?.name || '';
+                          const garmentName = isFabricType ? '' : (prodName || item.design_number || pTypeName || '');
+                          const garmentLineDisplay = garmentName ? `${garmentName} – ${fabricDisplayName}` : fabricDisplayName;
+
                           return (
                             <tr key={`${dept.id}-${item.id || index}`} className="hover:bg-zinc-50/50 bg-white">
                               <td className="p-3 font-black text-[#3a525d]">
-                                {pTypeName} <span className="text-[10px] text-zinc-400 font-bold">({dept.name})</span>
+                                {displayName} <span className="text-[10px] text-zinc-400 font-bold">({dept.name})</span>
                               </td>
-                              <td className="p-3 text-zinc-450">{fabricBrand}</td>
+                              <td className="p-3 text-zinc-450">{garmentLineDisplay}</td>
                               <td className="p-3 text-right font-mono">
                                 ₹{itemFabricCost.toFixed(2)}
                                 <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
@@ -163,7 +172,8 @@ export default function WizardStep3({
                       manualItems
                         .map((item, index) => {
                           const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
-                          const fabricBrand = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.name || 'Fabric';
+                          const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
+                          const fabricDisplayName = isFabric ? (fabric?.name || fabric?.brand_name || 'Fabric') : (fabric?.brand_name || fabric?.name || 'Fabric');
                           const qty = parseInt(item.quantity) || 0;
 
                           // Dynamic breakdowns
@@ -176,13 +186,20 @@ export default function WizardStep3({
 
                           const className = item.size_breakdown?.class_name;
                           const classPrefix = className ? `[${className}] ` : '';
+                          const isFabricType = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
+                          const displayName = isFabricType ? (fabric?.garment_category || 'Garment') : pTypeName;
+
+                          const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
+                          const prodName = product?.name || '';
+                          const garmentName = isFabricType ? '' : (prodName || item.design_number || pTypeName || '');
+                          const garmentLineDisplay = garmentName ? `${garmentName} – ${fabricDisplayName}` : fabricDisplayName;
 
                           return (
                             <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
                               <td className="p-3 font-black text-[#3a525d]">
-                                {classPrefix}{pTypeName}
+                                {classPrefix}{displayName}
                               </td>
-                              <td className="p-3 text-zinc-450">{fabricBrand}</td>
+                              <td className="p-3 text-zinc-450">{garmentLineDisplay}</td>
                               <td className="p-3 text-right font-mono">
                                 ₹{itemFabricCost.toFixed(2)}
                                 <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
@@ -233,7 +250,7 @@ export default function WizardStep3({
                       const meters = parseFloat(sf.meters) || 0;
                       const rate = parseFloat(sf.rate) || 0;
                       const total = meters * rate;
-                      
+
                       return (
                         <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-3 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>

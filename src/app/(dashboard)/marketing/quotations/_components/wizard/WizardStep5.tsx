@@ -180,11 +180,13 @@ export default function WizardStep5({
                                   </thead>
                                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                                     {items.map((item, idx) => {
+                                      const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                                      const fabricName = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Custom';
+                                      const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
+                                      const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                                       return (
                                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                                          <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
+                                          <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
                                           <td className="p-3 text-zinc-500">
                                             {isFabric ? fabricName : 'Ready-made Product'}
                                           </td>
@@ -265,11 +267,13 @@ export default function WizardStep5({
                         );
                       }
 
+                      const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                      const fabricName = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Custom';
+                      const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
+                      const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                       return (
                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
+                          <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
                           <td className="p-3 text-zinc-500">
                             {isFabric ? fabricName : 'Ready-made Product'}
                           </td>

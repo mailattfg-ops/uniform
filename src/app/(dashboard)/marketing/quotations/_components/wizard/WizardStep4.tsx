@@ -641,12 +641,12 @@ export default function WizardStep4({
                                 );
                                 const fabricId = item.size_breakdown?.fabric_id;
                                 const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-                                fabricCell = <span className="text-zinc-600">{fabric?.brand_name || fabric?.name || 'Custom Fabric'}</span>;
+                                fabricCell = <span className="text-zinc-600">{fabric?.name || fabric?.brand_name || 'Custom Fabric'}</span>;
                               } else {
                                 firstCell = <span className="font-black text-[#3a525d]">{pTypeName}</span>;
                                 const fabricId = item.size_breakdown?.fabric_id;
                                 const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-                                fabricCell = <span className="text-zinc-650">{fabric?.brand_name || fabric?.name || 'Custom Fabric'}</span>;
+                                fabricCell = <span className="text-zinc-655">{fabric?.name || fabric?.brand_name || 'Custom Fabric'}</span>;
                               }
 
                               return (

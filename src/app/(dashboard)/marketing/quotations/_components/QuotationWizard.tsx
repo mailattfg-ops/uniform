@@ -107,7 +107,7 @@ export default function QuotationWizard({
   const [customerType, setCustomerType] = useState<string>('DIRECT');
   const [quotationType, setQuotationType] = useState<string>('STANDARD');
   const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
+  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET' || quotationType === 'MANUAL';
   const [orgDepartments, setOrgDepartments] = useState<any[]>([]);
   const [orgClasses, setOrgClasses] = useState<any[]>([
     { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
@@ -1497,6 +1497,8 @@ Forma Apparels Co.`;
             onNext={() => setCurrentStep(3)}
             isManualItemsValid={isManualItemsValid}
             quotationType={quotationType}
+            organizations={organizations}
+            selectedOrgId={selectedOrgId}
           />
         )}
 
