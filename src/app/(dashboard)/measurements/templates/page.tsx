@@ -32,8 +32,8 @@ interface IndustryTemplate {
   organization_id: number;
   name: string;
   department_ids: number[];
-  boys_config: { product_id: number; quantity: number; design_id?: string; entry_methods?: string[] }[];
-  girls_config: { product_id: number; quantity: number; design_id?: string; entry_methods?: string[] }[];
+  boys_config: { product_id: number; quantity: number; entry_methods?: string[] }[];
+  girls_config: { product_id: number; quantity: number; entry_methods?: string[] }[];
   organizations?: { name: string };
 }
 
@@ -59,7 +59,6 @@ export default function IndustryTemplatesPage() {
   const [templates, setTemplates] = useState<IndustryTemplate[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [designs, setDesigns] = useState<{ label: string; value: string }[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -69,8 +68,8 @@ export default function IndustryTemplatesPage() {
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
   const [templateName, setTemplateName] = useState('');
   const [selectedDepts, setSelectedDepts] = useState<number[]>([]);
-  const [maleConfig, setMaleConfig] = useState<{ product_id: string; quantity: number; design_id?: string; entry_methods?: string[] }[]>([]);
-  const [femaleConfig, setFemaleConfig] = useState<{ product_id: string; quantity: number; design_id?: string; entry_methods?: string[] }[]>([]);
+  const [maleConfig, setMaleConfig] = useState<{ product_id: string; quantity: number; entry_methods?: string[] }[]>([]);
+  const [femaleConfig, setFemaleConfig] = useState<{ product_id: string; quantity: number; entry_methods?: string[] }[]>([]);
 
   const fetchTemplates = async () => {
     try {
@@ -104,10 +103,7 @@ export default function IndustryTemplatesPage() {
     await Promise.allSettled([
       fetchTemplates(),
       fetchOrganizations(),
-      fetchProducts(),
-      api.get('/inventory/designs').then(res => 
-        setDesigns(res.data.map((d: any) => ({ label: d.design_code, value: d.id })))
-      )
+      fetchProducts()
     ]);
     setIsLoading(false);
   };
@@ -127,7 +123,7 @@ export default function IndustryTemplatesPage() {
   }, [selectedOrgId]);
 
   const handleAddProduct = (section: 'male' | 'female') => {
-    const newItem = { product_id: '', quantity: 1, design_id: '', entry_methods: ['manual'] };
+    const newItem = { product_id: '', quantity: 1, entry_methods: ['manual'] };
     if (section === 'male') setMaleConfig([...maleConfig, newItem]);
     else setFemaleConfig([...femaleConfig, newItem]);
   };
@@ -176,13 +172,11 @@ export default function IndustryTemplatesPage() {
       boys_config: maleConfig.map(c => ({ 
         product_id: parseInt(c.product_id), 
         quantity: c.quantity,
-        design_id: c.design_id || null,
         entry_methods: c.entry_methods || ['manual']
       })),
       girls_config: femaleConfig.map(c => ({ 
         product_id: parseInt(c.product_id), 
         quantity: c.quantity,
-        design_id: c.design_id || null,
         entry_methods: c.entry_methods || ['manual']
       }))
     };
@@ -221,13 +215,11 @@ export default function IndustryTemplatesPage() {
     setMaleConfig(t.boys_config?.map(c => ({ 
         product_id: c.product_id.toString(), 
         quantity: c.quantity, 
-        design_id: c.design_id,
         entry_methods: c.entry_methods || ['manual']
     })) || []);
     setFemaleConfig(t.girls_config?.map(c => ({ 
         product_id: c.product_id.toString(), 
         quantity: c.quantity, 
-        design_id: c.design_id,
         entry_methods: c.entry_methods || ['manual']
     })) || []);
     setIsAdding(true);
@@ -277,13 +269,14 @@ export default function IndustryTemplatesPage() {
       header: 'Actions',
       accessor: (t) => (
         <div className="flex items-center gap-3">
-          <button 
+          <Button
             onClick={() => startEdit(t)}
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10"
+            variant="secondary"
+            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 shadow-none p-0"
           >
             <Edit2 size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={async () => {
               if (confirm('Permanently remove this template?')) {
                 await api.delete(`/templates/${t.id}`);
@@ -291,10 +284,11 @@ export default function IndustryTemplatesPage() {
                 fetchData();
               }
             }}
-            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
+            variant="secondary"
+            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 shadow-none p-0"
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
       )
     }
@@ -350,10 +344,11 @@ export default function IndustryTemplatesPage() {
                 ) : (
                    <div className="grid grid-cols-1 gap-2">
                       {departments.map(dept => (
-                        <button 
+                        <Button
                           key={dept.id}
                           onClick={() => handleToggleDept(dept.id)}
-                          className={`p-3 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 ${
+                          variant="secondary"
+                          className={`p-3 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 shadow-none ${
                             selectedDepts.includes(dept.id) 
                             ? 'bg-[#3a525d] text-white border-[#3a525d] shadow-lg shadow-[#3a525d]/20' 
                             : 'bg-zinc-50 text-zinc-400 border-zinc-100 hover:bg-zinc-100'
@@ -361,7 +356,7 @@ export default function IndustryTemplatesPage() {
                         >
                            <BookOpen size={12} />
                            {dept.name}
-                        </button>
+                        </Button>
                       ))}
                    </div>
                 )}
@@ -393,19 +388,11 @@ export default function IndustryTemplatesPage() {
                     {maleConfig.map((item, idx) => (
                         <div key={idx} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 space-y-6 group animate-in slide-in-from-right-4 duration-300">
                            <div className="flex items-center gap-4">
-                                <div className="flex-[2]">
+                                <div className="flex-[3]">
                                     <Select 
                                         options={products.map(p => ({ label: `${p.name} (${p.art_number})`, value: p.id.toString() }))}
                                         value={item.product_id}
                                         onChange={(val: string) => handleUpdateProduct('male', idx, 'product_id', val)}
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Select 
-                                        placeholder="Variation No"
-                                        options={designs}
-                                        value={item.design_id || ''}
-                                        onChange={(val: string) => handleUpdateProduct('male', idx, 'design_id', val)}
                                     />
                                 </div>
                                 <div className="w-24">
@@ -416,46 +403,48 @@ export default function IndustryTemplatesPage() {
                                         placeholder="Qty"
                                     />
                                 </div>
-                                <button 
-                                    onClick={() => handleRemoveProduct('male', idx)}
-                                    className="p-3 text-zinc-300 hover:text-red-500 transition-colors"
-                                >
-                                    <Trash size={18} />
-                                </button>
-                           </div>
+                                 <Button
+                                     onClick={() => handleRemoveProduct('male', idx)}
+                                     variant="secondary"
+                                     className="p-3 text-zinc-300 hover:text-red-500 transition-colors bg-transparent border-none shadow-none"
+                                 >
+                                     <Trash size={18} />
+                                 </Button>
+                            </div>
 
-                           {/* Entry Logic Selection */}
-                           {item.product_id && (
-                             <div className="flex items-center gap-6 px-2 border-t border-zinc-100 pt-4">
-                               <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Entry Logic:</p>
-                               <div className="flex items-center gap-2">
-                                 {['manual', 'us_size_chart'].map(method => {
-                                   const prod = products.find(p => p.id.toString() === item.product_id);
-                                   const isSupported = prod?.entry_methods?.includes(method);
-                                   const isActive = item.entry_methods?.includes(method);
+                            {/* Entry Logic Selection */}
+                            {item.product_id && (
+                              <div className="flex items-center gap-6 px-2 border-t border-zinc-100 pt-4">
+                                <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Entry Logic:</p>
+                                <div className="flex items-center gap-2">
+                                  {['manual', 'us_size_chart'].map(method => {
+                                    const prod = products.find(p => p.id.toString() === item.product_id);
+                                    const isSupported = prod?.entry_methods?.includes(method);
+                                    const isActive = item.entry_methods?.includes(method);
 
-                                   if (!isSupported) return null;
+                                    if (!isSupported) return null;
 
-                                   return (
-                                     <button
-                                       key={method}
-                                       onClick={() => {
-                                         handleUpdateProduct('male', idx, 'entry_methods', [method]);
-                                       }}
-                                       className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
-                                         isActive 
-                                         ? 'bg-[#3a525d] text-white border-[#3a525d] shadow-md shadow-[#3a525d]/20' 
-                                         : 'bg-white text-zinc-400 border-zinc-200 hover:border-[#3a525d]/30 font-extrabold'
-                                       }`}
-                                     >
-                                       {method.replace(/_/g, ' ')}
-                                     </button>
-                                   );
-                                 })}
-                               </div>
-                             </div>
-                           )}
-                        </div>
+                                    return (
+                                      <Button
+                                        key={method}
+                                        variant="secondary"
+                                        onClick={() => {
+                                          handleUpdateProduct('male', idx, 'entry_methods', [method]);
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
+                                          isActive 
+                                          ? 'bg-[#3a525d] text-white border-[#3a525d] shadow-md shadow-[#3a525d]/20' 
+                                          : 'bg-white text-zinc-400 border-zinc-200 hover:border-[#3a525d]/30 font-extrabold shadow-none'
+                                        }`}
+                                      >
+                                        {method.replace(/_/g, ' ')}
+                                      </Button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                         </div>
                     ))}
                  </div>
               </Card>
@@ -484,19 +473,11 @@ export default function IndustryTemplatesPage() {
                     {femaleConfig.map((item, idx) => (
                         <div key={idx} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 space-y-6 group animate-in slide-in-from-right-4 duration-300">
                            <div className="flex items-center gap-4">
-                                <div className="flex-[2]">
+                                <div className="flex-[3]">
                                     <Select 
                                         options={products.map(p => ({ label: `${p.name} (${p.art_number})`, value: p.id.toString() }))}
                                         value={item.product_id}
                                         onChange={(val: string) => handleUpdateProduct('female', idx, 'product_id', val)}
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Select 
-                                        placeholder="Variation No"
-                                        options={designs}
-                                        value={item.design_id || ''}
-                                        onChange={(val: string) => handleUpdateProduct('female', idx, 'design_id', val)}
                                     />
                                 </div>
                                 <div className="w-24">
@@ -507,12 +488,13 @@ export default function IndustryTemplatesPage() {
                                         placeholder="Qty"
                                     />
                                 </div>
-                                <button 
+                                <Button
                                     onClick={() => handleRemoveProduct('female', idx)}
-                                    className="p-3 text-zinc-300 hover:text-red-500 transition-colors"
+                                    variant="secondary"
+                                    className="p-3 text-zinc-300 hover:text-red-500 transition-colors bg-transparent border-none shadow-none"
                                 >
                                     <Trash size={18} />
-                                </button>
+                                </Button>
                            </div>
 
                            {/* Entry Logic Selection */}
@@ -528,19 +510,20 @@ export default function IndustryTemplatesPage() {
                                    if (!isSupported) return null;
 
                                    return (
-                                     <button
+                                     <Button
                                        key={method}
                                        onClick={() => {
                                          handleUpdateProduct('female', idx, 'entry_methods', [method]);
                                        }}
-                                       className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all ${
+                                       variant="secondary"
+                                       className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase transition-all shadow-none ${
                                          isActive 
                                          ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' 
                                          : 'bg-white text-zinc-400 border-zinc-200 hover:border-pink-500/30 font-extrabold'
                                        }`}
                                      >
                                        {method.replace(/_/g, ' ')}
-                                     </button>
+                                     </Button>
                                    );
                                  })}
                                </div>

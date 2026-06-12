@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Activity, Clock, Edit, UserPlus, Database, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
 
 interface AuditEntry {
@@ -187,28 +189,27 @@ export const AuditLog: React.FC = () => {
       data={processedLogs}
       headerAction={
         <div className="flex items-center gap-3">
-          <div className="relative group">
-             <input 
-               type="date" 
-               value={dateFilter}
-               onChange={(e) => setDateFilter(e.target.value)}
-               onClick={(e) => {
-                 try {
-                   (e.target as HTMLInputElement).showPicker();
-                 } catch (err) {
-                   // Fallback for browsers that don't support showPicker
-                 }
-               }}
-               className="h-11 px-4 rounded-2xl border-2 border-zinc-100 bg-zinc-50 text-[11px] font-black uppercase tracking-widest text-[#3a525d] outline-none focus:border-[#2d8d9b] focus:bg-white transition-all cursor-pointer"
-             />
-          </div>
+          <Input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            onClick={(e) => {
+              try {
+                (e.target as HTMLInputElement).showPicker();
+              } catch (err) {
+                // Fallback for browsers that don't support showPicker
+              }
+            }}
+            className="h-11 px-4 rounded-2xl border-2 border-zinc-100 bg-zinc-50 text-[11px] font-black uppercase tracking-widest text-[#3a525d] outline-none focus:border-[#2d8d9b] focus:bg-white transition-all cursor-pointer"
+          />
           {dateFilter && (
-            <button 
+            <Button
               onClick={() => setDateFilter('')}
-              className="text-[9px] uppercase font-black tracking-widest text-zinc-400 hover:text-red-500 transition-colors"
+              variant="secondary"
+              className="text-[9px] uppercase font-black tracking-widest text-zinc-400 hover:text-red-500 transition-colors bg-transparent border-none shadow-none"
             >
               Clear Date
-            </button>
+            </Button>
           )}
         </div>
       }

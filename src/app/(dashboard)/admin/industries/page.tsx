@@ -143,18 +143,20 @@ export default function IndustryManagementPage() {
       header: 'Actions',
       accessor: (ind) => (
         <div className="flex items-center gap-3">
-          <button 
+          <Button
             onClick={() => startEdit(ind)}
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10"
+            variant="secondary"
+            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 p-0"
           >
             <Edit2 size={16} />
-          </button>
-          <button 
+          </Button>
+          <Button
             onClick={() => setDeleteCandidate(ind)}
-            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
+            variant="secondary"
+            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 p-0"
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
       )
     }

@@ -16,6 +16,7 @@ import {
   History
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface Measurement {
   label: string;
@@ -96,16 +97,14 @@ export default function StudentProfilesPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-            <input 
+            <Input
               type="text"
               placeholder="Search by name or ID..."
-              className="bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-6 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full md:w-64 transition-all"
+              icon={<Search size={16} />}
+              className="md:w-64"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
           <Button variant="secondary" className="p-3 rounded-2xl border-[#fce4d4] bg-white"><Filter size={18} /></Button>
         </div>
       </div>

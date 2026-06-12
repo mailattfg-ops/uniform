@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
+import { Button } from '@/components/ui/Button';
 import { Ruler, CheckCircle2, Save, Camera, AlertCircle } from 'lucide-react';
 
 const shirtFields: FormField[] = [
@@ -44,14 +45,14 @@ export const MeasurementForm: React.FC = () => {
         </div>
         
         <div className="flex gap-4">
-           <button className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#8b6b5a] border border-[#fce4d4] shadow-sm hover:scale-105 transition-all">
+           <Button variant="secondary" className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#8b6b5a] border border-[#fce4d4] shadow-sm hover:scale-105 transition-all">
              <Camera size={16} className="text-[#2d8d9b]" />
              Reference Photo
-           </button>
-           <button className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] border border-[#fce4d4] shadow-sm hover:scale-105 transition-all">
+           </Button>
+           <Button variant="secondary" className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] border border-[#fce4d4] shadow-sm hover:scale-105 transition-all">
              <Save size={16} />
              Save Draft
-           </button>
+           </Button>
         </div>
       </div>
 
@@ -89,13 +90,13 @@ export const MeasurementForm: React.FC = () => {
              </p>
            </div>
         </div>
-        <button 
+        <Button
           onClick={() => setStatus('Completed')}
           disabled={status === 'Completed'}
           className="z-10 bg-white text-[#2d8d9b] px-12 py-5 rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] shadow-xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50"
         >
           Finalize Measurement
-        </button>
+        </Button>
       </div>
     </div>
   );

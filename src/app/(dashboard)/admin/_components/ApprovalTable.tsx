@@ -63,15 +63,15 @@ export const ApprovalTable: React.FC = () => {
        header: 'Actions',
        accessor: () => (
          <div className="flex gap-2">
-           <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-success/10 text-success hover:bg-success hover:text-white transition-all shadow-sm">
+           <Button variant="secondary" className="w-9 h-9 flex items-center justify-center rounded-xl bg-success/10 text-success hover:bg-success hover:text-white transition-all shadow-sm p-0 border-none">
              <Check size={18} />
-           </button>
-           <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm">
+           </Button>
+           <Button variant="secondary" className="w-9 h-9 flex items-center justify-center rounded-xl bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none">
              <X size={18} />
-           </button>
-           <button className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-100 transition-all text-muted-foreground">
+           </Button>
+           <Button variant="secondary" className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-100 transition-all text-muted-foreground bg-transparent shadow-none p-0 border-none">
              <Eye size={18} />
-           </button>
+           </Button>
          </div>
        ),
       //  className: 'text-right pr-6',

@@ -182,12 +182,13 @@ export default function MeasuresArchitectPage() {
                           <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${field.is_required ? 'bg-green-50 text-green-600 border-green-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
                              {field.is_required ? 'Mandatory' : 'Optional'}
                           </div>
-                          <button 
+                          <Button
                             onClick={() => setDeletingId(field.id)}
-                            className="p-3 text-zinc-200 hover:text-red-500 transition-colors"
+                            variant="secondary"
+                            className="p-3 text-zinc-200 hover:text-red-500 transition-colors bg-transparent border-none shadow-none"
                           >
                              <Trash2 size={20} />
-                          </button>
+                          </Button>
                        </div>
                     </div>
                  </Card>

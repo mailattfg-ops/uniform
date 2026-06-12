@@ -144,12 +144,12 @@ export default function UserProfilePage() {
                    <Camera size={16} /><input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                 </label>
              </div>
-             <h1 className="text-3xl font-black italic tracking-tighter mb-2 text-center leading-tight">{profile?.fullName}</h1>
+             <h1 className="text-3xl font-black tracking-tighter mb-2 text-center leading-tight">{profile?.fullName}</h1>
              <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-zinc-400">{getRoleBadge()}</div>
              
              <div className="mt-10 w-full grid grid-cols-2 gap-4 py-8 border-t border-white/5">
-                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">STATUS</span><span className="text-xs font-black text-green-500 uppercase tracking-tighter italic">CORE_ACTIVE</span></div>
-                <div className="flex flex-col text-right"><span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">SECURITY</span><span className="text-xs font-black text-[#2d8d9b] uppercase tracking-tighter italic">V_ENCRYPTED</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">STATUS</span><span className="text-xs font-black text-green-500 uppercase tracking-tighter">CORE_ACTIVE</span></div>
+                <div className="flex flex-col text-right"><span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">SECURITY</span><span className="text-xs font-black text-[#2d8d9b] uppercase tracking-tighter">V_ENCRYPTED</span></div>
              </div>
           </div>
         </Card>
@@ -161,7 +161,7 @@ export default function UserProfilePage() {
                    <div className="flex items-center gap-2 text-[10px] font-black text-[#2d8d9b] opacity-40 group-hover:opacity-100 transition-all uppercase tracking-widest">
                       <item.icon size={12} /> {item.label}
                    </div>
-                   <p className="text-2xl font-black italic tracking-tighter text-[#3a525d] truncate leading-tight">{item.val || '--'}</p>
+                   <p className="text-2xl font-black tracking-tighter text-[#3a525d] truncate leading-tight">{item.val || '--'}</p>
                 </div>
               ))}
            </div>
@@ -173,7 +173,7 @@ export default function UserProfilePage() {
         <div className="space-y-8">
            <div className="flex items-center justify-between border-b border-zinc-100 pb-10">
               <div>
-                 <h2 className="text-5xl font-black italic tracking-tighter text-[#3a525d]">Sizing Matrix</h2>
+                 <h2 className="text-5xl font-black tracking-tighter text-[#3a525d]">Sizing Matrix</h2>
                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#2d8d9b] mt-2 opacity-70">A.I POWERED FITTING INTELLIGENCE</p>
               </div>
               <div className="hidden md:flex gap-4">
@@ -259,7 +259,7 @@ export default function UserProfilePage() {
             ) : (
              <Card className="py-24 text-center border-none bg-zinc-50 shadow-inner">
                 <Scale size={64} className="mx-auto mb-6 text-zinc-200 animate-pulse" />
-                <h3 className="text-2xl font-black italic tracking-tighter text-zinc-300 uppercase">Awaiting Matrix Initialization</h3>
+                <h3 className="text-2xl font-black tracking-tighter text-zinc-300 uppercase">Awaiting Matrix Initialization</h3>
                 <p className="text-[11px] font-bold uppercase tracking-widest mt-2 text-zinc-400">Registry awaiting first calibration</p>
              </Card>
            )}
@@ -275,7 +275,7 @@ export default function UserProfilePage() {
                      <Card key={idx} className="p-6 border-none bg-white shadow-xl hover:shadow-2xl transition-all group flex items-center justify-between">
                         <div>
                            <p className="text-[10px] font-black text-zinc-300 uppercase leading-none mb-1">{new Date(m.recorded_at).toLocaleDateString()}</p>
-                           <p className="text-xl font-black text-[#3a525d] italic">SIZE_{m.suggested_size}</p>
+                           <p className="text-xl font-black text-[#3a525d]">SIZE_{m.suggested_size}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-zinc-50 flex items-center justify-center group-hover:bg-[#2d8d9b] group-hover:text-white transition-all">
                            <ArrowRight size={18} />

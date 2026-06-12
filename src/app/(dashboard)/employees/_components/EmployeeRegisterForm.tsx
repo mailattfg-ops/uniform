@@ -83,15 +83,16 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="mb-8 flex items-center justify-between">
-        <button 
+        <Button
           onClick={onCancel}
-          className="flex items-center gap-2 text-zinc-400 hover:text-[#3a525d] font-bold text-sm transition-colors group"
+          variant="secondary"
+          className="flex items-center gap-2 text-zinc-400 hover:text-[#3a525d] font-bold text-sm transition-colors group bg-transparent border-none shadow-none p-0"
         >
           <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center group-hover:bg-[#3a525d] group-hover:text-white transition-all">
             <ArrowLeft size={16} />
           </div>
           Back to Directory
-        </button>
+        </Button>
         <div className="px-4 py-2 bg-blue-50 rounded-2xl border border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
            <ShieldCheck size={14} />
            Automatic ERP Provisioning Active
@@ -221,7 +222,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
             </div>
             <div>
                <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] mb-1">Confidential Note</h4>
-               <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">Upon onboarding, the system will automatically architect a unique login package. This includes a hashed password and a professional domain-mapped username for the Inland Uniform Enterprise Portal.</p>
+               <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">Upon onboarding, the system will automatically architect a unique login package. This includes a hashed password and a professional domain-mapped username for the Forma Apparels Enterprise Portal.</p>
             </div>
          </div>
       </div>

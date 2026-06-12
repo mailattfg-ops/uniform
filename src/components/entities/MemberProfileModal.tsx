@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Ruler, Clock, Mail, Phone, MapPin, Activity, History, ChevronRight } from 'lucide-react';
 import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface MemberProfileModalProps {
   isOpen: boolean;
@@ -49,12 +50,13 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
         
         {/* Left Sidebar - Profile Summary */}
         <div className="w-full md:w-80 bg-white border-r border-slate-200 p-8 flex flex-col items-center">
-            <button 
+            <Button
                 onClick={onClose}
-                className="absolute top-6 left-6 md:hidden w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center"
+                variant="secondary"
+                className="absolute top-6 left-6 md:hidden w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center border-none shadow-none text-slate-400"
             >
                 <X size={20} />
-            </button>
+            </Button>
 
             <div className="relative mt-8 mb-6">
                 <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-[#2d8d9b] to-[#3a525d] p-1 shadow-2xl shadow-[#2d8d9b]/20">
@@ -112,10 +114,11 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
 
             <div className="mt-auto w-full pt-6">
                 <div className="flex flex-col gap-2">
-                    <button 
+                    <Button
                         onClick={() => setActiveTab('profile')}
-                        className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
-                            activeTab === 'profile' ? 'bg-[#3a525d] text-white shadow-xl shadow-[#3a525d]/20' : 'text-slate-500 hover:bg-slate-50'
+                        variant="secondary"
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-none shadow-none h-auto ${
+                            activeTab === 'profile' ? 'bg-[#3a525d] text-white shadow-xl shadow-[#3a525d]/20 hover:bg-[#2d8d9b]' : 'text-slate-500 hover:bg-slate-50 bg-transparent'
                         }`}
                     >
                         <div className="flex items-center gap-3">
@@ -123,11 +126,12 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                             <span className="text-[11px] font-black uppercase tracking-widest">Full Profile</span>
                         </div>
                         <ChevronRight size={14} className={activeTab === 'profile' ? 'opacity-100' : 'opacity-0'} />
-                    </button>
-                    <button 
+                    </Button>
+                    <Button
                         onClick={() => setActiveTab('measurements')}
-                        className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
-                            activeTab === 'measurements' ? 'bg-[#3a525d] text-white shadow-xl shadow-[#3a525d]/20' : 'text-slate-500 hover:bg-slate-50'
+                        variant="secondary"
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-none shadow-none h-auto ${
+                            activeTab === 'measurements' ? 'bg-[#3a525d] text-white shadow-xl shadow-[#3a525d]/20 hover:bg-[#2d8d9b]' : 'text-slate-500 hover:bg-slate-50 bg-transparent'
                         }`}
                     >
                         <div className="flex items-center gap-3">
@@ -135,7 +139,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                             <span className="text-[11px] font-black uppercase tracking-widest">Measurements</span>
                         </div>
                         <ChevronRight size={14} className={activeTab === 'measurements' ? 'opacity-100' : 'opacity-0'} />
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -150,12 +154,13 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                     </h2>
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Member Registry Insight Portal</p>
                 </div>
-                <button 
+                <Button
                     onClick={onClose}
-                    className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all"
+                    variant="secondary"
+                    className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all border-none shadow-none"
                 >
                     <X size={20} />
-                </button>
+                </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-8">

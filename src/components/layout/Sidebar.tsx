@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Star, 
+import Cookies from 'js-cookie';
+import {
+  Star,
   Settings,
   Grid,
   Building2,
@@ -17,6 +18,10 @@ import {
   ChevronDown,
   User,
   Box,
+  TrendingUp,
+  Calculator,
+  Package,
+  LogOut,
 } from 'lucide-react';
 
 interface Subsection {
@@ -32,20 +37,18 @@ interface ModuleItem {
 }
 
 const modules: ModuleItem[] = [
-  { 
+  {
     icon: Star, label: 'Dashboard', href: '/dashboard',
     subsections: []
   },
-  { 
-    icon: Building2, label: 'Sector Operations', href: '/organizations/registry',
+  {
+    icon: Building2, label: 'Customer & Lead Management', href: '/organizations/registry',
     subsections: [
-      { label: 'Member Organizations', href: '/organizations/registry' },
-      { label: 'Department Units', href: '/organizations/departments' },
-      { label: 'Entity Registry', href: '/entities/directory' },
-      // { label: 'Functional Groups', href: '/entities/groups' }
+      { label: 'Leads Registry', href: '/organizations/leads' },
+      { label: 'Organization', href: '/organizations/registry' },
     ]
   },
-  { 
+  {
     icon: Ruler, label: 'Measurements', href: '/measurements/entry',
     subsections: [
       { label: 'Record Entry', href: '/measurements/entry' },
@@ -53,34 +56,59 @@ const modules: ModuleItem[] = [
       { label: 'Industry Templates', href: '/measurements/templates' }
     ]
   },
-  { 
+  {
     icon: ShieldAlert, label: 'Admin Controls', href: '/admin/settings',
     subsections: [
       { label: 'Industry Sectors', href: '/admin/industries' },
       { label: 'Measurement Setup', href: '/admin/measures' },
       { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
-      { label: 'Product Registry', href: '/admin/products' },
       { label: 'Audit Logs', href: '/admin/audit' },
       { label: 'Staff Management', href: '/admin/employees' },
-      // { label: 'System Settings', href: '/admin/settings' },
+      { label: 'Company Profile & Bank', href: '/admin/company' },
       { label: 'User Roles', href: '/admin/roles' },
-      { label: 'US Size Charts', href: '/admin/size-charts' }
+      { label: 'US Size Charts', href: '/admin/size-charts' },
+      { label: 'Dress Prefixes', href: '/admin/dress-prefixes' },
+      { label: 'Vendors Manager', href: '/admin/vendors' }
     ]
   },
   {
-    icon: Box, label: 'Inventory Hub', href: '/admin/inventory/fabrics',
+    icon: Box, label: 'Product Managment', href: '/admin/products',
     subsections: [
+      { label: 'Product Registry', href: '/admin/products' },
+      { label: 'Product Types', href: '/admin/product-types' },
+      { label: 'Group Design Catalog', href: '/admin/designs' },
+      { label: 'Design Number Catalog', href: '/admin/design-numbers' },
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
       { label: 'Button Catalog', href: '/admin/inventory/buttons' },
       { label: 'Thread Catalog', href: '/admin/inventory/threads' },
-      { label: 'Design Hub', href: '/admin/inventory/designs' },
+      { label: 'Purchase Orders', href: '/admin/purchase-orders' },
     ]
   },
-  { 
-    icon: Settings, label: 'Settings', href: '/settings/profile',
+  {
+    icon: Package, label: 'Inventory', href: '/admin/inventory/product-stock',
     subsections: [
-      { label: 'Profile', href: '/settings/profile' },
-      // { label: 'Company Info', href: '/settings/company' }
+      { label: 'Product Stock', href: '/admin/inventory/product-stock' },
+      { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
+      { label: 'Thread Stock', href: '/admin/inventory/thread-stock' },
+      { label: 'Button Stock', href: '/admin/inventory/button-stock' }
+    ]
+  },
+  {
+    icon: TrendingUp, label: 'Marketing', href: '/marketing/quotations',
+    subsections: [
+      { label: 'Quotation', href: '/marketing/quotations' },
+      { label: 'Operation Team', href: '/marketing/operation-team' },
+      { label: 'Initial Payment', href: '/marketing/initial-payment' },
+      { label: 'Order Placement', href: '/marketing/order-placement' }
+    ]
+  },
+  {
+    icon: Calculator, label: 'SAM Managment', href: '/sam-management/calculator',
+    subsections: [
+      { label: 'SAM Calculator', href: '/sam-management/calculator' },
+      { label: 'SAM Configurations', href: '/sam-management/configurations' },
+      { label: 'Reports', href: '/sam-management/reports' },
+      { label: 'Fabric SAM', href: '/sam-management/fabric' }
     ]
   },
 ];
@@ -94,6 +122,8 @@ export const Sidebar: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Load user on mount and sync with identity updates
   const loadUser = () => {
@@ -108,6 +138,25 @@ export const Sidebar: React.FC = () => {
     window.addEventListener('storage', loadUser);
     return () => window.removeEventListener('storage', loadUser);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    Cookies.remove('auth_token');
+    localStorage.removeItem('user');
+    router.push('/login');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
 
   const toggleSidebar = () => setIsExpanded(!isExpanded);
 
@@ -125,10 +174,9 @@ export const Sidebar: React.FC = () => {
   return (
     <>
       {/* Mobile Overlay */}
-      <div 
-        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden ${
-          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
@@ -136,49 +184,45 @@ export const Sidebar: React.FC = () => {
       <aside className={`
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 transition-all duration-300 ease-in-out
-        fixed lg:static inset-y-0 left-0 z-50
+        fixed lg:static inset-y-0 left-0 z-[100]
         ${isExpanded ? 'w-72' : 'w-24'}
-        bg-[#F5CAAD] text-[#1a1d21]/70 flex flex-col border-r border-black/5 shadow-2xl
+        bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full
       `}>
         {/* Brand Identity Section */}
-        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all bg-black/6 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
+        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all border-b border-white/5 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
           <div className="flex items-center gap-3">
-             {!isExpanded ? (
-                <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                  <Image 
-                    src="/logosmall.jpeg" 
-                    alt="Inland Logo" 
-                    width={40} 
-                    height={40} 
-                    className="object-contain"
-                    priority
-                  />
+            {!isExpanded ? (
+              <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center animate-in fade-in duration-500 shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-4 duration-500 shrink-0">
+                <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
+                  </svg>
                 </div>
-              ):(
-                <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                  <Image 
-                    src="/logoimg.jpeg" 
-                    alt="Inland Logo" 
-                    width={140} 
-                    height={40} 
-                    className="object-contain"
-                    priority
-                  />
+                <div className="flex flex-col">
+                  <span className="text-xs font-black tracking-[0.2em] text-white leading-none">FORMA</span>
+                  <span className="text-[8px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
                 </div>
-              )}
+              </div>
+            )}
           </div>
 
-          <button 
+          <button
             onClick={toggleSidebar}
-            className={`w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
+            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
           >
-            <ChevronLeft size={16} className="text-[#1a1d21]" />
+            <ChevronLeft size={16} className="text-white" />
           </button>
         </div>
 
         {/* Navigation Container */}
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
-          <nav className="flex-1 overflow-y-auto no-scrollbar py-4 space-y-2">
+          <nav className="flex-1 overflow-y-auto no-scrollbar py-2 space-y-1.5">
             {modules.map((item) => {
               // Use the user state loaded in useEffect
               const userPermissions = user?.permissions || [];
@@ -189,54 +233,54 @@ export const Sidebar: React.FC = () => {
                 'Sector Operations': ['view_schools', 'manage_schools', 'view_students', 'register_students'],
                 'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
                 'Admin Controls': ['manage_system', 'view_audit_logs'],
-                'Inventory Hub': ['manage_inventory', 'view_inventory']
+                'Product Managment': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
+                'Marketing': ['manage_quotations', 'view_quotations'],
+                'SAM Managment': ['manage_products', 'view_products', 'manage_quotations', 'view_quotations']
               };
 
               const requiredPermissions = modulePermissionMap[item.label] || [];
-              const hasPermission = isAdmin || requiredPermissions.length === 0 || 
-                                   requiredPermissions.some(rp => userPermissions.includes(rp));
-              
+              const hasPermission = isAdmin || requiredPermissions.length === 0 ||
+                requiredPermissions.some(rp => userPermissions.includes(rp));
+
               if (!hasPermission) return null;
 
-              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) || 
-                                   (item.href !== '/' && pathname === item.href) ||
-                                   (item.label === 'Dashboard' && pathname === '/dashboard');
+              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) ||
+                (item.href !== '/' && pathname === item.href) ||
+                (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
-              
+
               return (
-                <div key={item.label} className={`transition-all ${isExpanded ? 'px-4' : 'px-0 flex flex-col items-center'}`}>
-                  <div 
+                <div key={item.label} className={`transition-all ${isExpanded ? 'px-3' : 'px-0 flex flex-col items-center'}`}>
+                  <div
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 w-full bg-black/6 cursor-pointer ${
-                      isPathActive ? '!bg-white text-[#1a1d21] shadow-xl scale-105' : 'hover:bg-black/5 text-[#1a1d21] opacity-50 hover:opacity-100'
-                    }`}
+                    className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 w-full cursor-pointer ${isPathActive ? '!bg-[#CC9448] text-white shadow-xl scale-102 font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'
+                      }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className="shrink-0">
-                        <Icon size={20} strokeWidth={isPathActive ? 2.5 : 2} />
+                        <Icon size={18} strokeWidth={isPathActive ? 2.5 : 2} />
                       </div>
                       {isExpanded && (
-                        <span className="text-sm font-black tracking-tight animate-in fade-in slide-in-from-left-4">
+                        <span className="text-xs font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
                           {item.label}
                         </span>
                       )}
                     </div>
                     {isExpanded && item.subsections.length > 0 && (
-                      <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={12} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                     )}
                   </div>
 
                   {isExpanded && isOpen && item.subsections.length > 0 && (
-                    <div className="ml-10 mt-3 space-y-3 animate-in fade-in slide-in-from-top-4 duration-700 pb-2">
+                    <div className="relative ml-9 mt-2 pl-4 border-l border-[#CC9448]/30 space-y-2.5 animate-in fade-in slide-in-from-top-4 duration-500 pb-2 pt-1">
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
-                        
+
                         // Sub-permission logic - Labels MUST match subsections array labels
                         const subPermissionMap: Record<string, string[]> = {
-                          'Member Organizations': ['view_schools', 'manage_schools'],
-                          'Department Units': ['view_schools', 'manage_schools'],
-                          'Entity Registry': ['view_students', 'register_students'],
+                          'Organization': ['view_schools', 'manage_schools'],
+                          'Entity': ['view_students', 'register_students'],
                           'Record Entry': ['manage_measurements'],
                           'History': ['view_measurements'],
                           'Industry Templates': ['manage_measurements'],
@@ -244,35 +288,52 @@ export const Sidebar: React.FC = () => {
                           'Measurement Setup': ['manage_system'],
                           'Measurements Approvals': ['manage_system'],
                           'Product Registry': ['manage_products', 'view_products'],
+                          'Product Types': ['manage_products', 'view_products'],
+                          'Group Design Catalog': ['manage_products', 'view_products'],
+                          'Design Number Catalog': ['manage_products', 'view_products'],
                           'Audit Logs': ['view_audit_logs'],
                           'Staff Management': ['manage_employees', 'view_employees'],
-                          'System Settings': ['manage_system'],
                           'User Roles': ['manage_system'],
                           'US Size Charts': ['manage_size_charts', 'view_size_charts'],
+                          'Dress Prefixes': ['manage_system'],
+                          'Vendors Manager': ['manage_system'],
                           'Fabric Catalog': ['manage_inventory', 'view_inventory'],
                           'Button Catalog': ['manage_inventory', 'view_inventory'],
                           'Thread Catalog': ['manage_inventory', 'view_inventory'],
-                          'Design Hub': ['manage_inventory', 'view_inventory']
+                          'Stock & Thresholds': ['manage_inventory', 'view_inventory'],
+                          'Purchase Orders': ['manage_inventory', 'view_inventory'],
+                          'Quotation': ['manage_quotations', 'view_quotations'],
+                          'Operation Team': ['manage_quotations', 'view_quotations'],
+                          'Initial Payment': ['manage_quotations', 'view_quotations'],
+                          'Order Placement': ['manage_quotations', 'view_quotations'],
+                          'SAM Calculator': ['view_products', 'manage_products', 'manage_quotations', 'view_quotations'],
+                          'SAM Configurations': ['manage_products', 'manage_system'],
+                          'Reports': ['view_products', 'manage_products', 'manage_quotations', 'view_quotations'],
+                          'Fabric SAM': ['view_products', 'manage_products']
                         };
 
                         const requiredSubPerms = subPermissionMap[sub.label] || [];
-                        const hasSubPerm = isAdmin || requiredSubPerms.length === 0 || 
-                                          requiredSubPerms.some(rp => userPermissions.includes(rp));
+                        const hasSubPerm = isAdmin || requiredSubPerms.length === 0 ||
+                          requiredSubPerms.some(rp => userPermissions.includes(rp));
 
                         if (!hasSubPerm) return null;
-                        
+
                         return (
-                          <Link 
+                          <Link
                             key={idx}
                             href={sub.href}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
-                            className={`flex items-center gap-3 group text-xs font-bold transition-all ${
-                              isSubActive ? 'text-[#1a1d21]' : 'text-[#1a1d21]/40 hover:text-[#1a1d21]'
-                            }`}
+                            className={`relative flex items-center gap-2.5 group text-[11px] transition-all py-1.5 px-3 rounded-xl ${isSubActive
+                              ? 'text-white bg-[#CC9448]/20 font-bold shadow-inner'
+                              : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'
+                              }`}
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                              isSubActive ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-black/20 group-hover:bg-black'
-                            }`} />
+                            {/* Horizontal gold line connector */}
+                            <div
+                              className={`absolute -left-4 transition-all duration-300 ${isSubActive ? 'w-4 h-[2px] bg-[#CC9448]' : 'w-3.5 h-[1px] bg-[#CC9448]/30'
+                                }`}
+                              style={{ top: '50%' }}
+                            />
                             {sub.label}
                           </Link>
                         );
@@ -286,26 +347,60 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* User Profile Footer */}
-        <div className={`mt-auto p-4 border-t border-black/10 ${!isExpanded && 'flex justify-center'}`}>
-           <div className={`flex items-center gap-3 p-3 rounded-2xl bg-black/5 group hover:bg-black/10 transition-all cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}>
-              <div className="w-10 h-10 rounded-xl bg-red-600/10 flex items-center justify-center shrink-0 overflow-hidden border border-black/5 group-hover:border-red-500/30 transition-all">
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <User size={20} className="text-red-500" />
-                )}
+        <div className={`mt-auto p-4 border-t border-white/5 relative ${!isExpanded && 'flex justify-center'}`} ref={dropdownRef}>
+          {isDropdownOpen && (
+            <div className={`absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${isExpanded ? 'left-4 right-4' : 'left-4 w-48'
+              }`}>
+              <div className="flex flex-col gap-1">
+                <Link
+                  href="/settings/profile"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                      setIsSidebarOpen(false);
+                    }
+                  }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <User size={16} className="text-[#CC9448]" />
+                  <span>Profile Settings</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left w-full"
+                >
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={`flex items-center justify-between p-3 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0">
+                <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
               </div>
               {isExpanded && (
-                <div className="flex flex-col min-w-0 pr-4">
-                  <p className="text-xs font-black truncate leading-tight text-[#1a1d21]">
-                    {user?.fullName || 'User Profile'}
+                <div className="flex flex-col min-w-0">
+                  <p className="text-xs font-bold truncate leading-tight text-white">
+                    {user?.fullName || 'John Lee'}
                   </p>
-                  <p className="text-[10px] font-bold text-[#1a1d21]/40 uppercase tracking-widest mt-0.5">
-                    {user?.role || 'Portal'}
+                  <p className="text-[9px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none">
+                    {user?.role || 'Admin'}
                   </p>
                 </div>
               )}
-           </div>
+            </div>
+            {isExpanded && (
+              <svg className={`w-4 h-4 text-white/85 shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+              </svg>
+            )}
+          </div>
         </div>
       </aside>
     </>

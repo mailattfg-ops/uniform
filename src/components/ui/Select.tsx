@@ -18,6 +18,7 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
   defaultValue?: string;
   placeholder?: string;
   disabled?: boolean;
+  dropdownClassName?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({ 
@@ -33,6 +34,7 @@ export const Select: React.FC<SelectProps> = ({
   required,
   placeholder,
   disabled = false,
+  dropdownClassName = '',
   ...props 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -122,7 +124,7 @@ export const Select: React.FC<SelectProps> = ({
         </div>
 
         {isOpen && !disabled && (
-          <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-zinc-100 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-[999] animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden">
+          <div className={`absolute top-[calc(100%+8px)] left-0 min-w-full min-w-[240px] bg-white border border-zinc-100 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-[999] animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden ${dropdownClassName}`}>
             <div className="p-2 border-b border-zinc-50 bg-zinc-50/30">
                <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#2d8d9b] transition-colors" size={14} />
@@ -145,7 +147,7 @@ export const Select: React.FC<SelectProps> = ({
                </div>
             </div>
 
-            <div className="max-h-[280px] overflow-y-auto no-scrollbar p-2">
+            <div className="max-h-[180px] overflow-y-auto custom-scrollbar p-2 pr-1">
               <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6b5a]/40 py-2 px-4">
                 Choose {label || 'Option'}
               </div>

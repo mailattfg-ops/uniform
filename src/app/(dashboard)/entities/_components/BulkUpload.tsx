@@ -21,7 +21,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-       processFile(selectedFile);
+      processFile(selectedFile);
     }
   };
 
@@ -34,10 +34,10 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const rawData = XLSX.utils.sheet_to_json(ws);
-        
+
         if (rawData.length === 0) {
-           toast.error('The selected file is empty');
-           return;
+          toast.error('The selected file is empty');
+          return;
         }
 
         setData(rawData);
@@ -52,10 +52,10 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
 
   const handleUpload = async () => {
     if (data.length === 0) return;
-    
+
     setIsUploading(true);
     const loadingToast = toast.loading(`Importing ${data.length} records...`);
-    
+
     try {
       const payload = data.map(item => ({
         full_name: item['Full Name'] || item['Name'] || item['full_name'] || '',
@@ -78,11 +78,11 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
 
   const downloadTemplate = () => {
     const templateData = [
-      { 
-        'Full Name': 'John Doe', 
-        'Reference ID': 'EMP-2024-001', 
-        'Organization ID': 1, 
-        'Department ID': 1, 
+      {
+        'Full Name': 'John Doe',
+        'Reference ID': 'EMP-2024-001',
+        'Organization ID': 1,
+        'Department ID': 1,
         'Mobile': '9876543210',
         'Gender': 'Male'
       }
@@ -111,7 +111,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
               <p className="text-3xl font-black text-red-700">{results.failed}</p>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => onComplete?.()}
             className="w-full h-14 rounded-2xl bg-[#3a525d] text-white hover:bg-[#2d8d9b] font-black uppercase tracking-widest text-[10px]"
           >
@@ -127,10 +127,10 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
       <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-zinc-100">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div>
-             <h2 className="text-3xl font-black tracking-tight text-[#3a525d] italic">Global Entity Import</h2>
-             <p className="text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest">Connect your entire registry database in one click</p>
+            <h2 className="text-3xl font-black tracking-tight text-[#3a525d] italic">Global Entity Import</h2>
+            <p className="text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest">Connect your entire registry database in one click</p>
           </div>
-          <button 
+          <button
             onClick={downloadTemplate}
             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] hover:opacity-70 transition-all border-b-2 border-dashed border-[#2d8d9b]"
           >
@@ -140,16 +140,16 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
         </div>
 
         {!file ? (
-          <div 
+          <div
             onClick={() => fileInputRef.current?.click()}
             className="group cursor-pointer border-4 border-dashed border-[#2d8d9b]/10 bg-[#2d8d9b]/5 rounded-[2.5rem] p-20 flex flex-col items-center justify-center text-center transition-all hover:bg-[#2d8d9b]/10 hover:border-[#2d8d9b]/30"
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept=".xlsx,.xls" 
-              onChange={handleFileChange} 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
             />
             <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center text-[#2d8d9b] mb-6 group-hover:scale-110 transition-all">
               <FileUp size={36} />
@@ -165,64 +165,64 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
                   <FileSpreadsheet size={24} />
                 </div>
                 <div>
-                   <p className="font-black text-sm tracking-tight">{file.name}</p>
-                   <p className="text-[10px] uppercase font-bold opacity-60 tracking-widest">Ready to import {data.length} records</p>
+                  <p className="font-black text-sm tracking-tight">{file.name}</p>
+                  <p className="text-[10px] uppercase font-bold opacity-60 tracking-widest">Ready to import {data.length} records</p>
                 </div>
               </div>
-              <button onClick={() => {setFile(null); setData([]);}} className="p-2 hover:bg-white/10 rounded-xl">
+              <button onClick={() => { setFile(null); setData([]); }} className="p-2 hover:bg-white/10 rounded-xl">
                 <X size={20} />
               </button>
             </div>
 
             <div className="bg-zinc-50 rounded-3xl border border-zinc-200 overflow-hidden">
-               <div className="p-4 bg-zinc-100/50 border-b border-zinc-200">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Preview (First 5 records)</p>
-               </div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left text-sm font-bold text-zinc-600">
-                    <thead className="bg-white text-[10px] uppercase tracking-wider text-zinc-400">
-                       <tr>
-                         {Object.keys(data[0] || {}).map(key => <th key={key} className="p-4">{key}</th>)}
-                       </tr>
-                    </thead>
-                    <tbody>
-                       {data.slice(0, 5).map((row, i) => (
-                         <tr key={i} className="border-t border-zinc-100">
-                           {Object.values(row).map((val: any, j) => <td key={j} className="p-4 truncate max-w-[150px]">{val}</td>)}
-                         </tr>
-                       ))}
-                    </tbody>
-                 </table>
-               </div>
+              <div className="p-4 bg-zinc-100/50 border-b border-zinc-200">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Preview (First 5 records)</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm font-bold text-zinc-600">
+                  <thead className="bg-white text-[10px] uppercase tracking-wider text-zinc-400">
+                    <tr>
+                      {Object.keys(data[0] || {}).map(key => <th key={key} className="p-4">{key}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.slice(0, 5).map((row, i) => (
+                      <tr key={i} className="border-t border-zinc-100">
+                        {Object.values(row).map((val: any, j) => <td key={j} className="p-4 truncate max-w-[150px]">{val}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <Button 
-               onClick={handleUpload}
-               isLoading={isUploading}
-               className="w-full h-16 rounded-[1.5rem] bg-[#f2994a] hover:bg-[#e68a3d] text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-orange-500/20"
+            <Button
+              onClick={handleUpload}
+              isLoading={isUploading}
+              className="w-full h-16 rounded-[1.5rem] bg-[#f2994a] hover:bg-[#e68a3d] text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-orange-500/20"
             >
-               {isUploading ? 'Syncing Global Registry...' : `Onboard ${data.length} Entries Now`}
-               {!isUploading && <ArrowRight size={18} className="ml-2" />}
+              {isUploading ? 'Syncing Global Registry...' : `Onboard ${data.length} Entries Now`}
+              {!isUploading && <ArrowRight size={18} className="ml-2" />}
             </Button>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
-         <div className="p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100/50 flex flex-col gap-3">
-            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
-               <AlertCircle size={20} />
-            </div>
-            <h4 className="text-sm font-black text-[#3a525d] uppercase tracking-tight">Requirement</h4>
-            <p className="text-xs font-semibold text-zinc-500 leading-relaxed">Ensure Excel columns: <span className="text-[#2d8d9b]">Full Name, Reference ID, Organization ID, Department ID</span>. Values must match the system identifiers.</p>
-         </div>
-         <div className="p-8 bg-amber-50/50 rounded-[2.5rem] border border-amber-100/50 flex flex-col gap-3">
-            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm">
-               <Loader2 size={20} className="animate-spin" />
-            </div>
-            <h4 className="text-sm font-black text-[#3a525d] uppercase tracking-tight">Processing</h4>
-            <p className="text-xs font-semibold text-zinc-500 leading-relaxed">The system will generate <span className="text-[#f2994a]">Secure Member Accounts</span> for all entries. Login credentials will be finalized upon import.</p>
-         </div>
+        <div className="p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100/50 flex flex-col gap-3">
+          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
+            <AlertCircle size={20} />
+          </div>
+          <h4 className="text-sm font-black text-[#3a525d] uppercase tracking-tight">Requirement</h4>
+          <p className="text-xs font-semibold text-zinc-500 leading-relaxed">Ensure Excel columns: <span className="text-[#2d8d9b]">Full Name, Reference ID, Organization ID, Department ID</span>. Values must match the system identifiers.</p>
+        </div>
+        <div className="p-8 bg-amber-50/50 rounded-[2.5rem] border border-amber-100/50 flex flex-col gap-3">
+          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm">
+            <Loader2 size={20} className="animate-spin" />
+          </div>
+          <h4 className="text-sm font-black text-[#3a525d] uppercase tracking-tight">Processing</h4>
+          <p className="text-xs font-semibold text-zinc-500 leading-relaxed">The system will generate <span className="text-[#f2994a]">Secure Member Accounts</span> for all entries. Login credentials will be finalized upon import.</p>
+        </div>
       </div>
     </div>
   );

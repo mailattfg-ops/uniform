@@ -30,7 +30,7 @@ export function AdHocFieldModal({ isOpen, onClose, onAdd }: AdHocModalProps) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
       <Card className="w-full max-w-sm bg-white p-8 border-none shadow-[0_30px_100px_rgba(0,0,0,0.3)] rounded-[2.5rem] relative">
-         <button onClick={onClose} className="absolute top-6 right-6 text-zinc-300 hover:text-[#3a525d] transition-colors"><X size={20} /></button>
+         <Button onClick={onClose} variant="secondary" className="absolute top-6 right-6 text-zinc-300 hover:text-[#3a525d] transition-colors bg-transparent border-none shadow-none p-1"><X size={20} /></Button>
          
          <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
@@ -57,14 +57,15 @@ export function AdHocFieldModal({ isOpen, onClose, onAdd }: AdHocModalProps) {
                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400">UNIT OF MEASURE</label>
                  <div className="flex gap-2">
                     {['Inches', 'CM'].map((u) => (
-                      <button
+                      <Button
                         key={u}
                         type="button"
                         onClick={() => setUnit(u)}
-                        className={`flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${unit === u ? 'bg-[#3a525d] text-white border-[#3a525d]' : 'bg-white text-zinc-400 border-zinc-100 hover:bg-zinc-50'}`}
+                        variant="secondary"
+                        className={`flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${unit === u ? 'bg-[#3a525d] text-white border-[#3a525d]' : 'bg-white text-zinc-400 border-zinc-100 hover:bg-zinc-50 shadow-none'}`}
                       >
                          {u}
-                      </button>
+                      </Button>
                     ))}
                  </div>
               </div>
