@@ -689,7 +689,9 @@ export default function QuotationDetails({
                               const deptHeader = `${divisionLabel} (${persons} Persons × ${sets} Sets)`;
 
                               const designNotes = item.size_breakdown?.design_number || '';
-                              const productLine = designNotes ? `* ${pTypeName} - ${designNotes}` : `* ${pTypeName}`;
+                              const selectedSize = item.size_breakdown?.selected_size;
+                              const sizeLabel = selectedSize ? ` (Size: ${selectedSize})` : '';
+                              const productLine = designNotes ? `* ${pTypeName}${sizeLabel} - ${designNotes}` : `* ${pTypeName}${sizeLabel}`;
                               
                               const fabricId = item.size_breakdown?.fabric_id;
                               const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
@@ -748,8 +750,10 @@ export default function QuotationDetails({
                             
                             const className = item.size_breakdown?.class_name;
                             const classPrefix = className ? `[${className}] ` : '';
+                            const selectedSize = item.size_breakdown?.selected_size;
+                            const sizeLabel = selectedSize ? ` (Size: ${selectedSize})` : '';
                             
-                            const firstCellJSX = <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}</span>;
+                            const firstCellJSX = <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}{sizeLabel}</span>;
                             const fabricStyleJSX = <span className="text-zinc-500">{fabricBrand}</span>;
 
                             const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';

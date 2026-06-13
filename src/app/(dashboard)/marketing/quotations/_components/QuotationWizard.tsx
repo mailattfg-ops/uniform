@@ -672,7 +672,8 @@ export default function QuotationWizard({
             item.product_id !== '' &&
             item.price !== '' &&
             parseFloat(item.price) >= 0 &&
-            parseInt(item.quantity) > 0
+            parseInt(item.quantity) > 0 &&
+            (quotationType !== 'MANUAL' || (item.size_breakdown?.selected_size && item.size_breakdown.selected_size !== ''))
           );
         });
       }
@@ -682,7 +683,8 @@ export default function QuotationWizard({
         item.product_id !== '' &&
         item.price !== '' &&
         parseFloat(item.price) >= 0 &&
-        parseInt(item.quantity) > 0
+        parseInt(item.quantity) > 0 &&
+        (quotationType !== 'MANUAL' || (item.size_breakdown?.selected_size && item.size_breakdown.selected_size !== ''))
       );
     }
 
@@ -1116,7 +1118,8 @@ export default function QuotationWizard({
               thread_count: parseFloat(item.thread_count) || null,
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
-              computed_unit_cost: price
+              computed_unit_cost: price,
+              selected_size: item.size_breakdown?.selected_size || null
             },
             fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
                                   calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
@@ -1164,7 +1167,8 @@ export default function QuotationWizard({
                 product_id: item.product_id || null,
                 design_number: item.design_number || null,
                 computed_unit_cost: unitCost,
-                is_readymade: true
+                is_readymade: true,
+                selected_size: item.size_breakdown?.selected_size || null
               },
               fabric_cost_per_item: 0,
               accessories_cost_per_item: 0,

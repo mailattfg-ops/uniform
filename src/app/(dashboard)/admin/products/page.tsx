@@ -94,23 +94,24 @@ export const parseMaterialsField = (rawText: string | undefined | null) => {
   return { type: '', materials: rawText };
 };
 
-const AccessorySizeInput: React.FC<{
-  sizes: string[];
-  setSizes: (sizes: string[]) => void;
-  onChange: (val: string[]) => void;
-}> = ({ sizes, setSizes, onChange }) => {
+const MultiEntryInput: React.FC<{
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  buttonText?: string;
+}> = ({ value, onChange, placeholder = "Type a value and press Enter", buttonText = "Add" }) => {
   const [inputVal, setInputVal] = useState('');
+  const items = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
 
   const handleAdd = () => {
     const trimmed = inputVal.trim();
     if (!trimmed) return;
-    if (sizes.includes(trimmed)) {
-      toast.error('Size already added.');
+    if (items.includes(trimmed)) {
+      toast.error('Value already added.');
       return;
     }
-    const updated = [...sizes, trimmed];
-    setSizes(updated);
-    onChange(updated);
+    const updated = [...items, trimmed];
+    onChange(updated.join(', '));
     setInputVal('');
   };
 
@@ -122,9 +123,8 @@ const AccessorySizeInput: React.FC<{
   };
 
   const handleRemove = (index: number) => {
-    const updated = sizes.filter((_, i) => i !== index);
-    setSizes(updated);
-    onChange(updated);
+    const updated = items.filter((_, i) => i !== index);
+    onChange(updated.join(', '));
   };
 
   return (
@@ -135,7 +135,7 @@ const AccessorySizeInput: React.FC<{
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a size (e.g. 24, Large, One Size) and press Enter"
+          placeholder={placeholder}
           className="flex-1 h-12 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
         />
         <button
@@ -143,26 +143,26 @@ const AccessorySizeInput: React.FC<{
           onClick={handleAdd}
           className="h-12 px-6 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center shadow-md active:scale-95"
         >
-          Add Size
+          {buttonText}
         </button>
       </div>
 
-      {sizes.length > 0 ? (
+      {items.length > 0 ? (
         <div className="flex flex-wrap gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-150/50">
-          {sizes.map((size, idx) => (
+          {items.map((item, idx) => (
             <span
               key={idx}
               className="flex items-center gap-1.5 px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] text-xs font-black uppercase rounded-lg hover:bg-red-50 hover:text-red-650 hover:border-red-200 transition-all cursor-pointer group"
               onClick={() => handleRemove(idx)}
               title="Click to remove"
             >
-              {size}
+              {item}
               <span className="text-[10px] text-[#2d8d9b] group-hover:text-red-500 font-normal">×</span>
             </span>
           ))}
         </div>
       ) : (
-        <p className="text-[10px] text-zinc-400 font-bold italic ml-1">No sizes added yet. Please specify at least one size option.</p>
+        <p className="text-[10px] text-zinc-400 font-bold italic ml-1">No entries added yet.</p>
       )}
     </div>
   );
@@ -261,7 +261,6 @@ export default function ProductManagement() {
   const [nextDesignNumber, setNextDesignNumber] = useState('');
   const [nextPatternCode, setNextPatternCode] = useState('');
   const [productType, setProductType] = useState('');
-  const [accessorySizes, setAccessorySizes] = useState<string[]>([]);
 
   // Design Catalog tab states
   const [activeTab, setActiveTab] = useState<'products' | 'designs'>('products');
@@ -342,11 +341,6 @@ export default function ProductManagement() {
 
       const parsedMat = parseMaterialsField(editingProduct.materials);
       setProductType(parsedMat.type || '');
-      if (parsedMat.type === 'accessories' && editingProduct.base_size) {
-        setAccessorySizes(editingProduct.base_size.split(',').map(s => s.trim()).filter(Boolean));
-      } else {
-        setAccessorySizes([]);
-      }
     } else {
       setSelectedMethods(['manual']);
       setSelectedDress('');
@@ -360,7 +354,6 @@ export default function ProductManagement() {
       setClassFabricConsumption({});
       setRemarks([]);
       setProductType('');
-      setAccessorySizes([]);
       // Refresh next pattern code on form open
       api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data.nextCode || '001')).catch(() => { });
     }
@@ -475,33 +468,9 @@ export default function ProductManagement() {
       placeholder: 'e.g. 38, M, L',
       required: false,
       value: baseSize,
-      onChange: (val) => setBaseSize(val),
-      hidden: productType === 'accessories'
+      onChange: (val) => setBaseSize(val)
     },
-    {
-      name: 'base_size_accessories',
-      label: 'Base Size Options (Accessories)',
-      type: 'custom',
-      className: 'md:col-span-2',
-      hidden: productType !== 'accessories',
-      render: (val, onChange) => (
-        <AccessorySizeInput
-          sizes={accessorySizes}
-          setSizes={setAccessorySizes}
-          onChange={onChange}
-        />
-      ),
-      defaultValue: accessorySizes,
-      required: false
-    },
-    {
-      name: 'other_sizes',
-      label: 'Other Sizes',
-      type: 'text',
-      placeholder: 'e.g. S, L, XL, XXL (comma-separated)',
-      value: otherSizes,
-      onChange: (val) => setOtherSizes(val)
-    },
+
     {
       name: 'fit',
       label: 'Base Fit',
@@ -517,12 +486,36 @@ export default function ProductManagement() {
       hidden: productType === 'accessories'
     },
     {
+      name: 'other_sizes',
+      label: 'Other Sizes',
+      type: 'custom',
+      className: 'md:col-span-2',
+      render: (val, onChange) => (
+        <MultiEntryInput
+          value={otherSizes}
+          onChange={(newVal) => setOtherSizes(newVal)}
+          placeholder="Type a size (e.g. S, L, XL) and press Enter"
+          buttonText="Add Size"
+        />
+      ),
+      defaultValue: otherSizes,
+      required: false
+    },
+    {
       name: 'other_fits',
       label: 'Other Fits',
-      type: 'text',
-      placeholder: 'e.g. Loose Fit, Comfort Fit (comma-separated)',
-      value: otherFits,
-      onChange: (val) => setOtherFits(val)
+      type: 'custom',
+      className: 'md:col-span-2',
+      render: (val, onChange) => (
+        <MultiEntryInput
+          value={otherFits}
+          onChange={(newVal) => setOtherFits(newVal)}
+          placeholder="Type a fit (e.g. Loose Fit, Comfort Fit) and press Enter"
+          buttonText="Add Fit"
+        />
+      ),
+      defaultValue: otherFits,
+      required: false
     },
     {
       name: 'sam_value',
@@ -897,9 +890,8 @@ export default function ProductManagement() {
                           />
                           <label
                             htmlFor={`remarks-file-input-${index}`}
-                            className={`h-9 px-4 bg-white border-2 border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm ${
-                              (item.images || []).length >= 4 ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
+                            className={`h-9 px-4 bg-white border-2 border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm ${(item.images || []).length >= 4 ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
                           >
                             <Camera size={12} />
                             <span>Upload Remark Images</span>
@@ -990,14 +982,8 @@ export default function ProductManagement() {
     data.gender = genderObj ? genderObj.name : 'Unisex';
 
     // Set base size and fit
-    if (productType === 'accessories') {
-      data.base_size = accessorySizes.join(', ') || null;
-      data.fit = null;
-    } else {
-      data.base_size = baseSize.trim() || null;
-      data.fit = fit || null;
-    }
-    delete data.base_size_accessories;
+    data.base_size = baseSize.trim() || null;
+    data.fit = productType === 'accessories' ? null : (fit || null);
     data.design_number = data.design_number || (editingProduct ? editingProduct.design_number : nextDesignNumber) || null;
 
     // Serialize product_type into materials
