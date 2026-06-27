@@ -145,6 +145,8 @@ export default function QuotationWizard({
   const [isInitializingEdit, setIsInitializingEdit] = useState(false);
   // Ref to prevent the quotationType change effect from resetting items during edit initialization
   const isLoadingForEditRef = useRef(false);
+  // Track the quotationType that was set DURING initialization so we don't reset on it
+  const editLoadedQuotationTypeRef = useRef<string | null>(null);
 
   // Organization analysis data
   const [orgAnalysis, setOrgAnalysis] = useState<any>({
@@ -185,6 +187,11 @@ export default function QuotationWizard({
   useEffect(() => {
     // Skip reset if we are in the middle of loading data for editing
     if (isLoadingForEditRef.current) return;
+    // Skip reset if this quotationType was the one loaded from the edit data
+    if (editLoadedQuotationTypeRef.current !== null && editLoadedQuotationTypeRef.current === quotationType) {
+      editLoadedQuotationTypeRef.current = null; // Clear the guard after first skip
+      return;
+    }
 
     // Reset manual items when quotation type changes
     setManualItems([{
@@ -313,8 +320,11 @@ export default function QuotationWizard({
           setCustomerType(fullQuote.metrics_summary.customer_type);
         }
         if (fullQuote.metrics_summary?.quotation_type) {
+          // Store the type being loaded so the reset effect skips it
+          editLoadedQuotationTypeRef.current = fullQuote.metrics_summary.quotation_type;
           setQuotationType(fullQuote.metrics_summary.quotation_type);
         } else {
+          editLoadedQuotationTypeRef.current = 'STANDARD';
           setQuotationType('STANDARD');
         }
 
