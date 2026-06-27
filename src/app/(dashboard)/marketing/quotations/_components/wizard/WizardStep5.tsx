@@ -237,7 +237,7 @@ export default function WizardStep5({
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                     {manualItems.map((item, idx) => {
                       const isSet = item.size_breakdown?.is_set;
-                      
+
                       if (isSet) {
                         const setName = item.size_breakdown?.set_name || 'Custom Set';
                         const products = item.size_breakdown?.products || [];
@@ -339,7 +339,7 @@ export default function WizardStep5({
         </div>
 
         {/* REVENUE MATRIX */}
-        <Card className="p-8 border border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2.5rem] space-y-6">
+        <Card className="h-fit p-8 border border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2.5rem] space-y-6">
           <h4 className="text-xs font-black uppercase tracking-widest text-[#2d8d9b] border-b border-[#2d8d9b]/10 pb-4">
             Financial Summary
           </h4>

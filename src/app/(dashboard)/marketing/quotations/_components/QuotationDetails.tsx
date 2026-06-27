@@ -45,7 +45,8 @@ export default function QuotationDetails({
     account_no: '50200076116064',
     branch_name: 'MAJESTIC CENTER',
     ifsc_code: 'HDFC0001255',
-    upi_id: '7902 499 991'
+    upi_id: '7902 499 991',
+    qr_image: null
   });
 
   useEffect(() => {
@@ -384,46 +385,73 @@ export default function QuotationDetails({
           ` : ''}
 
           <!-- DEPARTMENTS BREAKDOWN SECTION -->
-          ${quote.metrics_summary?.departments && quote.metrics_summary.departments.length > 0 ? `
-            <div class="py-8 border-b border-gray-100">
-              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Target Departments Sizing Breakdown</p>
-              <div class="border border-gray-150 rounded-2xl overflow-hidden shadow-sm max-w-2xl bg-white">
-                <table class="w-full text-left border-collapse">
-                  <thead>
-                    <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
-                      <th class="py-3 px-4">Department Name</th>
-                      <th class="py-3 px-4">Division</th>
-                      <th class="py-3 px-4 text-right">No. of Persons</th>
-                      <th class="py-3 px-4 text-right">Sets per Person</th>
-                      <th class="py-3 px-4 text-right font-mono">Total Qty</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100 font-semibold text-xs text-gray-650">
-                    ${quote.metrics_summary.departments.map((dept: any) => `
-                      <tr class="hover:bg-gray-50/50 transition-colors">
-                        <td class="py-3 px-4 font-black text-gray-800">${dept.name}</td>
-                        <td class="py-3 px-4 text-gray-400">${dept.division || '—'}</td>
-                        <td class="py-3 px-4 text-right">${dept.persons}</td>
-                        <td class="py-3 px-4 text-right">${dept.sets}</td>
-                        <td class="py-3 px-4 text-right font-black text-[#2d8d9b]">${dept.persons * dept.sets}</td>
+          ${(() => {
+            const depts = quote.metrics_summary?.departments || [];
+            if (depts.length === 0) return '';
+            
+            const sortOrder = [
+              'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
+              'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
+              'C1', 'C2', 'Corporate'
+            ];
+
+            const sortedDepts = [...depts].sort((a: any, b: any) => {
+              const nameA = (a.name || '').trim();
+              const nameB = (b.name || '').trim();
+              
+              const indexA = sortOrder.indexOf(nameA);
+              const indexB = sortOrder.indexOf(nameB);
+              
+              if (indexA !== -1 && indexB !== -1) {
+                return indexA - indexB;
+              }
+              if (indexA !== -1) return -1;
+              if (indexB !== -1) return 1;
+              
+              return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            return `
+              <div class="py-8 border-b border-gray-100">
+                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Target Departments Sizing Breakdown</p>
+                <div class="border border-gray-150 rounded-2xl overflow-hidden shadow-sm max-w-2xl bg-white">
+                  <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                        <th class="py-3 px-4">Department Name</th>
+                        <th class="py-3 px-4">Division</th>
+                        <th class="py-3 px-4 text-right">No. of Persons</th>
+                        <th class="py-3 px-4 text-right">Sets per Person</th>
+                        <th class="py-3 px-4 text-right font-mono">Total Qty</th>
                       </tr>
-                    `).join('')}
-                    <!-- Total Row -->
-                    <tr class="bg-gray-50/30 border-t border-gray-150 text-[10px] font-black uppercase text-gray-800">
-                      <td class="py-3 px-4" colspan="2">Total</td>
-                      <td class="py-3 px-4 text-right">
-                        ${quote.metrics_summary.departments.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
-                      </td>
-                      <td class="py-3 px-4"></td>
-                      <td class="py-3 px-4 text-right text-[#2d8d9b]">
-                        ${quote.metrics_summary.departments.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 font-semibold text-xs text-gray-650">
+                      ${sortedDepts.map((dept: any) => `
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                          <td class="py-3 px-4 font-black text-gray-800">${dept.name}</td>
+                          <td class="py-3 px-4 text-gray-400">${dept.division || '—'}</td>
+                          <td class="py-3 px-4 text-right">${dept.persons}</td>
+                          <td class="py-3 px-4 text-right">${dept.sets}</td>
+                          <td class="py-3 px-4 text-right font-black text-[#2d8d9b]">${dept.persons * dept.sets}</td>
+                        </tr>
+                      `).join('')}
+                      <!-- Total Row -->
+                      <tr class="bg-gray-50/30 border-t border-gray-150 text-[10px] font-black uppercase text-gray-800">
+                        <td class="py-3 px-4" colspan="2">Total</td>
+                        <td class="py-3 px-4 text-right">
+                          ${depts.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
+                        </td>
+                        <td class="py-3 px-4"></td>
+                        <td class="py-3 px-4 text-right text-[#2d8d9b]">
+                          ${depts.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          ` : ''}
+            `;
+          })()}
 
           <!-- SPECIFICATIONS TABLE -->
           <div class="py-8 page-break">
@@ -481,6 +509,14 @@ export default function QuotationDetails({
               <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#2d8d9b] font-black">${companySettings.upi_id}</span></p>
             </div>
           </div>
+
+          <!-- PAYMENT QR CODE -->
+          ${companySettings.qr_image ? `
+          <div class="mt-4 p-4 bg-white border border-gray-150 rounded-2xl flex flex-col items-center justify-center text-center">
+            <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Scan QR Code to Pay</p>
+            <img src="${companySettings.qr_image}" alt="Payment QR Code" style="width: 120px; height: 120px; object-fit: contain;" />
+          </div>
+          ` : ''}
 
           <!-- SIGNATURES BLOCK -->
           <div class="grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-gray-100 text-xs">

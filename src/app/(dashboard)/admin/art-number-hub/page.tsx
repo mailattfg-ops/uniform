@@ -680,7 +680,7 @@ export default function ArtNumberHubPage() {
                       Base Size
                     </label>
                     <Input
-                      placeholder="e.g. 38, M, L"
+                      placeholder="e.g.M"
                       value={baseSize}
                       onChange={(e) => setBaseSize(e.target.value)}
                       className="h-14 rounded-2xl border-zinc-200 focus:border-teal-500 transition-all font-bold text-sm text-[#3a525d]"

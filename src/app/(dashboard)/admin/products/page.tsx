@@ -465,7 +465,7 @@ export default function ProductManagement() {
       name: 'base_size',
       label: 'Base Size',
       type: 'text',
-      placeholder: 'e.g. 38, M, L',
+      placeholder: 'e.g. M',
       required: false,
       value: baseSize,
       onChange: (val) => setBaseSize(val)

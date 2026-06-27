@@ -404,6 +404,14 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           </div>
         </div>
 
+        <!-- PAYMENT QR CODE -->
+        ${companySettings.qr_image ? `
+        <div class="mt-4 p-4 bg-white border border-gray-150 rounded-2xl flex flex-col items-center justify-center text-center">
+          <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Scan QR Code to Pay</p>
+          <img src="${companySettings.qr_image}" alt="Payment QR Code" style="width: 120px; height: 120px; object-fit: contain;" />
+        </div>
+        ` : ''}
+
         <!-- SIGNATURES BLOCK -->
         <div class="grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-gray-100 text-xs">
           <div class="space-y-12">

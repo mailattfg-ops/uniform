@@ -174,6 +174,7 @@ export default function QuotationWizard({
 
   // Profit variables
   const [profitMargin, setProfitMargin] = useState('0');
+  const [status, setStatus] = useState<string>('Pending');
   const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
     { label: '', quantity: '1', rate: '0' }
   ]);
@@ -303,6 +304,7 @@ export default function QuotationWizard({
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
         setGstPercent(String(fullQuote.metrics_summary?.gst_percent ?? '18'));
+        setStatus(fullQuote.status || 'Pending');
 
         if (fullQuote.metrics_summary?.sales_type) {
           setSalesType(fullQuote.metrics_summary.sales_type);
@@ -1285,17 +1287,16 @@ export default function QuotationWizard({
     try {
       let response;
       if (editingQuotationId) {
-        // Find existing status so we don't break validation
-        const resList = await api.get('/quotations');
-        const originalStatus = resList.data?.find((q: any) => q.id === editingQuotationId)?.status || 'Pending';
-        const updatedStatus = originalStatus === 'Rejected' ? 'Pending' : originalStatus;
         response = await api.put(`/quotations/${editingQuotationId}`, {
           ...payload,
-          status: updatedStatus
+          status: status
         });
         toast.success('Formal Quotation updated successfully!', { id: loadingToast });
       } else {
-        response = await api.post('/quotations', payload);
+        response = await api.post('/quotations', {
+          ...payload,
+          status: status
+        });
         toast.success('Formal Quotation compiled and saved to registry!', { id: loadingToast });
       }
 
@@ -1366,6 +1367,7 @@ Forma Apparels Co.`;
     setTailorsCount('5');
     setDailyShiftHours('8');
     setProfitMargin('0');
+    setStatus('Pending');
     setExtraCharges([
       { label: '', quantity: '1', rate: '0' }
     ]);
@@ -1559,6 +1561,8 @@ Forma Apparels Co.`;
             setGstPercent={setGstPercent}
             extraCharges={extraCharges}
             setExtraCharges={setExtraCharges}
+            status={status}
+            setStatus={setStatus}
             onBack={() => setCurrentStep(3)}
             onNext={() => setCurrentStep(5)}
             fabricsList={fabricsList}

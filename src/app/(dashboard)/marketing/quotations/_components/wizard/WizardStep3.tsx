@@ -269,68 +269,111 @@ export default function WizardStep3({
         </div>
 
         {/* INTERACTIVE DYNAMIC CARD */}
-        <Card className="p-8 border-2 border-dashed border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2rem] flex flex-col justify-between lg:col-start-3">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-[#2d8d9b]">
-              <Scale size={20} />
-              <h4 className="text-xs font-black uppercase tracking-widest">Compiler Outputs</h4>
-            </div>
+        {(() => {
+          // Calculate totals dynamically from the rendered items in the table
+          let totalFabric = 0;
+          let totalLabor = 0;
+          let totalReadymade = 0;
+          let totalQty = 0;
+          const isReadymade = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
 
-            {(() => {
-              const isReadymade = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
+          if (hasDepartments) {
+            selectedDepts.forEach((dept) => {
+              const items = departmentItems[String(dept.id)] || [];
+              items.forEach((item) => {
+                const qty = parseInt(item.quantity) || 0;
+                totalQty += qty;
+                if (isReadymade) {
+                  totalReadymade += (parseFloat(item.price) || 0) * qty;
+                } else {
+                  const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+                  const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+                  const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+                  const itemFabricCost = mainCost + att1Cost + att2Cost;
+                  const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
+
+                  totalFabric += itemFabricCost * qty;
+                  totalLabor += itemLaborCost * qty;
+                }
+              });
+            });
+          } else {
+            manualItems.forEach((item) => {
+              const qty = parseInt(item.quantity) || 0;
+              totalQty += qty;
               if (isReadymade) {
-                return (
+                totalReadymade += (parseFloat(item.price) || 0) * qty;
+              } else {
+                const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+                const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+                const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+                const itemFabricCost = mainCost + att1Cost + att2Cost;
+                const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
+
+                totalFabric += itemFabricCost * qty;
+                totalLabor += itemLaborCost * qty;
+              }
+            });
+          }
+
+          const tableTotals = {
+            fabric: totalFabric,
+            labor: totalLabor,
+            readymade: totalReadymade,
+            quantity: totalQty,
+            total: isReadymade ? totalReadymade : (totalFabric + totalLabor)
+          };
+
+          return (
+            <Card className="h-fit p-8 border-2 border-dashed border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2rem] flex flex-col justify-between lg:col-start-3">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[#2d8d9b]">
+                  <Scale size={20} />
+                  <h4 className="text-xs font-black uppercase tracking-widest">Compiler Outputs</h4>
+                </div>
+
+                {isReadymade ? (
                   <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
                     <div className="flex justify-between py-2 text-zinc-500">
-                      <span>{isSetType ? 'Department Readymade Price:' : 'Readymade Items Price:'}</span>
-                      <span className="font-mono text-[#2d8d9b] font-black">₹{calculatedExpenses.total.toFixed(2)}</span>
+                      <span>Total Items Price:</span>
+                      <span className="font-mono text-[#2d8d9b] font-black">₹{tableTotals.readymade.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between py-2 text-zinc-500">
-                      <span>Pricing Type:</span>
-                      <span className="text-[#3a525d] font-black uppercase text-[10px] tracking-wider bg-[#3a525d]/10 px-2 py-0.5 rounded-md border border-[#3a525d]/15">
-                        {quotationType === 'READYMADE_SET' ? 'Dept Readymade Set' : quotationType === 'MANUAL' ? 'Manual Individual' : 'Readymade Normal'}
-                      </span>
+                      <span>Total Items Quantity:</span>
+                      <span className="font-mono text-zinc-800 font-black">{tableTotals.quantity} pcs</span>
                     </div>
                   </div>
-                );
-              }
-              const separateFabricsCost = separateFabrics.reduce((sum, sf) => sum + (parseFloat(sf.meters) || 0) * (parseFloat(sf.rate) || 0), 0);
-              const garmentFabricExpense = Math.max(0, calculatedExpenses.fabric - separateFabricsCost);
-
-              return (
-                <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
-                  <div className="flex justify-between py-2 text-zinc-500">
-                    <span>Fabric for Garments:</span>
-                    <span className="font-mono text-zinc-800 font-black">₹{garmentFabricExpense.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between py-2 text-zinc-500">
-                    <span>Garment Accessories (Buttons/Threads):</span>
-                    <span className="font-mono text-zinc-800 font-black">₹{calculatedExpenses.accessories.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between py-2 text-zinc-500">
-                    <span>Garment Tailoring Labor (Production):</span>
-                    <span className="font-mono text-zinc-800 font-black">₹{calculatedExpenses.labor.toFixed(2)}</span>
-                  </div>
-                  {separateFabrics.length > 0 && (
+                ) : (
+                  <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
                     <div className="flex justify-between py-2 text-zinc-500">
-                      <span>Raw Fabrics (Sold Separately):</span>
-                      <span className="font-mono text-[#2d8d9b] font-black">₹{separateFabricsCost.toFixed(2)}</span>
+                      <span>Total Fabric Expense:</span>
+                      <span className="font-mono text-zinc-800 font-black">₹{tableTotals.fabric.toFixed(2)}</span>
                     </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
+                    {!isFabric && (
+                      <div className="flex justify-between py-2 text-zinc-500">
+                        <span>Total Labor Expense:</span>
+                        <span className="font-mono text-zinc-800 font-black">₹{tableTotals.labor.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-2 text-zinc-500">
+                      <span>Total Items Quantity:</span>
+                      <span className="font-mono text-zinc-800 font-black">{tableTotals.quantity} pcs</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-          <div className="border-t border-zinc-200/50 pt-4 mt-6">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">
-              Total Production Expenses
-            </p>
-            <p className="text-4xl font-black italic tracking-tighter text-[#3a525d] font-mono mt-1">
-              ₹{calculatedExpenses.total.toFixed(2)}
-            </p>
-          </div>
-        </Card>
+              <div className="border-t border-zinc-200/50 pt-4 mt-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">
+                  Total Table Expenses
+                </p>
+                <p className="text-4xl font-black italic tracking-tighter text-[#3a525d] font-mono mt-1">
+                  ₹{tableTotals.total.toFixed(2)}
+                </p>
+              </div>
+            </Card>
+          );
+        })()}
       </div>
 
       <div className="flex justify-between pt-6 border-t border-zinc-100">

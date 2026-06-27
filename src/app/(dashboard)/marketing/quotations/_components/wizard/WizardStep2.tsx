@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/Button';
 import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package } from 'lucide-react';
 import { ProductType, TemplateLineItem, ManualItem, SeparateFabricItem } from '../../page';
+import toast from 'react-hot-toast';
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
   if (!rawText) return { type: '', materials: '' };
@@ -2171,12 +2172,65 @@ export default function WizardStep2({
                                   )}
                                 </div>
 
-                                <Button
-                                  onClick={addDeptItem}
-                                  className="h-10 px-5 bg-[#3a525d]/8 hover:bg-[#3a525d] hover:!text-white !text-[#3a525d] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#3a525d]/20 transition-all mt-4"
-                                >
-                                  <Plus size={13} strokeWidth={3} /> Add Product Line for {dept.division ? `${deptName} (${dept.division})` : deptName}
-                                </Button>
+                                <div className="flex gap-3 items-center mt-4 flex-wrap">
+                                  <Button
+                                    onClick={addDeptItem}
+                                    className="h-10 px-5 bg-[#3a525d]/8 hover:bg-[#3a525d] hover:!text-white !text-[#3a525d] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#3a525d]/20 transition-all"
+                                  >
+                                    <Plus size={13} strokeWidth={3} /> Add Product Line for {dept.division ? `${deptName} (${dept.division})` : deptName}
+                                  </Button>
+
+                                  {(() => {
+                                    const otherDepts = selectedDepts.filter((d: any) => String(d.id) !== deptId);
+                                    if (otherDepts.length === 0) return null;
+                                    return (
+                                      <div className="relative">
+                                        <select
+                                          value=""
+                                          onChange={(e) => {
+                                            const fromDeptId = e.target.value;
+                                            if (!fromDeptId) return;
+                                            const fromItems = (departmentItems || {})[fromDeptId] || [];
+                                            if (fromItems.length === 0) {
+                                              toast.error('The selected department has no product lines to copy');
+                                              return;
+                                            }
+                                            // Clone items with new random IDs and adjust quantity
+                                            const clonedItems = fromItems.map((item: any) => ({
+                                              ...item,
+                                              id: Date.now() + Math.random(),
+                                              quantity: String(totalUnits || 1)
+                                            }));
+                                            if (setDepartmentItems) {
+                                              setDepartmentItems({
+                                                ...(departmentItems || {}),
+                                                [deptId]: clonedItems
+                                              });
+                                              toast.success(`Copied ${clonedItems.length} product lines successfully!`);
+                                            }
+                                          }}
+                                          className="h-10 px-4 pr-8 text-[10px] font-black uppercase tracking-widest bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-xl transition-all cursor-pointer appearance-none focus:outline-none"
+                                        >
+                                          <option value="" disabled>Copy Config From...</option>
+                                          {otherDepts.map((od: any) => {
+                                            const odItemsCount = ((departmentItems || {})[String(od.id)] || []).length;
+                                            const nameOption = od.grade || od.name || 'Dept';
+                                            return (
+                                              <option key={od.id} value={String(od.id)}>
+                                                {od.division ? `${nameOption} (${od.division})` : nameOption} ({odItemsCount} item{odItemsCount !== 1 ? 's' : ''})
+                                              </option>
+                                            );
+                                          })}
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-indigo-500">
+                                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                                          </svg>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                               </div>
                             );
                           })}
@@ -2211,120 +2265,122 @@ export default function WizardStep2({
       {/* ═══ RAW FABRICS — SOLD SEPARATELY ═══ */}
       {/* This section is for customers who want to PURCHASE FABRICS alongside their garment/product order */}
       {/* Visible for STANDARD (Readymade) and READYMADE (Trade Readymade) quotation types */}
-      <div className="mt-10 rounded-[2rem] overflow-hidden border-2 border-[#2d8d9b]/20 shadow-lg shadow-[#2d8d9b]/5">
-        {/* Section Banner Header */}
-        <div className="bg-gradient-to-r from-[#2d8d9b]/10 via-[#2d8d9b]/5 to-transparent px-6 py-4 border-b border-[#2d8d9b]/15 flex items-center gap-4 flex-wrap">
-          <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/15 flex items-center justify-center flex-shrink-0">
-            <Package size={20} className="text-[#2d8d9b]" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-black text-[#3a525d] tracking-tight">Raw Fabrics — Sold Separately</h4>
-            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-80 mt-0.5">
-              Optional · Customer purchases fabric rolls in addition to products
-            </p>
-          </div>
-          <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest">
-            {separateFabrics.length} Line{separateFabrics.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        <div className="p-5 bg-white space-y-4">
-          {separateFabrics.length > 0 ? (
-            <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white shadow-sm">
-              <table className="w-full text-left border-collapse text-xs align-middle">
-                <thead>
-                  <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                    <th className="p-3">Fabric Item Selection</th>
-                    <th className="p-3 text-center w-32">Meters</th>
-                    <th className="p-3 text-center w-36">Rate/Meter (₹)</th>
-                    <th className="p-3 text-right w-36">Total Cost (₹)</th>
-                    <th className="p-3 text-center w-16">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
-                  {separateFabrics.map((sf, idx) => {
-                    const meters = parseFloat(sf.meters) || 0;
-                    const rate = parseFloat(sf.rate) || 0;
-                    const totalCost = meters * rate;
-
-                    return (
-                      <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                        <td className="p-2">
-                          <select
-                            className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white"
-                            value={sf.fabric_id}
-                            onChange={(e) => updateSeparateFabric(idx, { fabric_id: e.target.value })}
-                          >
-                            <option value="">Select fabric...</option>
-                            {fabricsList.map((f: any) => (
-                              <option key={f.id} value={String(f.id)}>
-                                {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            className="px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] text-center transition-all w-full"
-                            value={sf.meters}
-                            onChange={(e) => updateSeparateFabric(idx, { meters: e.target.value })}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            className="px-2.5 py-2 text-xs font-mono font-bold border border-zinc-200 rounded-xl text-[#2d8d9b] text-center transition-all w-full"
-                            value={sf.rate}
-                            onChange={(e) => updateSeparateFabric(idx, { rate: e.target.value })}
-                          />
-                        </td>
-                        <td className="p-2 text-right font-mono font-black text-[#2d8d9b] pr-4">
-                          ₹{totalCost.toFixed(2)}
-                        </td>
-                        <td className="p-2 text-center">
-                          <button
-                            onClick={() => removeSeparateFabric(idx)}
-                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 mx-auto"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-[#2d8d9b]/15 bg-[#2d8d9b]/3">
-                    <td colSpan={3} className="p-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Raw Fabric Cost</td>
-                    <td className="p-3 text-right font-black text-lg text-[#2d8d9b] font-mono">
-                      ₹{separateFabrics.reduce((sum, sf) => sum + (parseFloat(sf.meters) || 0) * (parseFloat(sf.rate) || 0), 0).toFixed(2)}
-                    </td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
+      {quotationType !== 'FABRIC' && quotationType !== 'FABRIC_SET' && (
+        <div className="mt-10 rounded-[2rem] overflow-hidden border-2 border-[#2d8d9b]/20 shadow-lg shadow-[#2d8d9b]/5">
+          {/* Section Banner Header */}
+          <div className="bg-gradient-to-r from-[#2d8d9b]/10 via-[#2d8d9b]/5 to-transparent px-6 py-4 border-b border-[#2d8d9b]/15 flex items-center gap-4 flex-wrap">
+            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/15 flex items-center justify-center flex-shrink-0">
+              <Package size={20} className="text-[#2d8d9b]" />
             </div>
-          ) : (
-            <div className="text-center py-8 border-2 border-dashed border-[#2d8d9b]/20 rounded-2xl bg-[#2d8d9b]/3">
-              <Package size={28} className="text-[#2d8d9b]/40 mx-auto mb-2" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">No fabric lines added yet</p>
-              <p className="text-[10px] font-semibold text-zinc-350 mt-1">Click the button below to add fabric selling lines</p>
+            <div className="flex-1">
+              <h4 className="text-sm font-black text-[#3a525d] tracking-tight">Raw Fabrics — Sold Separately</h4>
+              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-80 mt-0.5">
+                Optional · Customer purchases fabric rolls in addition to products
+              </p>
             </div>
-          )}
+            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest">
+              {separateFabrics.length} Line{separateFabrics.length !== 1 ? 's' : ''}
+            </span>
+          </div>
 
-          <Button
-            onClick={addSeparateFabric}
-            className="h-12 px-6 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] hover:!text-white !text-[#2d8d9b] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#2d8d9b]/25 transition-all"
-          >
-            <Plus size={14} strokeWidth={3} /> Add Fabric Selling Line
-          </Button>
+          <div className="p-5 bg-white space-y-4">
+            {separateFabrics.length > 0 ? (
+              <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <table className="w-full text-left border-collapse text-xs align-middle">
+                  <thead>
+                    <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                      <th className="p-3">Fabric Item Selection</th>
+                      <th className="p-3 text-center w-32">Meters</th>
+                      <th className="p-3 text-center w-36">Rate/Meter (₹)</th>
+                      <th className="p-3 text-right w-36">Total Cost (₹)</th>
+                      <th className="p-3 text-center w-16">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
+                    {separateFabrics.map((sf, idx) => {
+                      const meters = parseFloat(sf.meters) || 0;
+                      const rate = parseFloat(sf.rate) || 0;
+                      const totalCost = meters * rate;
+
+                      return (
+                        <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
+                          <td className="p-2">
+                            <select
+                              className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white"
+                              value={sf.fabric_id}
+                              onChange={(e) => updateSeparateFabric(idx, { fabric_id: e.target.value })}
+                            >
+                              <option value="">Select fabric...</option>
+                              {fabricsList.map((f: any) => (
+                                <option key={f.id} value={String(f.id)}>
+                                  {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              className="px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] text-center transition-all w-full"
+                              value={sf.meters}
+                              onChange={(e) => updateSeparateFabric(idx, { meters: e.target.value })}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              className="px-2.5 py-2 text-xs font-mono font-bold border border-zinc-200 rounded-xl text-[#2d8d9b] text-center transition-all w-full"
+                              value={sf.rate}
+                              onChange={(e) => updateSeparateFabric(idx, { rate: e.target.value })}
+                            />
+                          </td>
+                          <td className="p-2 text-right font-mono font-black text-[#2d8d9b] pr-4">
+                            ₹{totalCost.toFixed(2)}
+                          </td>
+                          <td className="p-2 text-center">
+                            <button
+                              onClick={() => removeSeparateFabric(idx)}
+                              className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 mx-auto"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-[#2d8d9b]/15 bg-[#2d8d9b]/3">
+                      <td colSpan={3} className="p-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Raw Fabric Cost</td>
+                      <td className="p-3 text-right font-black text-lg text-[#2d8d9b] font-mono">
+                        ₹{separateFabrics.reduce((sum, sf) => sum + (parseFloat(sf.meters) || 0) * (parseFloat(sf.rate) || 0), 0).toFixed(2)}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed border-[#2d8d9b]/20 rounded-2xl bg-[#2d8d9b]/3">
+                <Package size={28} className="text-[#2d8d9b]/40 mx-auto mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">No fabric lines added yet</p>
+                <p className="text-[10px] font-semibold text-zinc-350 mt-1">Click the button below to add fabric selling lines</p>
+              </div>
+            )}
+
+            <Button
+              onClick={addSeparateFabric}
+              className="h-12 px-6 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] hover:!text-white !text-[#2d8d9b] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#2d8d9b]/25 transition-all"
+            >
+              <Plus size={14} strokeWidth={3} /> Add Fabric Selling Line
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation */}
       <div className="flex justify-between pt-6 border-t border-zinc-100 mt-10">
