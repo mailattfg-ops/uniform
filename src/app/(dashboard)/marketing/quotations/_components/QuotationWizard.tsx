@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { Check, ChevronRight } from 'lucide-react';
@@ -143,6 +143,8 @@ export default function QuotationWizard({
   const [separateFabrics, setSeparateFabrics] = useState<SeparateFabricItem[]>([]);
   const [templateLineItems, setTemplateLineItems] = useState<TemplateLineItem[]>([]);
   const [isInitializingEdit, setIsInitializingEdit] = useState(false);
+  // Ref to prevent the quotationType change effect from resetting items during edit initialization
+  const isLoadingForEditRef = useRef(false);
 
   // Organization analysis data
   const [orgAnalysis, setOrgAnalysis] = useState<any>({
@@ -179,13 +181,10 @@ export default function QuotationWizard({
     { label: '', quantity: '1', rate: '0' }
   ]);
 
-  // If in edit mode, fetch detailed quotation data and initialize state
+  // Reset items when quotation type changes — but NOT during edit initialization
   useEffect(() => {
-    const classesList = [
-      'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
-      'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
-      'C1', 'C2', 'Corporate'
-    ];
+    // Skip reset if we are in the middle of loading data for editing
+    if (isLoadingForEditRef.current) return;
 
     // Reset manual items when quotation type changes
     setManualItems([{
@@ -208,6 +207,7 @@ export default function QuotationWizard({
     }
 
     const loadQuotationForEditing = async () => {
+      isLoadingForEditRef.current = true;
       setIsInitializingEdit(true);
       try {
         const res = await api.get(`/quotations/${editingQuotationId}`);
@@ -444,6 +444,8 @@ export default function QuotationWizard({
         console.error(err);
       } finally {
         setIsInitializingEdit(false);
+        // Allow quotationType effect to reset items for future manual type changes
+        isLoadingForEditRef.current = false;
       }
     };
 
