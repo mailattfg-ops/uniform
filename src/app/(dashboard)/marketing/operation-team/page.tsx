@@ -54,7 +54,8 @@ export default function OperationTeamPage() {
     account_no: '50200076116064',
     branch_name: 'MAJESTIC CENTER',
     ifsc_code: 'HDFC0001255',
-    upi_id: '7902 499 991'
+    upi_id: '7902 499 991',
+    qr_image: null
   });
 
   const fetchCompanySettings = async () => {

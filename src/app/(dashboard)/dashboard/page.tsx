@@ -52,7 +52,7 @@ export default function DashboardPage() {
       .catch(err => console.error('Dashboard quotations fetch error:', err));
 
     // Fetch all fabrics
-    api.get('/fabrics')
+    api.get('/inventory/fabrics')
       .then(res => {
         if (active) setFabricsList(res.data || []);
       })

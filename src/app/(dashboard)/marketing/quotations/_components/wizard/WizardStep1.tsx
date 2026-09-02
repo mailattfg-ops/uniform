@@ -138,7 +138,7 @@ export default function WizardStep1({
 
       {selectedOrgId && (
         <>
-          {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET') && (
+          {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') && (
             <div className="space-y-4 border-t border-zinc-100 pt-6">
               <div>
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments for Quotation</h4>

@@ -1,21 +1,31 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+    return base.endsWith('/api') ? base : `${base}/api`;
+  }
+  return 'http://localhost:5005/api';
+};
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+  baseURL: getBaseUrl(),
 });
 
 // Add a request interceptor to include the JWT token from cookies
 api.interceptors.request.use((config) => {
-    const token = Cookies.get('auth_token');
+  const token = Cookies.get('auth_token');
 
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-    return config;
+  return config;
 }, (error) => {
-    return Promise.reject(error);
+  return Promise.reject(error);
 });
 
 export default api;
+

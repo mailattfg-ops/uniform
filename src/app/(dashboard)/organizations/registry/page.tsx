@@ -299,35 +299,38 @@ export default function OrganizationsRegistry() {
         <div className="flex items-center gap-3">
           <Button
             onClick={() => handleViewDetails(o)}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white transition-all shadow-sm p-0"
             title="View Details"
           >
-            <Eye size={16} />
+            <Eye size={16} className="text-blue-600 shrink-0" />
           </Button>
           <Button
             onClick={() => {
               setEditingOrg(o);
               setIsAdding(true);
             }}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
+            title="Edit Organization"
           >
-            <Edit2 size={16} />
+            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
           </Button>
           <Button
             onClick={() => handleResetPassword(o)}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#f2994a]/10 text-[#f2994a] border border-[#f2994a]/20 hover:bg-[#f2994a] hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-sm p-0"
+            title="Reset Password"
           >
-            <Key size={16} />
+            <Key size={16} className="text-amber-600 shrink-0" />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: o.id })}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-sm p-0"
+            title="Delete Organization"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} className="text-red-500 shrink-0" />
           </Button>
         </div>
       )

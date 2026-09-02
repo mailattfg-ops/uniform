@@ -180,11 +180,13 @@ export default function WizardStep5({
                                   </thead>
                                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                                     {items.map((item, idx) => {
+                                      const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                                      const fabricName = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Custom';
+                                      const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
+                                      const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                                       return (
                                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                                          <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
+                                          <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
                                           <td className="p-3 text-zinc-500">
                                             {isFabric ? fabricName : 'Ready-made Product'}
                                           </td>
@@ -235,7 +237,7 @@ export default function WizardStep5({
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                     {manualItems.map((item, idx) => {
                       const isSet = item.size_breakdown?.is_set;
-                      
+
                       if (isSet) {
                         const setName = item.size_breakdown?.set_name || 'Custom Set';
                         const products = item.size_breakdown?.products || [];
@@ -265,11 +267,13 @@ export default function WizardStep5({
                         );
                       }
 
+                      const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                      const fabricName = fabricsList.find((f) => String(f.id) === String(item.fabric_id))?.brand_name || 'Custom';
+                      const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
+                      const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                       return (
                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#3a525d]">{pTypeName}</td>
+                          <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
                           <td className="p-3 text-zinc-500">
                             {isFabric ? fabricName : 'Ready-made Product'}
                           </td>
@@ -335,7 +339,7 @@ export default function WizardStep5({
         </div>
 
         {/* REVENUE MATRIX */}
-        <Card className="p-8 border border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2.5rem] space-y-6">
+        <Card className="h-fit p-8 border border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2.5rem] space-y-6">
           <h4 className="text-xs font-black uppercase tracking-widest text-[#2d8d9b] border-b border-[#2d8d9b]/10 pb-4">
             Financial Summary
           </h4>

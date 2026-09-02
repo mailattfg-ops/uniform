@@ -125,7 +125,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
       Object.entries(groups).forEach(([cleanDeptName, groupItems]) => {
         itemsHtml += `
           <tr class="bg-gray-50/80 border-t border-b border-gray-150 text-[10px] font-black uppercase text-[#3a525d] tracking-wider">
-            <td colspan="7" class="py-2.5 px-4 font-black">DEPARTMENT: ${cleanDeptName}</td>
+            <td colspan="4" class="py-2.5 px-4 font-black">DEPARTMENT: ${cleanDeptName}</td>
           </tr>
         `;
 
@@ -135,7 +135,6 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           const qty = Number(item.quantity) || 0;
           
           let firstCellHtml = '';
-          let fabricStyleCellHtml = '';
           
           const deptMeta = quote.metrics_summary?.departments?.find((d: any) => String(d.id) === String(deptId));
           let divisionName = '';
@@ -180,19 +179,13 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
               ${att2Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att2Line}</div>` : ''}
             </div>
           `;
-          fabricStyleCellHtml = '—';
 
-          const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
-          const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
           const price = Number(item.unit_price) || 0;
           const total = Number(item.total_price) || 0;
 
           itemsHtml += `
             <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
               <td class="py-3.5 px-4">${firstCellHtml}</td>
-              <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricStyleCellHtml}</td>
-              <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
-              <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
               <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
               <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
               <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
@@ -203,17 +196,12 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
     } else {
       standardItems.forEach((item: any) => {
         const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
-        const fabricId = item.size_breakdown?.fabric_id;
-        const fabricBrand = fabricsList.find((f: any) => String(f.id) === String(fabricId))?.brand_name || 'Custom Fabric';
         
         const className = item.size_breakdown?.class_name;
         const classPrefix = className ? `[${className}] ` : '';
         
         const firstCellHtml = `<span class="font-bold text-gray-800 text-xs">${classPrefix}${pTypeName}</span>`;
-        const fabricStyleCellHtml = fabricBrand;
 
-        const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
-        const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : '—';
         const price = Number(item.unit_price) || 0;
         const total = Number(item.total_price) || 0;
         const qty = Number(item.quantity) || 0;
@@ -221,9 +209,6 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         itemsHtml += `
           <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
             <td class="py-3.5 px-4">${firstCellHtml}</td>
-            <td class="py-3.5 px-4 text-gray-600 text-xs">${fabricStyleCellHtml}</td>
-            <td class="py-3.5 px-4 text-gray-600 text-xs">${designNum}</td>
-            <td class="py-3.5 px-4 text-gray-600 text-xs text-center font-mono">${sam}</td>
             <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
             <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
             <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
@@ -372,9 +357,6 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
               <thead>
                 <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
                   <th class="py-3 px-4">Garment Line</th>
-                  <th class="py-3 px-4">Fabric Style</th>
-                  <th class="py-3 px-4">Design Num</th>
-                  <th class="py-3 px-4 text-center font-mono">SAM (₹)</th>
                   <th class="py-3 px-4 text-right">Quantity</th>
                   <th class="py-3 px-4 text-right">Unit Price</th>
                   <th class="py-3 px-4 text-right">Total Price</th>
@@ -421,6 +403,14 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
             <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#2d8d9b] font-black">${companySettings.upi_id}</span></p>
           </div>
         </div>
+
+        <!-- PAYMENT QR CODE -->
+        ${companySettings.qr_image ? `
+        <div class="mt-4 p-4 bg-white border border-gray-150 rounded-2xl flex flex-col items-center justify-center text-center">
+          <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Scan QR Code to Pay</p>
+          <img src="${companySettings.qr_image}" alt="Payment QR Code" style="width: 120px; height: 120px; object-fit: contain;" />
+        </div>
+        ` : ''}
 
         <!-- SIGNATURES BLOCK -->
         <div class="grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-gray-100 text-xs">

@@ -129,7 +129,11 @@ export interface TemplateLineItem {
   template_quantity: number | null;
 }
 
+import { useSearchParams } from 'next/navigation';
+
 export default function QuotationsPage() {
+  const searchParams = useSearchParams();
+
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
@@ -146,6 +150,24 @@ export default function QuotationsPage() {
   const [inwardRates, setInwardRates] = useState<any[]>([]);
   const [fabricMargins, setFabricMargins] = useState<any[]>([]);
   const [samConfigurations, setSamConfigurations] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (searchParams && quotations.length > 0) {
+      const quoteIdParam = searchParams.get('id');
+      const actionParam = searchParams.get('action');
+      if (quoteIdParam) {
+        const id = parseInt(quoteIdParam, 10);
+        const match = quotations.find(q => q.id === id);
+        if (match) {
+          if (actionParam === 'edit') {
+            handleStartEdit(match);
+          } else if (actionParam === 'view') {
+            handleViewDetails(match);
+          }
+        }
+      }
+    }
+  }, [searchParams, quotations]);
 
   // Load all baseline data
   const fetchQuotations = async () => {

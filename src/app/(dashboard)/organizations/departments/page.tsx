@@ -261,23 +261,25 @@ export default function DepartmentManagement() {
       header: 'Actions',
       accessor: (d) => (
         <div className="flex items-center gap-3">
-            <Button
-                onClick={() => {
-                    setEditingDept(d);
-                    setIsAdding(true);
-                }}
-                variant="secondary"
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
-            >
-                <Edit2 size={16} />
-            </Button>
-            <Button
-                onClick={() => setDeleteConfirm({ isOpen: true, id: d.id.toString() })}
-                variant="secondary"
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm p-0"
-            >
-                <Trash2 size={16} />
-            </Button>
+          <Button
+            onClick={() => {
+              setEditingDept(d);
+              setIsAdding(true);
+            }}
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
+            title="Edit Department"
+          >
+            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
+          </Button>
+          <Button
+            onClick={() => setDeleteConfirm({ isOpen: true, id: d.id.toString() })}
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-sm p-0"
+            title="Delete Department"
+          >
+            <Trash2 size={16} className="text-red-500 shrink-0" />
+          </Button>
         </div>
       )
     }

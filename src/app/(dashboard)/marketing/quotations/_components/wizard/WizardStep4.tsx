@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { Clock, Calendar, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, X, Scale, Building2 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -11,6 +12,7 @@ interface ExtraCharge {
   label: string;
   quantity: string;
   rate: string;
+  type?: 'product' | 'service';
 }
 
 interface WizardStep4Props {
@@ -32,10 +34,30 @@ interface WizardStep4Props {
   setGstPercent: (val: string) => void;
   extraCharges: ExtraCharge[];
   setExtraCharges: (val: ExtraCharge[]) => void;
+  status: string;
+  setStatus: (val: string) => void;
   onBack: () => void;
   onNext: () => void;
   fabricsList?: any[];
 }
+
+const gstOptions = [
+  { label: '0%', value: '0' },
+  { label: '5%', value: '5' },
+  { label: '12%', value: '12' },
+  { label: '18%', value: '18' },
+  { label: '28%', value: '28' }
+];
+
+const statusOptions = [
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Draft', value: 'Draft' }
+];
+
+const typeOptions = [
+  { label: 'Product', value: 'product' },
+  { label: 'Service', value: 'service' }
+];
 
 export default function WizardStep4({
   hasMeasurements,
@@ -56,6 +78,8 @@ export default function WizardStep4({
   setGstPercent,
   extraCharges,
   setExtraCharges,
+  status,
+  setStatus,
   onBack,
   onNext,
   fabricsList = [],
@@ -269,19 +293,28 @@ export default function WizardStep4({
             </div>
           </div>
 
-          <div className="space-y-2 pt-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">GST Tax Slab (%)</label>
-            <select
-              value={gstPercent}
-              onChange={(e) => setGstPercent(e.target.value)}
-              className="w-full px-2.5 py-2.5 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] focus:ring-1 focus:ring-[#2d8d9b]/20 bg-white transition-all cursor-pointer"
-            >
-              <option value="0">0%</option>
-              <option value="5">5%</option>
-              <option value="12">12%</option>
-              <option value="18">18%</option>
-              <option value="28">28%</option>
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">GST Tax Slab (%)</label>
+              <Select
+                value={gstPercent}
+                onChange={setGstPercent}
+                options={gstOptions}
+                placeholder="Select GST..."
+                className="!py-2.5 !rounded-xl !border border-zinc-200"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Status</label>
+              <Select
+                value={status}
+                onChange={setStatus}
+                options={statusOptions}
+                placeholder="Select Status..."
+                className="!py-2.5 !rounded-xl !border border-zinc-200"
+              />
+            </div>
           </div>
 
           {/* EXTRA CHARGES SECTION */}
@@ -290,7 +323,7 @@ export default function WizardStep4({
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Extra Charges</h4>
               <button
                 type="button"
-                onClick={() => setExtraCharges([...extraCharges, { label: '', quantity: '1', rate: '0' }])}
+                onClick={() => setExtraCharges([...extraCharges, { label: '', quantity: '1', rate: '0', type: 'product' }])}
                 className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/20 text-[#2d8d9b] rounded-lg font-black uppercase tracking-widest text-[9px] transition-all"
               >
                 + Add Extra Charge
@@ -302,8 +335,8 @@ export default function WizardStep4({
             ) : (
               <div className="space-y-3">
                 {extraCharges.map((ec, idx) => (
-                  <div key={idx} className="flex gap-4 items-center bg-zinc-50/50 p-3 border border-zinc-150 rounded-2xl">
-                    <div className="flex-1">
+                  <div key={idx} className="flex gap-4 items-center bg-zinc-50/50 p-3 border border-zinc-150 rounded-2xl flex-wrap md:flex-nowrap">
+                    <div className="flex-1 min-w-[200px]">
                       <input
                         type="text"
                         placeholder="Charge Name (e.g. Packing, Delivery)"
@@ -316,20 +349,45 @@ export default function WizardStep4({
                         className="w-full px-3 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
                       />
                     </div>
-                    <div className="w-20">
+                    
+                    {/* TYPE SELECTION BOX */}
+                    <div className="w-28 flex-shrink-0">
+                      <Select
+                        value={ec.type || 'product'}
+                        onChange={(val) => {
+                          const updated = [...extraCharges];
+                          const newType = val as 'product' | 'service';
+                          updated[idx].type = newType;
+                          if (newType === 'service') {
+                            updated[idx].quantity = '1';
+                          }
+                          setExtraCharges(updated);
+                        }}
+                        options={typeOptions}
+                        placeholder="Type..."
+                        className="!py-2 !rounded-xl !border border-zinc-200"
+                      />
+                    </div>
+
+                    <div className="w-20 flex-shrink-0">
                       <input
                         type="number"
                         placeholder="Qty"
                         value={ec.quantity}
+                        disabled={ec.type === 'service'}
                         onChange={(e) => {
                           const updated = [...extraCharges];
                           updated[idx].quantity = e.target.value;
                           setExtraCharges(updated);
                         }}
-                        className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] text-center focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
+                        className={`w-full px-3 py-2 text-xs font-bold border rounded-xl text-[#3a525d] text-center focus:outline-none focus:border-[#2d8d9b] transition-all ${
+                          ec.type === 'service' 
+                            ? 'bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed' 
+                            : 'bg-white border-zinc-200 text-[#3a525d]'
+                        }`}
                       />
                     </div>
-                    <div className="w-24">
+                    <div className="w-24 flex-shrink-0">
                       <input
                         type="number"
                         placeholder="Rate"
@@ -345,7 +403,7 @@ export default function WizardStep4({
                     <button
                       type="button"
                       onClick={() => setExtraCharges(extraCharges.filter((_, i) => i !== idx))}
-                      className="px-3 py-2 text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 rounded-xl border border-red-200 transition-all"
+                      className="px-3 py-2 text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 rounded-xl border border-red-200 transition-all flex-shrink-0"
                     >
                       Delete
                     </button>
@@ -641,12 +699,12 @@ export default function WizardStep4({
                                 );
                                 const fabricId = item.size_breakdown?.fabric_id;
                                 const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-                                fabricCell = <span className="text-zinc-600">{fabric?.brand_name || fabric?.name || 'Custom Fabric'}</span>;
+                                fabricCell = <span className="text-zinc-600">{fabric?.name || fabric?.brand_name || 'Custom Fabric'}</span>;
                               } else {
                                 firstCell = <span className="font-black text-[#3a525d]">{pTypeName}</span>;
                                 const fabricId = item.size_breakdown?.fabric_id;
                                 const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-                                fabricCell = <span className="text-zinc-650">{fabric?.brand_name || fabric?.name || 'Custom Fabric'}</span>;
+                                fabricCell = <span className="text-zinc-655">{fabric?.name || fabric?.brand_name || 'Custom Fabric'}</span>;
                               }
 
                               return (

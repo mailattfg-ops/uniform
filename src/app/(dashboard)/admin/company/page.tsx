@@ -30,6 +30,7 @@ interface CompanySettings {
   branch_name: string;
   ifsc_code: string;
   upi_id: string;
+  qr_image?: string | null;
 }
 
 export default function CompanySettingsPage() {
@@ -45,7 +46,8 @@ export default function CompanySettingsPage() {
     account_no: '50200076116064',
     branch_name: 'MAJESTIC CENTER',
     ifsc_code: 'HDFC0001255',
-    upi_id: '7902 499 991'
+    upi_id: '7902 499 991',
+    qr_image: null
   });
 
   useEffect(() => {
@@ -239,6 +241,87 @@ export default function CompanySettingsPage() {
                 required
                 icon={<QrCode size={16} />}
               />
+
+              {/* QR Code Upload Option */}
+              <div className="space-y-2 mt-4 pt-4 border-t border-zinc-100">
+                <label className="text-[10px] font-black tracking-widest uppercase text-zinc-400">Payment QR Code Image</label>
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 hover:border-[#2d8d9b]/50 transition-all">
+                  {settings.qr_image ? (
+                    <div className="relative w-28 h-28 bg-white border border-zinc-150 rounded-xl flex items-center justify-center p-1.5 shadow-sm group flex-shrink-0">
+                      <img 
+                        src={settings.qr_image} 
+                        alt="Payment QR Code" 
+                        className="w-full h-full object-contain rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('qr_image', '')}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-100 hover:bg-red-500 hover:text-white flex items-center justify-center text-red-500 transition-colors shadow-sm cursor-pointer border-none outline-none font-bold text-[10px]"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-28 h-28 rounded-xl bg-zinc-100 border border-zinc-200 flex flex-col items-center justify-center text-zinc-400 flex-shrink-0">
+                      <QrCode size={32} strokeWidth={1.5} />
+                      <span className="text-[9px] font-bold mt-1">No QR Code</span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 text-center sm:text-left space-y-2">
+                    <p className="text-[10px] font-bold text-zinc-500 leading-tight">
+                      Upload your GPay, PhonePe, UPI, or Bank Account QR code. This will be shown on invoices and payments.
+                    </p>
+                    <label className="inline-flex items-center justify-center h-10 px-6 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase tracking-wider text-[9px] cursor-pointer transition-all active:scale-95 shadow-sm">
+                      Choose Image
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            const img = new Image();
+                            img.onload = () => {
+                              const canvas = document.createElement('canvas');
+                              const MAX_WIDTH = 300;
+                              const MAX_HEIGHT = 300;
+                              let width = img.width;
+                              let height = img.height;
+
+                              if (width > height) {
+                                if (width > MAX_WIDTH) {
+                                  height *= MAX_WIDTH / width;
+                                  width = MAX_WIDTH;
+                                }
+                              } else {
+                                if (height > MAX_HEIGHT) {
+                                  width *= MAX_HEIGHT / height;
+                                  height = MAX_HEIGHT;
+                                }
+                              }
+
+                              canvas.width = width;
+                              canvas.height = height;
+                              const ctx = canvas.getContext('2d');
+                              if (ctx) {
+                                ctx.drawImage(img, 0, 0, width, height);
+                                const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                                handleInputChange('qr_image', resizedBase64);
+                              }
+                            };
+                            img.src = reader.result as string;
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
         </div>

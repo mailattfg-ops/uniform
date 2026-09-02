@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { Check, ChevronRight } from 'lucide-react';
@@ -107,7 +107,7 @@ export default function QuotationWizard({
   const [customerType, setCustomerType] = useState<string>('DIRECT');
   const [quotationType, setQuotationType] = useState<string>('STANDARD');
   const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
+  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET' || quotationType === 'MANUAL';
   const [orgDepartments, setOrgDepartments] = useState<any[]>([]);
   const [orgClasses, setOrgClasses] = useState<any[]>([
     { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
@@ -143,6 +143,10 @@ export default function QuotationWizard({
   const [separateFabrics, setSeparateFabrics] = useState<SeparateFabricItem[]>([]);
   const [templateLineItems, setTemplateLineItems] = useState<TemplateLineItem[]>([]);
   const [isInitializingEdit, setIsInitializingEdit] = useState(false);
+  // Ref to prevent the quotationType change effect from resetting items during edit initialization
+  const isLoadingForEditRef = useRef(false);
+  // Track the quotationType that was set DURING initialization so we don't reset on it
+  const editLoadedQuotationTypeRef = useRef<string | null>(null);
 
   // Organization analysis data
   const [orgAnalysis, setOrgAnalysis] = useState<any>({
@@ -174,17 +178,20 @@ export default function QuotationWizard({
 
   // Profit variables
   const [profitMargin, setProfitMargin] = useState('0');
+  const [status, setStatus] = useState<string>('Pending');
   const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
     { label: '', quantity: '1', rate: '0' }
   ]);
 
-  // If in edit mode, fetch detailed quotation data and initialize state
+  // Reset items when quotation type changes — but NOT during edit initialization
   useEffect(() => {
-    const classesList = [
-      'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
-      'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
-      'C1', 'C2', 'Corporate'
-    ];
+    // Skip reset if we are in the middle of loading data for editing
+    if (isLoadingForEditRef.current) return;
+    // Skip reset if this quotationType was the one loaded from the edit data
+    if (editLoadedQuotationTypeRef.current !== null && editLoadedQuotationTypeRef.current === quotationType) {
+      editLoadedQuotationTypeRef.current = null; // Clear the guard after first skip
+      return;
+    }
 
     // Reset manual items when quotation type changes
     setManualItems([{
@@ -207,6 +214,7 @@ export default function QuotationWizard({
     }
 
     const loadQuotationForEditing = async () => {
+      isLoadingForEditRef.current = true;
       setIsInitializingEdit(true);
       try {
         const res = await api.get(`/quotations/${editingQuotationId}`);
@@ -303,6 +311,7 @@ export default function QuotationWizard({
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
         setGstPercent(String(fullQuote.metrics_summary?.gst_percent ?? '18'));
+        setStatus(fullQuote.status || 'Pending');
 
         if (fullQuote.metrics_summary?.sales_type) {
           setSalesType(fullQuote.metrics_summary.sales_type);
@@ -311,8 +320,11 @@ export default function QuotationWizard({
           setCustomerType(fullQuote.metrics_summary.customer_type);
         }
         if (fullQuote.metrics_summary?.quotation_type) {
+          // Store the type being loaded so the reset effect skips it
+          editLoadedQuotationTypeRef.current = fullQuote.metrics_summary.quotation_type;
           setQuotationType(fullQuote.metrics_summary.quotation_type);
         } else {
+          editLoadedQuotationTypeRef.current = 'STANDARD';
           setQuotationType('STANDARD');
         }
 
@@ -442,6 +454,8 @@ export default function QuotationWizard({
         console.error(err);
       } finally {
         setIsInitializingEdit(false);
+        // Allow quotationType effect to reset items for future manual type changes
+        isLoadingForEditRef.current = false;
       }
     };
 
@@ -672,7 +686,8 @@ export default function QuotationWizard({
             item.product_id !== '' &&
             item.price !== '' &&
             parseFloat(item.price) >= 0 &&
-            parseInt(item.quantity) > 0
+            parseInt(item.quantity) > 0 &&
+            (quotationType !== 'MANUAL' || (item.size_breakdown?.selected_size && item.size_breakdown.selected_size !== ''))
           );
         });
       }
@@ -682,7 +697,8 @@ export default function QuotationWizard({
         item.product_id !== '' &&
         item.price !== '' &&
         parseFloat(item.price) >= 0 &&
-        parseInt(item.quantity) > 0
+        parseInt(item.quantity) > 0 &&
+        (quotationType !== 'MANUAL' || (item.size_breakdown?.selected_size && item.size_breakdown.selected_size !== ''))
       );
     }
 
@@ -1116,7 +1132,8 @@ export default function QuotationWizard({
               thread_count: parseFloat(item.thread_count) || null,
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
-              computed_unit_cost: price
+              computed_unit_cost: price,
+              selected_size: item.size_breakdown?.selected_size || null
             },
             fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
                                   calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
@@ -1164,7 +1181,8 @@ export default function QuotationWizard({
                 product_id: item.product_id || null,
                 design_number: item.design_number || null,
                 computed_unit_cost: unitCost,
-                is_readymade: true
+                is_readymade: true,
+                selected_size: item.size_breakdown?.selected_size || null
               },
               fabric_cost_per_item: 0,
               accessories_cost_per_item: 0,
@@ -1281,17 +1299,16 @@ export default function QuotationWizard({
     try {
       let response;
       if (editingQuotationId) {
-        // Find existing status so we don't break validation
-        const resList = await api.get('/quotations');
-        const originalStatus = resList.data?.find((q: any) => q.id === editingQuotationId)?.status || 'Pending';
-        const updatedStatus = originalStatus === 'Rejected' ? 'Pending' : originalStatus;
         response = await api.put(`/quotations/${editingQuotationId}`, {
           ...payload,
-          status: updatedStatus
+          status: status
         });
         toast.success('Formal Quotation updated successfully!', { id: loadingToast });
       } else {
-        response = await api.post('/quotations', payload);
+        response = await api.post('/quotations', {
+          ...payload,
+          status: status
+        });
         toast.success('Formal Quotation compiled and saved to registry!', { id: loadingToast });
       }
 
@@ -1362,6 +1379,7 @@ Forma Apparels Co.`;
     setTailorsCount('5');
     setDailyShiftHours('8');
     setProfitMargin('0');
+    setStatus('Pending');
     setExtraCharges([
       { label: '', quantity: '1', rate: '0' }
     ]);
@@ -1497,6 +1515,8 @@ Forma Apparels Co.`;
             onNext={() => setCurrentStep(3)}
             isManualItemsValid={isManualItemsValid}
             quotationType={quotationType}
+            organizations={organizations}
+            selectedOrgId={selectedOrgId}
           />
         )}
 
@@ -1553,6 +1573,8 @@ Forma Apparels Co.`;
             setGstPercent={setGstPercent}
             extraCharges={extraCharges}
             setExtraCharges={setExtraCharges}
+            status={status}
+            setStatus={setStatus}
             onBack={() => setCurrentStep(3)}
             onNext={() => setCurrentStep(5)}
             fabricsList={fabricsList}

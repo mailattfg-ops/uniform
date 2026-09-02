@@ -230,32 +230,35 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setProfileModal({ isOpen: true, member: e })}
-            variant="secondary"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm border-none"
+            variant="none"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm border border-[#3a525d]/20"
             title="View Profile"
           >
-            <User size={16} />
+            <User size={16} className="text-[#3a525d] shrink-0" />
           </Button>
           <Button
             onClick={() => setResetConfirm({ isOpen: true, entity: e })}
-            variant="secondary"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm border-none"
+            variant="none"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-200"
+            title="Reset Password"
           >
-            <Key size={16} />
+            <Key size={16} className="text-amber-600 shrink-0" />
           </Button>
           <Button
             onClick={() => onEdit(e)}
-            variant="secondary"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm border-none"
+            variant="none"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm border border-[#2d8d9b]/20"
+            title="Edit Entity"
           >
-            <Edit2 size={16} />
+            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: e.id })}
-            variant="secondary"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm border-none"
+            variant="none"
+            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-200"
+            title="Delete Entity"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} className="text-red-500 shrink-0" />
           </Button>
         </div>
       ),

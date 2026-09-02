@@ -28,6 +28,7 @@ import {
   Clipboard,
   UserCheck,
   LogIn,
+  Eye,
   ArrowRight,
   Ruler
 } from 'lucide-react';
@@ -145,7 +146,7 @@ export default function OrganizationDetailsPage() {
   const orgIdStr = params.id as string;
   const orgId = parseInt(orgIdStr, 10);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'entities'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'entities' | 'quotations'>('overview');
 
   // Organization Basic & Details State
   const [org, setOrg] = useState<Organization | null>(null);
@@ -156,6 +157,7 @@ export default function OrganizationDetailsPage() {
   const [isStaffDropdownOpen, setIsStaffDropdownOpen] = useState(false);
   const [isAssigningStaff, setIsAssigningStaff] = useState(false);
   const [isLoadingOrg, setIsLoadingOrg] = useState(true);
+  const [quotations, setQuotations] = useState<any[]>([]);
 
   // Modals & Order Details
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -168,6 +170,19 @@ export default function OrganizationDetailsPage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [editingDept, setEditingDept] = useState<any | null>(null);
+  const [selectedDeptName, setSelectedDeptName] = useState('');
+  const [customDeptName, setCustomDeptName] = useState('');
+
+  useEffect(() => {
+    if (editingDept) {
+      setSelectedDeptName(editingDept.grade || '');
+      setCustomDeptName(editingDept.name || '');
+    } else {
+      setSelectedDeptName('');
+      setCustomDeptName('');
+    }
+  }, [editingDept, isAddingDept]);
+
   const [deleteDeptConfirm, setDeleteDeptConfirm] = useState<{ isOpen: boolean; id: string | null }>({
     isOpen: false,
     id: null
@@ -208,11 +223,12 @@ export default function OrganizationDetailsPage() {
   const fetchOrgData = async () => {
     setIsLoadingOrg(true);
     try {
-      const [orgsRes, detailsRes, staffRes, empRes] = await Promise.all([
+      const [orgsRes, detailsRes, staffRes, empRes, quotesRes] = await Promise.all([
         api.get('/organizations'),
         api.get(`/organizations/${orgId}/details`),
         api.get(`/organizations/${orgId}/staff`),
-        api.get('/employees')
+        api.get('/employees'),
+        api.get('/quotations')
       ]);
 
       setOrg((orgsRes.data || []).find((o: any) => o.id === orgId) || null);
@@ -222,6 +238,10 @@ export default function OrganizationDetailsPage() {
       setAssignedStaff(assigned);
       setSelectedStaffIds(assigned.map((s: any) => s.employee_id));
       setEmployees((empRes.data || []).filter((e: any) => e.status === 'active'));
+
+      const allQuotes = quotesRes.data || [];
+      const orgQuotes = allQuotes.filter((q: any) => q.organization_id === orgId);
+      setQuotations(orgQuotes);
     } catch (err) {
       toast.error('Failed to load organization profile');
     } finally {
@@ -250,17 +270,18 @@ export default function OrganizationDetailsPage() {
     }
   };
 
-  // --- Department Management Logic ---
-  const isSchool = org?.industries?.name?.toLowerCase().includes('school') || org?.industries?.name?.toLowerCase().includes('education');
-
   const deptFields: FormField[] = [
-    isSchool ? {
-      name: 'name',
-      label: 'Department Name',
+    {
+      name: 'grade',
+      label: 'Department Name Option',
       type: 'select' as const,
-      placeholder: 'Select Class...',
-      required: true,
-      defaultValue: editingDept?.name || '',
+      placeholder: 'Select Department...',
+      required: false,
+      value: selectedDeptName,
+      onChange: (val: string) => {
+        setSelectedDeptName(val);
+        setCustomDeptName(val);
+      },
       options: [
         { label: 'Class1', value: 'Class1' },
         { label: 'Class2', value: 'Class2' },
@@ -276,16 +297,20 @@ export default function OrganizationDetailsPage() {
         { label: 'Class12', value: 'Class12' },
         { label: 'C1', value: 'C1' },
         { label: 'C2', value: 'C2' },
-        // { label: 'Corporate', value: 'Corporate' }
+        { label: 'Corporate', value: 'Corporate' }
       ]
-    } : {
+    },
+    {
       name: 'name',
-      label: 'Department Name',
+      label: 'Custom Department Name',
       type: 'text',
-      placeholder: 'e.g. Sales, HR, Production',
+      placeholder: 'e.g. Class1 or Sales',
       required: true,
       maxLength: 20,
-      defaultValue: editingDept?.name
+      value: customDeptName,
+      onChange: (val: string) => {
+        setCustomDeptName(val);
+      }
     },
     {
       name: 'division',
@@ -648,7 +673,7 @@ export default function OrganizationDetailsPage() {
 
         {/* Tab Switcher with Sleek Pill Design */}
         <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 self-start md:self-auto">
-          {(['overview', 'departments', 'entities'] as const).map(tab => (
+          {(['overview', 'departments', 'entities', 'quotations'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => {
@@ -893,6 +918,11 @@ export default function OrganizationDetailsPage() {
                         <div>
                           <p className="font-black text-sm tracking-tight text-[#3a525d]">{d.name || 'N/A'}</p>
                           <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            {d.grade && (
+                              <span className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-150 text-zinc-500 rounded text-[9px] font-bold uppercase tracking-wider">
+                                Preset: {d.grade}
+                              </span>
+                            )}
                             {(d.division || d.section) && (
                               <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest opacity-70">
                                 Section: {d.division || d.section}
@@ -1313,6 +1343,112 @@ export default function OrganizationDetailsPage() {
               />
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'quotations' && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] border border-zinc-150/50 shadow-sm">
+            <div>
+              <h3 className="text-lg font-black text-[#3a525d] italic">Quotations History</h3>
+              <p className="text-xs text-zinc-400 font-bold mt-0.5">Manage and view all formal quote proposals generated for this organization</p>
+            </div>
+            <Button
+              onClick={() => router.push('/marketing/quotations')}
+              className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#3a525d]/10"
+            >
+              <Plus size={16} /> Compile New Quotation
+            </Button>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6">
+            <DataTable
+              columns={[
+                {
+                  header: 'Quotation No',
+                  accessor: (q) => (
+                    <span className="font-mono font-black text-[#2d8d9b]">{q.quotation_no}</span>
+                  )
+                },
+                {
+                  header: 'Title',
+                  accessor: (q) => (
+                    <span className="font-bold text-[#3a525d]">{q.title}</span>
+                  )
+                },
+                {
+                  header: 'Type',
+                  accessor: (q) => {
+                    const qType = q.metrics_summary?.quotation_type || q.quotation_type || 'STANDARD';
+                    return (
+                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-50 border border-zinc-150 rounded-lg text-zinc-650">
+                        {qType}
+                      </span>
+                    );
+                  }
+                },
+                {
+                  header: 'Status',
+                  accessor: (q) => {
+                    const statusColors: Record<string, string> = {
+                      'Draft': 'bg-zinc-50 text-zinc-500 border-zinc-200',
+                      'Sent': 'bg-blue-50 text-blue-750 border-blue-150',
+                      'Accepted': 'bg-green-50 text-green-700 border-green-150',
+                      'Rejected': 'bg-red-50 text-red-650 border-red-150'
+                    };
+                    const cls = statusColors[q.status] || 'bg-zinc-50 text-zinc-500 border-zinc-200';
+                    return (
+                      <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider border rounded-lg ${cls}`}>
+                        {q.status}
+                      </span>
+                    );
+                  }
+                },
+                {
+                  header: 'Final Value',
+                  accessor: (q) => (
+                    <span className="font-mono font-black text-zinc-800">
+                      ₹{parseFloat(q.final_quote_value || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  )
+                },
+                {
+                  header: 'Date Created',
+                  accessor: (q) => (
+                    <span className="text-zinc-500 font-bold">
+                      {q.created_at ? new Date(q.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </span>
+                  )
+                },
+                {
+                  header: 'Actions',
+                  accessor: (q) => (
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                        variant="secondary"
+                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 text-zinc-650 border border-zinc-200 hover:bg-zinc-200 transition-all shadow-sm !p-0"
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=edit`)}
+                        variant="secondary"
+                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
+                        title="Edit Quotation"
+                      >
+                        <Edit2 size={14} />
+                      </Button>
+                    </div>
+                  )
+                }
+              ]}
+              data={quotations}
+              isLoading={isLoadingOrg}
+              searchPlaceholder="Search quotations..."
+            />
+          </div>
         </div>
       )}
 

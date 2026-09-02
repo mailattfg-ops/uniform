@@ -148,17 +148,19 @@ export default function DressPrefixManagementPage() {
         <div className="flex items-center gap-3">
           <Button
             onClick={() => startEdit(dp)}
-            variant="secondary"
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 !p-0"
+            variant="none"
+            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20 p-0"
+            title="Edit Prefix"
           >
-            <Edit2 size={16} />
+            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
           </Button>
           <Button
             onClick={() => setDeleteCandidate(dp)}
-            variant="secondary"
-            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 !p-0"
+            variant="none"
+            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-200 p-0"
+            title="Delete Prefix"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} className="text-red-500 shrink-0" />
           </Button>
         </div>
       )
