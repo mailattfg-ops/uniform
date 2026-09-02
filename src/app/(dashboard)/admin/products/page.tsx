@@ -1183,24 +1183,24 @@ export default function ProductManagement() {
               setEditingProduct(p);
               setIsAdding(true);
             }}
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10"
+            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20"
             title="Edit Product"
           >
-            <Edit2 size={16} />
+            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
           </button>
           <button
             onClick={() => setSelectedProductForVariants(p)}
-            className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-100"
+            className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200"
             title="Manage Design Variants"
           >
-            <Layers size={16} />
+            <Layers size={16} className="text-amber-600 shrink-0" />
           </button>
           <button
             onClick={() => setDeleteConfirm({ isOpen: true, id: p.id })}
-            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
+            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-200"
             title="Delete Product"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} className="text-red-500 shrink-0" />
           </button>
         </div>
       )

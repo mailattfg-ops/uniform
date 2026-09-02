@@ -326,45 +326,47 @@ export default function LeadsRegistryPage() {
         <div className="flex items-center gap-3">
           <Button
             onClick={() => setViewingLead(l)}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 text-zinc-650 border border-zinc-200 hover:bg-zinc-200 transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 text-zinc-650 border border-zinc-200 hover:bg-zinc-200 transition-all shadow-sm p-0"
             title="View Details"
           >
-            <Eye size={16} />
+            <Eye size={16} className="text-zinc-650 shrink-0" />
           </Button>
           <Button
             onClick={() => setRemarkingLead(l)}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50/80 text-indigo-600 border border-indigo-150 hover:bg-indigo-650 hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-all shadow-sm p-0"
             title="Add Remark"
           >
-            <MessageSquarePlus size={16} />
+            <MessageSquarePlus size={16} className="text-indigo-600 shrink-0" />
           </Button>
           <Button
             onClick={() => {
               setEditingLead(l);
               setIsAdding(true);
             }}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
+            title="Edit Lead"
           >
-            <Edit2 size={16} />
+            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: l.id })}
-            variant="secondary"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm !p-0"
+            variant="none"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-sm p-0"
+            title="Delete Lead"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} className="text-red-500 shrink-0" />
           </Button>
           {l.status !== 'Converted' && (
             <Button
               onClick={() => setConvertConfirm({ isOpen: true, lead: l })}
-              variant="secondary"
-              className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-500/10 text-green-600 border border-green-500/20 hover:bg-green-500 hover:text-white transition-all shadow-sm !p-0"
+              variant="none"
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-50 text-green-600 border border-green-200 hover:bg-green-600 hover:text-white transition-all shadow-sm p-0"
               title="Convert to Customer"
             >
-              <UserCheck size={16} />
+              <UserCheck size={16} className="text-green-600 shrink-0" />
             </Button>
           )}
         </div>

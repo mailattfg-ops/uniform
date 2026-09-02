@@ -38,21 +38,18 @@ export const Select: React.FC<SelectProps> = ({
   ...props 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [internalValue, setInternalValue] = useState(controlledValue || defaultValue || '');
+  const [internalValue, setInternalValue] = useState(defaultValue || '');
   const [filterQuery, setFilterQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (controlledValue !== undefined) {
-      setInternalValue(controlledValue);
-    }
-  }, [controlledValue]);
+  const currentValue = controlledValue !== undefined ? controlledValue : internalValue;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setFilterQuery('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -63,18 +60,19 @@ export const Select: React.FC<SelectProps> = ({
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
-    if (!isOpen) {
-      setFilterQuery('');
-    }
   }, [isOpen]);
 
   const handleToggle = () => {
     if (disabled) return;
+    if (isOpen) {
+      setFilterQuery('');
+    }
     setIsOpen(!isOpen);
   };
 
   const handleSelect = (option: SelectOption) => {
     setInternalValue(option.value);
+    setFilterQuery('');
     setIsOpen(false);
     if (onChange) {
       onChange(option.value);
@@ -85,8 +83,9 @@ export const Select: React.FC<SelectProps> = ({
     opt.label.toLowerCase().includes(filterQuery.toLowerCase())
   );
 
-  const selectedOption = options.find(opt => opt.value === internalValue);
+  const selectedOption = options.find(opt => opt.value === currentValue);
   const displayValue = selectedOption ? selectedOption.label : (placeholder || `Select ${label || ''}`);
+
 
   return (
     <div className={`flex flex-col gap-2 w-full group relative ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`} ref={containerRef}>
@@ -97,7 +96,7 @@ export const Select: React.FC<SelectProps> = ({
       )}
       
       <div className="relative">
-        <input type="hidden" name={name} value={internalValue} required={required} />
+        <input type="hidden" name={name} value={currentValue} required={required} />
 
         <div
           onClick={handleToggle}
@@ -153,7 +152,7 @@ export const Select: React.FC<SelectProps> = ({
               </div>
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((opt) => {
-                  const isSelected = opt.value === internalValue;
+                  const isSelected = opt.value === currentValue;
                   return (
                     <div
                       key={opt.value}
