@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node --max-old-space-size=2048 ./node_modules/next/dist/bin/next dev",
+    "dev:webpack": "node --max-old-space-size=2048 ./node_modules/next/dist/bin/next dev --webpack",
+    "dev:clean": "powershell -Command \"Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue\" && npm run dev",
+    "build": "node --max-old-space-size=3072 ./node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "eslint"
   },

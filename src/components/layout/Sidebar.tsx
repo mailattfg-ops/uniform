@@ -111,6 +111,28 @@ const modules: ModuleItem[] = [
       { label: 'Fabric SAM', href: '/sam-management/fabric' }
     ]
   },
+  {
+    icon: Building2, label: 'Factory Operations', href: '/factory/job-cards',
+    subsections: [
+      { label: 'Job Cards & PO Handler', href: '/factory/job-cards' },
+      { label: 'Production Queue & Fabric', href: '/factory/production-queue' }
+    ]
+  },
+  {
+    icon: Building2, label: 'Multi-Branch Hub', href: '/branches/outlets',
+    subsections: [
+      { label: 'Outlets & Credentials', href: '/branches/outlets' },
+      { label: 'Branch Stock & Inventory', href: '/branches/inventory' },
+      { label: 'Inter-Branch Stock Transfer', href: '/branches/transfers' }
+    ]
+  },
+  {
+    icon: Package, label: 'Billing & Invoicing', href: '/billing/invoices',
+    subsections: [
+      { label: 'Customer Invoices', href: '/billing/invoices' },
+      { label: 'Delivery Challans (DC)', href: '/billing/delivery-challans' }
+    ]
+  }
 ];
 
 import { useLayout } from '@/hooks/useLayout';
