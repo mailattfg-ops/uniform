@@ -33,9 +33,26 @@ interface CompanySettings {
   qr_image?: string | null;
 }
 
+interface TaxMaster {
+  id: number;
+  name: string;
+  rate: number;
+  hsn_code?: string;
+  is_default?: boolean;
+  is_active?: boolean;
+}
+
 export default function CompanySettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [taxes, setTaxes] = useState<TaxMaster[]>([]);
+  const [showAddTaxModal, setShowAddTaxModal] = useState(false);
+  const [newTaxName, setNewTaxName] = useState('');
+  const [newTaxRate, setNewTaxRate] = useState('');
+  const [newTaxHsn, setNewTaxHsn] = useState('');
+  const [newTaxDefault, setNewTaxDefault] = useState(false);
+  const [isSavingTax, setIsSavingTax] = useState(false);
+
   const [settings, setSettings] = useState<CompanySettings>({
     company_name: 'Forma Apparels',
     address: '63/3608, CD Tower, Arayidathupalam, Kozhikode, Kerala - 673 004, India',
@@ -52,7 +69,53 @@ export default function CompanySettingsPage() {
 
   useEffect(() => {
     fetchSettings();
+    fetchTaxes();
   }, []);
+
+  const fetchTaxes = async () => {
+    try {
+      const res = await api.get('/taxes');
+      setTaxes(res.data || []);
+    } catch (e) {
+      console.error('Failed to load taxes:', e);
+    }
+  };
+
+  const handleAddTax = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaxName || !newTaxRate) return toast.error('Tax Name and Rate are required');
+    setIsSavingTax(true);
+    try {
+      await api.post('/taxes', {
+        name: newTaxName,
+        rate: parseFloat(newTaxRate),
+        hsn_code: newTaxHsn,
+        is_default: newTaxDefault
+      });
+      toast.success('Tax Master slab added successfully!');
+      setShowAddTaxModal(false);
+      setNewTaxName('');
+      setNewTaxRate('');
+      setNewTaxHsn('');
+      setNewTaxDefault(false);
+      fetchTaxes();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to add tax slab');
+    } finally {
+      setIsSavingTax(false);
+    }
+  };
+
+  const handleDeleteTax = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this tax slab?')) return;
+    try {
+      await api.delete(`/taxes/${id}`);
+      toast.success('Tax slab removed');
+      fetchTaxes();
+    } catch (err: any) {
+      toast.error('Failed to delete tax slab');
+    }
+  };
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -324,7 +387,148 @@ export default function CompanySettingsPage() {
               </div>
             </div>
           </Card>
+
+          {/* PRD M1.2 Tax Masters Setup Card */}
+          <Card className="p-6 md:p-8 bg-white border-zinc-200/80 shadow-sm rounded-3xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                  <Landmark size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-900">GST Tax Slabs & Masters (PRD M1.2)</h3>
+                  <p className="text-xs text-zinc-400">Configure standard tax rates utilized across quotations, invoices, and counter sales.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddTaxModal(true)}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-sm"
+              >
+                + Add Tax Slab
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="px-4 py-2.5">Slab Name</th>
+                    <th className="px-4 py-2.5">Rate (%)</th>
+                    <th className="px-4 py-2.5">HSN Code</th>
+                    <th className="px-4 py-2.5">Status</th>
+                    <th className="px-4 py-2.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {taxes.map(t => (
+                    <tr key={t.id} className="hover:bg-zinc-50/60">
+                      <td className="px-4 py-3 font-semibold text-zinc-800">
+                        {t.name}
+                        {t.is_default && (
+                          <span className="ml-2 text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">
+                            Default
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono font-bold text-zinc-900">{t.rate}%</td>
+                      <td className="px-4 py-3 font-mono text-zinc-500">{t.hsn_code || '-'}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          Active
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTax(t.id)}
+                          className="text-zinc-400 hover:text-red-500 text-xs font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
+
+        {/* Modal: Add Tax Slab */}
+        {showAddTaxModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <h3 className="text-lg font-bold text-zinc-900">Add New GST Tax Slab</h3>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-zinc-700 mb-1">Tax Slab Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. GST 5% - Apparel below ₹1,000"
+                    value={newTaxName}
+                    onChange={e => setNewTaxName(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-zinc-700 mb-1">Percentage Rate (%) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="e.g. 5.00"
+                      value={newTaxRate}
+                      onChange={e => setNewTaxRate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-zinc-700 mb-1">HSN Code</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 6203"
+                      value={newTaxHsn}
+                      onChange={e => setNewTaxHsn(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="isDefTax"
+                    checked={newTaxDefault}
+                    onChange={e => setNewTaxDefault(e.target.checked)}
+                    className="rounded"
+                  />
+                  <label htmlFor="isDefTax" className="text-xs text-zinc-600 font-semibold cursor-pointer">
+                    Set as default tax slab for new items
+                  </label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowAddTaxModal(false)}
+                  className="px-4 py-2 text-zinc-500 hover:bg-zinc-100 rounded-xl font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingTax}
+                  onClick={handleAddTax}
+                  className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow-md"
+                >
+                  {isSavingTax ? 'Saving...' : 'Save Tax Slab'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action Button */}
         <div className="flex justify-end gap-4 pt-6 border-t border-zinc-200">

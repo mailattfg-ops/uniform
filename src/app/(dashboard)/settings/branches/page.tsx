@@ -104,7 +104,7 @@ export default function BranchesPage() {
             Branch & Inventory Management
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            P1.1 Scope — Tier setup (Corporate, Branch, Factory), branch stock tracking & batch purchase entries.
+            Tier setup (Corporate, Branch, Factory), branch stock tracking & batch purchase entries.
           </p>
         </div>
         <div className="flex gap-3">

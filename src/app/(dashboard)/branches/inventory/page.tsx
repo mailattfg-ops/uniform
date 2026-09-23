@@ -41,6 +41,8 @@ export default function BranchInventoryPage() {
   const [adjItemCode, setAdjItemCode] = useState('');
   const [adjQuantity, setAdjQuantity] = useState('');
   const [adjNotes, setAdjNotes] = useState('');
+  const [vendorBillNo, setVendorBillNo] = useState('');
+  const [lumpNo, setLumpNo] = useState('');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -101,21 +103,30 @@ export default function BranchInventoryPage() {
     e.preventDefault();
     try {
       const targetBranch = !isAdmin && currentUser?.branchId ? currentUser.branchId : adjBranchId;
+      const computedBatch = (adjType === 'IN' && vendorBillNo && lumpNo)
+        ? `${vendorBillNo.trim()}-${lumpNo.trim()}`
+        : adjItemCode;
 
       await api.post('/branches/inventory/adjust', {
         branch_id: targetBranch,
         type: adjType,
         item_type: adjCategory,
         item_name: adjItemName,
-        item_code: adjItemCode,
+        item_code: computedBatch,
+        vendor_bill_no: vendorBillNo,
+        lump_no: lumpNo,
+        batch_no: computedBatch,
         quantity: parseFloat(adjQuantity),
         notes: adjNotes
       });
-      toast.success(`Stock ${adjType === 'IN' ? 'Inward Added' : 'Outward Deducted'}!`);
+      toast.success(`Stock ${adjType === 'IN' ? `Inward Added (Batch: ${computedBatch || 'Standard'})` : 'Outward Deducted'}!`);
       setShowAdjustModal(false);
       setAdjItemName('');
       setAdjItemCode('');
       setAdjQuantity('');
+      setVendorBillNo('');
+      setLumpNo('');
+      setAdjNotes('');
       fetchInventory();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Stock adjustment failed');
@@ -236,7 +247,7 @@ export default function BranchInventoryPage() {
               <tr>
                 <th className="px-6 py-3">Category</th>
                 <th className="px-6 py-3">Item Name</th>
-                <th className="px-6 py-3">Item Code</th>
+                <th className="px-6 py-3">Item Code / Batch No (PRD M6.2)</th>
                 <th className="px-6 py-3">Quantity Available</th>
                 <th className="px-6 py-3">Stock Status</th>
                 <th className="px-6 py-3">Last Updated</th>
@@ -378,14 +389,80 @@ export default function BranchInventoryPage() {
                 />
               </div>
 
+              {/* PRD M6.2 Batch Numbering for Inward Purchases */}
+              {adjType === 'IN' ? (
+                <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-emerald-950">
+                      PRD M6.2 Inward Purchase Batch Numbering
+                    </label>
+                    <span className="text-[10px] bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                      Vendor Bill + Lump
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Vendor Bill No *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. VB-8021"
+                        value={vendorBillNo}
+                        onChange={e => setVendorBillNo(e.target.value)}
+                        className="w-full px-3 py-1.5 border border-emerald-300 rounded-lg text-xs bg-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-900 mb-1">Lump / Roll No *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. L01"
+                        value={lumpNo}
+                        onChange={e => setLumpNo(e.target.value)}
+                        className="w-full px-3 py-1.5 border border-emerald-300 rounded-lg text-xs bg-white font-mono"
+                      />
+                    </div>
+                  </div>
+                  {vendorBillNo && lumpNo ? (
+                    <div className="text-xs text-emerald-800 bg-white p-2 rounded-lg border border-emerald-200 flex items-center justify-between">
+                      <span className="font-semibold text-[11px]">Auto-Generated Batch Code:</span>
+                      <span className="font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs">
+                        {vendorBillNo.trim()}-{lumpNo.trim()}
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Or Direct Item Code / SKU</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SKU-1002"
+                        value={adjItemCode}
+                        onChange={e => setAdjItemCode(e.target.value)}
+                        className="w-full px-3 py-1.5 border rounded-lg text-xs font-mono bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Item Code / SKU / Design No</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SKU-1002"
+                    value={adjItemCode}
+                    onChange={e => setAdjItemCode(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono"
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Item Code / SKU / Design No</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Notes / Remarks</label>
                 <input
                   type="text"
-                  placeholder="e.g. SKU-1002"
-                  value={adjItemCode}
-                  onChange={e => setAdjItemCode(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl text-sm font-mono"
+                  placeholder="Optional stock adjustment reason or PO reference"
+                  value={adjNotes}
+                  onChange={e => setAdjNotes(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-xl text-sm"
                 />
               </div>
 

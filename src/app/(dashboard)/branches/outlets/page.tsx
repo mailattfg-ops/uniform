@@ -150,7 +150,7 @@ export default function BranchOutletsPage() {
     setUserName('');
     setUserEmail('');
     setUserPassword('');
-    setUserRole('Branch Manager');
+    setUserRole(selectedBranch?.tier === 'Factory' ? 'Factory PO Handler' : 'Branch Manager');
   };
 
   const handleCopyCredentials = (u: BranchUser) => {
@@ -299,7 +299,16 @@ export default function BranchOutletsPage() {
                         {users.map(u => (
                           <div key={u.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 text-xs">
                             <div>
-                              <p className="font-semibold text-slate-800">{u.name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-slate-800">{u.name}</p>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                                  u.role?.includes('Factory') ? 'bg-amber-100 text-amber-800' :
+                                  u.role === 'Branch Manager' ? 'bg-indigo-100 text-indigo-700' :
+                                  'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {u.role || 'Staff'}
+                                </span>
+                              </div>
                               <p className="text-slate-500 font-mono text-[11px]">{u.email}</p>
                             </div>
                             <button
@@ -327,6 +336,7 @@ export default function BranchOutletsPage() {
                     <button
                       onClick={() => {
                         setSelectedBranch(branch);
+                        setUserRole(branch.tier === 'Factory' ? 'Factory PO Handler' : 'Branch Manager');
                         setShowUserModal(true);
                       }}
                       className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition"
@@ -543,14 +553,25 @@ export default function BranchOutletsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch Role</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  {selectedBranch.tier === 'Factory' ? 'Factory Operational Role' : 'Branch Role'}
+                </label>
                 <select
                   value={userRole}
                   onChange={e => setUserRole(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
+                  className="w-full px-3 py-2 border rounded-xl text-sm bg-white font-medium"
                 >
-                  <option value="Branch Manager">Branch Manager (Full Outlet Control)</option>
-                  <option value="Branch Staff">Branch Staff (Stock & Sales Only)</option>
+                  {selectedBranch.tier === 'Factory' ? (
+                    <>
+                      <option value="Factory PO Handler">Factory PO Handler (Job Cards Gatekeeper & Authority)</option>
+                      <option value="Factory Production Staff">Factory Production Staff (Floor Stages & Fabric Queue)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Branch Manager">Branch Manager (Full Outlet Control & Approvals)</option>
+                      <option value="Branch Staff">Branch Staff (Counter Sales, Quotes & Stock)</option>
+                    </>
+                  )}
                 </select>
               </div>
 

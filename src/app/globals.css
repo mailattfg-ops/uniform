@@ -104,3 +104,67 @@ button {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Job Card print div — hidden on screen, shown when jc-print-area class is toggled */
+.jc-hidden {
+  display: none;
+}
+
+/* Barcode font — screen preview at smaller size */
+.barcode-font {
+  font-family: 'Libre Barcode 39', monospace;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* ─── Delivery Challan Print Isolation ─────────────────────────────────── */
+@media print {
+  /* Hide everything by default */
+  body > * {
+    display: none !important;
+  }
+
+  /* Show whichever print area is present — DC or Job Card */
+  .dc-print-area,
+  .dc-print-area *,
+  .jc-print-area,
+  .jc-print-area * {
+    display: revert !important;
+    visibility: visible !important;
+  }
+
+  .dc-print-area,
+  .jc-print-area {
+    position: fixed !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt !important;
+    font-family: 'DM Sans', 'Inter', Arial, sans-serif !important;
+    z-index: 9999 !important;
+  }
+
+  .dc-print-area .shadow-sm,
+  .dc-print-area .shadow-xl,
+  .jc-print-area .shadow-sm,
+  .jc-print-area .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  /* Hide on-screen-only elements */
+  .dc-no-print,
+  .jc-no-print {
+    display: none !important;
+  }
+
+  /* Barcode font rendering */
+  .barcode-font {
+    font-family: 'Libre Barcode 39', monospace !important;
+    font-size: 48pt !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+  }
+}

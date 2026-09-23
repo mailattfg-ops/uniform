@@ -85,7 +85,7 @@ export default function MeasurementTokensPage() {
             Measurement Tokens & Composite IDs
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            P1.2 Scope — Token assignment, student alteration details, and Unique ID Composition (Organisation + Sales Order + Token + Item).
+            Token assignment, student alteration details, and Unique ID Composition (Organisation + Sales Order + Token + Item).
           </p>
         </div>
         <button
@@ -252,7 +252,7 @@ export default function MeasurementTokensPage() {
               </div>
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
-                <span className="text-slate-500 font-semibold">Composite ID Preview (M11.2):</span>
+                <span className="text-slate-500 font-semibold">Composite ID Preview:</span>
                 <p className="font-mono font-bold text-indigo-600 text-sm">{computedCompositeId}</p>
               </div>
 

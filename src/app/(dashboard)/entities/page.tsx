@@ -1,51 +1,87 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { UserPlus, FileUp, Users, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { UserPlus, FileUp, Users, ChevronRight, Building2, History, Ruler } from 'lucide-react';
 
-export default function StudentsRoot() {
+export default function EntitiesRoot() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        const roleLower = (user?.role || '').toLowerCase();
+        const isClientEntity = Boolean(user?.memberId || ['entity', 'student', 'member'].includes(roleLower));
+        const isClientOrg = !isClientEntity && Boolean(user?.organizationId || ['organisation', 'organization', 'school'].includes(roleLower));
+
+        if (isClientEntity) {
+          router.replace('/measurements/history');
+          return;
+        }
+        if (isClientOrg && user?.organizationId) {
+          router.replace(`/organizations/registry/${user.organizationId}?tab=entities`);
+          return;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    setLoading(false);
+  }, [router]);
+
   const actions = [
     {
-      title: 'Student Directory',
-      description: 'View and manage the complete list of registered students, track status, and edit profiles.',
-      href: '/students/directory',
-      icon: Users,
-      color: 'bg-[#6fa1ac]',
-      lightColor: 'bg-[#6fa1ac]/10',
+      title: 'Organization Rosters & Directories',
+      description: 'Access entity member directories, manage active student/employee rosters by partner organization.',
+      href: '/organizations/registry',
+      icon: Building2,
+      color: 'bg-[#2d8d9b]',
+      lightColor: 'bg-[#2d8d9b]/10',
       textColor: 'text-[#3a525d]',
-      actionText: 'View Directory'
+      actionText: 'Open Registry'
     },
     {
-      title: 'Single Registration',
-      description: 'Add a new student to the system manually by filling out the registration form.',
-      href: '/students/registration',
-      icon: UserPlus,
-      color: 'bg-[#f2994a]',
-      lightColor: 'bg-[#f2994a]/10',
+      title: 'Capture Measurements',
+      description: 'Record body measurements, assign standard size charts, and verify entity uniform fittings.',
+      href: '/measurements/entry',
+      icon: Ruler,
+      color: 'bg-[#CC9448]',
+      lightColor: 'bg-[#CC9448]/10',
       textColor: 'text-[#8b6b5a]',
-      actionText: 'Register Now'
+      actionText: 'Enter Sizes'
     },
     {
-      title: 'Bulk Upload',
-      description: 'Import multiple student records at once using an Excel or CSV file template.',
-      href: '/students/bulk-upload',
-      icon: FileUp,
+      title: 'Measurement Archives & History',
+      description: 'Review full history of member measurements, approval states, and historical fitting logs.',
+      href: '/measurements/history',
+      icon: History,
       color: 'bg-[#3a525d]',
       lightColor: 'bg-[#3a525d]/10',
       textColor: 'text-[#3a525d]',
-      actionText: 'Upload CSV'
+      actionText: 'View History'
     }
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 rounded-full border-2 border-[#2d8d9b] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 md:space-y-12 py-4 md:py-6">
       <div className="space-y-2">
         <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter text-[#3a525d]">
-          Student Management
+          Entity & Member Hub
         </h1>
         <p className="text-[10px] md:text-sm font-bold text-[#2d8d9b] uppercase tracking-[0.2em] opacity-80">
-          Registry, Registration & Bulk Operations
+          Directory Management, Measurements & Rosters
         </p>
       </div>
 
@@ -54,7 +90,7 @@ export default function StudentsRoot() {
           <Link 
             key={idx} 
             href={action.href}
-            className="group relative flex flex-col justify-between p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] bg-white border border-[#fce4d4] shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 overflow-hidden"
+            className="group relative flex flex-col justify-between p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] bg-white border border-zinc-150 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 overflow-hidden"
           >
             {/* Background Accent */}
             <div className={`absolute -right-12 -top-12 w-32 md:w-48 h-32 md:h-48 ${action.lightColor} rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700`} />
@@ -79,22 +115,6 @@ export default function StudentsRoot() {
             </div>
           </Link>
         ))}
-      </div>
-
-      {/* Quick Info / Stats Footer */}
-      <div className="p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-[#fce4d4]/20 border border-[#fce4d4] flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
-          <div className="w-12 md:w-16 h-12 md:h-16 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0">
-             <Users className="text-[#2d8d9b]" size={24} />
-          </div>
-          <div>
-            <h4 className="text-lg md:text-xl font-black italic text-[#3a525d]">Total Registered Students</h4>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1">Updated 2 minutes ago</p>
-          </div>
-        </div>
-        <div className="text-4xl md:text-5xl font-black italic tracking-tighter text-[#3a525d]">
-          1,248
-        </div>
       </div>
     </div>
   );

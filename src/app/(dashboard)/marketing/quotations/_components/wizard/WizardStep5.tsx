@@ -20,7 +20,17 @@ interface WizardStep5Props {
   fabricsList: any[];
   profitMargin: string;
   calculatedExpenses: { fabric: number; accessories: number; labor: number; total: number };
-  quoteTotals: { expenses: number; subtotal: number; gstValue: number; finalValue: number; profit: number; avgSellingPrice: number };
+  quoteTotals: { 
+    expenses: number; 
+    subtotal: number; 
+    gstValue: number; 
+    finalValue: number; 
+    profit: number; 
+    avgSellingPrice: number;
+    isTaxInclusive?: boolean;
+    cgst?: number;
+    sgst?: number;
+  };
   gstPercent: string;
   editingQuotationId: number | null;
   onBack: () => void;
@@ -170,7 +180,7 @@ export default function WizardStep5({
                                   <thead>
                                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
                                       <th className="p-3">Product Type</th>
-                                      <th className="p-3">{isFabric ? 'Fabric Option' : 'Product Name'}</th>
+                                      <th className="p-3">Fabric Option</th>
                                       {!isFabric && <th className="p-3">SAM Cost</th>}
                                       <th className="p-3">Design Number</th>
                                       <th className="p-3 text-right">Quantity</th>
@@ -182,13 +192,13 @@ export default function WizardStep5({
                                     {items.map((item, idx) => {
                                       const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                                      const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
+                                      const fabricName = fabric ? (fabric.name ? `${fabric.name}${fabric.brand_name ? ` (${fabric.brand_name})` : ''}` : fabric.brand_name || 'Custom Fabric') : 'Custom Fabric';
                                       const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                                       return (
                                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
                                           <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
-                                          <td className="p-3 text-zinc-500">
-                                            {isFabric ? fabricName : 'Ready-made Product'}
+                                          <td className="p-3 text-zinc-600 text-xs font-semibold">
+                                            {item.fabric_id ? fabricName : '—'}
                                           </td>
                                           {!isFabric && (
                                             <td className="p-3 font-mono">
@@ -363,23 +373,39 @@ export default function WizardStep5({
               <span>Markup Margin %:</span>
               <span className="font-black text-green-600 font-mono">+{profitMargin}%</span>
             </div>
+            <div className="flex justify-between items-center">
+              <span>Tax Treatment:</span>
+              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                quoteTotals.isTaxInclusive ? 'bg-teal-50 text-[#2d8d9b] border border-teal-200' : 'bg-zinc-100 text-zinc-600'
+              }`}>
+                {quoteTotals.isTaxInclusive ? 'Tax Inclusive (MRP)' : 'Tax Exclusive (+GST)'}
+              </span>
+            </div>
             <div className="flex justify-between border-t border-dashed border-zinc-200 pt-2">
-              <span>Subtotal (Pre-Tax):</span>
+              <span>Taxable Base Subtotal:</span>
               <span className="font-mono text-zinc-800 font-black">₹{quoteTotals.subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-red-500">
-              <span>GST Tax ({gstPercent}%):</span>
-              <span className="font-mono font-black">+₹{quoteTotals.gstValue.toFixed(2)}</span>
+            <div className="flex justify-between text-[#2d8d9b] text-xs">
+              <span>CGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
+              <span className="font-mono font-black">₹{((quoteTotals.cgst !== undefined ? quoteTotals.cgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-[#2d8d9b] text-xs">
+              <span>SGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
+              <span className="font-mono font-black">₹{((quoteTotals.sgst !== undefined ? quoteTotals.sgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-red-500 border-t border-zinc-100 pt-1">
+              <span>Total GST ({gstPercent}%):</span>
+              <span className="font-mono font-black">{quoteTotals.isTaxInclusive ? '(Included) ' : '+'}₹{quoteTotals.gstValue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs text-zinc-400 pt-1">
-              <span>Suggested unit retail (Pre-Tax):</span>
+              <span>Suggested unit retail:</span>
               <span className="font-mono">₹{quoteTotals.avgSellingPrice.toFixed(2)}</span>
             </div>
 
             <div className="border-t border-zinc-200 pt-4 flex justify-between items-end">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                  Total Contract Value (With GST)
+                  {quoteTotals.isTaxInclusive ? 'Total Contract Value (GST Inclusive)' : 'Total Contract Value (With GST)'}
                 </p>
                 <p className="text-3xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
                   ₹{quoteTotals.finalValue.toFixed(2)}

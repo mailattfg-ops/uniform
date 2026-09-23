@@ -23,7 +23,13 @@ export const Header: React.FC = () => {
       try {
         const user = JSON.parse(savedUser);
         setUserName(user.fullName || user.email || 'Administrator');
-        setUserRole(user.role || 'User');
+        const roleLower = (user.role || '').toLowerCase();
+        const isEntity = Boolean(user.memberId || ['entity', 'student', 'member'].includes(roleLower));
+        if (isEntity) {
+          setUserRole(user.admissionNo ? `Member • #${user.admissionNo}` : 'Member / Student');
+        } else {
+          setUserRole(user.role || 'User');
+        }
         setAvatarUrl(user.avatar_url || null);
       } catch (e) {
         console.error('Failed to parse user data');

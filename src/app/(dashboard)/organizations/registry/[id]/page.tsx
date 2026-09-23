@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import {
@@ -30,7 +30,15 @@ import {
   LogIn,
   Eye,
   ArrowRight,
-  Ruler
+  Ruler,
+  ReceiptText,
+  Printer,
+  CreditCard,
+  ArrowDownLeft,
+  ArrowUpRight,
+  CheckCircle2,
+  AlertCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
@@ -53,6 +61,19 @@ interface Organization {
   assigned_operator_id: number | null;
   assigned_operator?: { id: number; full_name: string; employee_id: string } | null;
   created_at: string;
+}
+
+interface LedgerTransaction {
+  id: string | number;
+  date: string;
+  type: string;
+  reference_no: string;
+  description: string;
+  order_ref: string;
+  debit: number;
+  credit: number;
+  running_balance: number;
+  status: string;
 }
 
 const MultiEntryInput: React.FC<{
@@ -140,13 +161,24 @@ const MultiEntryInput: React.FC<{
   );
 };
 
-export default function OrganizationDetailsPage() {
+function OrganizationDetailsPageContent() {
   const params = useParams();
   const router = useRouter();
   const orgIdStr = params.id as string;
   const orgId = parseInt(orgIdStr, 10);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'entities' | 'quotations'>('overview');
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'entities' | 'quotations' | 'ledger'>(
+    initialTab === 'ledger' ? 'ledger' : 'overview'
+  );
+
+  // Customer Ledger States (Phase 1 Option B)
+  const [ledgerData, setLedgerData] = useState<any | null>(null);
+  const [isLoadingLedger, setIsLoadingLedger] = useState(false);
+  const [ledgerFilter, setLedgerFilter] = useState<'all' | 'invoices' | 'payments'>('all');
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Organization Basic & Details State
   const [org, setOrg] = useState<Organization | null>(null);
@@ -165,6 +197,33 @@ export default function OrganizationDetailsPage() {
     isOpen: false,
     data: null
   });
+
+  // Client User Detection
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const roleLower = (currentUser?.role || '').toLowerCase();
+  const isClientUser = Boolean(
+    currentUser?.organizationId || 
+    currentUser?.memberId || 
+    ['organisation', 'organization', 'school', 'entity', 'student', 'member'].includes(roleLower)
+  );
+
+  useEffect(() => {
+    if (isClientUser && activeTab === 'quotations') {
+      setActiveTab('overview');
+    }
+  }, [isClientUser, activeTab]);
 
   // Department management states inside tab
   const [departments, setDepartments] = useState<any[]>([]);
@@ -224,19 +283,21 @@ export default function OrganizationDetailsPage() {
     setIsLoadingOrg(true);
     try {
       const [orgsRes, detailsRes, staffRes, empRes, quotesRes] = await Promise.all([
-        api.get('/organizations'),
+        api.get('/organizations').catch(() => ({ data: [] })),
         api.get(`/organizations/${orgId}/details`),
-        api.get(`/organizations/${orgId}/staff`),
-        api.get('/employees'),
-        api.get('/quotations')
+        api.get(`/organizations/${orgId}/staff`).catch(() => ({ data: { data: [] } })),
+        api.get('/employees').catch(() => ({ data: [] })),
+        api.get('/quotations').catch(() => ({ data: [] }))
       ]);
 
-      setOrg((orgsRes.data || []).find((o: any) => o.id === orgId) || null);
+      const orgList = orgsRes.data || [];
+      const foundOrg = orgList.find((o: any) => o.id === orgId) || (detailsRes.data ? { id: orgId, name: detailsRes.data.name || 'Organization', address: detailsRes.data.address } : null);
+      setOrg(foundOrg);
       setOrgDetails(detailsRes.data);
       setDepartments(detailsRes.data.departments || []);
-      const assigned = staffRes.data.data || [];
-      setAssignedStaff(assigned);
-      setSelectedStaffIds(assigned.map((s: any) => s.employee_id));
+      const assigned = staffRes.data?.data || staffRes.data || [];
+      setAssignedStaff(Array.isArray(assigned) ? assigned : []);
+      setSelectedStaffIds((Array.isArray(assigned) ? assigned : []).map((s: any) => s.employee_id));
       setEmployees((empRes.data || []).filter((e: any) => e.status === 'active'));
 
       const allQuotes = quotesRes.data || [];
@@ -254,6 +315,57 @@ export default function OrganizationDetailsPage() {
       fetchOrgData();
     }
   }, [orgId]);
+
+  const fetchLedgerData = async () => {
+    setIsLoadingLedger(true);
+    try {
+      const res = await api.get(`/organizations/${orgId}/ledger`);
+      setLedgerData(res.data);
+    } catch (err) {
+      console.error('Failed to load ledger', err);
+      toast.error('Failed to load account ledger');
+    } finally {
+      setIsLoadingLedger(false);
+    }
+  };
+
+  useEffect(() => {
+    if (orgId && activeTab === 'ledger') {
+      fetchLedgerData();
+    }
+  }, [orgId, activeTab]);
+
+  const exportLedgerCSV = () => {
+    if (!ledgerData || !ledgerData.transactions || ledgerData.transactions.length === 0) {
+      toast.error('No ledger entries available to export');
+      return;
+    }
+
+    const headers = ['Date', 'Type', 'Reference No', 'Description', 'Order Ref', 'Debit (INR)', 'Credit (INR)', 'Running Balance (INR)', 'Status'];
+    const rows = ledgerData.transactions.map((tx: any) => [
+      `"${new Date(tx.date).toLocaleDateString('en-IN')}"`,
+      `"${tx.type}"`,
+      `"${tx.reference_no}"`,
+      `"${tx.description}"`,
+      `"${tx.order_ref}"`,
+      tx.debit || 0,
+      tx.credit || 0,
+      tx.running_balance || 0,
+      `"${tx.status}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `customer_ledger_${(org?.name || 'client').replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Account Ledger Exported');
+  };
 
   const toggleStaffSelection = (id: number) => {
     setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -649,7 +761,7 @@ export default function OrganizationDetailsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-zinc-100">
         <div className="flex items-center gap-4">
           <Button
-            onClick={() => router.push('/organizations/registry')}
+            onClick={() => router.push(isClientUser ? '/dashboard' : '/organizations/registry')}
             variant="secondary"
             className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
           >
@@ -672,21 +784,25 @@ export default function OrganizationDetailsPage() {
         </div>
 
         {/* Tab Switcher with Sleek Pill Design */}
-        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 self-start md:self-auto">
-          {(['overview', 'departments', 'entities', 'quotations'] as const).map(tab => (
+        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 self-start md:self-auto flex-wrap gap-1">
+          {(isClientUser 
+            ? (['overview', 'departments', 'entities', 'ledger'] as const)
+            : (['overview', 'departments', 'entities', 'quotations', 'ledger'] as const)
+          ).map(tab => (
             <button
               key={tab}
               onClick={() => {
-                setActiveTab(tab);
+                setActiveTab(tab as any);
                 setEntityView('list');
                 setIsAddingDept(false);
               }}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === tab
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === tab
                 ? 'bg-[#3a525d] text-white shadow-md'
                 : 'text-zinc-500 hover:text-zinc-800'
                 }`}
             >
-              {tab}
+              {tab === 'ledger' && <ReceiptText size={14} className={activeTab === 'ledger' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />}
+              {tab === 'ledger' ? 'Account Statement' : tab}
             </button>
           ))}
         </div>
@@ -730,7 +846,16 @@ export default function OrganizationDetailsPage() {
 
           {/* Org details metadata card */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-6">
+            <div className={`${isClientUser ? 'lg:col-span-3' : 'lg:col-span-2'} bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-6`}>
+              {isClientUser && (
+                <div className="p-4 bg-[#2d8d9b]/10 rounded-2xl border border-[#2d8d9b]/20 flex items-center gap-3">
+                  <Building2 className="text-[#2d8d9b] shrink-0" size={20} />
+                  <div>
+                    <p className="text-xs font-bold text-[#3a525d]">Organization Client Portal</p>
+                    <p className="text-[11px] text-zinc-500 font-medium">You are viewing your official organization directory and account records.</p>
+                  </div>
+                </div>
+              )}
               <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Organization Profile</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -774,61 +899,63 @@ export default function OrganizationDetailsPage() {
               </div>
             </div>
 
-            {/* Staff Assignment Card */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 flex flex-col justify-between">
-              <div className="space-y-4">
-                <h3 className="text-lg font-black text-[#3a525d] tracking-tight flex items-center gap-2">
-                  <School size={18} /> Measurement Staff
-                </h3>
-                <p className="text-xs font-semibold text-zinc-400 leading-relaxed">Assign field operators responsible for coordinating size entries for this partner.</p>
+            {/* Staff Assignment Card - Hidden for Client Users */}
+            {!isClientUser && (
+              <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-[#3a525d] tracking-tight flex items-center gap-2">
+                    <School size={18} /> Measurement Staff
+                  </h3>
+                  <p className="text-xs font-semibold text-zinc-400 leading-relaxed">Assign field operators responsible for coordinating size entries for this partner.</p>
 
-                <div className="relative">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setIsStaffDropdownOpen(!isStaffDropdownOpen)}
-                    className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-xs font-bold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors shadow-none"
-                  >
-                    <span className="truncate">
-                      {selectedStaffIds.length === 0
-                        ? 'Select Staff Members...'
-                        : `${selectedStaffIds.length} staff member(s) selected`}
-                    </span>
-                    <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isStaffDropdownOpen ? 'rotate-180' : ''}`} />
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsStaffDropdownOpen(!isStaffDropdownOpen)}
+                      className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-xs font-bold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors shadow-none"
+                    >
+                      <span className="truncate">
+                        {selectedStaffIds.length === 0
+                          ? 'Select Staff Members...'
+                          : `${selectedStaffIds.length} staff member(s) selected`}
+                      </span>
+                      <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isStaffDropdownOpen ? 'rotate-180' : ''}`} />
+                    </Button>
 
-                  {isStaffDropdownOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-zinc-150 p-2 z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                      {employees.map(emp => {
-                        const isSelected = selectedStaffIds.includes(emp.id);
-                        return (
-                          <div
-                            key={emp.id}
-                            onClick={() => toggleStaffSelection(emp.id)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-50 cursor-pointer transition-colors"
-                          >
-                            <div className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'}`}>
-                              {isSelected && <Check size={10} strokeWidth={4} />}
+                    {isStaffDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-zinc-150 p-2 z-50 max-h-48 overflow-y-auto custom-scrollbar">
+                        {employees.map(emp => {
+                          const isSelected = selectedStaffIds.includes(emp.id);
+                          return (
+                            <div
+                              key={emp.id}
+                              onClick={() => toggleStaffSelection(emp.id)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-50 cursor-pointer transition-colors"
+                            >
+                              <div className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'}`}>
+                                {isSelected && <Check size={10} strokeWidth={4} />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-[#3a525d]">{emp.full_name}</p>
+                                <p className="text-[9px] font-black text-muted-foreground uppercase">{emp.employee_id} • {emp.department}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-bold text-[#3a525d]">{emp.full_name}</p>
-                              <p className="text-[9px] font-black text-muted-foreground uppercase">{emp.employee_id} • {emp.department}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <Button
-                onClick={handleSaveStaff}
-                disabled={isAssigningStaff}
-                className="w-full h-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-wider text-[10px] shadow-md mt-6"
-              >
-                {isAssigningStaff ? 'Saving...' : 'Save Assignments'}
-              </Button>
-            </div>
+                <Button
+                  onClick={handleSaveStaff}
+                  disabled={isAssigningStaff}
+                  className="w-full h-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-wider text-[10px] shadow-md mt-6"
+                >
+                  {isAssigningStaff ? 'Saving...' : 'Save Assignments'}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Orders registry list */}
@@ -894,15 +1021,17 @@ export default function OrganizationDetailsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => setIsAddingDept(true)}
-                  className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-md gap-2"
-                >
-                  <Plus size={16} />
-                  Setup Department
-                </Button>
-              </div>
+              {!isClientUser && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setIsAddingDept(true)}
+                    className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-md gap-2"
+                  >
+                    <Plus size={16} />
+                    Setup Department
+                  </Button>
+                </div>
+              )}
 
               <DataTable
                 title="Departments & Sections"
@@ -941,9 +1070,9 @@ export default function OrganizationDetailsPage() {
                       </span>
                     )
                   },
-                  {
+                  ...(!isClientUser ? [{
                     header: 'Actions',
-                    accessor: (d) => (
+                    accessor: (d: any) => (
                       <div className="flex items-center gap-3">
                         <Button
                           onClick={() => {
@@ -964,7 +1093,7 @@ export default function OrganizationDetailsPage() {
                         </Button>
                       </div>
                     )
-                  }
+                  }] : [])
                 ]}
                 data={departments}
                 isLoading={false}
@@ -1222,27 +1351,31 @@ export default function OrganizationDetailsPage() {
                   >
                     <Download size={14} /> Export CSV
                   </Button>
-                  <Button
-                    onClick={() => {
-                      setEditingEntity(null);
-                      setGeneratedEntityCreds(null);
-                      setEntityView('register');
-                    }}
-                    className="gap-2 text-[10px] rounded-xl h-11 uppercase font-black tracking-wider px-5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white"
-                  >
-                    <UserPlus size={14} /> Register Member
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setBulkFile(null);
-                      setBulkResults(null);
-                      setEntityView('bulk');
-                    }}
-                    variant="secondary"
-                    className="gap-2 text-[10px] rounded-xl h-11 uppercase font-black tracking-wider px-5 border border-zinc-200 text-[#3a525d] bg-white hover:bg-zinc-50"
-                  >
-                    <FileUp size={14} /> Import Roster
-                  </Button>
+                  {!isClientUser && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          setEditingEntity(null);
+                          setGeneratedEntityCreds(null);
+                          setEntityView('register');
+                        }}
+                        className="gap-2 text-[10px] rounded-xl h-11 uppercase font-black tracking-wider px-5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white"
+                      >
+                        <UserPlus size={14} /> Register Member
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setBulkFile(null);
+                          setBulkResults(null);
+                          setEntityView('bulk');
+                        }}
+                        variant="secondary"
+                        className="gap-2 text-[10px] rounded-xl h-11 uppercase font-black tracking-wider px-5 border border-zinc-200 text-[#3a525d] bg-white hover:bg-zinc-50"
+                      >
+                        <FileUp size={14} /> Import Roster
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1304,34 +1437,42 @@ export default function OrganizationDetailsPage() {
                           onClick={() => setProfileModal({ isOpen: true, member: e })}
                           variant="secondary"
                           className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm border-none"
+                          title="View Profile"
                         >
                           <User size={14} />
                         </Button>
-                        <Button
-                          onClick={() => setResetEntityConfirm({ isOpen: true, entity: e })}
-                          variant="secondary"
-                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm border-none"
-                        >
-                          <Key size={14} />
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEditingEntity(e);
-                            setGeneratedEntityCreds(null);
-                            setEntityView('register');
-                          }}
-                          variant="secondary"
-                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm border-none"
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          onClick={() => setDeleteEntityConfirm({ isOpen: true, id: e.id })}
-                          variant="secondary"
-                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm border-none"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        {!isClientUser && (
+                          <>
+                            <Button
+                              onClick={() => setResetEntityConfirm({ isOpen: true, entity: e })}
+                              variant="secondary"
+                              className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm border-none"
+                              title="Reset Password"
+                            >
+                              <Key size={14} />
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setEditingEntity(e);
+                                setGeneratedEntityCreds(null);
+                                setEntityView('register');
+                              }}
+                              variant="secondary"
+                              className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm border-none"
+                              title="Edit Member"
+                            >
+                              <Edit2 size={14} />
+                            </Button>
+                            <Button
+                              onClick={() => setDeleteEntityConfirm({ isOpen: true, id: e.id })}
+                              variant="secondary"
+                              className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm border-none"
+                              title="Delete Member"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )
                   }
@@ -1346,7 +1487,8 @@ export default function OrganizationDetailsPage() {
         </div>
       )}
 
-      {activeTab === 'quotations' && (
+      {/* Tab 4: Quotations Tab */}
+      {!isClientUser && activeTab === 'quotations' && (
         <div className="space-y-6 animate-in fade-in duration-500">
           <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] border border-zinc-150/50 shadow-sm">
             <div>
@@ -1451,6 +1593,410 @@ export default function OrganizationDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Tab 5: Customer Account Statement & Ledger Tab (Phase 1 Option B) */}
+      {activeTab === 'ledger' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {/* Header Action Bar */}
+          <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+                  <ReceiptText size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-[#3a525d]">
+                    Customer Account Statement & Ledger
+                  </h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] opacity-80">
+                    Running Debit & Credit Balance Ledger · {org.name} ({org.customer_code || `#${org.id}`})
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <Button
+                onClick={fetchLedgerData}
+                variant="secondary"
+                className="h-11 px-4 rounded-xl border border-zinc-200 text-xs font-black uppercase tracking-wider text-zinc-600 hover:bg-zinc-50 flex items-center gap-2"
+                title="Refresh Ledger"
+              >
+                Refresh
+              </Button>
+              <Button
+                onClick={exportLedgerCSV}
+                variant="secondary"
+                className="h-11 px-4 rounded-xl border border-zinc-200 text-xs font-black uppercase tracking-wider text-[#3a525d] hover:bg-zinc-50 flex items-center gap-2 shadow-sm"
+              >
+                <FileSpreadsheet size={15} />
+                Export CSV
+              </Button>
+              <Button
+                onClick={() => setIsPrintModalOpen(true)}
+                className="h-11 px-6 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#2d8d9b]/25 transition-all"
+              >
+                <Printer size={15} />
+                Print Statement
+              </Button>
+            </div>
+          </div>
+
+          {/* 4 Summary KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* 1. Total Invoiced */}
+            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Invoiced / Orders</span>
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <ArrowUpRight size={18} />
+                </div>
+              </div>
+              <div>
+                <h4 className="text-2xl font-black italic tracking-tight text-zinc-900">
+                  ₹{parseFloat(String(ledgerData?.summary?.total_invoiced || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h4>
+                <p className="text-[10px] font-bold text-zinc-400 mt-1">
+                  {ledgerData?.summary?.total_orders || 0} Orders & {ledgerData?.summary?.total_invoices || 0} Invoices Raised
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Total Paid */}
+            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Paid (Credits)</span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <ArrowDownLeft size={18} />
+                </div>
+              </div>
+              <div>
+                <h4 className="text-2xl font-black italic tracking-tight text-emerald-600">
+                  ₹{parseFloat(ledgerData?.summary?.total_paid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h4>
+                <p className="text-[10px] font-bold text-emerald-700/70 mt-1">
+                  {ledgerData?.summary?.total_payments || 0} Payments / Advances Recorded
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Outstanding Balance */}
+            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Net Outstanding Balance</span>
+                <div className="w-9 h-9 rounded-xl bg-[#CC9448]/15 text-[#CC9448] flex items-center justify-center">
+                  <CreditCard size={18} />
+                </div>
+              </div>
+              <div>
+                <h4 className={`text-2xl font-black italic tracking-tight ${
+                  (ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'
+                }`}>
+                  ₹{parseFloat(ledgerData?.summary?.outstanding_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h4>
+                <p className="text-[10px] font-bold text-zinc-400 mt-1">
+                  {(ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'Pending Amount Due from Client' : 'Zero Outstanding / Fully Cleared'}
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Settlement Status */}
+            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Settlement Status</span>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  ledgerData?.summary?.settlement_status === 'Settled' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                }`}>
+                  {ledgerData?.summary?.settlement_status === 'Settled' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                </div>
+              </div>
+              <div>
+                <span className={`inline-block px-3 py-1 text-xs font-black uppercase tracking-wider rounded-xl ${
+                  ledgerData?.summary?.settlement_status === 'Settled'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : ledgerData?.summary?.settlement_status === 'Partially Paid'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {ledgerData?.summary?.settlement_status || 'Checking...'}
+                </span>
+                <p className="text-[10px] font-bold text-zinc-400 mt-2">
+                  {ledgerData?.summary?.total_orders || 0} Orders in Pipeline
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Ledger Table Container */}
+          <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
+              <div>
+                <h4 className="text-base font-black text-[#3a525d] tracking-tight">Chronological Ledger Entries</h4>
+                <p className="text-xs text-zinc-400 font-medium mt-0.5">Audit breakdown of all billings, advance receipts, and balances</p>
+              </div>
+
+              {/* Filter Pills */}
+              <div className="flex items-center bg-zinc-100 p-1 rounded-xl gap-1">
+                {(['all', 'invoices', 'payments'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setLedgerFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      ledgerFilter === f
+                        ? 'bg-white text-[#3a525d] shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    {f === 'all' ? `All (${ledgerData?.transactions?.length || 0})` : f === 'invoices' ? 'Orders & Invoices' : 'Payments Only'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table Component */}
+            <DataTable<LedgerTransaction>
+              columns={[
+                {
+                  header: 'Transaction Date',
+                  accessor: (tx: LedgerTransaction) => (
+                    <div className="flex flex-col">
+                      <span className="font-bold text-xs text-zinc-800">
+                        {tx.date ? new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                      </span>
+                      <span className="text-[9px] text-zinc-400 font-medium">
+                        {tx.date ? new Date(tx.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+                  )
+                },
+                {
+                  header: 'Type & Reference',
+                  accessor: (tx: LedgerTransaction) => (
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
+                        tx.type === 'INVOICE'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : tx.type === 'ORDER'
+                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        {tx.type}
+                      </span>
+                      <span className="font-mono text-xs font-bold text-zinc-900">{tx.reference_no}</span>
+                    </div>
+                  )
+                },
+                {
+                  header: 'Description',
+                  accessor: (tx: LedgerTransaction) => (
+                    <div className="flex flex-col max-w-[280px]">
+                      <span className="text-xs font-semibold text-zinc-700 truncate">{tx.description}</span>
+                      <span className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider">{tx.order_ref}</span>
+                    </div>
+                  )
+                },
+                {
+                  header: 'Debit (+)',
+                  accessor: (tx: LedgerTransaction) => (
+                    <span className={`font-mono text-xs font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
+                      {tx.debit > 0 ? `₹${parseFloat(String(tx.debit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                    </span>
+                  )
+                },
+                {
+                  header: 'Credit (-)',
+                  accessor: (tx: LedgerTransaction) => (
+                    <span className={`font-mono text-xs font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
+                      {tx.credit > 0 ? `₹${parseFloat(String(tx.credit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                    </span>
+                  )
+                },
+                {
+                  header: 'Running Balance',
+                  accessor: (tx: LedgerTransaction) => (
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
+                        tx.running_balance > 0
+                          ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                          : tx.running_balance === 0
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                          : 'bg-blue-50 text-blue-700 border border-blue-100'
+                      }`}>
+                        ₹{parseFloat(String(tx.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )
+                },
+                {
+                  header: 'Status',
+                  accessor: (tx: LedgerTransaction) => (
+                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
+                      tx.status === 'Fully Paid' || tx.status === 'Received' || tx.status === 'Settled'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : tx.status === 'Partially Paid'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  )
+                }
+              ]}
+              data={(ledgerData?.transactions || []).filter((tx: any) => {
+                if (ledgerFilter === 'invoices') return tx.type === 'INVOICE' || tx.type === 'ORDER';
+                if (ledgerFilter === 'payments') return tx.type === 'PAYMENT';
+                return true;
+              })}
+              isLoading={isLoadingLedger}
+              searchPlaceholder="Search ledger transactions..."
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Customer Account Statement Print & PDF Modal */}
+      {isPrintModalOpen && org && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl p-6 md:p-10 my-8">
+            <div className="flex items-center justify-between pb-6 mb-6 border-b border-zinc-200">
+              <div className="flex items-center gap-3">
+                <ReceiptText className="text-[#2d8d9b]" size={24} />
+                <div>
+                  <h3 className="text-xl font-black text-zinc-900">Print Customer Account Statement</h3>
+                  <p className="text-xs text-zinc-500 font-medium">Official statement for {org.name}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => window.print()}
+                  className="h-10 px-5 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2"
+                >
+                  <Printer size={15} />
+                  Print / Save as PDF
+                </Button>
+                <Button
+                  onClick={() => setIsPrintModalOpen(false)}
+                  variant="secondary"
+                  className="h-10 px-4 rounded-xl border border-zinc-200 text-xs font-black uppercase tracking-wider text-zinc-600"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+
+            {/* Statement Printable Body */}
+            <div className="space-y-6 text-zinc-900 font-sans" id="statement-print-area">
+              {/* Header */}
+              <div className="flex justify-between items-start pb-6 border-b-2 border-zinc-900">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight text-zinc-950">FORMA APPARELS</h2>
+                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Central Manufacturing & Distribution</p>
+                  <p className="text-xs text-zinc-600 mt-2">GSTIN: 32AABCF1234F1Z5</p>
+                  <p className="text-xs text-zinc-600">Email: accounts@formaapparels.com | Phone: +91 98460 12345</p>
+                </div>
+                <div className="text-right">
+                  <span className="inline-block px-3 py-1 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest rounded-md">
+                    CUSTOMER STATEMENT
+                  </span>
+                  <p className="text-xs font-mono font-bold text-zinc-700 mt-2">
+                    Ref: STM-{org.customer_code || org.id}-{new Date().toISOString().slice(2, 7).replace('-', '')}
+                  </p>
+                  <p className="text-xs text-zinc-500 font-medium mt-1">
+                    Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Client and Summary Grid */}
+              <div className="grid grid-cols-2 gap-6 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
+                <div>
+                  <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Statement For (Client)</h4>
+                  <p className="text-base font-black text-zinc-900">{org.name}</p>
+                  <p className="text-xs text-zinc-600 font-medium mt-0.5">{org.address || 'Address not registered'}</p>
+                  <p className="text-xs text-zinc-500 font-mono mt-1">Customer Code: {org.customer_code || `#${org.id}`}</p>
+                </div>
+                <div className="text-right flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Net Balance Due</h4>
+                    <p className={`text-2xl font-black ${(ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      ₹{parseFloat(ledgerData?.summary?.outstanding_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                    Status: {ledgerData?.summary?.settlement_status || 'Settled'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Statement Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-zinc-900 text-zinc-600 uppercase text-[9px] font-black tracking-wider">
+                      <th className="py-2.5 px-2">Date</th>
+                      <th className="py-2.5 px-2">Type / Ref</th>
+                      <th className="py-2.5 px-2">Description</th>
+                      <th className="py-2.5 px-2 text-right">Debit (+)</th>
+                      <th className="py-2.5 px-2 text-right">Credit (-)</th>
+                      <th className="py-2.5 px-2 text-right">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200">
+                    {(ledgerData?.transactions || []).map((tx: any) => (
+                      <tr key={tx.id} className="text-zinc-800">
+                        <td className="py-2 px-2 font-medium whitespace-nowrap">
+                          {new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="py-2 px-2 font-mono font-bold whitespace-nowrap">{tx.reference_no}</td>
+                        <td className="py-2 px-2 font-medium">{tx.description}</td>
+                        <td className="py-2 px-2 text-right font-mono">
+                          {tx.debit > 0 ? `₹${Number(tx.debit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-right font-mono font-bold text-emerald-700">
+                          {tx.credit > 0 ? `₹${Number(tx.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-right font-mono font-black">
+                          ₹{Number(tx.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-zinc-900 font-bold bg-zinc-50">
+                      <td colSpan={3} className="py-2.5 px-2 uppercase text-[10px] tracking-wider">Totals</td>
+                      <td className="py-2.5 px-2 text-right font-mono">
+                        ₹{Number(ledgerData?.summary?.total_invoiced || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono text-emerald-700">
+                        ₹{Number(ledgerData?.summary?.total_paid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono font-black">
+                        ₹{Number(ledgerData?.summary?.outstanding_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Remittance Information & Signatory */}
+              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-zinc-200 text-xs">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Bank Remittance Details</h4>
+                  <p className="font-semibold text-zinc-800">Account: Forma Apparels Pvt Ltd</p>
+                  <p className="text-zinc-600">Bank: HDFC Bank | A/C: 50200084920192</p>
+                  <p className="text-zinc-600">IFSC: HDFC0001248 | UPI: forma@hdfcbank</p>
+                </div>
+                <div className="text-right flex flex-col justify-end items-end">
+                  <div className="w-48 border-b border-zinc-400 pb-1 mb-1" />
+                  <p className="text-[10px] font-bold uppercase text-zinc-500">Authorized Signatory / Accounts Desk</p>
+                  <p className="text-[9px] text-zinc-400">Computer generated statement</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Shared Modals */}
       <ConfirmModal
@@ -1580,5 +2126,13 @@ export default function OrganizationDetailsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OrganizationDetailsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-zinc-400 font-semibold animate-pulse">Loading organization details & ledger...</div>}>
+      <OrganizationDetailsPageContent />
+    </Suspense>
   );
 }

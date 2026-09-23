@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CreditCard, Plus, Scan, Trash2, Edit3, ShieldAlert, CheckCircle2, FileCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '@/lib/formatters';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface InvoiceItem {
   item_description: string;
@@ -44,6 +46,9 @@ export default function InvoicesPage() {
     { item_description: 'Standard Uniform Set', design_number: 'DNS-001', barcode: 'BRC-1001', quantity: 1, unit_price: 1500, tax_rate: 5 }
   ]);
 
+  const [taxMasters, setTaxMasters] = useState<any[]>([]);
+  const [isScanning, setIsScanning] = useState(false);
+
   const fetchInvoices = async () => {
     try {
       setLoading(true);
@@ -56,25 +61,68 @@ export default function InvoicesPage() {
     }
   };
 
+  const fetchTaxMasters = async () => {
+    try {
+      const res = await api.get('/taxes');
+      setTaxMasters(res.data || []);
+    } catch (err) {
+      // Graceful fallback
+      setTaxMasters([
+        { id: 1, name: 'GST 5%', rate: 5 },
+        { id: 2, name: 'GST 12%', rate: 12 },
+        { id: 3, name: 'GST 18%', rate: 18 },
+        { id: 4, name: '0% Exempt', rate: 0 }
+      ]);
+    }
+  };
+
   useEffect(() => {
     fetchInvoices();
+    fetchTaxMasters();
   }, []);
 
-  const handleAddItemByBarcode = () => {
-    if (!barcodeInput) return;
-    setItems([
-      ...items,
-      {
-        item_description: `Scanned Item (${barcodeInput})`,
-        design_number: 'DNS-READYMADE',
-        barcode: barcodeInput,
-        quantity: 1,
-        unit_price: 850,
-        tax_rate: 5
+  const handleAddItemByBarcode = async () => {
+    if (!barcodeInput.trim()) return;
+    const code = barcodeInput.trim();
+    setIsScanning(true);
+    try {
+      const res = await api.get('/inventory/lookup', { params: { code } });
+      const info = res.data;
+      const defaultRate = taxMasters.find(t => t.is_default)?.rate ?? 5;
+
+      setItems([
+        ...items,
+        {
+          item_description: info.item_description || `Scanned Item (${code})`,
+          design_number: info.design_number || code,
+          barcode: info.barcode || code,
+          quantity: 1,
+          unit_price: info.unit_price || 850,
+          tax_rate: info.tax_rate !== undefined ? info.tax_rate : defaultRate
+        }
+      ]);
+      if (info.found) {
+        toast.success(`Found in stock: ${info.item_description} (₹${info.unit_price})`);
+      } else {
+        toast.success(`Added barcode item: ${code}`);
       }
-    ]);
-    toast.success(`Item added via barcode: ${barcodeInput}`);
-    setBarcodeInput('');
+      setBarcodeInput('');
+    } catch (err) {
+      setItems([
+        ...items,
+        {
+          item_description: `Scanned Item (${code})`,
+          design_number: code,
+          barcode: code,
+          quantity: 1,
+          unit_price: 850,
+          tax_rate: 5
+        }
+      ]);
+      setBarcodeInput('');
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleCreateInvoice = async (e: React.FormEvent) => {
@@ -116,7 +164,7 @@ export default function InvoicesPage() {
             Branch Invoicing & Counter Sales
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            P1.4 Scope — Document numbering (YY/MM/INV-XXXX), manual customer invoicing, instant counter sales with barcode scanner & manual entry, Branch Manager restricted actions.
+            Document numbering (YY/MM/INV-XXXX), manual customer invoicing, instant counter sales with barcode scanner & manual entry, Branch Manager restricted actions.
           </p>
         </div>
         <button
@@ -132,7 +180,7 @@ export default function InvoicesPage() {
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-900 text-xs font-medium">
         <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
         <span>
-          <strong>Role Restriction Enforced:</strong> Invoice edits and deletions are strictly restricted to Branch Managers as per Phase 1 scope requirements (M12.4).
+          <strong>Role Restriction Enforced:</strong> Invoice edits and deletions are strictly restricted to Branch Managers.
         </span>
       </div>
 
@@ -168,12 +216,9 @@ export default function InvoicesPage() {
                       {inv.is_tax_inclusive ? 'Tax Inclusive' : 'Tax Exclusive'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-bold text-slate-900">₹{inv.total_amount?.toLocaleString()}</td>
+                  <td className="px-6 py-4 font-bold text-slate-900">{formatCurrency(inv.total_amount)}</td>
                   <td className="px-6 py-4">
-                    <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full w-fit">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {inv.payment_status}
-                    </span>
+                    <StatusBadge status={inv.payment_status} size="sm" />
                   </td>
                   <td className="px-6 py-4 flex gap-2">
                     <button
@@ -277,44 +322,120 @@ export default function InvoicesPage() {
 
               {/* Line Items List */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-600">Invoice Items</label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-600">Invoice Items</label>
+                  <button
+                    type="button"
+                    onClick={() => setItems([
+                      ...items,
+                      { item_description: 'Custom Item', design_number: 'CUSTOM', barcode: '', quantity: 1, unit_price: 500, tax_rate: taxMasters.find(t => t.is_default)?.rate ?? 5 }
+                    ])}
+                    className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1"
+                  >
+                    + Add Item
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-500 uppercase px-2">
+                  <span className="col-span-4">Description</span>
+                  <span className="col-span-2">Qty</span>
+                  <span className="col-span-2">Price (₹)</span>
+                  <span className="col-span-2">Tax Slab (M1.2)</span>
+                  <span className="col-span-2 text-right">Total</span>
+                </div>
+
                 {items.map((it, idx) => (
-                  <div key={idx} className="grid grid-cols-4 gap-2 items-center bg-slate-50 p-2 rounded-xl text-xs">
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-slate-50 p-2 rounded-xl text-xs">
                     <input
                       type="text"
+                      placeholder="Item name"
                       value={it.item_description}
                       onChange={e => {
                         const newIt = [...items];
                         newIt[idx].item_description = e.target.value;
                         setItems(newIt);
                       }}
-                      className="px-2 py-1 border rounded bg-white"
+                      className="col-span-4 px-2 py-1 border rounded bg-white"
                     />
                     <input
                       type="number"
+                      min="1"
                       value={it.quantity}
                       onChange={e => {
                         const newIt = [...items];
-                        newIt[idx].quantity = Number(e.target.value);
+                        newIt[idx].quantity = Math.max(1, Number(e.target.value));
                         setItems(newIt);
                       }}
-                      className="px-2 py-1 border rounded bg-white"
+                      className="col-span-2 px-2 py-1 border rounded bg-white text-center"
                     />
                     <input
                       type="number"
+                      min="0"
                       value={it.unit_price}
                       onChange={e => {
                         const newIt = [...items];
                         newIt[idx].unit_price = Number(e.target.value);
                         setItems(newIt);
                       }}
-                      className="px-2 py-1 border rounded bg-white"
+                      className="col-span-2 px-2 py-1 border rounded bg-white text-right"
                     />
-                    <span className="font-bold text-slate-800 text-right">
-                      ₹{(it.quantity * it.unit_price).toLocaleString()}
-                    </span>
+                    <select
+                      value={it.tax_rate}
+                      onChange={e => {
+                        const newIt = [...items];
+                        newIt[idx].tax_rate = Number(e.target.value);
+                        setItems(newIt);
+                      }}
+                      className="col-span-2 px-1.5 py-1 border rounded bg-white text-xs"
+                    >
+                      {taxMasters.map(t => (
+                        <option key={t.id} value={t.rate}>{t.rate}% {t.name.split('-')[0]}</option>
+                      ))}
+                    </select>
+                    <div className="col-span-2 flex items-center justify-end gap-1.5">
+                      <span className="font-bold text-slate-800 text-xs">
+                        ₹{(it.quantity * it.unit_price).toLocaleString()}
+                      </span>
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                          className="text-slate-400 hover:text-red-500 font-bold px-1"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
+
+                {/* Subtotal & Tax Calculation Summary */}
+                <div className="p-3 bg-slate-100/80 rounded-xl space-y-1 text-xs text-slate-700">
+                  <div className="flex justify-between">
+                    <span>Tax Exclusive Subtotal:</span>
+                    <span className="font-mono font-semibold">
+                      ₹{items.reduce((s, it) => s + it.quantity * it.unit_price, 0).toLocaleString()}
+                    </span>
+                  </div>
+                  {!isTaxInclusive && (
+                    <div className="flex justify-between text-indigo-700">
+                      <span>Calculated GST Tax:</span>
+                      <span className="font-mono font-semibold">
+                        ₹{items.reduce((s, it) => s + (it.quantity * it.unit_price * (it.tax_rate / 100)), 0).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-sm text-slate-900 border-t pt-1">
+                    <span>Estimated Total Payable:</span>
+                    <span className="font-mono text-emerald-700">
+                      ₹{Math.round(
+                        isTaxInclusive
+                          ? items.reduce((s, it) => s + it.quantity * it.unit_price, 0)
+                          : items.reduce((s, it) => s + it.quantity * it.unit_price + (it.quantity * it.unit_price * (it.tax_rate / 100)), 0)
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

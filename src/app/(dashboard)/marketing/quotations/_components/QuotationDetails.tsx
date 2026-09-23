@@ -744,16 +744,50 @@ export default function QuotationDetails({
                               const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
                               const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
 
+                              const getFabricTitle = (f: any) => {
+                                if (!f) return 'Custom Fabric';
+                                const n = f.name || '';
+                                const b = f.brand_name ? ` (${f.brand_name})` : '';
+                                const s = f.shade ? ` - ${f.shade}` : '';
+                                return `${n}${b}${s}`.trim() || f.brand_name || 'Custom Fabric';
+                              };
+
                               const firstCellJSX = (
                                 <div className="space-y-0.5 py-1 text-left">
                                   <div className="font-bold text-zinc-400 uppercase text-[9px] tracking-wider">{deptHeader}</div>
-                                  <div className="font-semibold text-zinc-650 text-xs">{productLine}</div>
-                                  {mainFabricLine && <div className="text-zinc-450 text-[10px] pl-2 font-medium">{mainFabricLine}</div>}
-                                  {att1Line && <div className="text-zinc-455 text-[10px] pl-2 font-medium">{att1Line}</div>}
-                                  {att2Line && <div className="text-zinc-455 text-[10px] pl-2 font-medium">{att2Line}</div>}
+                                  <div className="font-bold text-[#3a525d] text-xs">{productLine}</div>
                                 </div>
                               );
-                              const fabricStyleJSX = <span className="text-zinc-350">—</span>;
+                              const fabricStyleJSX = (
+                                <div className="space-y-1 py-1 text-left text-xs">
+                                  {fabricId ? (
+                                    <div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-wider border border-amber-200/60">FAB(M)</span>
+                                        <span className="font-bold text-zinc-700">{getFabricTitle(fabric)}</span>
+                                      </div>
+                                      {item.size_breakdown?.main_fabric_meters && (
+                                        <span className="text-[10px] text-zinc-400 pl-1">{item.size_breakdown.main_fabric_meters}m</span>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                  {att1Id ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[9px] font-black uppercase tracking-wider border border-zinc-200/60">FAB(A1)</span>
+                                      <span className="text-zinc-600 font-medium text-[11px]">{getFabricTitle(att1Fabric)}</span>
+                                    </div>
+                                  ) : null}
+                                  {att2Id ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[9px] font-black uppercase tracking-wider border border-zinc-200/60">FAB(A2)</span>
+                                      <span className="text-zinc-600 font-medium text-[11px]">{getFabricTitle(att2Fabric)}</span>
+                                    </div>
+                                  ) : null}
+                                  {!fabricId && !att1Id && !att2Id && (
+                                    <span className="text-zinc-350">—</span>
+                                  )}
+                                </div>
+                              );
 
                               const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
                               const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A';
@@ -782,15 +816,25 @@ export default function QuotationDetails({
                             const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
                             const fabricId = item.size_breakdown?.fabric_id;
                             const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-                            const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-                            
+                            const getFabricTitle = (f: any) => {
+                              if (!f) return 'Custom Fabric';
+                              const n = f.name || '';
+                              const b = f.brand_name ? ` (${f.brand_name})` : '';
+                              const s = f.shade ? ` - ${f.shade}` : '';
+                              return `${n}${b}${s}`.trim() || f.brand_name || 'Custom Fabric';
+                            };
+
                             const className = item.size_breakdown?.class_name;
                             const classPrefix = className ? `[${className}] ` : '';
                             const selectedSize = item.size_breakdown?.selected_size;
                             const sizeLabel = selectedSize ? ` (Size: ${selectedSize})` : '';
                             
                             const firstCellJSX = <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}{sizeLabel}</span>;
-                            const fabricStyleJSX = <span className="text-zinc-500">{fabricBrand}</span>;
+                            const fabricStyleJSX = (
+                              <div className="space-y-0.5 text-xs font-semibold text-zinc-700">
+                                {fabricId ? <span>{getFabricTitle(fabric)}</span> : <span className="text-zinc-350">—</span>}
+                              </div>
+                            );
 
                             const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
                             const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A';

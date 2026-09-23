@@ -77,8 +77,12 @@ export const MeasurementDetailModal: React.FC<MeasurementDetailModalProps> = ({ 
                   <div key={category} className="p-8 bg-zinc-50/50 rounded-[2rem] border border-zinc-100/50 space-y-5">
                      <div className="flex items-center justify-between">
                         <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">{category}</p>
-                        <span className="text-[8px] font-black uppercase px-2 py-0.5 bg-white border border-zinc-100 rounded text-zinc-400">
-                           {strategy === 'us_size_chart' ? 'Size Chart' : 'Manual Entry'}
+                        <span className={`text-[8.5px] font-black uppercase px-2.5 py-1 rounded-md border ${
+                           strategy === 'us_size_chart' 
+                             ? 'bg-indigo-50 text-indigo-700 border-indigo-200' 
+                             : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                           {strategy === 'us_size_chart' ? 'STANDARD US SIZE' : 'CUSTOM BESPOKE'}
                         </span>
                      </div>
                      <div className="space-y-3">

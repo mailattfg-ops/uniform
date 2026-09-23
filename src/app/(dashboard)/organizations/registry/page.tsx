@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid, Eye, ChevronDown, ChevronRight, Package } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit2, Trash2, X, Check, Users, School, Calendar, Key, Grid, Eye, ChevronDown, ChevronRight, Package, ReceiptText } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -46,18 +46,36 @@ export default function OrganizationsRegistry() {
     data: null
   });
   const [employees, setEmployees] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const isClientUser = Boolean(
+    currentUser?.organizationId || 
+    currentUser?.memberId || 
+    ['organisation', 'organization', 'school', 'entity', 'student', 'member'].includes((currentUser?.role || '').toLowerCase())
+  );
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const [orgsRes, indRes, empRes] = await Promise.all([
-        api.get('/organizations'),
-        api.get('/industries'),
-        api.get('/employees')
+        api.get('/organizations').catch(() => ({ data: [] })),
+        api.get('/industries').catch(() => ({ data: [] })),
+        api.get('/employees').catch(() => ({ data: [] }))
       ]);
-      setOrganizations(orgsRes.data);
-      setIndustries(indRes.data);
-      setEmployees(empRes.data);
+      setOrganizations(orgsRes.data || []);
+      setIndustries(indRes.data || []);
+      setEmployees(empRes.data || []);
     } catch (err) {
       toast.error('Failed to load registry data');
     } finally {
@@ -306,32 +324,44 @@ export default function OrganizationsRegistry() {
             <Eye size={16} className="text-blue-600 shrink-0" />
           </Button>
           <Button
-            onClick={() => {
-              setEditingOrg(o);
-              setIsAdding(true);
-            }}
+            onClick={() => router.push(`/organizations/registry/${o.id}?tab=ledger`)}
             variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
-            title="Edit Organization"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all shadow-sm p-0"
+            title="Account Statement & Ledger"
           >
-            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
+            <ReceiptText size={16} className="text-emerald-600 shrink-0" />
           </Button>
-          <Button
-            onClick={() => handleResetPassword(o)}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-sm p-0"
-            title="Reset Password"
-          >
-            <Key size={16} className="text-amber-600 shrink-0" />
-          </Button>
-          <Button
-            onClick={() => setDeleteConfirm({ isOpen: true, id: o.id })}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-sm p-0"
-            title="Delete Organization"
-          >
-            <Trash2 size={16} className="text-red-500 shrink-0" />
-          </Button>
+          {!isClientUser && (
+            <>
+              <Button
+                onClick={() => {
+                  setEditingOrg(o);
+                  setIsAdding(true);
+                }}
+                variant="none"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
+                title="Edit Organization"
+              >
+                <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
+              </Button>
+              <Button
+                onClick={() => handleResetPassword(o)}
+                variant="none"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-sm p-0"
+                title="Reset Password"
+              >
+                <Key size={16} className="text-amber-600 shrink-0" />
+              </Button>
+              <Button
+                onClick={() => setDeleteConfirm({ isOpen: true, id: o.id })}
+                variant="none"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-sm p-0"
+                title="Delete Organization"
+              >
+                <Trash2 size={16} className="text-red-500 shrink-0" />
+              </Button>
+            </>
+          )}
         </div>
       )
     }
@@ -414,13 +444,15 @@ export default function OrganizationsRegistry() {
         isLoading={isLoading}
         searchPlaceholder="Search by name, ID or industry..."
         headerAction={
-          <Button
-            onClick={() => setIsAdding(true)}
-            className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3"
-          >
-            <Plus size={16} strokeWidth={3} />
-            Register Organization
-          </Button>
+          !isClientUser ? (
+            <Button
+              onClick={() => setIsAdding(true)}
+              className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3"
+            >
+              <Plus size={16} strokeWidth={3} />
+              Register Organization
+            </Button>
+          ) : undefined
         }
       />
 

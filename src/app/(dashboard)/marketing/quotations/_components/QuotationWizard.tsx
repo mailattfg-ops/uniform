@@ -182,6 +182,7 @@ export default function QuotationWizard({
   const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
     { label: '', quantity: '1', rate: '0' }
   ]);
+  const [isTaxInclusive, setIsTaxInclusive] = useState<boolean>(false);
 
   // Reset items when quotation type changes — but NOT during edit initialization
   useEffect(() => {
@@ -311,6 +312,7 @@ export default function QuotationWizard({
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
         setGstPercent(String(fullQuote.metrics_summary?.gst_percent ?? '18'));
+        setIsTaxInclusive(Boolean(fullQuote.metrics_summary?.is_tax_inclusive));
         setStatus(fullQuote.status || 'Pending');
 
         if (fullQuote.metrics_summary?.sales_type) {
@@ -1066,18 +1068,36 @@ export default function QuotationWizard({
     preTaxSubtotal += totalExtraCharges;
 
     const gstRate = parseFloat(gstPercent) || 0;
-    const gstValue = preTaxSubtotal * (gstRate / 100);
-    const finalValue = preTaxSubtotal + gstValue;
-    const profit = preTaxSubtotal - expenses.total;
-    const avgSellingPrice = preTaxSubtotal / qty;
+    let subtotal = 0;
+    let gstValue = 0;
+    let finalValue = 0;
+
+    if (isTaxInclusive) {
+      // Contract Gross Price (MRP) already includes tax: calculate taxable base backwards
+      finalValue = Math.round(preTaxSubtotal * 100) / 100;
+      subtotal = Math.round((finalValue / (1 + gstRate / 100)) * 100) / 100;
+      gstValue = Math.round((finalValue - subtotal) * 100) / 100;
+    } else {
+      // Standard B2B pricing: add GST forwards on top of taxable subtotal
+      subtotal = Math.round(preTaxSubtotal * 100) / 100;
+      gstValue = Math.round(subtotal * (gstRate / 100) * 100) / 100;
+      finalValue = Math.round((subtotal + gstValue) * 100) / 100;
+    }
+
+    const profit = subtotal - expenses.total;
+    const avgSellingPrice = qty > 0 ? (isTaxInclusive ? finalValue : subtotal) / qty : 0;
+    const halfGst = Math.round((gstValue / 2) * 100) / 100;
 
     return {
       expenses: expenses.total,
-      subtotal: Math.round(preTaxSubtotal * 100) / 100,
-      gstValue: Math.round(gstValue * 100) / 100,
-      finalValue: Math.round(finalValue * 100) / 100,
+      subtotal,
+      gstValue,
+      finalValue,
       profit: Math.round(profit * 100) / 100,
-      avgSellingPrice: Math.round(avgSellingPrice * 100) / 100
+      avgSellingPrice: Math.round(avgSellingPrice * 100) / 100,
+      isTaxInclusive,
+      cgst: halfGst,
+      sgst: Math.round((gstValue - halfGst) * 100) / 100
     };
   };
 
@@ -1276,7 +1296,15 @@ export default function QuotationWizard({
         sizes: hasMeasurements ? orgAnalysis.size_distribution : {},
         cover_letter: coverLetter,
         gst_percent: parseFloat(gstPercent) || 0,
+        is_tax_inclusive: isTaxInclusive,
+        tax_amount: totals.gstValue,
         pre_tax_subtotal: totals.subtotal,
+        tax_breakdown: {
+          rate: parseFloat(gstPercent) || 0,
+          cgst: totals.cgst,
+          sgst: totals.sgst,
+          total_tax: totals.gstValue
+        },
         sales_type: salesType,
         customer_type: customerType,
         quotation_type: quotationType,
@@ -1389,6 +1417,7 @@ Forma Apparels Co.`;
     setTemplateLineItems([]);
     setCoverLetter('');
     setGstPercent('18');
+    setIsTaxInclusive(false);
     setOrgAnalysis({
       total_entities: 0,
       measured_count: 0,
@@ -1571,6 +1600,8 @@ Forma Apparels Co.`;
             quoteTotals={getCalculatedQuoteTotals()}
             gstPercent={gstPercent}
             setGstPercent={setGstPercent}
+            isTaxInclusive={isTaxInclusive}
+            setIsTaxInclusive={setIsTaxInclusive}
             extraCharges={extraCharges}
             setExtraCharges={setExtraCharges}
             status={status}

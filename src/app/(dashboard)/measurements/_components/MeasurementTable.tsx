@@ -28,6 +28,11 @@ interface MeasurementRecord {
   user_profiles?: {
     full_name: string;
   };
+  search_name?: string;
+  search_id?: string;
+  search_org?: string;
+  search_staff?: string;
+  search_all?: string;
 }
 
 export const MeasurementTable: React.FC = () => {
@@ -271,7 +276,7 @@ export const MeasurementTable: React.FC = () => {
                <span className="text-[10px] font-bold">{formattedDate} • {formattedTime}</span>
             </div>
             <p className="text-[9px] font-black text-[#8b6b5a] uppercase tracking-widest">
-               REF: {r.user_profiles?.full_name || 'System Auto'}
+               By: {r.user_profiles?.full_name || r.search_staff || 'Staff'}
             </p>
           </div>
         );

@@ -1,201 +1,292 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   Search, 
-  Filter, 
   Ruler, 
   Mail, 
   Phone, 
   ChevronRight, 
-  MapPin, 
-  Calendar,
-  Activity,
-  User,
-  History
+  Building2, 
+  Calendar, 
+  User, 
+  History, 
+  ShieldCheck, 
+  CheckCircle2, 
+  AlertCircle, 
+  Printer, 
+  Sparkles, 
+  ArrowRight, 
+  Loader2,
+  Tag,
+  ArrowLeft
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-
-interface Measurement {
-  label: string;
-  value: string;
-  unit: string;
-}
-
-interface StudentProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  class: string;
-  school: string;
-  joinDate: string;
-  measurements: Measurement[];
-  status: 'Complete' | 'Pending' | 'Update Required';
-}
-
-const mockProfiles: StudentProfile[] = [
-  {
-    id: 'STU-1001',
-    name: 'James Wilson',
-    email: 'james.w@greenwood.edu',
-    phone: '+1 234 567 8901',
-    class: 'Grade 5-A',
-    school: 'Greenwood High',
-    joinDate: 'Aug 2023',
-    status: 'Complete',
-    measurements: [
-      { label: 'Chest', value: '32', unit: 'in' },
-      { label: 'Waist', value: '28', unit: 'in' },
-      { label: 'Length', value: '24', unit: 'in' },
-      { label: 'Shoulder', value: '14', unit: 'in' },
-    ]
-  },
-  {
-    id: 'STU-1002',
-    name: 'Sophia Chen',
-    email: 's.chen@riverdale.org',
-    phone: '+1 234 567 8902',
-    class: 'Grade 3-B',
-    school: 'Riverdale Academy',
-    joinDate: 'Sept 2023',
-    status: 'Pending',
-    measurements: [
-      { label: 'Chest', value: '28', unit: 'in' },
-      { label: 'Waist', value: '24', unit: 'in' },
-    ]
-  },
-  {
-    id: 'STU-1003',
-    name: 'Liam Garcia',
-    email: 'l.garcia@mail.com',
-    phone: '+1 234 567 8903',
-    class: 'Grade 5-A',
-    school: 'Greenwood High',
-    joinDate: 'Aug 2023',
-    status: 'Update Required',
-    measurements: [
-      { label: 'Chest', value: '30', unit: 'in' },
-      { label: 'Waist', value: '26', unit: 'in' },
-      { label: 'Length', value: '22', unit: 'in' },
-    ]
-  }
-];
+import api from '@/lib/api';
+import Link from 'next/link';
 
 export default function StudentProfilesPage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [memberProfile, setMemberProfile] = useState<any>(null);
+  const [measurements, setMeasurements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setCurrentUser(parsed);
+        } catch (e) {
+          console.error('Failed to parse user', e);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfile() {
+      setLoading(true);
+      try {
+        const [membersRes, measRes] = await Promise.all([
+          api.get('/members').catch(() => ({ data: [] })),
+          api.get('/measurements').catch(() => ({ data: [] }))
+        ]);
+
+        if (active) {
+          const list = membersRes.data || [];
+          if (list.length > 0) {
+            setMemberProfile(list[0]);
+          }
+          setMeasurements(measRes.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to load profile data', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const roleLower = (currentUser?.role || '').toLowerCase();
+  const isClientEntity = Boolean(
+    currentUser?.memberId || ['entity', 'student', 'member'].includes(roleLower)
+  );
+
+  const fullName = memberProfile?.full_name || currentUser?.fullName || 'Student Member';
+  const admissionNo = memberProfile?.admission_no || currentUser?.admissionNo || '';
+  const orgName = memberProfile?.organizations?.name || currentUser?.organizationName || 'Institution';
+  const deptName = memberProfile?.departments?.name || currentUser?.departmentName || 'Standard';
+  const gender = memberProfile?.gender || currentUser?.gender || '';
+  const joinDate = memberProfile?.created_at
+    ? new Date(memberProfile.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Active';
+
+  const latestMeas = measurements.length > 0 ? measurements[0] : null;
+  const suggestedSize = latestMeas?.suggested_size || 'Standard';
+  const dynamicData = latestMeas?.dynamic_data && typeof latestMeas.dynamic_data === 'object'
+    ? latestMeas.dynamic_data
+    : {};
+  const isApproved = latestMeas?.status?.toLowerCase() === 'approved';
+
+  if (loading) {
+    return (
+      <div className="h-[75vh] flex items-center justify-center bg-[#F5F4F2]">
+        <Loader2 className="animate-spin text-[#CC9448]" size={42} />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-black italic tracking-tighter text-[#3a525d]">Student Profiles</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] opacity-70">Detailed records & biometric tracking</p>
+    <div className="space-y-8 max-w-[1200px] mx-auto animate-in fade-in duration-700 pb-16">
+      {/* Top Header & Breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#CC9448] transition-colors mb-1"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Dashboard</span>
+          </Link>
+          <h1 className="text-3xl font-black text-[#030303] tracking-tight">
+            {isClientEntity ? 'My Member Profile & ID' : 'Student Registry Profile'}
+          </h1>
+          <p className="text-xs text-zinc-500 font-medium">
+            Official uniform registration records, institutional credentials, and fitting biometrics.
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-            <Input
-              type="text"
-              placeholder="Search by name or ID..."
-              icon={<Search size={16} />}
-              className="md:w-64"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          <Button variant="secondary" className="p-3 rounded-2xl border-[#fce4d4] bg-white"><Filter size={18} /></Button>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') window.print();
+            }}
+            className="px-5 py-2.5 rounded-2xl bg-[#030303] hover:bg-[#CC9448] text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-black/10 active:scale-95"
+          >
+            <Printer size={15} />
+            <span>Print Student Pass</span>
+          </button>
         </div>
       </div>
 
-      {/* Profile Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {mockProfiles.map((profile) => (
-          <div key={profile.id} className="group bg-white rounded-[2.5rem] border border-[#fce4d4] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col md:flex-row">
-            
-            {/* Left: Basic Info Sidebar */}
-            <div className="w-full md:w-72 bg-[#fce4d4]/20 p-8 flex flex-col items-center border-b md:border-b-0 md:border-r border-[#fce4d4]">
-              <div className="relative mb-6">
-                <div className="w-24 h-24 rounded-3xl bg-white shadow-xl flex items-center justify-center p-1 border-2 border-[#2d8d9b]/10">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`} alt={profile.name} className="w-full h-full rounded-2xl object-cover" />
-                </div>
-                <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl border-4 border-white dark:border-zinc-900 flex items-center justify-center shadow-lg ${
-                  profile.status === 'Complete' ? 'bg-success' : profile.status === 'Pending' ? 'bg-[#f2994a]' : 'bg-error'
-                }`}>
-                  <Activity size={14} className="text-white" />
-                </div>
+      {/* Main Student Pass Card */}
+      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-xl overflow-hidden">
+        {/* Pass Header Banner */}
+        <div className="bg-[#030303] p-8 md:p-10 text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #CC9448 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              {/* Avatar Initial */}
+              <div className="w-20 h-20 rounded-3xl bg-white/10 border-2 border-[#CC9448] flex items-center justify-center text-2xl font-black text-[#CC9448] shadow-inner shrink-0">
+                {fullName.charAt(0).toUpperCase()}
               </div>
 
-              <div className="text-center space-y-1 mb-8">
-                <h3 className="text-xl font-black italic text-[#3a525d] leading-none">{profile.name}</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">{profile.id}</p>
-              </div>
-
-              <div className="w-full space-y-4">
-                <div className="flex items-center gap-3 text-zinc-500">
-                  <MapPin size={14} />
-                  <span className="text-[11px] font-bold">{profile.school}</span>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#CC9448]/20 text-[#CC9448] border border-[#CC9448]/30">
+                    Verified Member
+                  </span>
+                  {admissionNo && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-white/10 text-white/80">
+                      ID #{admissionNo}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-zinc-500">
-                  <Mail size={14} />
-                  <span className="text-[11px] font-bold truncate max-w-[160px]">{profile.email}</span>
-                </div>
-                <div className="flex items-center gap-3 text-zinc-500">
-                  <Phone size={14} />
-                  <span className="text-[11px] font-bold">{profile.phone}</span>
-                </div>
+                <h2 className="text-2xl md:text-3xl font-black tracking-tight">{fullName}</h2>
+                <p className="text-xs text-white/60 font-medium">
+                  {orgName} {deptName ? `• ${deptName}` : ''}
+                </p>
               </div>
             </div>
 
-            {/* Right: Measurements & Details */}
-            <div className="flex-1 p-8 flex flex-col">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-2">
-                  <Ruler size={18} className="text-[#2d8d9b]" />
-                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#3a525d]">Measurement Log</h4>
+            {/* Sizing Badge Pill */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 min-w-[180px] text-right">
+              <p className="text-[9px] font-black uppercase tracking-widest text-[#CC9448]">Assigned Uniform Size</p>
+              <p className="text-2xl font-black text-white mt-0.5">{suggestedSize}</p>
+              <p className="text-[10px] text-white/50 font-medium">
+                {isApproved ? 'Fitting Verified' : 'In Verification'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Pass Details Grid */}
+        <div className="p-8 md:p-10 space-y-8">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#030303] mb-4">
+              Institutional & Enrollment Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Building2 size={14} />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Institution</span>
                 </div>
-                <span className="text-[10px] font-black uppercase text-[#8b6b5a] bg-[#fce4d4] px-3 py-1 rounded-lg">Last Sync: Oct 12</span>
+                <p className="text-sm font-black text-[#030303] truncate" title={orgName}>{orgName}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                {profile.measurements.map((m, idx) => (
-                  <div key={idx} className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl group-hover:bg-[#2d8d9b]/5 group-hover:border-[#2d8d9b]/20 transition-all">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#8b6b5a] mb-1">{m.label}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-black text-[#3a525d]">{m.value}</span>
-                      <span className="text-[10px] font-bold text-[#6fa1ac]">{m.unit}</span>
-                    </div>
+              <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Users size={14} />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Class / Department</span>
+                </div>
+                <p className="text-sm font-black text-[#030303]">{deptName || 'Standard'}</p>
+              </div>
+
+              <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Tag size={14} />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Gender / Cut</span>
+                </div>
+                <p className="text-sm font-black text-[#030303] capitalize">{gender || 'Standard Cut'}</p>
+              </div>
+
+              <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                  <Calendar size={14} />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Registration Date</span>
+                </div>
+                <p className="text-sm font-black text-[#030303]">{joinDate}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Biometrics & Measurement Specification */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#030303]">
+                Captured Biometric Specifications
+              </h3>
+              <Link
+                href="/measurements/history"
+                className="text-xs font-bold text-[#CC9448] hover:underline flex items-center gap-1"
+              >
+                <span>Full Archive</span>
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+
+            {Object.keys(dynamicData).length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {Object.entries(dynamicData).map(([key, val]) => (
+                  <div key={key} className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4 text-center">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">{key}</p>
+                    <p className="text-xl font-black text-[#030303] mt-1">
+                      {String(val)} <span className="text-[10px] text-zinc-400 font-normal">in</span>
+                    </p>
                   </div>
                 ))}
-                {profile.measurements.length < 4 && (
-                   <div className="bg-zinc-50 border-2 border-dashed border-zinc-200 p-4 rounded-2xl flex items-center justify-center opacity-40">
-                     <span className="text-[9px] font-black uppercase">Incomplete</span>
-                   </div>
-                )}
               </div>
+            ) : (
+              <div className="p-8 rounded-2xl bg-zinc-50 border border-dashed border-zinc-200 text-center space-y-2">
+                <Ruler size={24} className="text-[#CC9448] mx-auto opacity-70" />
+                <p className="text-xs font-bold text-zinc-600">No measurements logged for this student yet.</p>
+                <p className="text-[11px] text-zinc-400">Measurements taken during fitting sessions will appear here.</p>
+              </div>
+            )}
+          </div>
 
-              <div className="mt-auto pt-6 border-t border-[#fce4d4]/50 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <div className="flex flex-col">
-                     <span className="text-[9px] font-black text-[#8b6b5a] uppercase">Current Class</span>
-                     <span className="text-xs font-bold text-[#3a525d]">{profile.class}</span>
-                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="secondary" className="text-[10px] font-black uppercase tracking-widest h-10 px-4 rounded-xl border-[#fce4d4] bg-white group/btn">
-                    <History size={14} className="mr-2 group-hover/btn:rotate-[-45deg] transition-transform" />
-                    History
-                  </Button>
-                  <Button className="text-[10px] font-black uppercase tracking-widest h-10 px-4 rounded-xl bg-[#2d8d9b] text-white shadow-lg hover:shadow-[#2d8d9b]/40">
-                    Full Detail
-                  </Button>
-                </div>
+          {/* Fitting Notes & Status Summary */}
+          {latestMeas?.notes && (
+            <div className="bg-[#FAF7F2] border border-[#CC9448]/20 rounded-2xl p-5 flex items-start gap-3.5">
+              <Sparkles size={18} className="text-[#CC9448] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#CC9448]">Tailoring & Fitting Remarks</p>
+                <p className="text-xs text-zinc-700 font-medium mt-1 leading-relaxed">{latestMeas.notes}</p>
               </div>
             </div>
+          )}
 
+          {/* Quick Actions Footer */}
+          <div className="pt-4 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-4">
+            <Link
+              href="/dashboard"
+              className="text-xs font-bold text-zinc-500 hover:text-[#030303] transition-colors"
+            >
+              ← Return to Dashboard
+            </Link>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/measurements/history"
+                className="px-5 py-2.5 rounded-xl bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-[#CC9448]/20"
+              >
+                Measurement Records
+              </Link>
+            </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
