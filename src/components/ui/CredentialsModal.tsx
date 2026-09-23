@@ -10,6 +10,7 @@ interface CredentialsModalProps {
   onClose: () => void;
   data: {
     username?: string;
+    email?: string;
     password?: string;
     full_name?: string;
   } | null;
@@ -21,7 +22,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({ isOpen, onCl
   if (!isOpen || !data) return null;
 
   const handleCopy = () => {
-    const text = `Entity: ${data.full_name}\nUsername: ${data.username || 'Unchanged'}\nPassword: ${data.password || 'Unchanged'}`;
+    const text = `Entity: ${data.full_name}\nUsername: ${data.username || 'Unchanged'}${data.email ? `\nEmail: ${data.email}` : ''}\nPassword: ${data.password || 'Unchanged'}`;
     navigator.clipboard.writeText(text);
     setHasCopied(true);
     toast.success('Credentials copied!');
@@ -52,6 +53,12 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({ isOpen, onCl
                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">New Username</label>
                   <p className="text-sm font-black text-[#3a525d]">{data.username}</p>
+               </div>
+             )}
+             {data.email && (
+               <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Account Email</label>
+                  <p className="text-sm font-black text-[#3a525d]">{data.email}</p>
                </div>
              )}
              {data.password && (

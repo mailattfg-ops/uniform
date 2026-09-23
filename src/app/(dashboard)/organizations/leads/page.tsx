@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, UserCheck, Eye, Phone, Clock, Briefcase, FileText, X, Check, MessageSquarePlus } from 'lucide-react';
+import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, UserCheck, Eye, Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ interface Lead {
   lead_code: string;
   name: string;
   phone: string | null;
+  email?: string | null;
   industry_id: number | null;
   industries?: { id: number; name: string } | null;
   address: string | null;
@@ -90,6 +91,7 @@ export default function LeadsRegistryPage() {
     const payload = {
       name: formData.name,
       phone: formData.phone || null,
+      email: formData.email?.trim() || null,
       industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
       address: formData.address || null,
       assigned_staff_id: formData.assigned_staff_id ? parseInt(formData.assigned_staff_id, 10) : null,
@@ -140,6 +142,7 @@ export default function LeadsRegistryPage() {
         data: {
           full_name: response.data.organization.name,
           username: response.data.credentials.username,
+          email: response.data.credentials.email,
           password: response.data.credentials.password
         }
       });
@@ -165,6 +168,14 @@ export default function LeadsRegistryPage() {
       placeholder: 'e.g. +91 98765 43210',
       required: false,
       defaultValue: editingLead?.phone || undefined
+    },
+    {
+      name: 'email',
+      label: 'Email Address',
+      type: 'email',
+      placeholder: 'e.g. contact@acme.com',
+      required: false,
+      defaultValue: editingLead?.email || undefined
     },
     {
       name: 'industry_id',
@@ -240,6 +251,12 @@ export default function LeadsRegistryPage() {
                 <>
                   <span className="w-1 h-1 rounded-full bg-zinc-300" />
                   <p className="text-[9px] font-bold text-zinc-500">{l.phone}</p>
+                </>
+              )}
+              {l.email && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                  <p className="text-[9px] font-medium text-zinc-500 lowercase">{l.email}</p>
                 </>
               )}
               <span className="w-1 h-1 rounded-full bg-zinc-300" />
@@ -682,8 +699,17 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
               </div>
             </div>
 
-            {/* Industry */}
+            {/* Email */}
             <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Email Address</label>
+              <div className="flex items-center gap-2 mt-1">
+                <Mail size={14} className="text-[#2d8d9b]" />
+                <p className="text-sm font-bold text-[#3a525d] truncate">{lead.email || 'No Email Provided'}</p>
+              </div>
+            </div>
+
+            {/* Industry */}
+            <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 col-span-1 md:col-span-2">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Industry Sector</label>
               <div className="flex items-center gap-2 mt-1">
                 <Briefcase size={14} className="text-[#2d8d9b]" />
