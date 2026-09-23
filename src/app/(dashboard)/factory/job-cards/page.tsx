@@ -13,6 +13,7 @@ interface QuotationItem {
   product_type_name?: string;
   product_types?: { name: string };
   design_number?: string;
+  art_number?: string;
   quantity: number;
   size_breakdown?: any;
   unit_price?: number;
@@ -101,7 +102,8 @@ export default function JobCardsPage() {
           order_id: selectedOrder.id,
           item_id: item.id,
           item_name: item.product_types?.name || `Item #${item.id}`,
-          design_number: item.size_breakdown?.design_number || '',
+          design_number: item.size_breakdown?.design_number || item.design_number || '',
+          art_number: item.size_breakdown?.art_number || item.art_number || '',
           quantity: item.quantity,
           size_breakdown: item.size_breakdown || {}
         });
@@ -323,11 +325,16 @@ export default function JobCardsPage() {
                 <div>
                   <span className="font-mono text-[11px] font-bold text-slate-400">{jc.job_card_no}</span>
                   <h3 className="text-base font-bold text-slate-900 mt-0.5 leading-tight">{jc.item_name}</h3>
-                  {jc.design_number && (
-                    <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-medium mt-1 inline-block">
-                      {jc.design_number}
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                    {(jc.art_number || jc.size_breakdown?.art_number || (jc.design_number && jc.design_number.includes(' - ') ? jc.design_number.split(' - ')[0] : null)) && (
+                      <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-200/60 px-2 py-0.5 rounded-md font-mono font-bold">
+                        Art: {jc.art_number || jc.size_breakdown?.art_number || (jc.design_number && jc.design_number.includes(' - ') ? jc.design_number.split(' - ')[0] : '—')}
+                      </span>
+                    )}
+                    <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200/60 px-2 py-0.5 rounded-md font-mono font-bold">
+                      DNS: {jc.clean_design_number || (jc.design_number && jc.design_number.startsWith('DNS-') ? jc.design_number : (jc.size_breakdown?.design_number && jc.size_breakdown.design_number.startsWith('DNS-') ? jc.size_breakdown.design_number : 'DNS-STANDARD'))}
                     </span>
-                  )}
+                  </div>
                 </div>
                 <StatusBadge status={jc.status} size="sm" />
               </div>
@@ -336,6 +343,11 @@ export default function JobCardsPage() {
                 <p><span className="font-semibold text-slate-700">Order:</span> {jc.orders?.order_no || `ORD-#${jc.order_id}`}</p>
                 <p><span className="font-semibold text-slate-700">Qty:</span> {jc.quantity} pcs</p>
                 <p><span className="font-semibold text-slate-700">PO Status:</span> {jc.po_handler_action}</p>
+                {((jc.button || jc.size_breakdown?.button_name) || (jc.thread || jc.size_breakdown?.thread_name)) && (
+                  <p className="text-slate-600 text-[11px] pt-1 border-t border-slate-200/60">
+                    <span className="font-semibold text-slate-700">Trims:</span> {jc.button?.name || jc.size_breakdown?.button_name || 'Buttons'} {jc.button?.count || jc.size_breakdown?.button_count ? `(${jc.button?.count || jc.size_breakdown?.button_count} pcs)` : ''} • {jc.thread?.name || jc.size_breakdown?.thread_name || 'Thread'}
+                  </p>
+                )}
                 {jc.measurement_readiness && jc.measurement_readiness !== 'Ready' && (
                   <p className="text-amber-700 font-medium">⚠ {jc.measurement_readiness}</p>
                 )}
@@ -512,7 +524,14 @@ export default function JobCardsPage() {
                         <span className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-[10px] flex-shrink-0">{idx + 1}</span>
                         <div>
                           <p className="font-bold text-slate-800">{item.product_types?.name || `Item #${item.id}`}</p>
-                          {item.size_breakdown?.design_number && <p className="text-slate-400 font-mono">{item.size_breakdown.design_number}</p>}
+                          <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono mt-0.5">
+                            {(item.size_breakdown?.art_number || item.art_number) && (
+                              <span className="text-sky-600 font-semibold">Art: {item.size_breakdown?.art_number || item.art_number}</span>
+                            )}
+                            {item.size_breakdown?.design_number && (
+                              <span className="text-indigo-600 font-semibold">DNS: {item.size_breakdown.design_number}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <span className="font-bold text-slate-600 flex-shrink-0">{item.quantity} pcs</span>

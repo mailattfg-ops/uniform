@@ -4,6 +4,10 @@ export interface JobCardPrintData {
   order_id: number;
   item_name: string;
   design_number: string;
+  art_number?: string;
+  clean_design_number?: string;
+  button?: any;
+  thread?: any;
   quantity: number;
   status: string;
   po_handler_action: string;
@@ -127,80 +131,99 @@ export function extractDressMeasurements(
 ): { label: string; value: string }[] {
   if (!rawMeas || typeof rawMeas !== 'object') return [];
 
+  // If double-wrapped in custom_measurements
+  let sourceObj: Record<string, any> = rawMeas;
+  if (sourceObj.custom_measurements && typeof sourceObj.custom_measurements === 'object' && !Array.isArray(sourceObj.custom_measurements)) {
+    sourceObj = { ...sourceObj, ...sourceObj.custom_measurements };
+  }
+
   const cardNames = [
     jc.size_breakdown?.product_name,
     jc.item_name,
     jc.size_breakdown?.product_type_name,
-    jc.size_breakdown?.category
+    jc.size_breakdown?.category,
+    sourceObj._target_dress,
+    sourceObj._garment
   ]
     .filter(Boolean)
     .map(s => String(s).toLowerCase().trim());
 
-  const topKeywords = ['shirt', 't-shirt', 'tshirt', 't shirt', 'polo', 'shirting', 'top', 'kurti', 'blazer', 'coat', 'jacket', 'hoodie', 'sweater', 'vest', 'waistcoat'];
-  const bottomKeywords = ['pant', 'pants', 'trouser', 'trousers', 'suiting', 'bottom', 'skirt', 'salwar', 'short', 'shorts', 'track pant', 'cargo'];
+  const topKeywords = ['shirt', 't-shirt', 'tshirt', 't shirt', 'polo', 'shirting', 'top', 'kurti', 'blazer', 'coat', 'jacket', 'hoodie', 'sweater', 'vest', 'waistcoat', 'blouse', 'tunic'];
+  const bottomKeywords = ['pant', 'pants', 'trouser', 'trousers', 'suiting', 'bottom', 'skirt', 'salwar', 'short', 'shorts', 'track pant', 'cargo', 'jeans', 'pyjama', 'pajama'];
 
   const isCardTop = cardNames.some(cn => topKeywords.some(kw => cn.includes(kw)));
   const isCardBottom = cardNames.some(cn => bottomKeywords.some(kw => cn.includes(kw)));
 
-  const topMetricNames = new Set([
-    'chest', 'bust', 'shoulder', 'sleeve', 'sleeve length', 'top length', 'length',
-    'collar', 'neck', 'armhole', 'bicep', 'cuff', 'front cross', 'back cross', 'height', 'body length'
+  // Strictly exclusive to leg/bottom garments (never for tops)
+  const bottomExclusive = new Set([
+    'inseam', 'outseam', 'thigh', 'knee', 'bottom hem', 'ankle', 'crotch', 'rise', 'leg length', 'leg opening', 'calf'
   ]);
-  const bottomMetricNames = new Set([
-    'waist', 'hip', 'bottom length', 'inseam', 'outseam', 'thigh', 'knee', 'bottom hem', 'hem', 'rise', 'crotch', 'leg length', 'height'
+  // Strictly exclusive to torso/arms (never for pants/bottoms)
+  const topExclusive = new Set([
+    'chest', 'bust', 'shoulder', 'sleeve', 'sleeve length', 'top length', 'collar', 'neck', 'armhole', 'bicep', 'cuff', 'front cross', 'back cross'
   ]);
 
-  // Check if rawMeas contains nested garment objects (e.g. { "Polo T-shirt (1-4J101)": {...}, "pants (1-5K012)": {...} })
-  const entries = Object.entries(rawMeas).filter(([k]) => !k.startsWith('_'));
-  const nestedEntries = entries.filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v));
+  // Reserved keys that are metadata/objects, NOT garment group containers
+  const reservedKeys = new Set([
+    'strategy', 'chart_id', 'chart_name', 'chart_unit', 'selected_size', 'assigned_dimensions',
+    'fabric', 'fabrics', 'button', 'thread', 'custom_measurements'
+  ]);
 
-  let targetData: Record<string, any> = {};
+  // Identify true nested garment groups (e.g. { "shirt (1-4J012)": {...}, "pants (1-5K012)": {...} })
+  const garmentGroups = Object.entries(sourceObj).filter(([k, v]) => {
+    if (k.startsWith('_')) return false;
+    if (reservedKeys.has(k.toLowerCase())) return false;
+    return v && typeof v === 'object' && !Array.isArray(v);
+  });
 
-  if (nestedEntries.length > 0) {
-    // 1. Direct match by product/garment name
+  let targetData: Record<string, any> = sourceObj;
+  let isGroupMatched = false;
+
+  if (garmentGroups.length > 0) {
+    // 1. Direct match by garment/product name
     let matchedGroup: Record<string, any> | null = null;
-    for (const [groupName, groupData] of nestedEntries) {
+    for (const [groupName, groupData] of garmentGroups) {
       const gNameLower = groupName.toLowerCase().trim();
       const directMatch = cardNames.some(cn => gNameLower.includes(cn) || cn.includes(gNameLower));
       if (directMatch) {
         matchedGroup = groupData;
+        isGroupMatched = true;
         break;
       }
     }
 
     // 2. Category alignment (Top vs Bottom)
     if (!matchedGroup) {
-      for (const [groupName, groupData] of nestedEntries) {
+      for (const [groupName, groupData] of garmentGroups) {
         const gNameLower = groupName.toLowerCase().trim();
         const isGroupTop = topKeywords.some(kw => gNameLower.includes(kw));
         const isGroupBottom = bottomKeywords.some(kw => gNameLower.includes(kw));
 
         if (isCardTop && isGroupTop && !isGroupBottom) {
           matchedGroup = groupData;
+          isGroupMatched = true;
           break;
         }
         if (isCardBottom && isGroupBottom && !isGroupTop) {
           matchedGroup = groupData;
+          isGroupMatched = true;
           break;
         }
       }
     }
 
-    if (!matchedGroup && nestedEntries.length === 1) {
-      matchedGroup = nestedEntries[0][1];
+    // 3. Fallback: If only one garment group exists, it belongs to this garment
+    if (!matchedGroup && garmentGroups.length === 1) {
+      matchedGroup = garmentGroups[0][1];
+      isGroupMatched = true;
     }
 
     if (matchedGroup) {
       targetData = matchedGroup;
     }
-  } else {
-    targetData = rawMeas;
   }
 
-  // Flatten and filter measurements
   const result: { label: string; value: string }[] = [];
-
-  // Fallback standard chart mappings (ensures historical records show dimensions)
   const standardChartSpecs: Record<string, Record<string, string>> = {
     'chest (to fit)': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
     'body length': { 'short': '26-27 in', 'standard': '28-29 in', 'long': '30-31 in' },
@@ -209,20 +232,22 @@ export function extractDressMeasurements(
   };
 
   // 1. Process US Size Chart selected_size if present
-  if (targetData.selected_size && typeof targetData.selected_size === 'object') {
-    Object.entries(targetData.selected_size).forEach(([k, v]) => {
+  const selectedSizeObj = targetData.selected_size || sourceObj.selected_size;
+  const assignedDimsObj = targetData.assigned_dimensions || sourceObj.assigned_dimensions || {};
+
+  if (selectedSizeObj && typeof selectedSizeObj === 'object' && !Array.isArray(selectedSizeObj)) {
+    Object.entries(selectedSizeObj).forEach(([k, v]) => {
       if (v === undefined || v === null || v === '') return;
       const kLower = k.toLowerCase().trim();
 
-      // Strictly isolate by garment category if card is clearly a Top or a Bottom
-      if (isCardTop && !isCardBottom) {
-        if (bottomMetricNames.has(kLower) || bottomKeywords.some(kw => kLower.includes(kw))) return;
-      } else if (isCardBottom && !isCardTop) {
-        if (topMetricNames.has(kLower) || topKeywords.some(kw => kLower.includes(kw))) return;
+      // Only filter out strictly incompatible metrics if not already inside a matched group
+      if (!isGroupMatched) {
+        if (isCardTop && !isCardBottom && bottomExclusive.has(kLower)) return;
+        if (isCardBottom && !isCardTop && topExclusive.has(kLower)) return;
       }
 
       const strSize = String(v).trim();
-      const assigned = targetData.assigned_dimensions?.[k] || standardChartSpecs[kLower]?.[strSize.toLowerCase()];
+      const assigned = assignedDimsObj[k] || standardChartSpecs[kLower]?.[strSize.toLowerCase()];
       const displayVal = assigned ? `${strSize} (${assigned})` : strSize;
 
       result.push({
@@ -236,35 +261,26 @@ export function extractDressMeasurements(
   Object.entries(targetData).forEach(([k, v]) => {
     if (
       k.startsWith('_') ||
-      k === 'strategy' ||
-      k === 'chart_id' ||
-      k === 'chart_name' ||
-      k === 'chart_unit' ||
-      k === 'selected_size' ||
-      k === 'assigned_dimensions' ||
+      reservedKeys.has(k.toLowerCase()) ||
       v === undefined ||
       v === null ||
-      v === ''
+      v === '' ||
+      typeof v === 'object'
     ) {
       return;
     }
 
     const kLower = k.toLowerCase().trim();
 
-    // Strictly isolate by garment category if card is clearly a Top or a Bottom
-    if (isCardTop && !isCardBottom) {
-      if (bottomMetricNames.has(kLower) || bottomKeywords.some(kw => kLower.includes(kw))) {
-        return;
-      }
-    } else if (isCardBottom && !isCardTop) {
-      if (topMetricNames.has(kLower) || topKeywords.some(kw => kLower.includes(kw))) {
-        return;
-      }
+    // If data was NOT in a dedicated matched group, only filter strictly incompatible metrics
+    if (!isGroupMatched) {
+      if (isCardTop && !isCardBottom && bottomExclusive.has(kLower)) return;
+      if (isCardBottom && !isCardTop && topExclusive.has(kLower)) return;
     }
 
     // Format value
     const strVal = String(v).trim();
-    const hasUnit = strVal.endsWith('"') || strVal.toLowerCase().endsWith('in') || strVal.toLowerCase().endsWith('cm');
+    const hasUnit = strVal.endsWith('"') || strVal.toLowerCase().endsWith('in') || strVal.toLowerCase().endsWith('cm') || strVal.endsWith("'");
     const formattedVal = hasUnit ? strVal : `${strVal}"`;
 
     result.push({
@@ -302,6 +318,69 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
   // Raw Material & Fabric Allocation Rows (Main Fabric & Attachment Fabrics)
   const firstPiece = childPieces[0];
   const sb = jc.size_breakdown || {};
+  const pieceCustom = firstPiece?.custom_measurements || {};
+  const pieceFabric = pieceCustom._fabric || {};
+
+  // Resolve Art Number (Pattern Master)
+  let artNumber =
+    jc.art_number ||
+    sb.art_number ||
+    pieceCustom._art_number ||
+    pieceFabric.art_number ||
+    null;
+
+  // Resolve Design Number (DNS Code)
+  let designNumber =
+    (jc.clean_design_number && jc.clean_design_number.startsWith('DNS-') ? jc.clean_design_number : null) ||
+    (jc.design_number && jc.design_number.startsWith('DNS-') ? jc.design_number : null) ||
+    (sb.design_number && sb.design_number.startsWith('DNS-') ? sb.design_number : null) ||
+    pieceCustom._design_number ||
+    pieceFabric.design_number ||
+    null;
+
+  // Backward compatibility: If jc.design_number contains the concatenated string "1-4J012 - shirt - cotton"
+  if (jc.design_number && jc.design_number.includes(' - ')) {
+    const parts = jc.design_number.split(' - ');
+    if (!artNumber && parts[0]) {
+      artNumber = parts[0].trim();
+    }
+    if (!designNumber) {
+      designNumber = 'DNS-STANDARD';
+    }
+  } else if (jc.design_number && /^([0-9]+-[A-Za-z0-9]+)/.test(jc.design_number.trim()) && !jc.design_number.startsWith('DNS-')) {
+    if (!artNumber) artNumber = jc.design_number.trim();
+    if (!designNumber) designNumber = 'DNS-STANDARD';
+  }
+
+  if (!designNumber) designNumber = 'DNS-STANDARD';
+
+  // Resolve Trims & Fasteners (Buttons & Thread)
+  const buttonObj =
+    jc.button ||
+    sb.button ||
+    pieceCustom._button ||
+    pieceFabric.button ||
+    null;
+  const buttonId = buttonObj?.id || sb.button_id || null;
+  const buttonCode = buttonObj?.code || sb.button_code || (buttonId ? `BTN-${buttonId}` : 'BTN-STD');
+  const buttonName = buttonObj?.name || sb.button_name || (buttonId ? `Button Spec #${buttonId}` : 'Standard Matching Buttons');
+  const buttonCountPerPc = parseFloat(String(buttonObj?.count !== undefined && buttonObj?.count !== null ? buttonObj.count : (sb.button_count || 0))) || 0;
+  const totalButtonsReq = Math.ceil(jc.quantity * buttonCountPerPc);
+
+  const threadObj =
+    jc.thread ||
+    sb.thread ||
+    pieceCustom._thread ||
+    pieceFabric.thread ||
+    null;
+  const threadId = threadObj?.id || sb.thread_id || null;
+  const threadCode = threadObj?.code || sb.thread_code || (threadId ? `THR-${threadId}` : 'THR-STD');
+  const threadName = threadObj?.name || sb.thread_name || (threadId ? `Thread Spec #${threadId}` : 'Color Matched Stitching Thread');
+  const threadCountPerPc = parseFloat(String(threadObj?.count !== undefined && threadObj?.count !== null ? threadObj.count : (sb.thread_count || 0))) || 0;
+  const totalThreadUnits = threadCountPerPc > 0
+    ? `${Math.max(1, Math.ceil(jc.quantity * threadCountPerPc))} units`
+    : `${Math.max(1, Math.ceil(jc.quantity * 0.05))} spools (est.)`;
+
   const fabricRowsList: Array<{
     role: string;
     badgeBg: string;
@@ -807,10 +886,14 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
       </div>
     </div>
 
-    <div class="info-grid" style="margin-top: -4px;">
+    <div class="info-grid" style="grid-template-columns: repeat(6, 1fr); margin-top: -4px;">
       <div class="info-card">
-        <div class="info-label">Design Number (DNS)</div>
-        <div class="info-value" style="font-family: monospace;">${jc.design_number || 'DNS-STANDARD'}</div>
+        <div class="info-label">Art # (Pattern Master)</div>
+        <div class="info-value" style="font-family: monospace; color: #0284c7; font-weight: 800;">${artNumber || '—'}</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Design # (DNS Code)</div>
+        <div class="info-value" style="font-family: monospace; color: #4338ca; font-weight: 800;">${designNumber}</div>
       </div>
       <div class="info-card">
         <div class="info-label">Quotation Ref</div>
@@ -826,7 +909,7 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
       </div>
       <div class="info-card">
         <div class="info-label">Readiness Gate</div>
-        <div class="info-value" style="color: ${jc.measurement_readiness === 'Ready' && jc.size_breakdown?.material_readiness !== 'Awaiting PO Fabric' ? '#047857' : '#b45309'}; font-size: 11px;">
+        <div class="info-value" style="color: ${jc.measurement_readiness === 'Ready' && jc.size_breakdown?.material_readiness !== 'Awaiting PO Fabric' ? '#047857' : '#b45309'}; font-size: 10px;">
           ${jc.measurement_readiness || 'Verified'} • ${jc.size_breakdown?.material_readiness || 'Fabric Ready'}
         </div>
       </div>
@@ -864,6 +947,44 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
         </thead>
         <tbody>
           ${materialsRowsHtml}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Trims & Fasteners Allocation (Buttons & Thread) -->
+    <div class="bom-box">
+      <div class="box-title">
+        <span>Trims, Fasteners &amp; Thread Allocation (Sewing &amp; Finishing Floor)</span>
+        <span style="color: #4338ca; font-weight: 800;">Hardware &amp; Sewing Line BOM</span>
+      </div>
+      <table class="bom-table">
+        <thead>
+          <tr>
+            <th style="width: 16%;">Component Role</th>
+            <th style="width: 16%;">Trim Code / Spec #</th>
+            <th style="width: 32%;">Item Description &amp; Details</th>
+            <th style="width: 12%;">Unit Rate / Pc</th>
+            <th style="width: 12%;">Net Required</th>
+            <th style="width: 12%;">Store Issue Sign</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="background: #334155; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">BUTTONS</span></td>
+            <td style="font-family: monospace; font-weight: 800; color: #0f172a;">${buttonCode}</td>
+            <td><strong>${buttonName}</strong></td>
+            <td style="font-weight: 700;">${buttonCountPerPc > 0 ? `${buttonCountPerPc} pcs / pc` : '—'}</td>
+            <td><strong style="color: #047857; font-size: 11px;">${totalButtonsReq > 0 ? `${totalButtonsReq} pcs` : 'Standard Pack'}</strong></td>
+            <td style="color: #64748b;">[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</td>
+          </tr>
+          <tr>
+            <td><span style="background: #0284c7; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">STITCHING THREAD</span></td>
+            <td style="font-family: monospace; font-weight: 800; color: #0f172a;">${threadCode}</td>
+            <td><strong>${threadName}</strong></td>
+            <td style="font-weight: 700;">${threadCountPerPc > 0 ? `${threadCountPerPc} unit / pc` : 'Color Match'}</td>
+            <td><strong style="color: #0284c7; font-size: 11px;">${totalThreadUnits}</strong></td>
+            <td style="color: #64748b;">[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -1019,7 +1140,7 @@ export function compileGarmentStickersHTML(
       let measSummary = '';
       if (isCustom && card.custom_measurements) {
         const dressMeasurements = extractDressMeasurements(card.custom_measurements, jc);
-        measSummary = dressMeasurements.slice(0, 4).map(m => `${m.label}: ${m.value}`).join(' • ');
+        measSummary = dressMeasurements.map(m => `${m.label}: ${m.value}`).join(' • ');
       }
 
       // Resolve Main Fabric details
@@ -1464,6 +1585,55 @@ export function compilePersonWiseTravelerSheetsHTML(
   const fabricName = jc.size_breakdown?.fabric_name || 'Standard Production Mill Fabric';
   const parentBarcodeSVG = generateInlineBarcodeSVG(jc.job_card_no, 42, 1.4);
 
+  const sb = jc.size_breakdown || {};
+  const firstChild = childCards[0];
+  const firstChildCustom = firstChild?.custom_measurements || {};
+  const firstChildFabric = firstChildCustom._fabric || {};
+
+  let artNumber =
+    jc.art_number ||
+    sb.art_number ||
+    firstChildCustom._art_number ||
+    firstChildFabric.art_number ||
+    null;
+
+  let designNumber =
+    (jc.clean_design_number && jc.clean_design_number.startsWith('DNS-') ? jc.clean_design_number : null) ||
+    (jc.design_number && jc.design_number.startsWith('DNS-') ? jc.design_number : null) ||
+    (sb.design_number && sb.design_number.startsWith('DNS-') ? sb.design_number : null) ||
+    firstChildCustom._design_number ||
+    firstChildFabric.design_number ||
+    null;
+
+  if (jc.design_number && jc.design_number.includes(' - ')) {
+    const parts = jc.design_number.split(' - ');
+    if (!artNumber && parts[0]) artNumber = parts[0].trim();
+    if (!designNumber) designNumber = 'DNS-STANDARD';
+  } else if (jc.design_number && /^([0-9]+-[A-Za-z0-9]+)/.test(jc.design_number.trim()) && !jc.design_number.startsWith('DNS-')) {
+    if (!artNumber) artNumber = jc.design_number.trim();
+    if (!designNumber) designNumber = 'DNS-STANDARD';
+  }
+  if (!designNumber) designNumber = 'DNS-STANDARD';
+
+  const defaultButton =
+    jc.button ||
+    sb.button ||
+    firstChildCustom._button ||
+    firstChildFabric.button ||
+    null;
+  const buttonCode = defaultButton?.code || sb.button_code || (sb.button_id ? `BTN-${sb.button_id}` : 'BTN-STD');
+  const buttonName = defaultButton?.name || sb.button_name || 'Standard Matching Buttons';
+  const buttonCountPerPc = parseFloat(String(defaultButton?.count !== undefined && defaultButton?.count !== null ? defaultButton.count : (sb.button_count || 0))) || 0;
+
+  const defaultThread =
+    jc.thread ||
+    sb.thread ||
+    firstChildCustom._thread ||
+    firstChildFabric.thread ||
+    null;
+  const threadCode = defaultThread?.code || sb.thread_code || (sb.thread_id ? `THR-${sb.thread_id}` : 'THR-STD');
+  const threadName = defaultThread?.name || sb.thread_name || 'Color Matched Stitching Thread';
+
   // Group child pieces by person (or by standard size if standard mode)
   const isCustomMode =
     childCards.some((c) => c.item_type === 'custom') ||
@@ -1590,14 +1760,18 @@ export function compilePersonWiseTravelerSheetsHTML(
           </div>
 
           <!-- Garment & Order Specs -->
-          <div class="spec-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 8px;">
+          <div class="spec-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 8px;">
             <div class="spec-item">
               <span class="spec-label">Garment Item</span>
               <span class="spec-value">${jc.item_name}</span>
             </div>
             <div class="spec-item">
-              <span class="spec-label">Design / DNS Code</span>
-              <span class="spec-value" style="font-family: monospace;">${jc.design_number || 'DNS-STANDARD'}</span>
+              <span class="spec-label">Art # (Pattern)</span>
+              <span class="spec-value" style="font-family: monospace; color: #0284c7; font-weight: 800;">${first.custom_measurements?._art_number || fMeta.art_number || artNumber || '—'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Design # (DNS)</span>
+              <span class="spec-value" style="font-family: monospace; color: #4338ca; font-weight: 800;">${first.custom_measurements?._design_number || fMeta.design_number || designNumber}</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Parent Job Card</span>
@@ -1611,7 +1785,7 @@ export function compilePersonWiseTravelerSheetsHTML(
 
           <!-- Fabric & Material Specifications (Main & Attachment Fabrics) -->
           <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">Fabric Specifications &amp; Material Cut Lengths (Main &amp; Attachments)</div>
-          <table class="bom-table" style="margin-bottom: 10px; width: 100%;">
+          <table class="bom-table" style="margin-bottom: 8px; width: 100%;">
             <thead>
               <tr style="background: #f1f5f9;">
                 <th style="width: 24%; text-align: left;">Fabric Role / Component</th>
@@ -1643,6 +1817,33 @@ export function compilePersonWiseTravelerSheetsHTML(
                 <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
+            </tbody>
+          </table>
+
+          <!-- Trims & Fasteners (Buttons & Thread) -->
+          <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">Trims &amp; Sewing Fasteners (Buttons &amp; Thread)</div>
+          <table class="bom-table" style="margin-bottom: 10px; width: 100%;">
+            <thead>
+              <tr style="background: #f1f5f9;">
+                <th style="width: 24%; text-align: left;">Trim Role</th>
+                <th style="width: 20%; text-align: left;">Trim Code / Spec</th>
+                <th style="width: 36%; text-align: left;">Item Description</th>
+                <th style="width: 20%; text-align: right;">Unit Allocation / Pc</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="background: #334155; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">BUTTONS</span></td>
+                <td style="font-family: monospace; font-weight: 800; color: #0f172a;">${(first.custom_measurements?._button?.code || fMeta.button?.code || buttonCode)}</td>
+                <td style="font-weight: 700; color: #1e293b;">${(first.custom_measurements?._button?.name || fMeta.button?.name || buttonName)}</td>
+                <td style="text-align: right; font-weight: 800; color: #047857;">${(first.custom_measurements?._button?.count !== undefined ? first.custom_measurements._button.count : buttonCountPerPc) > 0 ? `${(first.custom_measurements?._button?.count !== undefined ? first.custom_measurements._button.count : buttonCountPerPc)} pcs / pc` : 'Standard Pack'}</td>
+              </tr>
+              <tr>
+                <td><span style="background: #0284c7; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">STITCHING THREAD</span></td>
+                <td style="font-family: monospace; font-weight: 800; color: #0f172a;">${(first.custom_measurements?._thread?.code || fMeta.thread?.code || threadCode)}</td>
+                <td style="font-weight: 700; color: #1e293b;">${(first.custom_measurements?._thread?.name || fMeta.thread?.name || threadName)}</td>
+                <td style="text-align: right; font-weight: 800; color: #0284c7;">Color Matched Finish</td>
+              </tr>
             </tbody>
           </table>
 
@@ -1842,14 +2043,18 @@ export function compilePersonWiseTravelerSheetsHTML(
           </div>
 
           <!-- Garment & Order Identifiers -->
-          <div class="spec-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 8px;">
+          <div class="spec-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 8px;">
             <div class="spec-item">
               <span class="spec-label">Garment Item</span>
               <span class="spec-value">${jc.item_name}</span>
             </div>
             <div class="spec-item">
-              <span class="spec-label">Design / DNS Code</span>
-              <span class="spec-value" style="font-family: monospace;">${jc.design_number || 'DNS-STANDARD'}</span>
+              <span class="spec-label">Art # (Pattern)</span>
+              <span class="spec-value" style="font-family: monospace; color: #0284c7; font-weight: 800;">${first.custom_measurements?._art_number || fMeta.art_number || artNumber || '—'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Design # (DNS)</span>
+              <span class="spec-value" style="font-family: monospace; color: #4338ca; font-weight: 800;">${first.custom_measurements?._design_number || fMeta.design_number || designNumber}</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Parent Job Card</span>
@@ -1863,7 +2068,7 @@ export function compilePersonWiseTravelerSheetsHTML(
 
           <!-- Fabric & Material Specifications (Main & Attachment Fabrics) -->
           <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">Fabric Specifications &amp; Material Cut Lengths (Main &amp; Attachments)</div>
-          <table class="bom-table" style="margin-bottom: 10px; width: 100%;">
+          <table class="bom-table" style="margin-bottom: 8px; width: 100%;">
             <thead>
               <tr style="background: #f1f5f9;">
                 <th style="width: 24%; text-align: left;">Fabric Role / Component</th>
@@ -1895,6 +2100,33 @@ export function compilePersonWiseTravelerSheetsHTML(
                 <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
+            </tbody>
+          </table>
+
+          <!-- Trims & Fasteners (Buttons & Thread) -->
+          <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">Trims &amp; Sewing Fasteners (Buttons &amp; Thread)</div>
+          <table class="bom-table" style="margin-bottom: 10px; width: 100%;">
+            <thead>
+              <tr style="background: #f1f5f9;">
+                <th style="width: 24%; text-align: left;">Trim Role</th>
+                <th style="width: 20%; text-align: left;">Trim Code / Spec</th>
+                <th style="width: 36%; text-align: left;">Item Description</th>
+                <th style="width: 20%; text-align: right;">Unit Allocation / Pc</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="background: #334155; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">BUTTONS</span></td>
+                <td style="font-family: monospace; font-weight: 800; color: #0f172a;">${(first.custom_measurements?._button?.code || fMeta.button?.code || buttonCode)}</td>
+                <td style="font-weight: 700; color: #1e293b;">${(first.custom_measurements?._button?.name || fMeta.button?.name || buttonName)}</td>
+                <td style="text-align: right; font-weight: 800; color: #047857;">${(first.custom_measurements?._button?.count !== undefined ? first.custom_measurements._button.count : buttonCountPerPc) > 0 ? `${(first.custom_measurements?._button?.count !== undefined ? first.custom_measurements._button.count : buttonCountPerPc)} pcs / pc` : 'Standard Pack'}</td>
+              </tr>
+              <tr>
+                <td><span style="background: #0284c7; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">STITCHING THREAD</span></td>
+                <td style="font-family: monospace; font-weight: 800; color: #0f172a;">${(first.custom_measurements?._thread?.code || fMeta.thread?.code || threadCode)}</td>
+                <td style="font-weight: 700; color: #1e293b;">${(first.custom_measurements?._thread?.name || fMeta.thread?.name || threadName)}</td>
+                <td style="text-align: right; font-weight: 800; color: #0284c7;">Color Matched Finish</td>
+              </tr>
             </tbody>
           </table>
 

@@ -226,50 +226,56 @@ export default function InitialPaymentPage() {
   const columns: Column<Quotation>[] = [
     {
       header: 'Quote No',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-mono font-bold text-zinc-900">{item.quotation_no}</span>
+        <span className="font-mono font-bold text-zinc-900 text-xs">{item.quotation_no}</span>
       )
     },
     {
       header: 'Title & Client',
+      className: 'min-w-[160px] max-w-[220px]',
       accessor: (item) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-zinc-800 text-sm">{item.title}</span>
-          <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-0.5">
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
             {item.organizations?.name || 'Unknown Client'}
           </span>
         </div>
       )
     },
     {
-      header: 'Quotation Value',
+      header: 'Quote Value',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-black text-[#2d8d9b] text-base">
+        <span className="font-black text-[#2d8d9b] text-xs md:text-sm font-mono">
           ₹{parseFloat(item.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Collected',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-bold text-emerald-600 text-sm">
+        <span className="font-bold text-emerald-600 text-xs md:text-sm font-mono">
           ₹{parseFloat(item.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Remaining',
+      className: 'whitespace-nowrap',
       accessor: (item) => {
         const remaining = Math.max(0, item.final_quote_value - (item.paid_amount || 0));
         return (
-          <span className={`font-black text-sm ${remaining > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>
+          <span className={`font-black text-xs md:text-sm font-mono ${remaining > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>
             ₹{remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       }
     },
     {
-      header: 'Payment Status',
+      header: 'Status',
+      className: 'whitespace-nowrap',
       accessor: (item) => {
         const stat = item.payment_status || 'Pending';
         const styles = {
@@ -279,13 +285,13 @@ export default function InitialPaymentPage() {
         }[stat] || 'bg-zinc-50 text-zinc-700 border-zinc-200/50';
 
         const icon = {
-          'Paid': <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
-          'Partially Paid': <Clock className="w-3.5 h-3.5 text-amber-600" />,
-          'Pending': <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-        }[stat] || <AlertTriangle className="w-3.5 h-3.5 text-zinc-600" />;
+          'Paid': <CheckCircle2 className="w-3 h-3 text-emerald-600" />,
+          'Partially Paid': <Clock className="w-3 h-3 text-amber-600" />,
+          'Pending': <AlertTriangle className="w-3 h-3 text-rose-600" />
+        }[stat] || <AlertTriangle className="w-3 h-3 text-zinc-600" />;
 
         return (
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black uppercase tracking-wider ${styles}`}>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase tracking-wider ${styles}`}>
             {icon}
             {stat}
           </span>
@@ -294,30 +300,31 @@ export default function InitialPaymentPage() {
     },
     {
       header: 'Actions',
+      className: 'whitespace-nowrap text-right',
       accessor: (item) => {
         const isPaid = item.payment_status === 'Paid';
         const isCancelled = item.status === 'Cancelled';
         return (
-          <div className="flex gap-2">
+          <div className="flex items-center justify-end gap-1.5">
             {!isPaid && !isCancelled && (
               <>
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => handleOpenPaymentModal(item)}
-                  className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-[#2d8d9b]"
+                  className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider bg-[#2d8d9b] h-7 px-2"
                 >
-                  <Plus size={12} strokeWidth={3} />
-                  Record Payment
+                  <Plus size={11} strokeWidth={3} />
+                  Record
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => handleCancelQuotation(item.id)}
-                  className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-red-50 hover:bg-red-500 text-red-650 hover:text-white border border-red-150"
+                  className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider bg-red-50 hover:bg-red-500 text-red-650 hover:text-white border border-red-150 h-7 px-2"
                 >
-                  <X size={12} strokeWidth={3} />
-                  Cancel Order
+                  <X size={11} strokeWidth={3} />
+                  Cancel
                 </Button>
               </>
             )}
@@ -325,9 +332,9 @@ export default function InitialPaymentPage() {
               variant="secondary"
               size="sm"
               onClick={() => handleOpenHistoryModal(item)}
-              className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider border-[#fce4d4]"
+              className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider border-[#fce4d4] h-7 px-2"
             >
-              <History size={12} />
+              <History size={11} />
               History
             </Button>
           </div>

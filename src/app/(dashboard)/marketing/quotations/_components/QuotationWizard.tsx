@@ -46,6 +46,7 @@ interface ManualItem {
   thread_count: string;
   sam_value: string;
   design_number: string;
+  art_number?: string;
   quantity: string;
   price: string;
   size_breakdown?: any;
@@ -517,7 +518,8 @@ export default function QuotationWizard({
         thread_id: String(prod.thread_id || threadsList[0]?.id || ''),
         thread_count: String(prod.thread_count || '0'),
         sam_value: String(prod.sam_value || ''),
-        design_number: String(prod.design_number || ''),
+        design_number: String(prod.design_number || 'DNS-STANDARD'),
+        art_number: String(prod.art_number || ''),
         quantity: '1',
         price: ''
       };
@@ -1152,6 +1154,7 @@ export default function QuotationWizard({
               thread_count: parseFloat(item.thread_count) || null,
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
+              art_number: item.art_number || null,
               computed_unit_cost: price,
               selected_size: item.size_breakdown?.selected_size || null
             },
@@ -1200,6 +1203,7 @@ export default function QuotationWizard({
                 is_manual: true,
                 product_id: item.product_id || null,
                 design_number: item.design_number || null,
+                art_number: item.art_number || null,
                 computed_unit_cost: unitCost,
                 is_readymade: true,
                 selected_size: item.size_breakdown?.selected_size || null
@@ -1238,6 +1242,7 @@ export default function QuotationWizard({
               thread_count: parseFloat(item.thread_count) || null,
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
+              art_number: item.art_number || null,
               computed_unit_cost: unitCost,
               class_name: item.size_breakdown?.class_name || null
             },

@@ -197,57 +197,66 @@ export default function OperationTeamPage() {
   const listColumns: Column<Quotation>[] = [
     {
       header: 'Quote No',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
-        <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest font-mono whitespace-nowrap inline-block">
+        <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest font-mono whitespace-nowrap inline-block">
           {q.quotation_no}
         </span>
       )
     },
     {
       header: 'Quotation Title',
+      className: 'min-w-[170px] max-w-[230px]',
       accessor: (q) => (
-        <div className="flex flex-col">
-          <span className="font-black text-[#3a525d] text-sm leading-tight">{q.title}</span>
-          <span className="text-[10px] text-zinc-400 font-semibold mt-1">
-            Created: {new Date(q.created_at).toLocaleDateString()}
+        <div className="flex flex-col min-w-0">
+          <span className="font-black text-[#3a525d] text-xs md:text-sm leading-tight truncate" title={q.title}>{q.title}</span>
+          <span className="text-[9px] text-zinc-400 font-semibold mt-0.5">
+            {new Date(q.created_at).toLocaleDateString()}
           </span>
         </div>
       )
     },
     {
       header: 'Customer',
+      className: 'max-w-[130px]',
       accessor: (q) => (
-        <div className="flex items-center gap-2">
-          <Building2 size={14} className="text-[#2d8d9b] opacity-60" />
-          <span className="font-bold text-zinc-600">{q.organizations?.name || 'Customer'}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Building2 size={12} className="text-[#2d8d9b] opacity-60 shrink-0" />
+          <span className="font-bold text-xs text-zinc-700 truncate" title={q.organizations?.name || 'Customer'}>
+            {q.organizations?.name || 'Customer'}
+          </span>
         </div>
       )
     },
     {
-      header: 'Profit Margin',
-      accessor: (q) => <span className="font-mono font-bold text-green-600 whitespace-nowrap">+{q.profit_margin_percent}%</span>
+      header: 'Margin',
+      className: 'whitespace-nowrap',
+      accessor: (q) => <span className="font-mono text-xs font-bold text-green-600 whitespace-nowrap">+{q.profit_margin_percent}%</span>
     },
     {
-      header: 'Delivery Date',
+      header: 'Delivery',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
-        <span className="font-bold text-zinc-500 whitespace-nowrap">
+        <span className="font-bold text-xs text-zinc-500 whitespace-nowrap">
           {q.expected_delivery_date
-            ? new Date(q.expected_delivery_date).toLocaleDateString()
+            ? new Date(q.expected_delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
             : 'N/A'
           }
         </span>
       )
     },
     {
-      header: 'Final quote value',
+      header: 'Quote Value',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
-        <span className="font-black text-[#2d8d9b] font-mono whitespace-nowrap">
+        <span className="font-black text-xs md:text-sm text-[#2d8d9b] font-mono whitespace-nowrap">
           ₹{Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Status',
+      className: 'whitespace-nowrap',
       accessor: (q) => {
         const styles: Record<string, string> = {
           Approved: 'bg-emerald-50 text-emerald-600 border-emerald-200/50',
@@ -257,7 +266,7 @@ export default function OperationTeamPage() {
         };
         const st = q.status || 'Draft';
         return (
-          <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${styles[st] || styles.Draft}`}>
+          <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${styles[st] || styles.Draft}`}>
             {st}
           </span>
         );
@@ -265,15 +274,16 @@ export default function OperationTeamPage() {
     },
     {
       header: 'Actions',
+      className: 'whitespace-nowrap text-right',
       accessor: (q) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-1.5">
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleViewDetails(q)}
-            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 text-[#3a525d] font-black hover:bg-zinc-50 py-1 px-3 shadow-sm h-8"
+            className="flex items-center gap-1 rounded-lg border border-zinc-200 text-[#3a525d] font-black hover:bg-zinc-50 py-0.5 px-2 text-[10px] shadow-sm h-7"
           >
-            <Eye size={12} />
+            <Eye size={11} />
             Analyze
           </Button>
 
@@ -282,10 +292,10 @@ export default function OperationTeamPage() {
               variant="outline"
               size="h-auto"
               onClick={() => handleApproveQuotation(q)}
-              className="text-emerald-600 hover:bg-emerald-50 rounded-xl h-8 w-8 p-0 flex items-center justify-center border border-emerald-200/60 shadow-sm"
+              className="text-emerald-600 hover:bg-emerald-50 rounded-lg h-7 w-7 p-0 flex items-center justify-center border border-emerald-200/60 shadow-sm"
               title="Approve immediately"
             >
-              <Check size={16} />
+              <Check size={13} />
             </Button>
           )}
 
@@ -294,10 +304,10 @@ export default function OperationTeamPage() {
               variant="outline"
               size="h-auto"
               onClick={() => setMessageCandidate(q)}
-              className="text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-xl h-8 w-8 p-0 flex items-center justify-center border border-[#2d8d9b]/20 shadow-sm"
+              className="text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg h-7 w-7 p-0 flex items-center justify-center border border-[#2d8d9b]/20 shadow-sm"
               title="Send proposal to customer"
             >
-              <Mail size={16} />
+              <Mail size={13} />
             </Button>
           )}
 
@@ -305,10 +315,10 @@ export default function OperationTeamPage() {
             variant="outline"
             size="h-auto"
             onClick={() => setDeleteCandidate(q)}
-            className="text-rose-600 hover:bg-rose-50 rounded-xl h-8 w-8 p-0 flex items-center justify-center border border-rose-200/60 shadow-sm"
+            className="text-rose-600 hover:bg-rose-50 rounded-lg h-7 w-7 p-0 flex items-center justify-center border border-rose-200/60 shadow-sm"
             title="Delete quotation"
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} />
           </Button>
         </div>
       )

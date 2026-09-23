@@ -109,6 +109,7 @@ export interface ManualItem {
   // SAM & meta
   sam_value: string;
   design_number: string;
+  art_number?: string;
   quantity: string;
   price: string; // computed unit cost
   size_breakdown?: any;

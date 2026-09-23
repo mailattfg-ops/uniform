@@ -40,18 +40,19 @@ export default function QuotationList({
 
   const columns: Column<Quotation>[] = [
     {
-      header: 'Quote Code & Title',
+      header: 'Quote & Title',
+      className: 'min-w-[200px] max-w-[260px]',
       accessor: (q) => (
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#2d8d9b]/5 rounded-2xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-sm">
-            <TrendingUp size={20} />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 shrink-0 bg-[#2d8d9b]/5 rounded-xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-sm">
+            <TrendingUp size={15} />
           </div>
-          <div>
-            <p className="font-black text-sm tracking-tight text-[#3a525d]">{q.title}</p>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{q.quotation_no}</p>
+          <div className="min-w-0">
+            <p className="font-black text-xs md:text-sm tracking-tight text-[#3a525d] truncate" title={q.title}>{q.title}</p>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span className="text-[9px] font-bold text-zinc-400 font-mono tracking-wider">{q.quotation_no}</span>
               {q.metrics_summary?.quotation_type && (
-                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider ${
                   q.metrics_summary.quotation_type === 'FABRIC_SET'
                     ? 'bg-amber-100 text-amber-800 border border-amber-200'
                     : q.metrics_summary.quotation_type === 'FABRIC'
@@ -74,57 +75,67 @@ export default function QuotationList({
     },
     {
       header: 'Customer',
+      className: 'max-w-[140px]',
       accessor: (q) => (
-        <p className="text-xs font-black text-zinc-600">{q.organizations?.name || 'N/A'}</p>
+        <p className="text-xs font-black text-zinc-700 truncate" title={q.organizations?.name || 'N/A'}>
+          {q.organizations?.name || 'N/A'}
+        </p>
       )
     },
     {
-      header: 'Group Design',
+      header: 'DNS Code',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
-        <div>
-          <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
-            {q.group_design_number?.code || '—'}
-          </span>
-        </div>
+        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+          {q.group_design_number?.code || '—'}
+        </span>
       )
     },
     {
       header: 'Quote Value',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
         <div>
-          <p className="text-sm font-black text-[#2d8d9b]">₹{Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Exp: ₹{Number(q.estimated_expenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-xs md:text-sm font-black text-[#2d8d9b] font-mono">
+            ₹{Number(q.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">
+            Exp: ₹{Number(q.estimated_expenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
         </div>
       )
     },
     {
-      header: 'Sizing Analysis',
+      header: 'Sizing',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-green-50 text-green-600 border border-green-100">
+        <div className="flex items-center gap-1.5">
+          <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-green-50 text-green-600 border border-green-100">
             {q.metrics_summary?.measured || 0} Meas
           </span>
           {q.metrics_summary?.missing && q.metrics_summary.missing > 0 ? (
-            <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1">
-              <AlertTriangle size={10} /> {q.metrics_summary.missing} Missing
+            <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1">
+              <AlertTriangle size={9} /> {q.metrics_summary.missing}
             </span>
           ) : null}
         </div>
       )
     },
     {
-      header: 'Lead Time & Delivery',
+      header: 'Delivery',
+      className: 'whitespace-nowrap',
       accessor: (q) => (
         <div>
-          <p className="text-xs font-bold text-zinc-600">{q.production_days_estimate} Prod Days</p>
-          <p className="text-[10px] font-black text-[#3a525d] mt-0.5">
-            🚚 {q.expected_delivery_date ? new Date(q.expected_delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+          <p className="text-xs font-bold text-zinc-600">{q.production_days_estimate}d Prod</p>
+          <p className="text-[9px] font-black text-[#3a525d] mt-0.5">
+            🚚 {q.expected_delivery_date ? new Date(q.expected_delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }) : 'N/A'}
           </p>
         </div>
       )
     },
     {
       header: 'Status',
+      className: 'whitespace-nowrap',
       accessor: (q) => {
         const colors: Record<string, string> = {
           'Draft': 'bg-zinc-50 text-zinc-600 border-zinc-100',
@@ -133,7 +144,7 @@ export default function QuotationList({
           'Rejected': 'bg-red-50 text-red-600 border-red-100',
         };
         return (
-          <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${colors[q.status] || colors.Draft}`}>
+          <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border ${colors[q.status] || colors.Draft}`}>
             {q.status}
           </span>
         );
@@ -141,32 +152,33 @@ export default function QuotationList({
     },
     {
       header: 'Actions',
+      className: 'whitespace-nowrap text-right',
       accessor: (q) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             onClick={() => onViewDetails(q)}
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10"
+            className="w-8 h-8 rounded-lg bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 shadow-sm"
             title="View Details"
           >
-            <Eye size={16} />
+            <Eye size={14} />
           </button>
 
           {q.status !== 'Approved' && (
             <button
               onClick={() => onStartEdit(q)}
-              className="w-10 h-10 rounded-xl bg-[#2d8d9b]/5 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200"
+              className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200 shadow-sm"
               title="Edit Quotation"
             >
-              <Edit size={16} />
+              <Edit size={14} />
             </button>
           )}
 
           <button
             onClick={() => onDeleteCandidate(q)}
-            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
+            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 shadow-sm"
             title="Remove Quotation"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </button>
         </div>
       )

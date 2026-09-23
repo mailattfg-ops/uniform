@@ -487,16 +487,18 @@ export default function OrderPlacementPage() {
   const awaitingColumns: Column<Quotation>[] = [
     {
       header: 'Quote No',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-mono font-bold text-zinc-900">{item.quotation_no}</span>
+        <span className="font-mono font-bold text-zinc-900 text-xs">{item.quotation_no}</span>
       )
     },
     {
       header: 'Fulfillment Client',
+      className: 'min-w-[160px] max-w-[220px]',
       accessor: (item) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-zinc-800 text-sm">{item.title}</span>
-          <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-0.5">
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
             {item.organizations?.name || 'Unknown Client'}
           </span>
         </div>
@@ -504,31 +506,34 @@ export default function OrderPlacementPage() {
     },
     {
       header: 'Ledger Value',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-black text-[#2d8d9b] text-base">
+        <span className="font-black text-[#2d8d9b] text-xs md:text-sm font-mono">
           ₹{parseFloat(item.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Ledger Paid',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-bold text-emerald-600 text-sm">
+        <span className="font-bold text-emerald-600 text-xs md:text-sm font-mono">
           ₹{parseFloat(item.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Action Status',
+      className: 'whitespace-nowrap',
       accessor: (item) => {
         const isPaid = item.payment_status === 'Paid';
         return (
-          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black uppercase border tracking-wider ${
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border tracking-wider ${
             isPaid
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200/40'
               : 'bg-amber-50 text-amber-700 border-amber-200/40'
           }`}>
-            {isPaid ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-amber-600" />}
+            {isPaid ? <CheckCircle2 size={11} className="text-emerald-600" /> : <Clock size={11} className="text-amber-600" />}
             {isPaid ? 'Paid & Settled' : 'Partially Paid'}
           </span>
         );
@@ -536,15 +541,16 @@ export default function OrderPlacementPage() {
     },
     {
       header: 'Placement Action',
+      className: 'whitespace-nowrap text-right',
       accessor: (item) => (
         <Button
           variant="primary"
           size="sm"
           onClick={() => handleOpenPlaceOrder(item)}
-          className="rounded-xl flex items-center gap-1.5 bg-[#2d8d9b] text-[10px] font-black tracking-wider"
+          className="rounded-lg flex items-center gap-1 bg-[#2d8d9b] text-[10px] font-black tracking-wider h-7 px-2.5 ml-auto"
         >
-          <Plus size={12} strokeWidth={3} />
-          Convert to SO (Held)
+          <Plus size={11} strokeWidth={3} />
+          Convert to SO
         </Button>
       )
     }
@@ -553,26 +559,28 @@ export default function OrderPlacementPage() {
   const orderColumns: Column<Order>[] = [
     {
       header: 'Order No',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
         <div className="flex flex-col">
-          <span className="font-mono font-bold text-zinc-900">{item.order_no}</span>
-          <span className="text-[10px] text-zinc-400 font-medium">ID: #{item.id}</span>
+          <span className="font-mono font-bold text-zinc-900 text-xs">{item.order_no}</span>
+          <span className="text-[9px] text-zinc-400 font-medium">ID: #{item.id}</span>
         </div>
       )
     },
     {
       header: 'Origin & Client',
+      className: 'min-w-[160px] max-w-[220px]',
       accessor: (item) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-zinc-800 text-sm">
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.quotations?.title || 'Quotation Order'}>
             {item.quotations?.title || 'Quotation Order'}
           </span>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[10px] text-zinc-500 font-black uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 mt-0.5 truncate">
+            <span className="text-[9px] text-zinc-500 font-black uppercase tracking-wider truncate">
               {item.quotations?.organizations?.name || 'Customer'}
             </span>
-            <span className="text-[10px] text-zinc-300 font-bold">|</span>
-            <span className="font-mono text-[10px] text-[#2d8d9b] font-bold">
+            <span className="text-[9px] text-zinc-300 font-bold">|</span>
+            <span className="font-mono text-[9px] text-[#2d8d9b] font-bold shrink-0">
               {item.quotations?.quotation_no}
             </span>
           </div>
@@ -581,34 +589,37 @@ export default function OrderPlacementPage() {
     },
     {
       header: 'Barcode Index',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <div className="w-44 bg-zinc-50 rounded-lg border border-zinc-100 p-1">
-          <Barcode value={item.barcode} height={25} showText={true} barWidth={1.2} className="p-0 shadow-none bg-transparent" />
+        <div className="w-28 bg-zinc-50 rounded-md border border-zinc-100 p-0.5 flex justify-center">
+          <Barcode value={item.barcode} height={18} showText={true} barWidth={0.9} className="p-0 shadow-none bg-transparent" />
         </div>
       )
     },
     {
-      header: 'Approval Lifecycle Status',
+      header: 'Approval Status',
+      className: 'whitespace-nowrap',
       accessor: (item) => renderStatusBadge(item.status, item.corporate_reason)
     },
     {
       header: 'Workflow Actions',
+      className: 'whitespace-nowrap text-right',
       accessor: (item) => {
         const canSubmit = item.status === 'Held at Branch' || item.status === 'Draft' || item.status === 'Corporate Rejected';
         const canCorporateReview = item.status === 'Approval Pending' || item.status === 'Corporate Hold';
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-1.5">
             {/* Branch Manager: Submit to Corporate */}
             {canSubmit && (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => handleSubmitToCorporate(item.id)}
-                className="rounded-xl flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black tracking-wider shadow-sm"
+                className="rounded-lg flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black tracking-wider shadow-sm h-7 px-2"
               >
-                <Send size={12} />
-                {item.status === 'Corporate Rejected' ? 'Resubmit to Corporate' : 'Submit to Corporate'}
+                <Send size={11} />
+                {item.status === 'Corporate Rejected' ? 'Resubmit' : 'Submit'}
               </Button>
             )}
 
@@ -618,17 +629,17 @@ export default function OrderPlacementPage() {
                 variant="primary"
                 size="sm"
                 onClick={() => handleOpenCorporateModal(item)}
-                className="rounded-xl flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-[10px] font-black tracking-wider shadow-sm"
+                className="rounded-lg flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-[10px] font-black tracking-wider shadow-sm h-7 px-2"
               >
-                <ShieldCheck size={12} />
-                Corporate Triage
+                <ShieldCheck size={11} />
+                Triage
               </Button>
             )}
 
             {/* Read-only notification for branch user when in pending state */}
             {canCorporateReview && !isCorporateApprover && (
-              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
-                Awaiting Corporate Sign-off
+              <span className="text-[9px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200 whitespace-nowrap">
+                Pending Sign-off
               </span>
             )}
 
@@ -637,10 +648,10 @@ export default function OrderPlacementPage() {
               variant="secondary"
               size="sm"
               onClick={() => handleOpenPrintDialog(item)}
-              className="rounded-xl flex items-center gap-1.5 border-[#fce4d4] text-[10px] font-black tracking-wider"
+              className="rounded-lg flex items-center gap-1 border-[#fce4d4] text-[10px] font-black tracking-wider h-7 px-2"
               title="Print Industrial Label Tag"
             >
-              <Printer size={12} />
+              <Printer size={11} />
               Label
             </Button>
 
@@ -649,11 +660,11 @@ export default function OrderPlacementPage() {
               variant="secondary"
               size="sm"
               onClick={() => handleOpenNotifyModal(item)}
-              className="rounded-xl flex items-center gap-1.5 text-[10px] font-black tracking-wider text-teal-700 bg-teal-50 hover:bg-teal-100 border-teal-200"
+              className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider text-teal-700 bg-teal-50 hover:bg-teal-100 border-teal-200 h-7 px-2"
               title="Notify Customer of SO (PRD M5.7)"
             >
-              <Mail size={12} />
-              Notify Client
+              <Mail size={11} />
+              Notify
             </Button>
           </div>
         );

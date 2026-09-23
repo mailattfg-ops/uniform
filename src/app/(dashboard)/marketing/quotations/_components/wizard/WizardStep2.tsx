@@ -345,8 +345,12 @@ export default function WizardStep2({
                         updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
                       if (prod.attachment_fabric2 !== null && prod.attachment_fabric2 !== undefined)
                         updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
+                      if (prod.button_id !== null && prod.button_id !== undefined)
+                        updates.button_id = String(prod.button_id);
                       if (prod.button_count !== null && prod.button_count !== undefined)
                         updates.button_count = String(prod.button_count);
+                      if (prod.thread_id !== null && prod.thread_id !== undefined)
+                        updates.thread_id = String(prod.thread_id);
                       if (prod.thread_count !== null && prod.thread_count !== undefined)
                         updates.thread_count = String(prod.thread_count);
 
@@ -354,13 +358,16 @@ export default function WizardStep2({
                       updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
                       updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
 
-                      updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                      // Auto-resolve true DNS code or DNS-STANDARD, store art_number cleanly
+                      updates.design_number = prod.design_number || 'DNS-STANDARD';
+                      updates.art_number = prod.art_number || '';
                     } else {
                       updates.sam_value = '';
                       updates.main_fabric_sam = '';
                       updates.attachment_fabric1_sam = '';
                       updates.attachment_fabric2_sam = '';
                       updates.design_number = '';
+                      updates.art_number = '';
                     }
                     updateItem(index, updates);
                   }}
@@ -473,15 +480,32 @@ export default function WizardStep2({
               </button>
             </div>
 
-            {/* Notes / Design */}
-            <div className="mt-3">
-              <input
-                type="text"
-                value={item.design_number}
-                onChange={(e) => updateItem(index, { design_number: e.target.value })}
-                className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
-                placeholder="Design notes, color, fit details..."
-              />
+            {/* Pattern / Art Number & Design Number (DNS) Identifiers */}
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/70 p-3 rounded-xl border border-zinc-100">
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-widest text-sky-700 mb-1">
+                  Art # (Pattern / Article Code)
+                </label>
+                <input
+                  type="text"
+                  value={item.art_number || ''}
+                  onChange={(e) => updateItem(index, { art_number: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-sky-200/70 rounded-lg text-sky-900 focus:outline-none focus:border-sky-500 bg-white placeholder:text-zinc-300 transition-all"
+                  placeholder="e.g. 1-4J012"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-widest text-indigo-700 mb-1">
+                  Design # (DNS Code)
+                </label>
+                <input
+                  type="text"
+                  value={item.design_number || ''}
+                  onChange={(e) => updateItem(index, { design_number: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-indigo-200/70 rounded-lg text-indigo-900 focus:outline-none focus:border-indigo-500 bg-white placeholder:text-zinc-300 transition-all"
+                  placeholder="e.g. DNS-0001 or DNS-STANDARD"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -1695,10 +1719,15 @@ export default function WizardStep2({
                                                             if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
                                                           }
 
+                                                          if (prod.button_id != null) updates.button_id = String(prod.button_id);
+                                                          if (prod.thread_id != null) updates.thread_id = String(prod.thread_id);
+
                                                           updates.main_fabric_sam = '6.777';
                                                           updates.attachment_fabric1_sam = (updates.attachment_fabric1_meters && updates.attachment_fabric1_meters !== '0' && updates.attachment_fabric1_meters !== '') ? '6.777' : '';
                                                           updates.attachment_fabric2_sam = (updates.attachment_fabric2_meters && updates.attachment_fabric2_meters !== '0' && updates.attachment_fabric2_meters !== '') ? '6.777' : '';
-                                                          updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                                                          // Auto-resolve true DNS code or DNS-STANDARD, store art_number cleanly
+                                                          updates.design_number = prod.design_number || 'DNS-STANDARD';
+                                                          updates.art_number = prod.art_number || '';
                                                         }
                                                         updateDeptItem(idx, updates);
                                                       }}
@@ -1796,15 +1825,32 @@ export default function WizardStep2({
                                                     <Trash2 size={14} />
                                                   </button>
                                                 </div>
-                                                {/* Design Notes */}
-                                                <div className="mt-3">
-                                                  <input
-                                                    type="text"
-                                                    value={item.design_number || ''}
-                                                    onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
-                                                    className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
-                                                    placeholder="Design notes, color, fit details..."
-                                                  />
+                                                {/* Pattern / Art Number & Design Number (DNS) Identifiers */}
+                                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/70 p-3 rounded-xl border border-zinc-100">
+                                                  <div>
+                                                    <label className="block text-[9px] font-black uppercase tracking-widest text-sky-700 mb-1">
+                                                      Art # (Pattern / Article Code)
+                                                    </label>
+                                                    <input
+                                                      type="text"
+                                                      value={item.art_number || ''}
+                                                      onChange={(e) => updateDeptItem(idx, { art_number: e.target.value })}
+                                                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-sky-200/70 rounded-lg text-sky-900 focus:outline-none focus:border-sky-500 bg-white placeholder:text-zinc-300 transition-all"
+                                                      placeholder="e.g. 1-4J012"
+                                                    />
+                                                  </div>
+                                                  <div>
+                                                    <label className="block text-[9px] font-black uppercase tracking-widest text-indigo-700 mb-1">
+                                                      Design # (DNS Code)
+                                                    </label>
+                                                    <input
+                                                      type="text"
+                                                      value={item.design_number || ''}
+                                                      onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
+                                                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-indigo-200/70 rounded-lg text-indigo-900 focus:outline-none focus:border-indigo-500 bg-white placeholder:text-zinc-300 transition-all"
+                                                      placeholder="e.g. DNS-0001 or DNS-STANDARD"
+                                                    />
+                                                  </div>
                                                 </div>
                                               </div>
                                             )}
