@@ -168,7 +168,7 @@ export default function JobCardsPage() {
       const isBespoke =
         pieces.some((p: any) => p.item_type === 'custom' || Boolean(p.member_name)) ||
         Boolean(jc.size_breakdown?.is_custom);
-      setPrintViewMode(isBespoke ? 'traveler' : 'lot');
+      setPrintViewMode('lot');
     } catch {
       setPrintCard(jc);
       setPrintViewMode('lot');
@@ -598,7 +598,7 @@ export default function JobCardsPage() {
               <div>
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <Printer className="w-4 h-4 text-amber-400" />
-                  {printViewMode === 'traveler' ? 'Individual Garment Work Traveler Sheets' : 'Factory Production Travel Card'}
+                  {printViewMode === 'lot' ? 'Factory Production Job Card (Master Lot)' : 'Individual Garment Work Traveler Sheets'}
                 </h3>
                 <p className="text-xs text-slate-400">
                   {printCard.job_card_no} — {printCard.item_name} ({printCard.quantity} pcs)
@@ -608,23 +608,23 @@ export default function JobCardsPage() {
                 <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
                   <button
                     type="button"
-                    onClick={() => setPrintViewMode('traveler')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                      printViewMode === 'traveler' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Work Traveler Sheets</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setPrintViewMode('lot')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
                       printViewMode === 'lot' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     <FileText className="w-3.5 h-3.5" />
-                    <span>Lot Summary Card</span>
+                    <span>Main Job Card</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintViewMode('traveler')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                      printViewMode === 'traveler' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Person Traveler Sheets</span>
                   </button>
                 </div>
 

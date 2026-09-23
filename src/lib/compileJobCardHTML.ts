@@ -75,6 +75,47 @@ export function generateInlineBarcodeSVG(value: string, height = 55, barWidth = 
   `;
 }
 
+export function isValidAttachmentFabric(
+  name?: string | null,
+  code?: string | null,
+  id?: string | number | null
+): boolean {
+  if (id && String(id).trim() !== '' && String(id) !== 'null' && String(id) !== 'undefined') return true;
+  if (name && typeof name === 'string') {
+    const clean = name.toLowerCase().trim();
+    if (
+      clean &&
+      clean !== 'null' &&
+      clean !== 'undefined' &&
+      clean !== 'optional...' &&
+      clean !== 'optional' &&
+      clean !== 'none' &&
+      clean !== 'n/a' &&
+      !clean.includes('attachment fabric') &&
+      !clean.includes('att1-std') &&
+      !clean.includes('att2-std')
+    ) {
+      return true;
+    }
+  }
+  if (code && typeof code === 'string') {
+    const clean = code.toLowerCase().trim();
+    if (
+      clean &&
+      clean !== 'null' &&
+      clean !== 'undefined' &&
+      clean !== 'optional' &&
+      clean !== 'none' &&
+      clean !== 'n/a' &&
+      !clean.includes('att1-std') &&
+      !clean.includes('att2-std')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Isolates and extracts only the measurements relevant to this Job Card's specific dress/garment.
  * E.g., if Job Card is for a T-shirt, extracts chest, shoulder, top length, etc.
@@ -251,10 +292,12 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
 
   // Product Measurements & Sizing Breakdown (PRD M9.6, M11.1, M11.2)
   const childPieces = jc.child_pieces || [];
+  const hasEntities = childPieces.some(p => Boolean(p.member_name));
   const isCustomBespoke =
+    hasEntities ||
     childPieces.some(p => p.item_type === 'custom') ||
-    childPieces.some(p => Boolean(p.member_name)) ||
-    Boolean(jc.size_breakdown?.is_custom);
+    Boolean(jc.size_breakdown?.is_custom) ||
+    Boolean(jc.size_breakdown?.department_id);
 
   // Raw Material & Fabric Allocation Rows (Main Fabric & Attachment Fabrics)
   const firstPiece = childPieces[0];
@@ -281,30 +324,32 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
     ratePerPc: mainRate,
   });
 
+  const att1Id = firstPiece?.attachment1_id || sb.attachment_fabric1_id || null;
   const att1Name = firstPiece?.attachment1_name || sb.attachment_fabric1_name || null;
   const att1Code = firstPiece?.attachment1_code || sb.attachment_fabric1_code || null;
-  const att1Rate = Number(firstPiece?.attachment1_length || firstPiece?.attachment1_meters || sb.attachment_fabric1_meters) || 0;
+  const att1Rate = Number(firstPiece?.attachment1_length || firstPiece?.attachment1_meters || (sb.attachment_fabric1_id ? sb.attachment_fabric1_meters : 0)) || 0;
   const att1Shade = firstPiece?.attachment1_shade || sb.attachment_fabric1_shade || null;
-  if (att1Rate > 0 && (att1Name || att1Code)) {
+  if (att1Rate > 0 && isValidAttachmentFabric(att1Name, att1Code, att1Id)) {
     fabricRowsList.push({
       role: 'ATTACHMENT 1',
       badgeBg: '#4338ca',
-      code: att1Code || 'ATT1-STD',
+      code: att1Code || (att1Id ? `FAB-${att1Id}` : 'ATT-1'),
       name: att1Name || 'Attachment Fabric 1',
       shade: att1Shade,
       ratePerPc: att1Rate,
     });
   }
 
+  const att2Id = firstPiece?.attachment2_id || sb.attachment_fabric2_id || null;
   const att2Name = firstPiece?.attachment2_name || sb.attachment_fabric2_name || null;
   const att2Code = firstPiece?.attachment2_code || sb.attachment_fabric2_code || null;
-  const att2Rate = Number(firstPiece?.attachment2_length || firstPiece?.attachment2_meters || sb.attachment_fabric2_meters) || 0;
+  const att2Rate = Number(firstPiece?.attachment2_length || firstPiece?.attachment2_meters || (sb.attachment_fabric2_id ? sb.attachment_fabric2_meters : 0)) || 0;
   const att2Shade = firstPiece?.attachment2_shade || sb.attachment_fabric2_shade || null;
-  if (att2Rate > 0 && (att2Name || att2Code)) {
+  if (att2Rate > 0 && isValidAttachmentFabric(att2Name, att2Code, att2Id)) {
     fabricRowsList.push({
       role: 'ATTACHMENT 2',
       badgeBg: '#7c3aed',
-      code: att2Code || 'ATT2-STD',
+      code: att2Code || (att2Id ? `FAB-${att2Id}` : 'ATT-2'),
       name: att2Name || 'Attachment Fabric 2',
       shade: att2Shade,
       ratePerPc: att2Rate,
@@ -337,23 +382,35 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
 
   let measurementsTableHtml = '';
 
-  if (childPieces.length > 0 && isCustomBespoke) {
+  if (childPieces.length > 0 && (hasEntities || isCustomBespoke)) {
     const rows = childPieces.map((p, idx) => {
       const dressMeasurements = extractDressMeasurements(p.custom_measurements, jc);
       const measStr = dressMeasurements.length > 0
         ? dressMeasurements.map(m => `${m.label}: ${m.value}`).join(' • ')
-        : '--';
+        : (p.size ? `US Standard Size ${p.size}` : 'Standard Specification');
+
+      const pieceLabel = p.notes?.includes('Piece')
+        ? p.notes
+        : `Piece ${idx + 1} of ${childPieces.length}`;
 
       return `
         <tr>
-          <td style="font-family: monospace; font-weight: bold; color: #64748b;">#${String(p.sequence_no || idx + 1).padStart(3, '0')}</td>
-          <td><strong>${p.member_name || 'Bespoke Entity'}</strong></td>
-          <td style="font-family: monospace; color: #b45309; font-weight: bold;">${p.admission_no || '--'}</td>
-          <td style="font-family: monospace; font-size: 9.5px; font-weight: bold;">${p.barcode}</td>
+          <td style="font-family: monospace; font-weight: bold; color: #64748b; text-align: center;">#${String(p.sequence_no || idx + 1).padStart(3, '0')}</td>
           <td>
-            <div style="font-size: 10px; color: #0f172a; font-weight: 600;">${measStr}</div>
-            ${p.notes ? `<div style="font-size: 8.5px; color: #64748b; font-style: italic;">Note: ${p.notes}</div>` : ''}
+            <strong style="color: #0f172a; font-size: 11px;">${p.member_name || 'Bespoke Recipient'}</strong>
           </td>
+          <td style="font-family: monospace; color: #b45309; font-weight: bold;">${p.admission_no || '--'}</td>
+          <td style="font-family: monospace; font-size: 9.5px; font-weight: 800; color: #2563eb;">${p.barcode}</td>
+          <td>
+            <span style="font-size: 8.5px; font-weight: 700; color: #475569; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; display: inline-block;">
+              ${pieceLabel}
+            </span>
+          </td>
+          <td>
+            <div style="font-size: 9.5px; color: #0f172a; font-weight: 600;">${measStr}</div>
+            ${p.notes && !p.notes.includes('Piece') ? `<div style="font-size: 8.5px; color: #64748b; font-style: italic;">Note: ${p.notes}</div>` : ''}
+          </td>
+          <td style="text-align: center; color: #94a3b8; font-size: 9px;">[ &nbsp; &nbsp; &nbsp; &nbsp; ]</td>
         </tr>
       `;
     }).join('');
@@ -362,11 +419,13 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
       <table class="bom-table">
         <thead>
           <tr>
-            <th style="width: 6%;">#</th>
-            <th style="width: 22%;">Recipient Member</th>
-            <th style="width: 14%;">Roll / ID</th>
-            <th style="width: 23%;">Piece Barcode</th>
-            <th style="width: 35%;">Tailored Body Measurements &amp; Fit Notes</th>
+            <th style="width: 5%; text-align: center;">#</th>
+            <th style="width: 22%;">Recipient Entity Name</th>
+            <th style="width: 14%;">Roll / Admission ID</th>
+            <th style="width: 18%;">Piece Barcode</th>
+            <th style="width: 12%;">Piece / Unit</th>
+            <th style="width: 20%;">Tailored Garment Dimensions</th>
+            <th style="width: 9%; text-align: center;">Floor Sign</th>
           </tr>
         </thead>
         <tbody>
@@ -758,23 +817,27 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
         <div class="info-value">${quoteNo}</div>
       </div>
       <div class="info-card">
+        <div class="info-label">Department / Class</div>
+        <div class="info-value" style="font-size: 11px; color: #0f172a;">${jc.size_breakdown?.department_name || jc.size_breakdown?.department_id || 'Institutional Lot'}</div>
+      </div>
+      <div class="info-card">
         <div class="info-label">PO Handler Status</div>
         <div class="info-value" style="color: #059669;">${jc.po_handler_action || 'Approved / Active'}</div>
       </div>
       <div class="info-card">
-        <div class="info-label">Measurement Gate</div>
-        <div class="info-value" style="color: ${jc.measurement_readiness === 'Ready' ? '#047857' : '#b45309'};">
-          ${jc.measurement_readiness || 'Verified Ready'}
+        <div class="info-label">Readiness Gate</div>
+        <div class="info-value" style="color: ${jc.measurement_readiness === 'Ready' && jc.size_breakdown?.material_readiness !== 'Awaiting PO Fabric' ? '#047857' : '#b45309'}; font-size: 11px;">
+          ${jc.measurement_readiness || 'Verified'} • ${jc.size_breakdown?.material_readiness || 'Fabric Ready'}
         </div>
       </div>
     </div>
 
-    <!-- Product Measurements & Sizing Breakdown -->
+    <!-- Product Measurements & Sizing Breakdown / Recipient Entities Manifest -->
     <div class="bom-box">
       <div class="box-title">
-        <span>Product Sizing &amp; Measurement Specifications</span>
-        <span style="color: ${isCustomBespoke ? '#b45309' : '#2563eb'}; font-weight: 800;">
-          ${isCustomBespoke ? 'Custom Entity Bespoke Fitting' : 'Standard US Sizing Matrix'}
+        <span>${hasEntities ? 'Recipient Entities &amp; Individual Tailoring Roster' : 'Product Sizing &amp; Measurement Specifications'}</span>
+        <span style="color: ${hasEntities ? '#0284c7' : isCustomBespoke ? '#b45309' : '#2563eb'}; font-weight: 800;">
+          ${hasEntities ? `${childPieces.length} Garment Units • Entity-Allocated Lot` : isCustomBespoke ? 'Custom Entity Bespoke Fitting' : 'Standard US Sizing Matrix'}
         </span>
       </div>
       ${measurementsTableHtml}
@@ -911,6 +974,7 @@ export interface ChildJobCardData {
   fabric_meters?: number | string;
   fabric_shade?: string;
   // Attachment Fabric 1
+  attachment1_id?: string | number | null;
   attachment1_name?: string | null;
   attachment1_code?: string | null;
   attachment1_number?: string | null;
@@ -918,6 +982,7 @@ export interface ChildJobCardData {
   attachment1_meters?: number | string | null;
   attachment1_shade?: string | null;
   // Attachment Fabric 2
+  attachment2_id?: string | number | null;
   attachment2_name?: string | null;
   attachment2_code?: string | null;
   attachment2_number?: string | null;
@@ -1062,7 +1127,7 @@ export function compileGarmentStickersHTML(
             </div>
             <span class="fabric-len-chip">${parseFloat(String(cardFabricMeters)).toFixed(2)}m</span>
           </div>
-          ${(att1Name || att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
+          ${isValidAttachmentFabric(att1Name, att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
           <div class="fabric-row-item">
             <div class="fabric-tag-box">
               <span class="fabric-role-tag att-role">ATT 1</span>
@@ -1072,7 +1137,7 @@ export function compileGarmentStickersHTML(
             <span class="fabric-len-chip att-len">${parseFloat(String(att1Length)).toFixed(2)}m</span>
           </div>
           ` : ''}
-          ${(att2Name || att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
+          ${isValidAttachmentFabric(att2Name, att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
           <div class="fabric-row-item">
             <div class="fabric-tag-box">
               <span class="fabric-role-tag att-role">ATT 2</span>
@@ -1562,19 +1627,19 @@ export function compilePersonWiseTravelerSheetsHTML(
                 <td style="font-weight: 700; color: #1e293b;">${mainName}${mainShade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${mainShade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #047857;">${parseFloat(String(mainMeters)).toFixed(2)} meters / pc</td>
               </tr>
-              ${(att1Name || att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
+              ${isValidAttachmentFabric(att1Name, att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #4338ca; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 1</span></td>
-                <td style="font-family: monospace; font-weight: 800; color: #4338ca;">${att1Code || 'ATT1-STD'}</td>
-                <td style="font-weight: 700; color: #1e293b;">${att1Name || 'Attachment Fabric 1'}${att1Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att1Shade})</span>` : ''}</td>
+                <td style="font-family: monospace; font-weight: 800; color: #4338ca;">${att1Code || 'ATT-1'}</td>
+                <td style="font-weight: 700; color: #1e293b;">${att1Name}${att1Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att1Shade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #4338ca;">${parseFloat(String(att1Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
-              ${(att2Name || att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
+              ${isValidAttachmentFabric(att2Name, att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #7c3aed; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 2</span></td>
-                <td style="font-family: monospace; font-weight: 800; color: #7c3aed;">${att2Code || 'ATT2-STD'}</td>
-                <td style="font-weight: 700; color: #1e293b;">${att2Name || 'Attachment Fabric 2'}${att2Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att2Shade})</span>` : ''}</td>
+                <td style="font-family: monospace; font-weight: 800; color: #7c3aed;">${att2Code || 'ATT-2'}</td>
+                <td style="font-weight: 700; color: #1e293b;">${att2Name}${att2Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att2Shade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
@@ -1814,19 +1879,19 @@ export function compilePersonWiseTravelerSheetsHTML(
                 <td style="font-weight: 700; color: #1e293b;">${mainName}${mainShade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${mainShade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #047857;">${parseFloat(String(mainMeters)).toFixed(2)} meters / pc</td>
               </tr>
-              ${(att1Name || att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
+              ${isValidAttachmentFabric(att1Name, att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #4338ca; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 1</span></td>
-                <td style="font-family: monospace; font-weight: 800; color: #4338ca;">${att1Code || 'ATT1-STD'}</td>
-                <td style="font-weight: 700; color: #1e293b;">${att1Name || 'Attachment Fabric 1'}${att1Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att1Shade})</span>` : ''}</td>
+                <td style="font-family: monospace; font-weight: 800; color: #4338ca;">${att1Code || 'ATT-1'}</td>
+                <td style="font-weight: 700; color: #1e293b;">${att1Name}${att1Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att1Shade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #4338ca;">${parseFloat(String(att1Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
-              ${(att2Name || att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
+              ${isValidAttachmentFabric(att2Name, att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #7c3aed; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 2</span></td>
-                <td style="font-family: monospace; font-weight: 800; color: #7c3aed;">${att2Code || 'ATT2-STD'}</td>
-                <td style="font-weight: 700; color: #1e293b;">${att2Name || 'Attachment Fabric 2'}${att2Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att2Shade})</span>` : ''}</td>
+                <td style="font-family: monospace; font-weight: 800; color: #7c3aed;">${att2Code || 'ATT-2'}</td>
+                <td style="font-weight: 700; color: #1e293b;">${att2Name}${att2Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att2Shade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
