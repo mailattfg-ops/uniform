@@ -846,7 +846,7 @@ export default function JobCardsPage() {
                                     </div>
                                   </div>
                                 ) : (
-                                  {(() => {
+                                  (() => {
                                     const sStr = piece.size || 'M';
                                     const sLower = sStr.toLowerCase().trim();
                                     const standardChartSpecs: Record<string, Record<string, string>> = {
@@ -865,7 +865,7 @@ export default function JobCardsPage() {
                                         <span className="text-[10px] text-slate-400 font-bold uppercase">US Standard</span>
                                       </div>
                                     );
-                                  })()}
+                                  })()
                                 )}
                               </td>
                               <td className="p-3.5">
@@ -884,38 +884,72 @@ export default function JobCardsPage() {
                                       {parseFloat(String(piece.fabric_length || piece.fabric_meters || 1.25)).toFixed(2)}m
                                     </span>
                                   </div>
-                                  {(piece.attachment1_name || piece.attachment1_code) && (
-                                    <div className="flex items-center gap-1.5 text-[11px]">
-                                      <span className="px-1.5 py-0.5 rounded bg-indigo-700 text-white font-extrabold text-[8.5px] uppercase tracking-wide shrink-0">
-                                        Att 1
-                                      </span>
-                                      <span className="font-mono font-bold text-indigo-800 bg-indigo-50 px-1 rounded text-[10px] shrink-0">
-                                        {piece.attachment1_code || '--'}
-                                      </span>
-                                      <span className="truncate text-slate-700 font-medium max-w-[120px]" title={piece.attachment1_name || ''}>
-                                        {piece.attachment1_name}
-                                      </span>
-                                      <span className="ml-auto font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 rounded text-[10px] whitespace-nowrap">
-                                        {parseFloat(String(piece.attachment1_length || piece.attachment1_meters || 0)).toFixed(2)}m
-                                      </span>
-                                    </div>
-                                  )}
-                                  {(piece.attachment2_name || piece.attachment2_code) && (
-                                    <div className="flex items-center gap-1.5 text-[11px]">
-                                      <span className="px-1.5 py-0.5 rounded bg-purple-700 text-white font-extrabold text-[8.5px] uppercase tracking-wide shrink-0">
-                                        Att 2
-                                      </span>
-                                      <span className="font-mono font-bold text-purple-800 bg-purple-50 px-1 rounded text-[10px] shrink-0">
-                                        {piece.attachment2_code || '--'}
-                                      </span>
-                                      <span className="truncate text-slate-700 font-medium max-w-[120px]" title={piece.attachment2_name || ''}>
-                                        {piece.attachment2_name}
-                                      </span>
-                                      <span className="ml-auto font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 rounded text-[10px] whitespace-nowrap">
-                                        {parseFloat(String(piece.attachment2_length || piece.attachment2_meters || 0)).toFixed(2)}m
-                                      </span>
-                                    </div>
-                                  )}
+                                  {(piece.attachment1_name || piece.attachment1_code) &&
+                                    parseFloat(
+                                      String(
+                                        piece.attachment1_length ||
+                                          piece.attachment1_meters ||
+                                          0,
+                                      ),
+                                    ) > 0 && (
+                                      <div className="flex items-center gap-1.5 text-[11px]">
+                                        <span className="px-1.5 py-0.5 rounded bg-indigo-700 text-white font-extrabold text-[8.5px] uppercase tracking-wide shrink-0">
+                                          Att 1
+                                        </span>
+                                        <span className="font-mono font-bold text-indigo-800 bg-indigo-50 px-1 rounded text-[10px] shrink-0">
+                                          {piece.attachment1_code || '--'}
+                                        </span>
+                                        <span
+                                          className="truncate text-slate-700 font-medium max-w-[120px]"
+                                          title={piece.attachment1_name || ''}
+                                        >
+                                          {piece.attachment1_name}
+                                        </span>
+                                        <span className="ml-auto font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 rounded text-[10px] whitespace-nowrap">
+                                          {parseFloat(
+                                            String(
+                                              piece.attachment1_length ||
+                                                piece.attachment1_meters ||
+                                                0,
+                                            ),
+                                          ).toFixed(2)}
+                                          m
+                                        </span>
+                                      </div>
+                                    )}
+                                  {(piece.attachment2_name || piece.attachment2_code) &&
+                                    parseFloat(
+                                      String(
+                                        piece.attachment2_length ||
+                                          piece.attachment2_meters ||
+                                          0,
+                                      ),
+                                    ) > 0 && (
+                                      <div className="flex items-center gap-1.5 text-[11px]">
+                                        <span className="px-1.5 py-0.5 rounded bg-purple-700 text-white font-extrabold text-[8.5px] uppercase tracking-wide shrink-0">
+                                          Att 2
+                                        </span>
+                                        <span className="font-mono font-bold text-purple-800 bg-purple-50 px-1 rounded text-[10px] shrink-0">
+                                          {piece.attachment2_code || '--'}
+                                        </span>
+                                        <span
+                                          className="truncate text-slate-700 font-medium max-w-[120px]"
+                                          title={piece.attachment2_name || ''}
+                                        >
+                                          {piece.attachment2_name}
+                                        </span>
+                                        <span className="ml-auto font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 rounded text-[10px] whitespace-nowrap">
+                                          {parseFloat(
+                                            String(
+                                              piece.attachment2_length ||
+                                                piece.attachment2_meters ||
+                                                0,
+                                            ),
+                                          ).toFixed(2)}
+                                          m
+                                        </span>
+                                      </div>
+                                    )}
                                 </div>
                               </td>
                               <td className="p-3.5">

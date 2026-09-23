@@ -285,7 +285,7 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
   const att1Code = firstPiece?.attachment1_code || sb.attachment_fabric1_code || null;
   const att1Rate = Number(firstPiece?.attachment1_length || firstPiece?.attachment1_meters || sb.attachment_fabric1_meters) || 0;
   const att1Shade = firstPiece?.attachment1_shade || sb.attachment_fabric1_shade || null;
-  if (att1Name || att1Code || att1Rate > 0) {
+  if (att1Rate > 0 && (att1Name || att1Code)) {
     fabricRowsList.push({
       role: 'ATTACHMENT 1',
       badgeBg: '#4338ca',
@@ -300,7 +300,7 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
   const att2Code = firstPiece?.attachment2_code || sb.attachment_fabric2_code || null;
   const att2Rate = Number(firstPiece?.attachment2_length || firstPiece?.attachment2_meters || sb.attachment_fabric2_meters) || 0;
   const att2Shade = firstPiece?.attachment2_shade || sb.attachment_fabric2_shade || null;
-  if (att2Name || att2Code || att2Rate > 0) {
+  if (att2Rate > 0 && (att2Name || att2Code)) {
     fabricRowsList.push({
       role: 'ATTACHMENT 2',
       badgeBg: '#7c3aed',
@@ -446,6 +446,19 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
     if (Object.keys(sizeMap).length === 0) {
       sizeMap['STANDARD'] = jc.quantity;
     }
+
+    const cardNames = [
+      jc.size_breakdown?.product_name,
+      jc.item_name,
+      jc.size_breakdown?.product_type_name,
+      jc.size_breakdown?.category
+    ]
+      .filter(Boolean)
+      .map(s => String(s).toLowerCase().trim());
+    const topKeywords = ['shirt', 't-shirt', 'tshirt', 't shirt', 'polo', 'shirting', 'top', 'kurti', 'blazer', 'coat', 'jacket', 'hoodie', 'sweater', 'vest', 'waistcoat'];
+    const bottomKeywords = ['pant', 'pants', 'trouser', 'trousers', 'suiting', 'bottom', 'skirt', 'salwar', 'short', 'shorts', 'track pant', 'cargo'];
+    const isCardTop = cardNames.some(cn => topKeywords.some(kw => cn.includes(kw)));
+    const isCardBottom = cardNames.some(cn => bottomKeywords.some(kw => cn.includes(kw)));
 
     const standardChartSpecs: Record<string, Record<string, string>> = {
       'chest': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
@@ -1049,24 +1062,24 @@ export function compileGarmentStickersHTML(
             </div>
             <span class="fabric-len-chip">${parseFloat(String(cardFabricMeters)).toFixed(2)}m</span>
           </div>
-          ${att1Name || att1Code ? `
+          ${(att1Name || att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
           <div class="fabric-row-item">
             <div class="fabric-tag-box">
               <span class="fabric-role-tag att-role">ATT 1</span>
               <span class="fabric-code-chip att-chip">${att1Code || 'ATT-1'}</span>
               <span class="fabric-name-chip" title="${att1Name || 'Attachment 1'}">${att1Name || 'Attachment Fabric 1'}</span>
             </div>
-            <span class="fabric-len-chip att-len">${parseFloat(String(att1Length || 0)).toFixed(2)}m</span>
+            <span class="fabric-len-chip att-len">${parseFloat(String(att1Length)).toFixed(2)}m</span>
           </div>
           ` : ''}
-          ${att2Name || att2Code ? `
+          ${(att2Name || att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
           <div class="fabric-row-item">
             <div class="fabric-tag-box">
               <span class="fabric-role-tag att-role">ATT 2</span>
               <span class="fabric-code-chip att-chip">${att2Code || 'ATT-2'}</span>
               <span class="fabric-name-chip" title="${att2Name || 'Attachment 2'}">${att2Name || 'Attachment Fabric 2'}</span>
             </div>
-            <span class="fabric-len-chip att-len">${parseFloat(String(att2Length || 0)).toFixed(2)}m</span>
+            <span class="fabric-len-chip att-len">${parseFloat(String(att2Length)).toFixed(2)}m</span>
           </div>
           ` : ''}
         </div>
@@ -1549,20 +1562,20 @@ export function compilePersonWiseTravelerSheetsHTML(
                 <td style="font-weight: 700; color: #1e293b;">${mainName}${mainShade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${mainShade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #047857;">${parseFloat(String(mainMeters)).toFixed(2)} meters / pc</td>
               </tr>
-              ${att1Name || att1Code ? `
+              ${(att1Name || att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #4338ca; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 1</span></td>
                 <td style="font-family: monospace; font-weight: 800; color: #4338ca;">${att1Code || 'ATT1-STD'}</td>
                 <td style="font-weight: 700; color: #1e293b;">${att1Name || 'Attachment Fabric 1'}${att1Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att1Shade})</span>` : ''}</td>
-                <td style="text-align: right; font-weight: 800; color: #4338ca;">${parseFloat(String(att1Length || 0)).toFixed(2)} meters / pc</td>
+                <td style="text-align: right; font-weight: 800; color: #4338ca;">${parseFloat(String(att1Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
-              ${att2Name || att2Code ? `
+              ${(att2Name || att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #7c3aed; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 2</span></td>
                 <td style="font-family: monospace; font-weight: 800; color: #7c3aed;">${att2Code || 'ATT2-STD'}</td>
                 <td style="font-weight: 700; color: #1e293b;">${att2Name || 'Attachment Fabric 2'}${att2Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att2Shade})</span>` : ''}</td>
-                <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length || 0)).toFixed(2)} meters / pc</td>
+                <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
             </tbody>
@@ -1801,20 +1814,20 @@ export function compilePersonWiseTravelerSheetsHTML(
                 <td style="font-weight: 700; color: #1e293b;">${mainName}${mainShade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${mainShade})</span>` : ''}</td>
                 <td style="text-align: right; font-weight: 800; color: #047857;">${parseFloat(String(mainMeters)).toFixed(2)} meters / pc</td>
               </tr>
-              ${att1Name || att1Code ? `
+              ${(att1Name || att1Code) && parseFloat(String(att1Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #4338ca; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 1</span></td>
                 <td style="font-family: monospace; font-weight: 800; color: #4338ca;">${att1Code || 'ATT1-STD'}</td>
                 <td style="font-weight: 700; color: #1e293b;">${att1Name || 'Attachment Fabric 1'}${att1Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att1Shade})</span>` : ''}</td>
-                <td style="text-align: right; font-weight: 800; color: #4338ca;">${parseFloat(String(att1Length || 0)).toFixed(2)} meters / pc</td>
+                <td style="text-align: right; font-weight: 800; color: #4338ca;">${parseFloat(String(att1Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
-              ${att2Name || att2Code ? `
+              ${(att2Name || att2Code) && parseFloat(String(att2Length || 0)) > 0 ? `
               <tr>
                 <td><span style="background: #7c3aed; color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ATTACHMENT 2</span></td>
                 <td style="font-family: monospace; font-weight: 800; color: #7c3aed;">${att2Code || 'ATT2-STD'}</td>
                 <td style="font-weight: 700; color: #1e293b;">${att2Name || 'Attachment Fabric 2'}${att2Shade ? ` <span style="font-size: 8.5px; color: #64748b; font-weight: 500;">(${att2Shade})</span>` : ''}</td>
-                <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length || 0)).toFixed(2)} meters / pc</td>
+                <td style="text-align: right; font-weight: 800; color: #7c3aed;">${parseFloat(String(att2Length)).toFixed(2)} meters / pc</td>
               </tr>
               ` : ''}
             </tbody>
