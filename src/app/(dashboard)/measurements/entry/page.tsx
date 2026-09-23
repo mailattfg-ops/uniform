@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Search, Ruler, User, ShieldCheck, CheckCircle2, Save, History, Scale, Building2, Library, Settings2, Clock, Plus, Package, Info } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { extractGarmentDisplayMetrics } from '@/lib/formatters';
 import { LabelConfigModal } from '../_components/LabelConfigModal';
 import { AdHocFieldModal } from '../_components/AdHocFieldModal';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -264,16 +265,27 @@ export default function MeasurementEntryPage() {
         if (currentMode === 'us_size_chart') {
           const chart = getResolvedChart(prod);
           const selections: {[key: string]: string} = {};
+          const assignedDims: {[key: string]: string} = {};
           
           chart?.metric_groups?.forEach((group: any) => {
             const val = formData.get(`${prod.id}-${group.label}`) || selectedSizes[`${prod.id}-${group.label}`];
-            if (val) selections[group.label] = val.toString();
+            if (val) {
+              const valStr = val.toString();
+              selections[group.label] = valStr;
+              const foundData = group.data?.find((d: any) => String(d.size).toLowerCase() === valStr.toLowerCase());
+              if (foundData?.value) {
+                assignedDims[group.label] = `${foundData.value}${chart.unit ? ' ' + chart.unit : ''}`;
+              }
+            }
           });
 
           dynamic_data[prod.name] = {
             selected_size: selections,
+            assigned_dimensions: assignedDims,
             strategy: 'us_size_chart',
-            chart_id: chart?.id || prod.size_chart_id
+            chart_id: chart?.id || prod.size_chart_id,
+            chart_name: chart?.name || prod.name,
+            chart_unit: chart?.unit || 'in'
           };
         } else {
           dynamic_data[prod.name] = {
@@ -563,39 +575,35 @@ export default function MeasurementEntryPage() {
 
                      <div className="space-y-6">
                         {lastMeasurement && Object.entries(lastMeasurement.dynamic_data || {}).map(([prodName, prodData]: [string, any]) => {
-                          // Handle Nested Structure (New)
-                          if (typeof prodData === 'object' && prodData !== null) {
-                            return (
-                              <div key={prodName} className="space-y-3 pb-4 border-b border-orange-100 last:border-0">
-                                 <h5 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{prodName}</h5>
-                                 <div className="grid grid-cols-2 gap-x-10 gap-y-4">
-                                    {Object.entries(prodData).map(([label, val]: [string, any]) => {
-                                       const fieldConfig = measurementFields.find(f => f.label === label);
-                                       const unit = fieldConfig?.unit || 'In';
-                                       return (
-                                          <div key={label} className="flex justify-between items-end border-b border-orange-50/50 pb-1 group">
-                                             <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] opacity-50">{label}</span>
-                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-lg font-black italic tracking-tighter text-[#3a525d]">{String(val)}</span>
-                                                <span className="text-[7px] font-black uppercase text-zinc-300">{unit}</span>
-                                             </div>
-                                          </div>
-                                       );
-                                    })}
-                                 </div>
-                              </div>
-                            );
-                          }
-                          
-                          // Handle Flat Structure (Legacy)
-                          const fieldConfig = measurementFields.find(f => f.label === prodName);
-                          const unit = fieldConfig?.unit || 'In';
+                          const display = extractGarmentDisplayMetrics(prodName, prodData, sizeCharts);
                           return (
-                            <div key={prodName} className="flex justify-between items-end border-b border-orange-50 pb-1">
-                               <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] opacity-50">{prodName}</span>
-                               <div className="flex items-baseline gap-1">
-                                  <span className="text-lg font-black italic tracking-tighter text-[#3a525d]">{prodData}</span>
-                                  <span className="text-[7px] font-black uppercase text-zinc-300">{unit}</span>
+                            <div key={prodName} className="space-y-3 pb-4 border-b border-orange-100 last:border-0">
+                               <div className="flex items-center justify-between">
+                                  <h5 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{prodName}</h5>
+                                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${
+                                     display.strategy === 'us_size_chart'
+                                       ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                       : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  }`}>
+                                     {display.strategy === 'us_size_chart' ? 'US Standard Size' : 'Custom Bespoke'}
+                                  </span>
+                               </div>
+                               <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                                  {display.metrics.map((m) => {
+                                     const fieldConfig = measurementFields.find(f => f.label === m.label);
+                                     const unit = m.isStandardSize ? '' : (fieldConfig?.unit || 'In');
+                                     return (
+                                        <div key={m.label} className="flex justify-between items-end border-b border-orange-50/50 pb-1 group">
+                                           <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] opacity-50 truncate max-w-[110px]" title={m.label}>
+                                              {m.label}
+                                           </span>
+                                           <div className="flex items-baseline gap-1 text-right">
+                                              <span className="text-xs font-black italic tracking-tight text-[#3a525d]">{m.value}</span>
+                                              {unit && <span className="text-[7px] font-black uppercase text-zinc-300">{unit}</span>}
+                                           </div>
+                                        </div>
+                                     );
+                                  })}
                                </div>
                             </div>
                           );
@@ -676,19 +684,18 @@ export default function MeasurementEntryPage() {
                       {lastMeasurement.dynamic_data && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
                           {Object.entries(lastMeasurement.dynamic_data).map(([prodName, prodData]: [string, any]) => {
-                            let labelText = '';
-                            if (prodData?.strategy === 'us_size_chart' && prodData.selected_size) {
-                              labelText = Object.entries(prodData.selected_size).map(([k, v]) => `${k}: ${v}`).join(' | ');
-                            } else if (typeof prodData === 'object' && prodData !== null) {
-                              const metrics = Object.entries(prodData).filter(([k]) => k !== 'strategy').map(([k, v]) => `${k}: ${v}`);
-                              labelText = metrics.join(', ');
-                            } else {
-                              labelText = String(prodData || '');
-                            }
+                            const display = extractGarmentDisplayMetrics(prodName, prodData, sizeCharts);
                             return (
                               <div key={prodName} className="p-3.5 bg-white rounded-2xl border border-emerald-100 shadow-xs">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] truncate">{prodName}</p>
-                                <p className="text-xs font-bold text-[#3a525d] mt-1 truncate">{labelText || 'Standard Fitting'}</p>
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] truncate">{prodName}</p>
+                                  <span className={`text-[7.5px] font-black uppercase px-1.5 py-0.5 rounded ${
+                                    display.strategy === 'us_size_chart' ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700'
+                                  }`}>
+                                    {display.strategy === 'us_size_chart' ? 'US Size' : 'Bespoke'}
+                                  </span>
+                                </div>
+                                <p className="text-xs font-bold text-[#3a525d] leading-snug">{display.summaryText}</p>
                               </div>
                             );
                           })}
@@ -900,18 +907,24 @@ export default function MeasurementEntryPage() {
                                                        <div className="flex flex-wrap gap-4">
                                                           {groupSizes.map((size: string) => {
                                                              const isSelected = currentSize === size;
+                                                             const dimVal = group.data?.find((d: any) => d.size === size)?.value;
                                                              return (
                                                                 <button
                                                                    key={size}
                                                                    type="button"
                                                                    onClick={() => setSelectedSizes(prev => ({...prev, [selectionKey]: size}))}
-                                                                   className={`min-w-[70px] h-[70px] px-4 flex items-center justify-center border-2 rounded-2xl transition-all font-black text-sm relative group cursor-pointer ${
+                                                                   className={`min-w-[84px] h-[72px] px-3 py-2 flex flex-col items-center justify-center border-2 rounded-2xl transition-all font-black relative group cursor-pointer ${
                                                                       isSelected 
-                                                                      ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white shadow-xl scale-110 z-10' 
+                                                                      ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white shadow-xl scale-105 z-10' 
                                                                       : 'bg-white border-zinc-100 text-[#3a525d] hover:border-[#2d8d9b]/30'
                                                                    }`}
                                                                 >
-                                                                   {size}
+                                                                   <span className="text-sm font-black">{size}</span>
+                                                                   {dimVal && (
+                                                                      <span className={`text-[8.5px] font-bold tracking-tight mt-0.5 ${isSelected ? 'text-white/80' : 'text-zinc-400 group-hover:text-[#2d8d9b]'}`}>
+                                                                         {dimVal}{chart.unit ? ` ${chart.unit}` : ''}
+                                                                      </span>
+                                                                   )}
                                                                    {isSelected && (
                                                                       <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-300">
                                                                          <ShieldCheck size={12} className="text-[#2d8d9b]" />

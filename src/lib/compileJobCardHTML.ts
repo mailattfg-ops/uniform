@@ -103,10 +103,10 @@ export function extractDressMeasurements(
 
   const topMetricNames = new Set([
     'chest', 'bust', 'shoulder', 'sleeve', 'sleeve length', 'top length', 'length',
-    'collar', 'neck', 'armhole', 'bicep', 'cuff', 'front cross', 'back cross'
+    'collar', 'neck', 'armhole', 'bicep', 'cuff', 'front cross', 'back cross', 'height', 'body length'
   ]);
   const bottomMetricNames = new Set([
-    'waist', 'hip', 'bottom length', 'inseam', 'outseam', 'thigh', 'knee', 'bottom hem', 'hem', 'rise', 'crotch'
+    'waist', 'hip', 'bottom length', 'inseam', 'outseam', 'thigh', 'knee', 'bottom hem', 'hem', 'rise', 'crotch', 'leg length', 'height'
   ]);
 
   // Check if rawMeas contains nested garment objects (e.g. { "Polo T-shirt (1-4J101)": {...}, "pants (1-5K012)": {...} })
@@ -159,8 +159,52 @@ export function extractDressMeasurements(
   // Flatten and filter measurements
   const result: { label: string; value: string }[] = [];
 
+  // Fallback standard chart mappings (ensures historical records show dimensions)
+  const standardChartSpecs: Record<string, Record<string, string>> = {
+    'chest (to fit)': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
+    'body length': { 'short': '26-27 in', 'standard': '28-29 in', 'long': '30-31 in' },
+    'waist (to fit)': { 'xs': '71–76 cm', 's': '76–81 cm', 'm': '81–86 cm', 'l': '86–91 cm', 'xl': '91–96 cm', 'xxl': '96–101 cm' },
+    'leg length': { 'short': '74–76 cm', 'standard': '79–81 cm', 'long': '84–86 cm', 'extra long': '89–91 cm' }
+  };
+
+  // 1. Process US Size Chart selected_size if present
+  if (targetData.selected_size && typeof targetData.selected_size === 'object') {
+    Object.entries(targetData.selected_size).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === '') return;
+      const kLower = k.toLowerCase().trim();
+
+      // Strictly isolate by garment category if card is clearly a Top or a Bottom
+      if (isCardTop && !isCardBottom) {
+        if (bottomMetricNames.has(kLower) || bottomKeywords.some(kw => kLower.includes(kw))) return;
+      } else if (isCardBottom && !isCardTop) {
+        if (topMetricNames.has(kLower) || topKeywords.some(kw => kLower.includes(kw))) return;
+      }
+
+      const strSize = String(v).trim();
+      const assigned = targetData.assigned_dimensions?.[k] || standardChartSpecs[kLower]?.[strSize.toLowerCase()];
+      const displayVal = assigned ? `${strSize} (${assigned})` : strSize;
+
+      result.push({
+        label: k,
+        value: displayVal
+      });
+    });
+  }
+
+  // 2. Process manual/bespoke metrics
   Object.entries(targetData).forEach(([k, v]) => {
-    if (k.startsWith('_') || k === 'strategy' || k === 'chart_id' || k === 'selected_size' || v === undefined || v === null || v === '') {
+    if (
+      k.startsWith('_') ||
+      k === 'strategy' ||
+      k === 'chart_id' ||
+      k === 'chart_name' ||
+      k === 'chart_unit' ||
+      k === 'selected_size' ||
+      k === 'assigned_dimensions' ||
+      v === undefined ||
+      v === null ||
+      v === ''
+    ) {
       return;
     }
 
@@ -207,7 +251,10 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
 
   // Product Measurements & Sizing Breakdown (PRD M9.6, M11.1, M11.2)
   const childPieces = jc.child_pieces || [];
-  const isCustomBespoke = childPieces.some(p => p.item_type === 'custom') || Boolean(jc.size_breakdown?.is_custom);
+  const isCustomBespoke =
+    childPieces.some(p => p.item_type === 'custom') ||
+    childPieces.some(p => Boolean(p.member_name)) ||
+    Boolean(jc.size_breakdown?.is_custom);
 
   // Raw Material & Fabric Allocation Rows (Main Fabric & Attachment Fabrics)
   const firstPiece = childPieces[0];
@@ -336,10 +383,51 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
       'pending_measurements', 'is_set', 'products'
     ]);
 
+    const VALID_STANDARD_SIZES = new Set([
+      'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', '5XL', '6XL',
+      '24', '26', '28', '30', '32', '34', '36', '38', '40', '42', '44', '46', '48', '50', '52', '54',
+      'SHORT', 'REGULAR', 'LONG', 'EXTRA LONG', 'STANDARD', 'CUSTOM', 'FREE SIZE', 'OS'
+    ]);
+
+    const isSizeKey = (k: string) => {
+      const clean = k.trim().toUpperCase();
+      if (VALID_STANDARD_SIZES.has(clean)) return true;
+      if (/^\d{2}$/.test(clean)) {
+        const n = parseInt(clean, 10);
+        return n >= 20 && n <= 60;
+      }
+      const lower = k.toLowerCase();
+      if (
+        lower.includes('_') ||
+        lower.includes('id') ||
+        lower.includes('name') ||
+        lower.includes('code') ||
+        lower.includes('fabric') ||
+        lower.includes('button') ||
+        lower.includes('thread') ||
+        lower.includes('sam') ||
+        lower.includes('meter') ||
+        lower.includes('price') ||
+        lower.includes('qty') ||
+        lower.includes('quantity') ||
+        lower.includes('total') ||
+        lower.includes('rate') ||
+        lower.includes('readiness') ||
+        lower.includes('status') ||
+        lower.includes('count') ||
+        lower.includes('design') ||
+        lower.includes('dept') ||
+        lower.includes('department')
+      ) {
+        return false;
+      }
+      return false;
+    };
+
     const sizeMap: Record<string, number> = {};
     if (jc.size_breakdown) {
       Object.entries(jc.size_breakdown).forEach(([k, v]) => {
-        if (!metaKeys.has(k)) {
+        if (isSizeKey(k)) {
           const qty = parseInt(String(v), 10);
           if (!isNaN(qty) && qty > 0) {
             sizeMap[k.toUpperCase()] = qty;
@@ -359,14 +447,26 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
       sizeMap['STANDARD'] = jc.quantity;
     }
 
+    const standardChartSpecs: Record<string, Record<string, string>> = {
+      'chest': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
+      'waist': { 'xs': '71–76 cm', 's': '76–81 cm', 'm': '81–86 cm', 'l': '86–91 cm', 'xl': '91–96 cm', 'xxl': '96–101 cm' }
+    };
+
     const rows = Object.entries(sizeMap).map(([size, count]) => {
       const pct = Math.round((count / (jc.quantity || 1)) * 100);
+      const sizeLower = size.toLowerCase().trim();
+      let patternSpec = 'Standard US Block • Grade A';
+      if (isCardTop && standardChartSpecs['chest']?.[sizeLower]) {
+        patternSpec = `US Standard • Chest: ${standardChartSpecs['chest'][sizeLower]}`;
+      } else if (isCardBottom && standardChartSpecs['waist']?.[sizeLower]) {
+        patternSpec = `US Standard • Waist: ${standardChartSpecs['waist'][sizeLower]}`;
+      }
       return `
         <tr>
           <td><span style="background: #0f172a; color: #fff; font-weight: 900; font-size: 11px; padding: 2px 8px; border-radius: 4px;">${size}</span></td>
           <td><strong style="font-size: 11.5px; color: #0f172a;">${count} pcs</strong></td>
           <td style="color: #64748b; font-weight: 600;">${pct}% of Lot</td>
-          <td><span style="font-size: 9.5px; color: #334155;">Standard US Pattern Block • Grade A</span></td>
+          <td><span style="font-size: 9.5px; color: #334155; font-weight: 600;">${patternSpec}</span></td>
           <td style="font-family: monospace; font-size: 9.5px; color: #2563eb;">BRC-${String(jc.id).slice(-4)}-SZ${size.replace(/[^A-Z0-9]/gi, '')}-*</td>
         </tr>
       `;
@@ -879,6 +979,27 @@ export function compileGarmentStickersHTML(
       const att2Name = card.attachment2_name || att2Meta?.name || jc.size_breakdown?.attachment_fabric2_name || null;
       const att2Length = card.attachment2_length || card.attachment2_meters || att2Meta?.length || jc.size_breakdown?.attachment_fabric2_meters || null;
 
+      // Fallback standard chart specs for dimension resolution
+      const standardChartSpecs: Record<string, Record<string, string>> = {
+        'chest (to fit)': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
+        'body length': { 'short': '26-27 in', 'standard': '28-29 in', 'long': '30-31 in' },
+        'waist (to fit)': { 'xs': '71–76 cm', 's': '76–81 cm', 'm': '81–86 cm', 'l': '86–91 cm', 'xl': '91–96 cm', 'xxl': '96–101 cm' },
+        'leg length': { 'short': '74–76 cm', 'standard': '79–81 cm', 'long': '84–86 cm', 'extra long': '89–91 cm' }
+      };
+
+      let standardDimension = '';
+      if (!isCustom) {
+        const sz = (card.size || 'M').toLowerCase().trim();
+        const itemNameLower = (jc.item_name || '').toLowerCase();
+        const isTop = ['shirt', 't-shirt', 'tshirt', 'polo', 'jacket', 'top', 'blazer'].some(k => itemNameLower.includes(k));
+        const isBottom = ['pant', 'pants', 'trouser', 'trousers', 'short', 'skirt'].some(k => itemNameLower.includes(k));
+        if (isTop) {
+          standardDimension = standardChartSpecs['chest (to fit)']?.[sz] || '';
+        } else if (isBottom) {
+          standardDimension = standardChartSpecs['waist (to fit)']?.[sz] || '';
+        }
+      }
+
       return `
       <div class="sticker-card">
         <div class="sticker-top">
@@ -900,14 +1021,20 @@ export function compileGarmentStickersHTML(
           <div class="custom-entity-box">
             <div class="entity-name">${card.member_name || 'Recipient'}</div>
             <div class="entity-id">${card.admission_no || `ID #${card.member_id || idx + 1}`}</div>
+            ${card.size && card.size !== 'Custom' ? `<div style="font-size: 9.5px; font-weight: 800; color: #4338ca; margin-top: 2px;">Sizing: ${card.size}</div>` : ''}
             ${measSummary ? `<div class="entity-meas">${measSummary}</div>` : ''}
             ${card.notes ? `<div class="entity-notes">Note: ${card.notes}</div>` : ''}
           </div>
         `
             : `
           <div class="standard-size-box">
-            <span class="size-label">SIZE</span>
-            <span class="size-value">${card.size || 'M'}</span>
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <div style="display:flex; align-items:baseline; gap:6px;">
+                <span class="size-label">SIZE</span>
+                <span class="size-value">${card.size || 'M'}</span>
+              </div>
+              ${standardDimension ? `<span style="font-size: 8.5px; font-weight: 700; color: #4b5563; margin-top: 1px;">(${standardDimension})</span>` : ''}
+            </div>
           </div>
         `
         }
@@ -1260,7 +1387,10 @@ export function compilePersonWiseTravelerSheetsHTML(
   const parentBarcodeSVG = generateInlineBarcodeSVG(jc.job_card_no, 42, 1.4);
 
   // Group child pieces by person (or by standard size if standard mode)
-  const isCustomMode = childCards.some((c) => c.item_type === 'custom');
+  const isCustomMode =
+    childCards.some((c) => c.item_type === 'custom') ||
+    childCards.some((c) => Boolean(c.member_name)) ||
+    Boolean(jc.size_breakdown?.is_custom);
 
   let sheetsHtml = '';
 

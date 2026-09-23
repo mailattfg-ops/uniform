@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { extractGarmentDisplayMetrics } from '@/lib/formatters';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -267,24 +268,21 @@ export default function DashboardPage() {
 
       return entries.map(([garment, val]) => {
         if (val && typeof val === 'object' && !Array.isArray(val)) {
-          const strategy = (val as any).strategy || 'manual';
-          const sourceObj = strategy === 'us_size_chart' 
-            ? ((val as any).selected_size || {})
-            : Object.fromEntries(Object.entries(val).filter(([k]) => k !== 'strategy'));
-
-          const items = Object.entries(sourceObj).map(([metricName, metricVal]) => ({
-            name: metricName.replace(/_/g, ' '),
-            value: typeof metricVal === 'object' ? JSON.stringify(metricVal) : String(metricVal ?? '--')
+          const display = extractGarmentDisplayMetrics(garment, val);
+          const items = display.metrics.map((m) => ({
+            name: m.label,
+            value: m.value
           }));
 
           return {
             garment: garment.charAt(0).toUpperCase() + garment.slice(1),
-            strategy,
+            strategy: display.strategy,
             items
           };
         }
         return {
           garment: garment.charAt(0).toUpperCase() + garment.slice(1),
+          strategy: 'manual',
           items: [{ name: garment.replace(/_/g, ' '), value: String(val ?? '--') }]
         };
       });

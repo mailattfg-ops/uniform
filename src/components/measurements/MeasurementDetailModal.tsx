@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, User, Ruler, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { extractGarmentDisplayMetrics } from '@/lib/formatters';
 
 interface MeasurementDetailModalProps {
   isOpen: boolean;
@@ -68,29 +69,26 @@ export const MeasurementDetailModal: React.FC<MeasurementDetailModalProps> = ({ 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {record.dynamic_data && Object.entries(record.dynamic_data).map(([category, metrics]: [string, any]) => {
-                const strategy = metrics.strategy || 'manual';
-                const displayMetrics = strategy === 'us_size_chart' 
-                  ? (metrics.selected_size || {})
-                  : Object.fromEntries(Object.entries(metrics).filter(([k]) => k !== 'strategy'));
+                const display = extractGarmentDisplayMetrics(category, metrics);
 
                 return (
                   <div key={category} className="p-8 bg-zinc-50/50 rounded-[2rem] border border-zinc-100/50 space-y-5">
                      <div className="flex items-center justify-between">
                         <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">{category}</p>
                         <span className={`text-[8.5px] font-black uppercase px-2.5 py-1 rounded-md border ${
-                           strategy === 'us_size_chart' 
+                           display.strategy === 'us_size_chart' 
                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200' 
                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         }`}>
-                           {strategy === 'us_size_chart' ? 'STANDARD US SIZE' : 'CUSTOM BESPOKE'}
+                           {display.strategy === 'us_size_chart' ? 'STANDARD US SIZE' : 'CUSTOM BESPOKE'}
                         </span>
                      </div>
                      <div className="space-y-3">
-                       {Object.entries(displayMetrics).map(([metric, value]: [any, any]) => (
-                         <div key={metric} className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100/50 shadow-sm">
-                           <span className="text-[10px] font-bold text-zinc-400 uppercase">{metric}</span>
+                       {display.metrics.map((m) => (
+                         <div key={m.label} className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100/50 shadow-sm">
+                           <span className="text-[10px] font-bold text-zinc-400 uppercase">{m.label}</span>
                            <span className="text-[11px] font-black text-[#3a525d]">
-                             {typeof value === 'object' ? JSON.stringify(value) : (value || '--')}
+                             {m.value}
                            </span>
                          </div>
                        ))}

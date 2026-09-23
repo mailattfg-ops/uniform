@@ -141,12 +141,15 @@ export default function JobCardsPage() {
   const [printCard, setPrintCard] = useState<JobCard | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // Print a single PRD M9.5 compliant Job Card (Blocked for Held/Rejected cards)
+  // Print view mode toggle (Work Traveler vs Lot Summary)
+  const [printViewMode, setPrintViewMode] = useState<'traveler' | 'lot'>('traveler');
+
+  // Print a single job card
   const handlePrint = async (jc: JobCard) => {
     const isAccepted = jc.status === 'Accepted' || jc.status === 'In Production' || jc.po_handler_action === 'Accept';
     if (!isAccepted) {
       if (jc.status?.includes('Reject') || jc.po_handler_action === 'Reject') {
-        toast.error('Cannot print Job Card: Card has been REJECTED.');
+        toast.error('Cannot print Job Card: Card has been rejected.');
         return;
       }
       if (jc.status?.includes('Held') || jc.po_handler_action === 'Hold') {
@@ -159,9 +162,16 @@ export default function JobCardsPage() {
 
     try {
       const res = await api.get(`/job-cards/${jc.id}/child-cards`);
-      setPrintCard({ ...jc, child_pieces: res.data || [] });
+      const pieces = res.data || [];
+      setPrintCard({ ...jc, child_pieces: pieces });
+      setChildPieces(pieces);
+      const isBespoke =
+        pieces.some((p: any) => p.item_type === 'custom' || Boolean(p.member_name)) ||
+        Boolean(jc.size_breakdown?.is_custom);
+      setPrintViewMode(isBespoke ? 'traveler' : 'lot');
     } catch {
       setPrintCard(jc);
+      setPrintViewMode('lot');
     }
     setShowPrintModal(true);
   };
@@ -342,7 +352,7 @@ export default function JobCardsPage() {
                     onClick={() => handlePrint(jc)}
                     className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer transition hover:underline"
                   >
-                    <Printer className="w-3.5 h-3.5" /> Print Label
+                    <Printer className="w-3.5 h-3.5" /> Print Job Card
                   </button>
                 ) : (jc.status?.includes('Reject') || jc.po_handler_action === 'Reject') ? (
                   <span className="text-[10.5px] text-rose-600 font-semibold flex items-center gap-1 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
@@ -582,19 +592,42 @@ export default function JobCardsPage() {
       {showPrintModal && printCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPrintModal(false)} />
-          <div className="relative bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden z-10">
+          <div className="relative bg-white rounded-3xl max-w-5xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden z-10">
             {/* Modal Header */}
-            <div className="p-4 md:px-6 border-b border-slate-200 flex justify-between items-center bg-slate-900 text-white">
+            <div className="p-4 md:px-6 border-b border-slate-200 flex flex-wrap justify-between items-center bg-slate-900 text-white gap-3">
               <div>
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <Printer className="w-4 h-4 text-amber-400" />
-                  Factory Production Job Card &amp; Travel Tag
+                  {printViewMode === 'traveler' ? 'Individual Garment Work Traveler Sheets' : 'Factory Production Travel Card'}
                 </h3>
                 <p className="text-xs text-slate-400">
                   {printCard.job_card_no} — {printCard.item_name} ({printCard.quantity} pcs)
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setPrintViewMode('traveler')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                      printViewMode === 'traveler' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Work Traveler Sheets</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintViewMode('lot')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                      printViewMode === 'lot' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Lot Summary Card</span>
+                  </button>
+                </div>
+
                 <button
                   onClick={executePrint}
                   className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg transition cursor-pointer"
@@ -614,8 +647,12 @@ export default function JobCardsPage() {
             <div className="flex-1 bg-slate-100 p-4 overflow-auto flex justify-center">
               <iframe
                 id="jc-print-frame"
-                srcDoc={compileJobCardHTML(printCard)}
-                className="w-full max-w-[820px] h-full bg-white rounded-xl shadow-md border border-slate-200"
+                srcDoc={
+                  printViewMode === 'traveler'
+                    ? compilePersonWiseTravelerSheetsHTML(printCard.child_pieces || childPieces, printCard)
+                    : compileJobCardHTML(printCard)
+                }
+                className="w-full max-w-[840px] h-full bg-white rounded-xl shadow-md border border-slate-200"
                 title="Job Card Print Preview"
               />
             </div>
@@ -772,17 +809,63 @@ export default function JobCardsPage() {
                                       <User className="w-3 h-3 text-amber-500" />
                                       <span>{piece.member_name || 'Bespoke Entity'}</span>
                                     </div>
-                                    <span className="text-[10px] font-mono text-amber-700 font-semibold">
-                                      {piece.admission_no || 'Custom'}
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                      <span className="text-[10px] font-mono text-amber-700 font-semibold">
+                                        {piece.admission_no || 'Custom'}
+                                      </span>
+                                      {(() => {
+                                        const selSize = piece.custom_measurements?.selected_size;
+                                        const assignedDims = piece.custom_measurements?.assigned_dimensions || {};
+                                        const standardChartSpecs: Record<string, Record<string, string>> = {
+                                          'chest (to fit)': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
+                                          'body length': { 'short': '26-27 in', 'standard': '28-29 in', 'long': '30-31 in' },
+                                          'waist (to fit)': { 'xs': '71–76 cm', 's': '76–81 cm', 'm': '81–86 cm', 'l': '86–91 cm', 'xl': '91–96 cm', 'xxl': '96–101 cm' },
+                                          'leg length': { 'short': '74–76 cm', 'standard': '79–81 cm', 'long': '84–86 cm', 'extra long': '89–91 cm' }
+                                        };
+                                        if (selSize && typeof selSize === 'object') {
+                                          const parts = Object.entries(selSize).map(([k, v]) => {
+                                            const kLower = k.toLowerCase().trim();
+                                            const vLower = String(v).toLowerCase().trim();
+                                            const assigned = assignedDims[k] || standardChartSpecs[kLower]?.[vLower];
+                                            return assigned ? `${v} (${assigned})` : String(v);
+                                          });
+                                          return (
+                                            <span className="text-[9px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200">
+                                              US: {parts.join(' • ')}
+                                            </span>
+                                          );
+                                        } else if (piece.size && piece.size !== 'Custom') {
+                                          return (
+                                            <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                                              {piece.size}
+                                            </span>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </div>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="px-2.5 py-0.5 rounded-md font-black bg-slate-900 text-white text-[11px]">
-                                      {piece.size || 'M'}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase">US Standard</span>
-                                  </div>
+                                  {(() => {
+                                    const sStr = piece.size || 'M';
+                                    const sLower = sStr.toLowerCase().trim();
+                                    const standardChartSpecs: Record<string, Record<string, string>> = {
+                                      'chest (to fit)': { 'xs': '32-34 in', 's': '35-37 in', 'm': '38-40 in', 'l': '41-43 in', 'xl': '44-46 in', 'xxl': '47-49 in' },
+                                      'waist (to fit)': { 'xs': '71–76 cm', 's': '76–81 cm', 'm': '81–86 cm', 'l': '86–91 cm', 'xl': '91–96 cm', 'xxl': '96–101 cm' }
+                                    };
+                                    const itemNameLower = (piecesCard?.item_name || '').toLowerCase();
+                                    const isTop = ['shirt', 't-shirt', 'tshirt', 'polo', 'top', 'blazer'].some(k => itemNameLower.includes(k));
+                                    const isBottom = ['pant', 'pants', 'trouser', 'trousers', 'bottom', 'short'].some(k => itemNameLower.includes(k));
+                                    const dim = isTop ? standardChartSpecs['chest (to fit)']?.[sLower] : isBottom ? standardChartSpecs['waist (to fit)']?.[sLower] : null;
+                                    return (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="px-2.5 py-0.5 rounded-md font-black bg-slate-900 text-white text-[11px]">
+                                          {sStr}{dim ? ` (${dim})` : ''}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase">US Standard</span>
+                                      </div>
+                                    );
+                                  })()}
                                 )}
                               </td>
                               <td className="p-3.5">
