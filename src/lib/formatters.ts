@@ -28,7 +28,11 @@ export function formatCurrency(amount: number | string | null | undefined, inclu
  * Format an ISO date string into standard readable date (and optional time).
  * e.g. formatDate("2026-09-17T15:30:00Z") -> "17 Sep 2026"
  */
-export function formatDate(dateStr: string | null | undefined, includeTime: boolean = false): string {
+export function formatDate(
+  dateStr: string | null | undefined, 
+  includeTime: boolean = false,
+  includeSeconds: boolean = false
+): string {
   if (!dateStr) return '—';
   try {
     const d = new Date(dateStr);
@@ -42,10 +46,17 @@ export function formatDate(dateStr: string | null | undefined, includeTime: bool
 
     if (!includeTime) return dateFormatted;
 
-    const timeFormatted = d.toLocaleTimeString('en-IN', {
+    const timeOptions: Intl.DateTimeFormatOptions = {
       hour: '2-digit',
-      minute: '2-digit'
-    });
+      minute: '2-digit',
+      hour12: true
+    };
+
+    if (includeSeconds) {
+      timeOptions.second = '2-digit';
+    }
+
+    const timeFormatted = d.toLocaleTimeString('en-IN', timeOptions);
 
     return `${dateFormatted} at ${timeFormatted}`;
   } catch {

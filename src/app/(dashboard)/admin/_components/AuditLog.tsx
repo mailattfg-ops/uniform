@@ -6,6 +6,7 @@ import { Activity, Clock, Edit, UserPlus, Database, Loader2, CheckCircle2, XCirc
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/formatters';
 
 interface AuditEntry {
   id: string;
@@ -134,9 +135,11 @@ export const AuditLog: React.FC = () => {
     {
        header: 'Timestamp',
        accessor: (l) => (
-         <div className="flex items-center gap-2 text-muted-foreground">
-           <Clock size={12} />
-           <span className="text-[10px] font-bold tracking-widest">{l.time}</span>
+         <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
+           <Clock size={12} className="shrink-0 text-[#2d8d9b]" />
+           <span className="text-[10px] font-bold tracking-wider">
+             {formatDate(l.created_at || l.time, true, true)}
+           </span>
          </div>
        ),
     },
@@ -146,9 +149,11 @@ export const AuditLog: React.FC = () => {
     return logs
       .filter(l => {
         if (!dateFilter) return true;
-        if (!l.created_at) return false;
+        const ts = l.created_at || l.time;
+        if (!ts) return false;
         
-        const logDate = new Date(l.created_at);
+        const logDate = new Date(ts);
+        if (isNaN(logDate.getTime())) return false;
         const year = logDate.getFullYear();
         const month = String(logDate.getMonth() + 1).padStart(2, '0');
         const day = String(logDate.getDate()).padStart(2, '0');
@@ -156,7 +161,7 @@ export const AuditLog: React.FC = () => {
         
         return localDateStr === dateFilter;
       })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      .sort((a, b) => new Date(b.created_at || b.time).getTime() - new Date(a.created_at || a.time).getTime());
   }, [logs, dateFilter]);
 
   if (loading) {

@@ -65,14 +65,30 @@ export default function LeadsRegistryPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [leadsRes, indRes, empRes] = await Promise.all([
+      const [leadsRes, indRes, empRes] = await Promise.allSettled([
         api.get('/leads'),
         api.get('/industries'),
         api.get('/employees')
       ]);
-      setLeads(leadsRes.data || []);
-      setIndustries(indRes.data || []);
-      setEmployees(empRes.data || []);
+
+      if (leadsRes.status === 'fulfilled') {
+        setLeads(leadsRes.value.data || []);
+      } else {
+        console.error('Failed to load leads:', leadsRes.reason);
+        toast.error('Failed to load leads registry details');
+      }
+
+      if (indRes.status === 'fulfilled') {
+        setIndustries(indRes.value.data || []);
+      } else {
+        console.error('Failed to load industries:', indRes.reason);
+      }
+
+      if (empRes.status === 'fulfilled') {
+        setEmployees(empRes.value.data || []);
+      } else {
+        console.error('Failed to load employees:', empRes.reason);
+      }
     } catch (err) {
       toast.error('Failed to load leads registry details');
     } finally {

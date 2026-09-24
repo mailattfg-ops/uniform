@@ -84,8 +84,7 @@ const modules: ModuleItem[] = [
       { label: 'Group Design Catalog', href: '/admin/designs' },
       { label: 'Design Number Catalog', href: '/admin/design-numbers' },
       { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
-      { label: 'Button Catalog', href: '/admin/inventory/buttons' },
-      { label: 'Thread Catalog', href: '/admin/inventory/threads' },
+      { label: 'Trims Catalog', href: '/admin/inventory/trims' },
       { label: 'Purchase Orders', href: '/admin/purchase-orders' },
     ]
   },
@@ -94,8 +93,7 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Product Stock', href: '/admin/inventory/product-stock' },
       { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
-      { label: 'Thread Stock', href: '/admin/inventory/thread-stock' },
-      { label: 'Button Stock', href: '/admin/inventory/button-stock' }
+      { label: 'Trims Stock', href: '/admin/inventory/trims-stock' }
     ]
   },
   {

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { formatDate } from '@/lib/formatters';
 
 interface Component {
   name: string;
@@ -272,9 +273,11 @@ export default function SAMConfigurations() {
     {
       header: 'Timestamp',
       accessor: (l) => (
-        <div className="flex items-center gap-1.5 text-zinc-400">
-          <Clock size={12} />
-          <span className="text-[10px] font-bold tracking-widest">{l.time}</span>
+        <div className="flex items-center gap-1.5 text-zinc-400 whitespace-nowrap">
+          <Clock size={12} className="text-[#2d8d9b]" />
+          <span className="text-[10px] font-bold tracking-wider">
+            {formatDate(l.created_at || l.time, true, true)}
+          </span>
         </div>
       )
     }
