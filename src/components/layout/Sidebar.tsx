@@ -25,6 +25,12 @@ import {
   Users,
   History,
   Home,
+  Tag,
+  ShoppingBag,
+  ShoppingCart,
+  Factory,
+  Receipt,
+  BarChart3
 } from 'lucide-react';
 
 interface Subsection {
@@ -45,159 +51,186 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   {
-    icon: Building2, label: 'Customer & Lead Management', href: '/organizations/registry',
+    icon: Users, label: 'CRM', href: '/organizations/registry',
     subsections: [
+      { label: 'Customer Portal', href: '/coming-soon?feature=Customer%20Portal&module=CRM' },
+      { label: 'Organizations CRM', href: '/organizations/registry' },
       { label: 'Leads Registry', href: '/organizations/leads' },
-      { label: 'Organization', href: '/organizations/registry' },
+      { label: 'Quotations', href: '/marketing/quotations' },
+    ]
+  },
+  {
+    icon: Tag, label: 'Items', href: '/admin/products',
+    subsections: [
+      { label: 'Product Registry', href: '/admin/products' },
+      { label: 'Product Types', href: '/admin/product-types' },
+      { label: 'ART Number Hub', href: '/admin/art-number-hub' },
+      { label: 'Design Numbers (DNS/DMG)', href: '/admin/design-numbers' },
+      { label: 'Group Designs', href: '/admin/designs' },
+      { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
+      { label: 'Trims Catalog', href: '/admin/inventory/trims' },
+      { label: 'Button Catalog', href: '/admin/inventory/buttons' },
+      { label: 'Thread Catalog', href: '/admin/inventory/threads' },
     ]
   },
   {
     icon: Ruler, label: 'Measurements', href: '/measurements/entry',
     subsections: [
       { label: 'Record Entry', href: '/measurements/entry' },
-      { label: 'History', href: '/measurements/history' },
+      { label: 'Measurement History', href: '/measurements/history' },
       { label: 'Industry Templates', href: '/measurements/templates' },
-      { label: 'Fitting Tokens', href: '/measurements/tokens' }
+      { label: 'Fitting Tokens', href: '/measurements/tokens' },
+      { label: 'Consumption List', href: '/coming-soon?feature=Consumption%20List&module=Measurements' }
     ]
   },
   {
-    icon: ShieldAlert, label: 'Admin Controls', href: '/admin/settings',
+    icon: Calculator, label: 'SAM Engineering', href: '/sam-management/calculator',
     subsections: [
-      { label: 'Industry Sectors', href: '/admin/industries' },
-      { label: 'Measurement Setup', href: '/admin/measures' },
-      { label: 'Measurements Approvals', href: '/admin/approvals/measurements' },
-      { label: 'Audit Logs', href: '/admin/audit' },
-      { label: 'Staff Management', href: '/admin/employees' },
-      { label: 'Company Profile & Bank', href: '/admin/company' },
-      { label: 'User Roles', href: '/admin/roles' },
-      { label: 'US Size Charts', href: '/admin/size-charts' },
-      { label: 'Dress Prefixes', href: '/admin/dress-prefixes' },
-      { label: 'Art Number Hub', href: '/admin/art-number-hub' },
-      { label: 'Vendors Manager', href: '/admin/vendors' }
-    ]
-  },
-  {
-    icon: Box, label: 'Product Management', href: '/admin/products',
-    subsections: [
-      { label: 'Product Registry', href: '/admin/products' },
-      { label: 'Product Types', href: '/admin/product-types' },
-      { label: 'Group Design Catalog', href: '/admin/designs' },
-      { label: 'Design Number Catalog', href: '/admin/design-numbers' },
-      { label: 'Fabric Catalog', href: '/admin/inventory/fabrics' },
-      { label: 'Button Catalog', href: '/admin/inventory/buttons' },
-      { label: 'Thread Catalog', href: '/admin/inventory/threads' },
-      { label: 'Purchase Orders', href: '/admin/purchase-orders' },
+      { label: 'SAM Calculator', href: '/sam-management/calculator' },
+      { label: 'Configurations', href: '/sam-management/configurations' },
+      { label: 'Fabric SAM', href: '/sam-management/fabric' },
     ]
   },
   {
     icon: Package, label: 'Inventory', href: '/admin/inventory/product-stock',
     subsections: [
-      { label: 'Product Stock', href: '/admin/inventory/product-stock' },
+      { label: 'Stock Transfers', href: '/branches/transfers' },
       { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
+      { label: 'Trims Stock', href: '/admin/inventory/trims-stock' },
+      { label: 'Button Stock', href: '/admin/inventory/button-stock' },
       { label: 'Thread Stock', href: '/admin/inventory/thread-stock' },
-      { label: 'Button Stock', href: '/admin/inventory/button-stock' }
+      { label: 'Product Stock', href: '/admin/inventory/product-stock' },
+      { label: 'Branch Inventory', href: '/branches/inventory' },
+      { label: 'Move Items', href: '/coming-soon?feature=Move%20Items&module=Inventory' },
     ]
   },
   {
-    icon: TrendingUp, label: 'Marketing', href: '/marketing/quotations',
+    icon: ShoppingBag, label: 'Sales', href: '/marketing/order-placement',
     subsections: [
-      { label: 'Quotation', href: '/marketing/quotations' },
-      { label: 'Operation Team', href: '/marketing/operation-team' },
-      { label: 'Initial Payment', href: '/marketing/initial-payment' },
-      { label: 'Order Placement', href: '/marketing/order-placement' }
+      { label: 'Sales Orders', href: '/marketing/order-placement' },
+      { label: 'Operations Review', href: '/marketing/operation-team' },
+      { label: 'Delivery Challans (DC)', href: '/billing/delivery-challans' },
+      { label: 'Packages', href: '/coming-soon?feature=Packages&module=Sales' },
+      { label: 'Alterations & Returns', href: '/coming-soon?feature=Alterations%20%26%20Returns&module=Sales' },
     ]
   },
   {
-    icon: Calculator, label: 'SAM Management', href: '/sam-management/calculator',
+    icon: ShoppingCart, label: 'Purchase', href: '/admin/purchase-orders',
     subsections: [
-      { label: 'SAM Calculator', href: '/sam-management/calculator' },
-      { label: 'SAM Configurations', href: '/sam-management/configurations' },
-      { label: 'Reports', href: '/sam-management/reports' },
-      { label: 'Fabric SAM', href: '/sam-management/fabric' }
+      { label: 'Vendors Manager', href: '/admin/vendors' },
+      { label: 'Purchase Orders (PO)', href: '/admin/purchase-orders' },
+      { label: 'Purchase Bills & Receives', href: '/coming-soon?feature=Purchase%20Bills%20%26%20Receives&module=Purchase' },
     ]
   },
   {
-    icon: Building2, label: 'Factory Operations', href: '/factory/job-cards',
+    icon: Factory, label: 'Factory Operations', href: '/factory/job-cards',
     subsections: [
       { label: 'Job Cards & PO Handler', href: '/factory/job-cards' },
-      { label: 'Production Queue & Fabric', href: '/factory/production-queue' }
+      { label: 'Production Queue', href: '/factory/production-queue' }
     ]
   },
   {
-    icon: Building2, label: 'Multi-Branch Hub', href: '/branches/outlets',
-    subsections: [
-      { label: 'Outlets & Credentials', href: '/branches/outlets' },
-      { label: 'Branch Stock & Inventory', href: '/branches/inventory' },
-      { label: 'Inter-Branch Stock Transfer', href: '/branches/transfers' }
-    ]
-  },
-  {
-    icon: Package, label: 'Billing & Invoicing', href: '/billing/invoices',
+    icon: Receipt, label: 'Accounts', href: '/billing/invoices',
     subsections: [
       { label: 'Customer Invoices', href: '/billing/invoices' },
-      { label: 'Delivery Challans (DC)', href: '/billing/delivery-challans' }
+      { label: 'Customer Payments', href: '/marketing/initial-payment' },
+      { label: 'Vendor Payments & Expenses', href: '/coming-soon?feature=Vendor%20Payments%20%26%20Expenses&module=Accounts' },
+      { label: 'Company Bank & Profile', href: '/admin/company' },
+    ]
+  },
+  {
+    icon: BarChart3, label: 'Reports', href: '/sam-management/reports',
+    subsections: [
+      { label: 'SAM & Operations Reports', href: '/sam-management/reports' },
+      { label: 'Audit Trail Logs', href: '/admin/audit' },
+    ]
+  },
+  {
+    icon: Settings, label: 'Admin Settings', href: '/admin/settings',
+    subsections: [
+      { label: 'Industry Sectors', href: '/admin/industries' },
+      { label: 'Staff Management', href: '/admin/employees' },
+      { label: 'User Roles & Permissions', href: '/admin/roles' },
+      { label: 'US Size Charts', href: '/admin/size-charts' },
+      { label: 'Measurement Approvals', href: '/admin/approvals/measurements' },
+      { label: 'Branches & Outlets', href: '/branches/outlets' }
     ]
   }
 ];
 
 // ── Static Permission Mapping Rules ──────────────────────────────────────────
 const MODULE_PERMISSION_MAP: Record<string, string[]> = {
-  'Customer & Lead Management': ['view_schools', 'manage_schools', 'view_organizations'],
+  'CRM': ['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales'],
+  'Items': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
   'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
-  'Admin Controls': ['manage_system', 'view_audit_logs'],
+  'SAM Engineering': ['manage_system', 'manage_sam'],
+  'Inventory': ['manage_inventory', 'view_inventory', 'branch_transfers'],
+  'Sales': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver'],
+  'Purchase': ['manage_system', 'manage_inventory', 'view_inventory'],
+  'Factory Operations': ['manage_system', 'factory_po_handler', 'factory_floor'],
+  'Accounts': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'],
+  'Reports': ['manage_system', 'manage_sam', 'view_audit_logs'],
+  'Admin Settings': ['manage_system', 'view_audit_logs'],
+  // Legacy aliases
+  'Customer & Lead Management': ['view_schools', 'manage_schools', 'view_organizations'],
   'Product Management': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
-  'Inventory': ['manage_inventory', 'view_inventory'],
   'Marketing': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver'],
   'SAM Management': ['manage_system', 'manage_sam'],
-  'Factory Operations': ['manage_system', 'factory_po_handler', 'factory_floor'],
   'Multi-Branch Hub': ['branch_sales', 'manage_system', 'branch_transfers'],
   'Billing & Invoicing': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices']
 };
 
 const SUB_PERMISSION_MAP: Record<string, string[]> = {
+  'Customer Portal': ['view_schools', 'manage_schools', 'view_organizations'],
+  'Organizations CRM': ['view_schools', 'manage_schools', 'view_organizations'],
   'Leads Registry': ['view_schools', 'manage_schools', 'view_organizations', 'branch_sales'],
-  'Organization': ['view_schools', 'manage_schools', 'view_organizations'],
+  'Quotations': ['manage_quotations', 'view_quotations', 'branch_sales'],
   'Record Entry': ['manage_measurements', 'view_measurements'],
-  'History': ['view_measurements', 'manage_measurements'],
+  'Measurement History': ['view_measurements', 'manage_measurements'],
   'Industry Templates': ['manage_measurements', 'view_measurements'],
   'Fitting Tokens': ['manage_measurements', 'view_measurements'],
+  'Consumption List': ['manage_measurements', 'view_measurements'],
   'Industry Sectors': ['manage_system', 'manage_industries'],
-  'Measurement Setup': ['manage_system'],
-  'Measurements Approvals': ['manage_system'],
+  'Staff Management': ['manage_employees', 'view_employees', 'manage_system'],
+  'User Roles & Permissions': ['manage_system'],
+  'US Size Charts': ['manage_size_charts', 'view_size_charts', 'manage_system'],
+  'Measurement Approvals': ['manage_system'],
+  'Branches & Outlets': ['manage_system'],
+  'Audit Trail Logs': ['view_audit_logs', 'manage_system'],
   'Product Registry': ['manage_products', 'view_products'],
   'Product Types': ['manage_products', 'view_products'],
-  'Group Design Catalog': ['manage_products', 'view_products'],
-  'Design Number Catalog': ['manage_products', 'view_products'],
-  'Audit Logs': ['view_audit_logs', 'manage_system'],
-  'Staff Management': ['manage_employees', 'view_employees'],
-  'Company Profile & Bank': ['manage_system'],
-  'User Roles': ['manage_system'],
-  'US Size Charts': ['manage_size_charts', 'view_size_charts'],
-  'Dress Prefixes': ['manage_system'],
+  'Group Designs': ['manage_products', 'view_products'],
+  'Design Numbers (DNS/DMG)': ['manage_products', 'view_products'],
   'Art Number Hub': ['manage_system', 'manage_products'],
-  'Vendors Manager': ['manage_system'],
+  'Vendors Manager': ['manage_system', 'manage_inventory'],
   'Fabric Catalog': ['manage_inventory', 'view_inventory'],
+  'Trims Catalog': ['manage_inventory', 'view_inventory'],
   'Button Catalog': ['manage_inventory', 'view_inventory'],
   'Thread Catalog': ['manage_inventory', 'view_inventory'],
   'Product Stock': ['manage_inventory', 'view_inventory'],
   'Fabric Stock': ['manage_inventory', 'view_inventory'],
-  'Thread Stock': ['manage_inventory', 'view_inventory'],
+  'Trims Stock': ['manage_inventory', 'view_inventory'],
   'Button Stock': ['manage_inventory', 'view_inventory'],
-  'Purchase Orders': ['manage_inventory', 'view_inventory'],
-  'Quotation': ['manage_quotations', 'view_quotations', 'branch_sales'],
-  'Operation Team': ['manage_quotations'],
-  'Initial Payment': ['manage_quotations', 'view_quotations', 'branch_sales'],
-  'Order Placement': ['manage_quotations', 'corporate_approver'],
+  'Thread Stock': ['manage_inventory', 'view_inventory'],
+  'Branch Inventory': ['branch_inventory', 'manage_system'],
+  'Stock Transfers': ['branch_transfers', 'manage_system'],
+  'Move Items': ['manage_inventory', 'view_inventory', 'branch_transfers'],
+  'Purchase Orders (PO)': ['manage_system', 'manage_inventory'],
+  'Purchase Bills & Receives': ['manage_system', 'manage_inventory'],
+  'Sales Orders': ['manage_quotations', 'corporate_approver', 'branch_sales', 'manage_system'],
+  'Operations Review': ['manage_quotations', 'manage_system'],
+  'Packages': ['manage_quotations', 'manage_system'],
+  'Alterations & Returns': ['manage_quotations', 'manage_system'],
   'SAM Calculator': ['manage_sam', 'manage_system'],
-  'SAM Configurations': ['manage_sam', 'manage_system'],
-  'Reports': ['manage_sam', 'manage_system'],
+  'Configurations': ['manage_sam', 'manage_system'],
   'Fabric SAM': ['manage_sam', 'manage_system'],
+  'SAM & Operations Reports': ['manage_sam', 'manage_system'],
   'Job Cards & PO Handler': ['manage_system', 'factory_po_handler'],
-  'Production Queue & Fabric': ['manage_system', 'factory_po_handler', 'factory_floor'],
-  'Outlets & Credentials': ['manage_system'],
-  'Branch Stock & Inventory': ['branch_inventory', 'manage_system'],
-  'Inter-Branch Stock Transfer': ['branch_transfers', 'manage_system'],
+  'Production Queue': ['manage_system', 'factory_po_handler', 'factory_floor'],
   'Customer Invoices': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'],
+  'Customer Payments': ['manage_quotations', 'view_quotations', 'branch_sales'],
+  'Vendor Payments & Expenses': ['manage_system'],
+  'Company Bank & Profile': ['manage_system'],
   'Delivery Challans (DC)': ['manage_system', 'manage_quotations', 'branch_sales', 'manage_invoices', 'view_invoices']
 };
 

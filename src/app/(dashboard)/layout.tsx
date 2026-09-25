@@ -14,7 +14,13 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/admin/product-types', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/designs', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/design-numbers', permissions: ['manage_system', 'manage_products', 'view_products'] },
+  { prefix: '/admin/art-number-hub', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/inventory', permissions: ['manage_system', 'manage_inventory', 'view_inventory'] },
+  { prefix: '/admin/vendors', permissions: ['manage_system', 'manage_inventory'] },
+  { prefix: '/admin/purchase-orders', permissions: ['manage_system', 'manage_inventory'] },
+  { prefix: '/admin/size-charts', permissions: ['manage_system', 'manage_size_charts', 'view_size_charts'] },
+  { prefix: '/admin/industries', permissions: ['manage_system', 'manage_industries'] },
+  { prefix: '/admin/employees', permissions: ['manage_employees', 'view_employees', 'manage_system'] },
   { prefix: '/admin/audit', permissions: ['manage_system', 'view_audit_logs'] },
 
   // Super Admin Controls & Master Settings
@@ -102,7 +108,7 @@ export default function DashboardLayout({
     const isClientOrg = !isClientEntity && Boolean(user?.organizationId || ['organisation', 'organization', 'school'].includes(roleLower));
 
     // Universal routes accessible to any authenticated user
-    if (pathname === '/dashboard' || pathname === '/settings/profile') {
+    if (pathname === '/dashboard' || pathname === '/settings/profile' || pathname.startsWith('/coming-soon')) {
       isAuthorized = true;
     } else if (isClientEntity) {
       // Client Entity accounts can access their own entity profile, measurements and fitting tokens
