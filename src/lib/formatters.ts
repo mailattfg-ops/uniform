@@ -25,40 +25,41 @@ export function formatCurrency(amount: number | string | null | undefined, inclu
 }
 
 /**
- * Format an ISO date string into standard readable date (and optional time).
- * e.g. formatDate("2026-09-17T15:30:00Z") -> "17 Sep 2026"
+ * Format an ISO date string or Date object into standard DD/MM/YYYY date (and optional Indian Standard Time).
+ * e.g. formatDate("2026-09-28T07:18:20Z") -> "28/09/2026"
+ * with includeTime: -> "28/09/2026, 12:48 PM"
  */
 export function formatDate(
-  dateStr: string | null | undefined, 
+  dateStr: string | Date | null | undefined, 
   includeTime: boolean = false,
   includeSeconds: boolean = false
 ): string {
   if (!dateStr) return '—';
   try {
-    const d = new Date(dateStr);
+    const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
     if (isNaN(d.getTime())) return String(dateStr);
 
-    const dateFormatted = d.toLocaleDateString('en-IN', {
+    // Format strictly as DD/MM/YYYY in Indian Standard Time (Asia/Kolkata)
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
       day: '2-digit',
-      month: 'short',
+      month: '2-digit',
       year: 'numeric'
     });
+    const dateFormatted = formatter.format(d); // Always "DD/MM/YYYY"
 
     if (!includeTime) return dateFormatted;
 
-    const timeOptions: Intl.DateTimeFormatOptions = {
+    const timeFormatter = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
       hour: '2-digit',
       minute: '2-digit',
+      ...(includeSeconds ? { second: '2-digit' } : {}),
       hour12: true
-    };
+    });
+    const timeFormatted = timeFormatter.format(d);
 
-    if (includeSeconds) {
-      timeOptions.second = '2-digit';
-    }
-
-    const timeFormatted = d.toLocaleTimeString('en-IN', timeOptions);
-
-    return `${dateFormatted} at ${timeFormatted}`;
+    return `${dateFormatted}, ${timeFormatted}`;
   } catch {
     return String(dateStr);
   }

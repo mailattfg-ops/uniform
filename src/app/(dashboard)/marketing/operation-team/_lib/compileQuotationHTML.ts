@@ -1,3 +1,5 @@
+import { formatDate } from '@/lib/formatters';
+
 export interface Organization {
   id: number;
   name: string;
@@ -87,10 +89,8 @@ export const getSelectedQuotePricing = (quote: Quotation) => {
 export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], companySettings: any) => {
   const pricing = getSelectedQuotePricing(quote);
   const orgName = quote.organizations?.name || 'Customer';
-  const dateStr = new Date(quote.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-  const deliveryDateStr = quote.expected_delivery_date
-    ? new Date(quote.expected_delivery_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
-    : 'N/A';
+  const dateStr = formatDate(quote.created_at);
+  const deliveryDateStr = formatDate(quote.expected_delivery_date);
 
   // Helpers for department and division cleanup
   const getCleanDeptName = (name: string) => {

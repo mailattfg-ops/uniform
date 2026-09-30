@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Building2, Package, Layers, Scissors, Disc, RefreshCw, Plus, AlertTriangle, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 
 interface Branch {
   id: number;
@@ -286,7 +287,7 @@ export default function BranchInventoryPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs text-slate-400">
-                      {item.updated_at ? new Date(item.updated_at).toLocaleDateString() : 'Recent'}
+                      {item.updated_at ? formatDate(item.updated_at) : 'Recent'}
                     </td>
                   </tr>
                 );

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { Check, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Organization, ProductType, Quotation, SeparateFabricItem } from '../page';
+import { Organization, ProductType, Quotation, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
 
 // Steps imports
 import WizardStep1 from './wizard/WizardStep1';
@@ -24,49 +24,6 @@ const SIZE_FABRIC_MULTIPLIERS: Record<string, number> = {
   'XXL': 1.35,
 };
 
-interface ManualItem {
-  id: number;
-  product_type_id: string;
-  product_id?: string;
-  fabric_id: string;
-  main_fabric_meters: string;
-  main_fabric_rate: string;
-  main_fabric_sam: string;
-  attachment_fabric1_id: string;
-  attachment_fabric1_meters: string;
-  attachment_fabric1_rate: string;
-  attachment_fabric1_sam: string;
-  attachment_fabric2_id: string;
-  attachment_fabric2_meters: string;
-  attachment_fabric2_rate: string;
-  attachment_fabric2_sam: string;
-  button_id: string;
-  button_count: string;
-  thread_id: string;
-  thread_count: string;
-  sam_value: string;
-  design_number: string;
-  art_number?: string;
-  quantity: string;
-  price: string;
-  size_breakdown?: any;
-}
-
-interface TemplateLineItem {
-  product_id: number;
-  art_number: string;
-  product_name: string;
-  gender: string;
-  sam_value: number | null;
-  materials: string | null;
-  product_type: string | null;
-  design_id: string | null;
-  design_code: string | null;
-  design_number_override: string; // editable
-  price_override: string;          // optional price per unit
-  template_quantity: number | null;
-}
-
 interface QuotationWizardProps {
   editingQuotationId: number | null;
   organizations: Organization[];
@@ -75,6 +32,8 @@ interface QuotationWizardProps {
   allProducts: any[];
   buttonsList: any[];
   threadsList: any[];
+  trimsList?: any[];
+  trimCategories?: any[];
   inwardRates: any[];
   fabricMargins: any[];
   samConfigurations: any[];
@@ -90,6 +49,8 @@ export default function QuotationWizard({
   allProducts,
   buttonsList,
   threadsList,
+  trimsList = [],
+  trimCategories = [],
   inwardRates,
   fabricMargins,
   samConfigurations,
@@ -138,6 +99,10 @@ export default function QuotationWizard({
       attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
       attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
       button_id: '', button_count: '', thread_id: '', thread_count: '',
+      trims: [
+        { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
+        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+      ],
       sam_value: '', design_number: '', quantity: '1', price: ''
     }
   ]);
@@ -202,6 +167,10 @@ export default function QuotationWizard({
       attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
       attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
       button_id: '', button_count: '', thread_id: '', thread_count: '',
+      trims: [
+        { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
+        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+      ],
       sam_value: '', design_number: '', quantity: '1', price: '',
       size_breakdown: {}
     }]);
@@ -394,6 +363,10 @@ export default function QuotationWizard({
               button_count: String(item.size_breakdown?.button_count || ''),
               thread_id: String(item.size_breakdown?.thread_id || ''),
               thread_count: String(item.size_breakdown?.thread_count || ''),
+              trims: item.size_breakdown?.trims || [
+                { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
+                { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || '1'), uom: 'cones', unit_price: 0 }
+              ],
               sam_value: String(item.size_breakdown?.sam_value || ''),
               design_number: String(item.size_breakdown?.design_number || ''),
               quantity: String(item.quantity),
@@ -517,6 +490,10 @@ export default function QuotationWizard({
         button_count: String(prod.button_count || '0'),
         thread_id: String(prod.thread_id || threadsList[0]?.id || ''),
         thread_count: String(prod.thread_count || '0'),
+        trims: [
+          { id: 'btn', trim_id: String(prod.button_id || buttonsList[0]?.id || ''), category: 'Buttons', name: 'Buttons', count: String(prod.button_count || '10'), uom: 'pcs', unit_price: 0 },
+          { id: 'thr', trim_id: String(prod.thread_id || threadsList[0]?.id || ''), category: 'Thread', name: 'Thread', count: String(prod.thread_count || '1'), uom: 'cones', unit_price: 0 }
+        ],
         sam_value: String(prod.sam_value || ''),
         design_number: String(prod.design_number || 'DNS-STANDARD'),
         art_number: String(prod.art_number || ''),
@@ -565,6 +542,10 @@ export default function QuotationWizard({
         button_count: String(item.size_breakdown?.button_count || ''),
         thread_id: String(item.size_breakdown?.thread_id || ''),
         thread_count: String(item.size_breakdown?.thread_count || ''),
+        trims: item.size_breakdown?.trims || [
+          { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
+          { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || '1'), uom: 'cones', unit_price: 0 }
+        ],
         sam_value: String(item.size_breakdown?.sam_value || ''),
         design_number: String(item.size_breakdown?.design_number || ''),
         quantity: String(item.quantity || '1'),
@@ -1152,6 +1133,7 @@ export default function QuotationWizard({
               button_count: parseFloat(item.button_count) || null,
               thread_id: item.thread_id || null,
               thread_count: parseFloat(item.thread_count) || null,
+              trims: item.trims || [],
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
               art_number: item.art_number || null,
@@ -1240,6 +1222,7 @@ export default function QuotationWizard({
               button_count: parseFloat(item.button_count) || null,
               thread_id: item.thread_id || null,
               thread_count: parseFloat(item.thread_count) || null,
+              trims: item.trims || [],
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
               art_number: item.art_number || null,
@@ -1536,6 +1519,8 @@ Forma Apparels Co.`;
             fabricsList={fabricsList}
             buttonsList={buttonsList}
             threadsList={threadsList}
+            trimsList={trimsList}
+            trimCategories={trimCategories}
             inwardRates={inwardRates}
             fabricMargins={fabricMargins}
             samConfigurations={samConfigurations}

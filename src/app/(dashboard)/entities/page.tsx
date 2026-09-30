@@ -23,7 +23,7 @@ export default function EntitiesRoot() {
           return;
         }
         if (isClientOrg && user?.organizationId) {
-          router.replace(`/organizations/registry/${user.organizationId}?tab=entities`);
+          router.replace(`/customers/${user.organizationId}?tab=entities`);
           return;
         }
       }
@@ -35,14 +35,14 @@ export default function EntitiesRoot() {
 
   const actions = [
     {
-      title: 'Organization Rosters & Directories',
+      title: 'Customer Rosters & Directories',
       description: 'Access entity member directories, manage active student/employee rosters by partner organization.',
-      href: '/organizations/registry',
+      href: '/customers',
       icon: Building2,
       color: 'bg-[#2d8d9b]',
       lightColor: 'bg-[#2d8d9b]/10',
       textColor: 'text-[#3a525d]',
-      actionText: 'Open Registry'
+      actionText: 'Open Directory'
     },
     {
       title: 'Capture Measurements',

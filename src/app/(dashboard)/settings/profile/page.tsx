@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { extractGarmentDisplayMetrics } from '@/lib/formatters';
+import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 
 export default function UserProfilePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -102,7 +102,7 @@ export default function UserProfilePage() {
       return [
         { label: 'INSTITUTION', val: details?.organizations?.name, icon: MapPin },
         { label: 'ACADEMIC GROUP', val: details?.departments?.name, icon: Award },
-        { label: 'ENROLLMENT', val: details?.created_at ? new Date(details.created_at).toLocaleDateString() : 'Active', icon: Calendar },
+        { label: 'ENROLLMENT', val: details?.created_at ? formatDate(details.created_at) : 'Active', icon: Calendar },
         { label: 'VERIFIED_MAIL', val: profile?.email, icon: Mail }
       ];
     }
@@ -258,7 +258,7 @@ export default function UserProfilePage() {
                    {measurements.slice(1, 5).map((m, idx) => (
                      <Card key={idx} className="p-6 border-none bg-white shadow-xl hover:shadow-2xl transition-all group flex items-center justify-between">
                         <div>
-                           <p className="text-[10px] font-black text-zinc-300 uppercase leading-none mb-1">{new Date(m.recorded_at).toLocaleDateString()}</p>
+                           <p className="text-[10px] font-black text-zinc-300 uppercase leading-none mb-1">{formatDate(m.recorded_at)}</p>
                            <p className="text-xl font-black text-[#3a525d]">SIZE_{m.suggested_size}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-zinc-50 flex items-center justify-center group-hover:bg-[#2d8d9b] group-hover:text-white transition-all">

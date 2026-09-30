@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { formatDate } from '@/lib/formatters';
 
 interface MemberProfileModalProps {
   isOpen: boolean;
@@ -210,7 +211,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                     </div>
                                     <div className="flex justify-between items-center py-2">
                                         <span className="text-[10px] font-bold text-slate-400">JOIN DATE</span>
-                                        <span className="text-[10px] font-black text-slate-700 uppercase">{new Date(member.created_at).toLocaleDateString()}</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase">{formatDate(member.created_at)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -226,7 +227,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                         <h4 className="text-xs font-black uppercase tracking-widest">Active Sizing on File</h4>
                                     </div>
                                     <span className="text-[9px] font-black uppercase px-3 py-1 bg-white/10 rounded-lg">
-                                        Recorded {new Date(latestMeasurement.recorded_at).toLocaleDateString()}
+                                        Recorded {formatDate(latestMeasurement.recorded_at, true)}
                                     </span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-6">
@@ -303,8 +304,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                                 </div>
                                                 <div>
                                                     <h4 className="text-sm font-black text-slate-800 tracking-tight leading-none">Record #{history.length - idx}</h4>
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5">
-                                                        Captured on {new Date(h.recorded_at).toLocaleDateString()} at {new Date(h.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 font-mono">
+                                                        Captured {formatDate(h.recorded_at, true)}
                                                     </p>
                                                 </div>
                                             </div>

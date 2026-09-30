@@ -699,11 +699,28 @@ export default function TrimsCatalogPage() {
           isLoading={isLoading}
           searchPlaceholder="Search trims by code, name, category, material..."
           headerAction={
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+              {/* Category Filter Dropdown */}
+              <select
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="h-11 px-3 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-sm"
+              >
+                <option value="ALL">All Categories ({trims.length})</option>
+                {categories.map(c => {
+                  const count = trims.filter(t => t.category_id === c.id).length;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+
               <Button
                 onClick={() => setIsCategoryModalOpen(true)}
                 variant="secondary"
-                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.15em] px-4 bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200 shadow-sm cursor-pointer"
+                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.15em] px-4 bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200 shadow-sm cursor-pointer whitespace-nowrap"
               >
                 <FolderPlus size={14} className="text-[#2d8d9b]" />
                 + Category
@@ -714,7 +731,7 @@ export default function TrimsCatalogPage() {
                   setEditingItem(null);
                   setView('add');
                 }}
-                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20 cursor-pointer"
+                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20 cursor-pointer whitespace-nowrap"
               >
                 <Plus size={14} strokeWidth={3} />
                 Add Trim Article

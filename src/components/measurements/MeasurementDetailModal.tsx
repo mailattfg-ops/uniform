@@ -3,7 +3,7 @@
 import React from 'react';
 import { X, User, Ruler, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { extractGarmentDisplayMetrics } from '@/lib/formatters';
+import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 
 interface MeasurementDetailModalProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export const MeasurementDetailModal: React.FC<MeasurementDetailModalProps> = ({ 
           <div>
             <h2 className="text-2xl font-black italic tracking-tighter leading-none">Record Details</h2>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60 mt-2">
-              Reference #{String(record.id).slice(0, 8)} • Captured {new Date(record.recorded_at).toLocaleDateString()}
+              Reference #{String(record.id).slice(0, 8)} • Captured {formatDate(record.recorded_at, true)}
             </p>
           </div>
           <Button

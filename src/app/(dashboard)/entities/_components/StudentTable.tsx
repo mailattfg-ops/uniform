@@ -10,6 +10,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { Select } from '@/components/ui/Select';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
+import { formatDate } from '@/lib/formatters';
 
 interface Entity {
   id: number;
@@ -110,7 +111,7 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
       `"${e.departments?.name || 'N/A'}"`,
       `"${e.status || 'Active'}"`,
       `"${e.measurement_status || 'Missing'}"`,
-      `"${new Date(e.created_at).toLocaleDateString()}"`
+      `"${formatDate(e.created_at)}"`
     ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');

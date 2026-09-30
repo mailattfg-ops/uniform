@@ -55,6 +55,18 @@ export const AuditLog: React.FC = () => {
       'UPDATE_PRODUCT': 'Product Article Updated',
       'APPROVED_MEASUREMENT': 'Measurement Approved',
       'REJECTED_MEASUREMENT': 'Measurement Rejected',
+      // Employee & Workforce HRMS
+      'CREATE_EMPLOYEE': 'Staff Onboarded',
+      'UPDATE_EMPLOYEE': 'Staff Profile Updated',
+      'DELETE_EMPLOYEE': 'Staff Profile Removed',
+      'DEPUTE_EMPLOYEE': 'Temporary Deputation Assigned',
+      'RECALL_EMPLOYEE': 'Deputation Recalled to Base',
+      'TRANSFER_EMPLOYEE': 'Permanent Branch Transfer',
+      'RESET_PASSWORD_EMPLOYEE': 'Portal Access / Password Reset',
+      // Branch Outlets
+      'CREATE_BRANCH': 'New Branch Registered',
+      'UPDATE_BRANCH': 'Branch Details Updated',
+      'CREATE_USER_BRANCH': 'Branch User Credentials Added',
     };
 
     return labels[`${act}_${ent}`] || `${act} ${ent}`;
@@ -65,6 +77,9 @@ export const AuditLog: React.FC = () => {
     if (act.includes('LOGIN')) return <Activity size={16} className="text-emerald-500" />;
     if (act.includes('APPROVED')) return <CheckCircle2 size={16} className="text-green-500" />;
     if (act.includes('REJECTED')) return <XCircle size={16} className="text-red-500" />;
+    if (act.includes('DEPUTE')) return <Activity size={16} className="text-amber-500" />;
+    if (act.includes('TRANSFER')) return <Edit size={16} className="text-indigo-500" />;
+    if (act.includes('RECALL')) return <CheckCircle2 size={16} className="text-teal-500" />;
     if (act.includes('UPDATE') || act.includes('SAVE')) return <Edit size={16} className="text-amber-500" />;
     if (act.includes('CREATE')) return <UserPlus size={16} className="text-[#2d8d9b]" />;
     return <Database size={16} className="text-zinc-400" />;
@@ -107,13 +122,62 @@ export const AuditLog: React.FC = () => {
              );
            }
 
+           // Employee Specific Formatting
+           if (l.entity_type === 'employee') {
+             if (l.action === 'DEPUTE') {
+               return (
+                 <p className="text-xs text-amber-900 font-semibold">
+                   ✈️ Deputed {d.employee_name || 'Staff'} to Branch #{d.temp_branch_id} {d.temp_branch_until ? `until ${formatDate(d.temp_branch_until)}` : ''}
+                 </p>
+               );
+             }
+             if (l.action === 'RECALL') {
+               return (
+                 <p className="text-xs text-teal-800 font-semibold">
+                   ↩️ Recalled {d.employee_name || 'Staff'} back to Base Branch
+                 </p>
+               );
+             }
+             if (l.action === 'TRANSFER') {
+               return (
+                 <p className="text-xs text-indigo-900 font-semibold">
+                   🔄 Permanently transferred {d.employee_name || 'Staff'} to Branch #{d.to_branch_id}
+                 </p>
+               );
+             }
+             if (l.action === 'CREATE') {
+               return (
+                 <p className="text-xs text-slate-700 font-medium">
+                   Onboarded: <strong className="text-[#3a525d]">{d.full_name}</strong> ({d.employee_id}) • {d.designation || 'Staff'}
+                 </p>
+               );
+             }
+             if (l.action === 'RESET_PASSWORD') {
+               return (
+                 <p className="text-xs text-slate-700 font-medium">
+                   🔑 Reset portal password for staff: <strong className="text-[#3a525d]">{d.employee_id || `#${d.employee_record_id}`}</strong>
+                 </p>
+               );
+             }
+           }
+
+           // Branch Specific Formatting
+           if (l.entity_type === 'branch') {
+             return (
+               <p className="text-xs text-slate-700 font-medium">
+                 {l.action === 'CREATE' ? 'Created Branch: ' : 'Updated Branch: '}
+                 <strong className="text-[#3a525d]">{d.name}</strong> ({d.code || 'N/A'}) {d.tier ? `• Tier: ${d.tier}` : ''}
+               </p>
+             );
+           }
+
            // Update specific formatting (Entity Field Diff)
            if (l.action === 'UPDATE') {
              return (
                <div className="space-y-1">
                  <p className="text-[10px] font-bold text-[#3a525d] uppercase tracking-tighter">Fields Modified</p>
                  <div className="flex flex-wrap gap-1">
-                    {Object.keys(d.updated_fields || d || {}).map(k => (
+                    {Object.keys(d.updated_fields || d || {}).filter(k => k !== 'timestamp_ist' && k !== 'performed_by_name').map(k => (
                       <span key={k} className="text-[8px] bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-500 font-bold uppercase">{k.replace('_', ' ')}</span>
                     ))}
                  </div>
@@ -126,6 +190,24 @@ export const AuditLog: React.FC = () => {
             return <p className="text-xs text-muted-foreground font-medium">New Record: <span className="text-[#3a525d] font-bold">{d.name || d.full_name || 'System Generated'}</span></p>;
            }
 
+           // Login specific formatting
+           if (l.action === 'LOGIN') {
+             return (
+               <div className="space-y-0.5">
+                 <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1.5">
+                   <span>Authenticated Session:</span>
+                   <span className="font-mono text-[11px] font-bold text-[#3a525d]">{d.performed_by_name || d.email}</span>
+                 </p>
+                 {(d.role || d.branch_name) && (
+                   <p className="text-[10px] text-zinc-500 font-medium">
+                     Role: <strong className="text-slate-700">{d.role || 'User'}</strong>
+                     {d.branch_name ? ` • Branch: ${d.branch_name}` : ''}
+                   </p>
+                 )}
+               </div>
+             );
+           }
+
            return <p className="text-xs text-muted-foreground italic truncate max-w-[400px]">"{l.details}"</p>;
          } catch (e) {
            return <p className="text-xs text-muted-foreground italic truncate max-w-[400px]">"{l.details}"</p>;
@@ -133,11 +215,11 @@ export const AuditLog: React.FC = () => {
        },
     },
     {
-       header: 'Timestamp',
+       header: 'Timestamp (IST)',
        accessor: (l) => (
          <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
            <Clock size={12} className="shrink-0 text-[#2d8d9b]" />
-           <span className="text-[10px] font-bold tracking-wider">
+           <span className="text-[10px] font-bold tracking-wider text-slate-700">
              {formatDate(l.created_at || l.time, true, true)}
            </span>
          </div>
@@ -154,12 +236,16 @@ export const AuditLog: React.FC = () => {
         
         const logDate = new Date(ts);
         if (isNaN(logDate.getTime())) return false;
-        const year = logDate.getFullYear();
-        const month = String(logDate.getMonth() + 1).padStart(2, '0');
-        const day = String(logDate.getDate()).padStart(2, '0');
-        const localDateStr = `${year}-${month}-${day}`;
         
-        return localDateStr === dateFilter;
+        // Match against HTML date input (YYYY-MM-DD) in Indian Standard Time (Asia/Kolkata)
+        const istDateStr = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(logDate);
+        
+        return istDateStr === dateFilter;
       })
       .sort((a, b) => new Date(b.created_at || b.time).getTime() - new Date(a.created_at || a.time).getTime());
   }, [logs, dateFilter]);

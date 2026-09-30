@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 
 interface Dress {
   id: number;
@@ -35,11 +36,20 @@ interface Pattern {
   created_at?: string;
 }
 
+interface Fit {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+}
+
 interface ArtNumber {
   id: number;
   dress_id: number;
   gender_id: number;
   pattern_id: number;
+  fit_id?: number;
   code: string;
   base_size?: string;
   fit?: string;
@@ -47,9 +57,10 @@ interface ArtNumber {
   art_dresses?: { code: string; name: string };
   art_genders?: { code: string; name: string };
   art_patterns?: { code: string; name: string };
+  art_fits?: { code: string; name: string };
 }
 
-type TabType = 'dresses' | 'genders' | 'patterns' | 'registry';
+type TabType = 'dresses' | 'genders' | 'patterns' | 'fits' | 'registry';
 
 export default function ArtNumberHubPage() {
   const [activeTab, setActiveTab] = useState<TabType>('registry');
@@ -61,6 +72,7 @@ export default function ArtNumberHubPage() {
   const [dresses, setDresses] = useState<Dress[]>([]);
   const [genders, setGenders] = useState<Gender[]>([]);
   const [patterns, setPatterns] = useState<Pattern[]>([]);
+  const [fits, setFits] = useState<Fit[]>([]);
   const [artNumbers, setArtNumbers] = useState<ArtNumber[]>([]);
 
   // Editing States
@@ -74,16 +86,18 @@ export default function ArtNumberHubPage() {
   const [selectedDressId, setSelectedDressId] = useState('');
   const [selectedGenderId, setSelectedGenderId] = useState('');
   const [selectedPatternId, setSelectedPatternId] = useState('');
+  const [selectedFitId, setSelectedFitId] = useState('');
   const [baseSize, setBaseSize] = useState('');
   const [fit, setFit] = useState('');
 
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
-      const [dressesRes, gendersRes, patternsRes, artNumbersRes] = await Promise.all([
+      const [dressesRes, gendersRes, patternsRes, fitsRes, artNumbersRes] = await Promise.all([
         api.get('/art-number-hub/dresses'),
         api.get('/art-number-hub/genders'),
         api.get('/art-number-hub/patterns'),
+        api.get('/art-number-hub/fits'),
         api.get('/art-number-hub/art-numbers')
       ]);
 
@@ -105,10 +119,16 @@ export default function ArtNumberHubPage() {
         search_string: `${p.code} ${p.name} PAT-${p.id}`.toLowerCase()
       })));
 
+      setFits(fitsRes.data.map((f: any) => ({
+        ...f,
+        search_uid: `FIT-${f.id}`,
+        search_string: `${f.code} ${f.name} FIT-${f.id}`.toLowerCase()
+      })));
+
       setArtNumbers(artNumbersRes.data.map((an: any) => ({
         ...an,
         search_uid: `ART-${an.id}`,
-        search_string: `${an.code} ${an.art_dresses?.name || ''} ${an.art_genders?.name || ''} ${an.art_patterns?.name || ''} ${an.base_size || ''} ${an.fit || ''} ART-${an.id}`.toLowerCase()
+        search_string: `${an.code} ${an.art_dresses?.name || ''} ${an.art_genders?.name || ''} ${an.art_patterns?.name || ''} ${an.art_fits?.name || an.fit || ''} ${an.base_size || ''} ART-${an.id}`.toLowerCase()
       })));
     } catch (err) {
       toast.error('Failed to load Art Number Hub datasets');
@@ -129,19 +149,22 @@ export default function ArtNumberHubPage() {
     setSelectedDressId('');
     setSelectedGenderId('');
     setSelectedPatternId('');
+    setSelectedFitId('');
     setBaseSize('');
     setFit('');
   };
 
-  // Live Generator dynamic calculation
+  // Live Generator dynamic calculation (Option 1: Prefix-GenderPattern-Fit e.g. 4J-1012-R)
   const getLivePreviewCode = () => {
     if (!selectedDressId || !selectedGenderId || !selectedPatternId) return '---';
     const activeDress = dresses.find(d => String(d.id) === selectedDressId);
     const activeGender = genders.find(g => String(g.id) === selectedGenderId);
     const activePattern = patterns.find(p => String(p.id) === selectedPatternId);
+    const activeFit = fits.find(f => String(f.id) === selectedFitId);
 
     if (!activeDress || !activeGender || !activePattern) return '---';
-    return `${activeGender.code}-${activeDress.code}${activePattern.code}`;
+    const fitCode = activeFit ? activeFit.code : (fit ? fit.trim().slice(0, 1).toUpperCase() : 'R');
+    return `${activeDress.code}-${activeGender.code}${activePattern.code}-${fitCode}`;
   };
 
   const handleCreateOrUpdate = async () => {
@@ -152,12 +175,14 @@ export default function ArtNumberHubPage() {
         return;
       }
 
+      const activeFit = fits.find(f => String(f.id) === selectedFitId);
       const payload = {
         dress_id: Number(selectedDressId),
         gender_id: Number(selectedGenderId),
         pattern_id: Number(selectedPatternId),
+        fit_id: selectedFitId ? Number(selectedFitId) : undefined,
         base_size: baseSize.trim() || null,
-        fit: fit || null
+        fit: activeFit ? activeFit.name : (fit || 'Regular Fit')
       };
 
       const loadingToast = toast.loading('Registering combined Art Number...');
@@ -207,7 +232,7 @@ export default function ArtNumberHubPage() {
     }
 
     const payload = { code: trimmedCode, name: trimmedName };
-    const labelSingular = activeTab === 'dresses' ? 'Dress Prefix' : activeTab === 'genders' ? 'Gender Code' : 'Pattern Code';
+    const labelSingular = activeTab === 'dresses' ? 'Dress Prefix' : activeTab === 'genders' ? 'Gender Code' : activeTab === 'fits' ? 'Fit Code' : 'Pattern Code';
     const endpoint = `/art-number-hub/${activeTab}`;
     const isEditing = editingId !== null;
 
@@ -275,7 +300,7 @@ export default function ArtNumberHubPage() {
       header: 'Registered',
       accessor: (d) => (
         <p className="text-xs font-bold text-zinc-500">
-          {d.created_at ? new Date(d.created_at).toLocaleDateString() : 'N/A'}
+          {formatDate(d.created_at)}
         </p>
       )
     },
@@ -323,7 +348,7 @@ export default function ArtNumberHubPage() {
       header: 'Registered',
       accessor: (g) => (
         <p className="text-xs font-bold text-zinc-500">
-          {g.created_at ? new Date(g.created_at).toLocaleDateString() : 'N/A'}
+          {formatDate(g.created_at)}
         </p>
       )
     },
@@ -371,7 +396,7 @@ export default function ArtNumberHubPage() {
       header: 'Registered',
       accessor: (p) => (
         <p className="text-xs font-bold text-zinc-500">
-          {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'}
+          {formatDate(p.created_at)}
         </p>
       )
     },
@@ -387,6 +412,59 @@ export default function ArtNumberHubPage() {
           </button>
           <button
             onClick={() => setDeleteCandidate({ type: 'patterns', id: p.id, code: p.code })}
+            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const fitColumns: Column<Fit>[] = [
+    {
+      header: 'Fit Code',
+      accessor: (f) => (
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 border border-purple-100 shadow-sm">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <p className="font-black text-sm tracking-tight text-[#3a525d]">{f.code}</p>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">UID: FIT-{f.id}</p>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Fit Name / Description',
+      accessor: (f) => (
+        <div>
+          <span className="text-sm font-bold text-[#3a525d]">{f.name}</span>
+          {f.description && <p className="text-xs text-zinc-400 mt-0.5">{f.description}</p>}
+        </div>
+      )
+    },
+    {
+      header: 'Registered',
+      accessor: (f) => (
+        <p className="text-xs font-bold text-zinc-500">
+          {formatDate(f.created_at)}
+        </p>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: (f) => (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => startEdit(f)}
+            className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            onClick={() => setDeleteCandidate({ type: 'fits', id: f.id, code: f.code })}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
             <Trash2 size={16} />
@@ -426,6 +504,9 @@ export default function ArtNumberHubPage() {
           <span className="px-2.5 py-0.5 bg-zinc-50 border border-zinc-100 rounded text-[10px] font-bold text-[#3a525d]">
             Pattern: <strong className="font-black text-zinc-700">{an.art_patterns?.code || 'N/A'}</strong> ({an.art_patterns?.name || 'N/A'})
           </span>
+          <span className="px-2.5 py-0.5 bg-purple-50 border border-purple-100 rounded text-[10px] font-bold text-[#3a525d]">
+            Fit: <strong className="font-black text-purple-700">{an.art_fits?.code || (an.fit ? an.fit.slice(0, 1).toUpperCase() : 'N/A')}</strong> ({an.art_fits?.name || an.fit || 'N/A'})
+          </span>
         </div>
       )
     },
@@ -440,13 +521,15 @@ export default function ArtNumberHubPage() {
     {
       header: 'Fit',
       accessor: (an) => (
-        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase border ${an.fit === 'slim fit'
+        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase border ${an.fit?.toLowerCase().includes('slim')
           ? 'bg-purple-50 text-purple-700 border-purple-100'
-          : an.fit === 'regular fit'
+          : an.fit?.toLowerCase().includes('regular')
             ? 'bg-blue-50 text-blue-700 border-blue-100'
-            : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+            : an.fit?.toLowerCase().includes('loose')
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+              : 'bg-zinc-50 text-zinc-400 border-zinc-100'
           }`}>
-          {an.fit || '—'}
+          {an.art_fits ? `[${an.art_fits.code}] ${an.art_fits.name}` : (an.fit || '—')}
         </span>
       )
     },
@@ -454,7 +537,7 @@ export default function ArtNumberHubPage() {
       header: 'Pre-registered Date',
       accessor: (an) => (
         <p className="text-xs font-bold text-zinc-500">
-          {an.created_at ? new Date(an.created_at).toLocaleDateString() : 'N/A'}
+          {formatDate(an.created_at)}
         </p>
       )
     },
@@ -464,7 +547,6 @@ export default function ArtNumberHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setDeleteCandidate({ type: 'registry', id: an.id, code: an.code })}
-            // variant="secondary"
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100"
           >
             <Trash2 size={16} />
@@ -480,6 +562,7 @@ export default function ArtNumberHubPage() {
       case 'dresses': return 'Dress Prefix';
       case 'genders': return 'Gender Code';
       case 'patterns': return 'Pattern Code';
+      case 'fits': return 'Fit Code';
       case 'registry': return 'Combined Art Number';
     }
   };
@@ -489,6 +572,7 @@ export default function ArtNumberHubPage() {
       case 'dresses': return dresses;
       case 'genders': return genders;
       case 'patterns': return patterns;
+      case 'fits': return fits;
       case 'registry': return artNumbers;
     }
   };
@@ -498,6 +582,7 @@ export default function ArtNumberHubPage() {
       case 'dresses': return dressColumns;
       case 'genders': return genderColumns;
       case 'patterns': return patternColumns;
+      case 'fits': return fitColumns;
       case 'registry': return registryColumns;
     }
   };
@@ -507,7 +592,8 @@ export default function ArtNumberHubPage() {
       case 'dresses': return 'Search by Dress Code or Category...';
       case 'genders': return 'Search by Gender Code or Description...';
       case 'patterns': return 'Search by Pattern Code or Name...';
-      case 'registry': return 'Search combined Art Numbers (e.g. 4J-1012)...';
+      case 'fits': return 'Search by Fit Code (S, R, L) or Name...';
+      case 'registry': return 'Search combined Art Numbers (e.g. 4J-1012-R)...';
     }
   };
 
@@ -556,7 +642,7 @@ export default function ArtNumberHubPage() {
       </div>
 
       {/* Tabs Menu Selector */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-zinc-100 p-2.5 rounded-[1.8rem] border border-zinc-200/50 shadow-inner">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 bg-zinc-100 p-2.5 rounded-[1.8rem] border border-zinc-200/50 shadow-inner">
         <Button
           onClick={() => { setActiveTab('registry'); handleCancel(); }}
           variant="secondary"
@@ -608,6 +694,19 @@ export default function ArtNumberHubPage() {
           <Palette size={16} />
           Pattern Codes
         </Button>
+
+        <Button
+          onClick={() => { setActiveTab('fits'); handleCancel(); }}
+          variant="secondary"
+          size="h-auto"
+          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 h-auto border-none ${activeTab === 'fits'
+            ? 'bg-white text-purple-600 shadow-md scale-[1.02] border border-zinc-200/40'
+            : 'text-[#3a525d] hover:bg-white/60 hover:text-purple-600 bg-transparent shadow-none'
+            }`}
+        >
+          <Sparkles size={16} />
+          Fits Master
+        </Button>
       </div>
 
       {/* Adding / Registering Form View */}
@@ -630,7 +729,7 @@ export default function ArtNumberHubPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
                     <Select
                       label="Dress Prefix (4J)"
@@ -672,6 +771,24 @@ export default function ArtNumberHubPage() {
                       icon={<Palette size={18} />}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Select
+                      label="Fit Code (R)"
+                      value={selectedFitId}
+                      onChange={(val) => {
+                        setSelectedFitId(val);
+                        const foundFit = fits.find(f => String(f.id) === val);
+                        if (foundFit) setFit(foundFit.name);
+                      }}
+                      placeholder="Select Fit (S, R, L)"
+                      options={fits.map(f => ({
+                        label: `[${f.code}] - ${f.name}`,
+                        value: String(f.id)
+                      }))}
+                      icon={<Sparkles size={18} />}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-zinc-100">
@@ -680,7 +797,7 @@ export default function ArtNumberHubPage() {
                       Base Size
                     </label>
                     <Input
-                      placeholder="e.g.M"
+                      placeholder="e.g. M"
                       value={baseSize}
                       onChange={(e) => setBaseSize(e.target.value)}
                       className="h-14 rounded-2xl border-zinc-200 focus:border-teal-500 transition-all font-bold text-sm text-[#3a525d]"
@@ -689,15 +806,23 @@ export default function ArtNumberHubPage() {
 
                   <div className="space-y-2">
                     <Select
-                      label="Fit"
+                      label="Fit Classification"
                       value={fit}
-                      onChange={(val) => setFit(val)}
+                      onChange={(val) => {
+                        setFit(val);
+                        const match = fits.find(f => f.name.toLowerCase() === val.toLowerCase());
+                        if (match) setSelectedFitId(String(match.id));
+                      }}
                       placeholder="Select Fit Type"
-                      options={[
-                        { label: 'Regular Fit', value: 'regular fit' },
-                        { label: 'Slim Fit', value: 'slim fit' }
+                      options={fits.length > 0 ? fits.map(f => ({
+                        label: `[${f.code}] ${f.name}`,
+                        value: f.name
+                      })) : [
+                        { label: '[R] Regular Fit', value: 'Regular Fit' },
+                        { label: '[S] Slim Fit', value: 'Slim Fit' },
+                        { label: '[L] Loose Fit', value: 'Loose Fit' }
                       ]}
-                      icon={<Scissors size={18} />}
+                      icon={<Sparkles size={18} />}
                     />
                   </div>
                 </div>
@@ -710,7 +835,7 @@ export default function ArtNumberHubPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Code Integration Preview</p>
-                      <p className="text-xs font-bold text-[#3a525d]">Dynamic format: [GenderCode]-[DressPrefix][PatternCode]</p>
+                      <p className="text-xs font-bold text-[#3a525d]">Required format: [Prefix]-[Gender][Pattern]-[Fit] (e.g. 4J-1012-R)</p>
                     </div>
                   </div>
 
@@ -739,7 +864,7 @@ export default function ArtNumberHubPage() {
               <div className="space-y-8">
                 <div className="flex items-center gap-4 border-b border-zinc-100 pb-6">
                   <div className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-teal-600/20">
-                    {activeTab === 'dresses' ? <Scissors size={24} /> : activeTab === 'genders' ? <UserCheck size={24} /> : <Palette size={24} />}
+                    {activeTab === 'dresses' ? <Scissors size={24} /> : activeTab === 'genders' ? <UserCheck size={24} /> : activeTab === 'fits' ? <Sparkles size={24} /> : <Palette size={24} />}
                   </div>
                   <div>
                     <h3 className="text-2xl font-black italic text-[#3a525d] tracking-tight">
@@ -754,15 +879,19 @@ export default function ArtNumberHubPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] ml-1">
-                      {getTabLabelSingular()} Code {activeTab === 'dresses' ? '(e.g. 4J)' : activeTab === 'genders' ? '(e.g. 1)' : '(e.g. 012)'}
+                      {getTabLabelSingular()} Code {activeTab === 'dresses' ? '(e.g. 4J)' : activeTab === 'genders' ? '(e.g. 1)' : activeTab === 'fits' ? '(e.g. S, R, L)' : '(e.g. 012)'}
                     </label>
                     <Input
-                      placeholder={activeTab === 'dresses' ? 'e.g. 4J' : activeTab === 'genders' ? 'e.g. 1' : 'e.g. 012'}
+                      placeholder={activeTab === 'dresses' ? 'e.g. 4J' : activeTab === 'genders' ? 'e.g. 1' : activeTab === 'fits' ? 'e.g. R' : 'e.g. 012'}
                       value={code}
                       onChange={(e) => {
                         const val = e.target.value;
                         if (activeTab === 'dresses') {
                           if (val.length <= 10 && /^[a-zA-Z0-9\-]*$/.test(val)) {
+                            setCode(val.toUpperCase());
+                          }
+                        } else if (activeTab === 'fits') {
+                          if (val.length <= 5 && /^[a-zA-Z0-9]*$/.test(val)) {
                             setCode(val.toUpperCase());
                           }
                         } else {
@@ -777,10 +906,10 @@ export default function ArtNumberHubPage() {
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] ml-1">
-                      Descriptive Category Name {activeTab === 'dresses' ? '(e.g. Cotton Shirt)' : activeTab === 'genders' ? '(e.g. Male)' : '(e.g. Striped)'}
+                      Descriptive Category Name {activeTab === 'dresses' ? '(e.g. Cotton Shirt)' : activeTab === 'genders' ? '(e.g. Male)' : activeTab === 'fits' ? '(e.g. Regular Fit)' : '(e.g. Striped)'}
                     </label>
                     <Input
-                      placeholder={activeTab === 'dresses' ? 'e.g. Cotton Shirt' : activeTab === 'genders' ? 'e.g. Male' : 'e.g. Striped Pattern'}
+                      placeholder={activeTab === 'dresses' ? 'e.g. Cotton Shirt' : activeTab === 'genders' ? 'e.g. Male' : activeTab === 'fits' ? 'e.g. Regular Fit' : 'e.g. Striped Pattern'}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       maxLength={50}

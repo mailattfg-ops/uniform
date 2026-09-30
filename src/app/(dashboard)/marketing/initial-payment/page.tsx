@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 import {
   TrendingUp,
   CreditCard,
@@ -680,11 +681,7 @@ export default function InitialPaymentPage() {
                           )}
                           <div className="text-[10px] text-zinc-400 font-bold mt-1 flex items-center gap-1 justify-end">
                             <Calendar size={10} />
-                            {new Date(p.paid_at).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                            {formatDate(p.paid_at)}
                           </div>
                         </div>
                         <button

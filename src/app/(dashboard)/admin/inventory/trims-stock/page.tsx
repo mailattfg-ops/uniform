@@ -403,10 +403,10 @@ export default function TrimsStockPage() {
         </div>
 
         {/* Filter and Search Bar matching Fabric Stock */}
-        <div className="bg-white border border-[#fce4d4] rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+        <div className="bg-white border border-[#fce4d4] rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
           
           {/* Search */}
-          <div className="relative group w-full md:w-96">
+          <div className="relative group w-full xl:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
             <input 
               type="text" 
@@ -417,42 +417,42 @@ export default function TrimsStockPage() {
             />
           </div>
 
-          {/* Status Filters */}
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
-            {(['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'] as const).map((status) => {
-              const labels = {
-                ALL: 'All Statuses',
-                IN_STOCK: 'In Stock',
-                LOW_STOCK: 'Low Stock Alerts',
-                OUT_OF_STOCK: 'Depleted'
-              };
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
+            {/* Category Dropdown Filter */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="h-11 px-4 bg-white border border-[#fce4d4] rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
+              >
+                <option value="ALL">All Categories ({trims.length})</option>
+                {categories.map(c => {
+                  const count = trims.filter(t => 
+                    t.category_id === c.id || 
+                    (t.category?.name || '').toLowerCase() === c.name.toLowerCase()
+                  ).length;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
 
-              const styles = {
-                ALL: 'border-zinc-200 text-[#3a525d] hover:bg-zinc-50',
-                IN_STOCK: 'border-emerald-100 text-emerald-600 hover:bg-emerald-50/30',
-                LOW_STOCK: 'border-amber-100 text-amber-600 hover:bg-amber-50/30',
-                OUT_OF_STOCK: 'border-red-100 text-red-600 hover:bg-red-50/30'
-              };
-
-              const activeStyles = {
-                ALL: '!bg-[#3a525d] !text-white !border-[#3a525d] shadow-lg shadow-[#3a525d]/20',
-                IN_STOCK: '!bg-emerald-500 !text-white !border-emerald-500 shadow-lg shadow-emerald-500/20',
-                LOW_STOCK: '!bg-amber-500 !text-white !border-amber-500 shadow-lg shadow-amber-500/20',
-                OUT_OF_STOCK: '!bg-red-500 !text-white !border-red-500 shadow-lg shadow-red-500/20'
-              };
-
-              return (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                    statusFilter === status ? activeStyles[status] : styles[status]
-                  }`}
-                >
-                  {labels[status]}
-                </button>
-              );
-            })}
+            {/* Status Dropdown Filter */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="h-11 px-4 bg-white border border-[#fce4d4] rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
+              >
+                <option value="ALL">All Stock Statuses</option>
+                <option value="IN_STOCK">In Stock ({stats.inStockCount})</option>
+                <option value="LOW_STOCK">Low Stock Alerts ({stats.lowStockCount})</option>
+                <option value="OUT_OF_STOCK">Depleted ({stats.outOfStockCount})</option>
+              </select>
+            </div>
           </div>
 
         </div>

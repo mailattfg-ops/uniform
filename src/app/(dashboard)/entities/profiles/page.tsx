@@ -23,6 +23,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/formatters';
 import Link from 'next/link';
 
 export default function StudentProfilesPage() {
@@ -88,7 +89,7 @@ export default function StudentProfilesPage() {
   const deptName = memberProfile?.departments?.name || currentUser?.departmentName || 'Standard';
   const gender = memberProfile?.gender || currentUser?.gender || '';
   const joinDate = memberProfile?.created_at
-    ? new Date(memberProfile.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? formatDate(memberProfile.created_at)
     : 'Active';
 
   const latestMeas = measurements.length > 0 ? measurements[0] : null;

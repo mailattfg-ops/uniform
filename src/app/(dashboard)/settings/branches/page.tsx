@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Building2, Plus, RefreshCw, Package, Truck, Layers, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { AddBranchModal } from '@/app/(dashboard)/employees/_components/AddBranchModal';
 
 interface Branch {
   id: number;
@@ -21,14 +22,6 @@ export default function BranchesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showBatchModal, setShowBatchModal] = useState<boolean>(false);
-
-  // Form states
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [tier, setTier] = useState('Branch');
-  const [address, setAddress] = useState('');
-  const [contactNumber, setContactNumber] = useState('');
-  const [email, setEmail] = useState('');
 
   // Purchase batch states
   const [vendorBillNo, setVendorBillNo] = useState('');
@@ -52,27 +45,6 @@ export default function BranchesPage() {
   useEffect(() => {
     fetchBranches();
   }, []);
-
-  const handleCreateBranch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.post('/branches', {
-        code,
-        name,
-        tier,
-        address,
-        contact_number: contactNumber,
-        email
-      });
-      toast.success('Branch created successfully');
-      setShowAddModal(false);
-      setCode('');
-      setName('');
-      fetchBranches();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to create branch');
-    }
-  };
 
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,97 +185,15 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      {/* Add Branch Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <h3 className="text-xl font-bold text-slate-900">Add New Branch / Location</h3>
-            <form onSubmit={handleCreateBranch} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Branch Code</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. BR-02"
-                    value={code}
-                    onChange={e => setCode(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tier</label>
-                  <select
-                    value={tier}
-                    onChange={e => setTier(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
-                  >
-                    <option value="Branch">Branch</option>
-                    <option value="Factory">Factory</option>
-                    <option value="Corporate">Corporate</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Downtown Retail Branch"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Address</label>
-                <input
-                  type="text"
-                  placeholder="Full physical address"
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl text-sm"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Contact Phone</label>
-                  <input
-                    type="text"
-                    value={contactNumber}
-                    onChange={e => setContactNumber(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold shadow-md"
-                >
-                  Save Branch
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Shared Add Branch Modal */}
+      <AddBranchModal 
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => {
+          setShowAddModal(false);
+          fetchBranches();
+        }}
+      />
 
       {/* Purchase Batch Modal */}
       {showBatchModal && (

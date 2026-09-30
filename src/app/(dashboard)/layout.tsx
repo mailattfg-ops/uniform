@@ -12,6 +12,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   // Specific Product & Design Catalogs (Accessible to users with product permissions)
   { prefix: '/admin/products', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/product-types', permissions: ['manage_system', 'manage_products', 'view_products'] },
+  { prefix: '/admin/measures', permissions: ['manage_system', 'manage_measurements', 'view_measurements'] },
   { prefix: '/admin/designs', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/design-numbers', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/inventory', permissions: ['manage_system', 'manage_inventory', 'view_inventory'] },
@@ -46,6 +47,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/billing', permissions: ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'] },
 
   // Registry & Client CRM
+  { prefix: '/customers', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students'] },
   { prefix: '/organizations', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students'] },
   { prefix: '/entities', permissions: ['view_students', 'register_students', 'view_own_students'] },
   { prefix: '/measurements', permissions: ['manage_measurements', 'view_measurements', 'view_own_measurements'] }
@@ -118,6 +120,7 @@ export default function DashboardLayout({
     } else if (isClientOrg) {
       // Client Organization accounts can access their own organization registry, details, ledger, entities, and measurements
       if (
+        pathname.startsWith('/customers') ||
         pathname.startsWith('/organizations') ||
         pathname.startsWith('/entities') ||
         pathname.startsWith('/measurements')

@@ -7,6 +7,7 @@ import { Building2, Edit, Scale, Clock, Calendar, ArrowLeft } from 'lucide-react
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
+import { formatDate } from '@/lib/formatters';
 
 interface QuotationDetailsProps {
   selectedQuotation: Quotation;
@@ -79,9 +80,9 @@ export default function QuotationDetails({
   const handleDownloadPDF = (quote: Quotation) => {
     const pricing = getSelectedQuotePricing(quote);
     const orgName = quote.organizations?.name || 'Customer';
-    const dateStr = new Date(quote.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    const dateStr = formatDate(quote.created_at);
     const deliveryDateStr = quote.expected_delivery_date
-      ? new Date(quote.expected_delivery_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+      ? formatDate(quote.expected_delivery_date)
       : 'N/A';
 
     // Construct items HTML
@@ -558,7 +559,7 @@ export default function QuotationDetails({
             </span>
             <h3 className="text-3xl font-black italic tracking-tighter text-[#3a525d] mt-2">{selectedQuotation.title}</h3>
             <p className="text-xs font-bold text-zinc-400 mt-1">
-              Registered: {new Date(selectedQuotation.created_at).toLocaleDateString()}
+              Registered: {formatDate(selectedQuotation.created_at)}
             </p>
           </div>
 
@@ -633,13 +634,7 @@ export default function QuotationDetails({
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">Expected Delivery Schedule</p>
                 <p className="text-base font-black text-[#2d8d9b] mt-1">
-                  {selectedQuotation.expected_delivery_date
-                    ? new Date(selectedQuotation.expected_delivery_date).toLocaleDateString(undefined, {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : 'N/A'}
+                  {formatDate(selectedQuotation.expected_delivery_date)}
                 </p>
               </Card>
 

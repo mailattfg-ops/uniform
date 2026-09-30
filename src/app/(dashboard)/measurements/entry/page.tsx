@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
-import { Search, Ruler, User, ShieldCheck, CheckCircle2, Save, History, Scale, Building2, Library, Settings2, Clock, Plus, Package, Info } from 'lucide-react';
+import { Search, Ruler, User, ShieldCheck, CheckCircle2, Save, History, Scale, Building2, Library, Settings2, Clock, Plus, Package, Info, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { extractGarmentDisplayMetrics } from '@/lib/formatters';
+import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 import { LabelConfigModal } from '../_components/LabelConfigModal';
 import { AdHocFieldModal } from '../_components/AdHocFieldModal';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function MeasurementEntryPage() {
+function MeasurementEntryContent() {
   const router = useRouter();
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -83,7 +83,7 @@ export default function MeasurementEntryPage() {
       try {
         const [orgsRes, configRes, productsRes, sizeChartsRes, staffRes] = await Promise.all([
           api.get('/organizations'),
-          api.get('/measurements/config'),
+          api.get('/measurements/config').catch(() => ({ data: [] })),
           api.get('/products'),
           api.get('/size-charts'),
           api.get('/employees').catch(() => ({ data: [] }))
@@ -351,7 +351,7 @@ export default function MeasurementEntryPage() {
       {/* Header & Advanced Filters */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Record Entry</h1>
+           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Record Measurements</h1>
            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Tailoring Intelligence</p>
         </div>
 
@@ -392,6 +392,33 @@ export default function MeasurementEntryPage() {
           </div>
         )}
       </div>
+
+      {/* Alert banner with direct button if selected department has no industry template */}
+      {!selectedMember && selectedDept && !isDataLoading && availableTemplates.length === 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-3xl shadow-sm animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-amber-900">
+                No Industry Template Created for this Department
+              </p>
+              <p className="text-[11px] text-amber-700/90 font-bold">
+                Garment sizing bundle templates have not been configured for this department or customer yet.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={() => router.push('/measurements/templates')}
+            className="h-10 px-5 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-wider gap-2 shrink-0 shadow-md shadow-[#3a525d]/10"
+          >
+            <Plus size={14} strokeWidth={3} />
+            Configure Industry Template
+          </Button>
+        </div>
+      )}
 
       {!selectedMember ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -474,14 +501,27 @@ export default function MeasurementEntryPage() {
 
                 {/* DEPARTMENT BUNDLE: Auto-linked if 1, Selection presented if > 1 */}
                 {availableTemplates.length === 0 ? (
-                  <Card className="p-6 border-none bg-white shadow-xl rounded-[2rem]">
-                     <h3 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-2 mb-3">
-                        <Library size={14} className="text-[#2d8d9b]" />
-                        Department Bundle
-                     </h3>
-                     <p className="text-xs text-orange-500 font-bold bg-orange-50 p-4 rounded-xl border border-orange-100">
-                        No uniform templates defined for this department. Please configure one under Measurements &gt; Templates.
+                  <Card className="p-6 border border-amber-200/80 bg-amber-50/40 shadow-xl rounded-[2rem] space-y-4">
+                     <div className="flex items-center justify-between">
+                        <h3 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-2">
+                           <Library size={14} className="text-amber-600" />
+                           Department Bundle
+                        </h3>
+                        <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[8px] font-black uppercase tracking-wider rounded-full border border-amber-200">
+                           Template Missing
+                        </span>
+                     </div>
+                     <p className="text-xs text-amber-800 font-bold">
+                        No uniform bundle templates defined for this department or customer.
                      </p>
+                     <Button
+                        type="button"
+                        onClick={() => router.push('/measurements/templates')}
+                        className="w-full h-11 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-wider gap-2 shadow-lg shadow-[#3a525d]/10"
+                     >
+                        <Plus size={14} strokeWidth={3} />
+                        Configure Industry Template
+                     </Button>
                   </Card>
                 ) : availableTemplates.length === 1 ? (
                   <Card className="p-6 border border-zinc-150 bg-white shadow-lg rounded-[2rem]">
@@ -568,7 +608,7 @@ export default function MeasurementEntryPage() {
                         <div>
                            <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d]">Active Measurement Record</h4>
                            <p className="text-[9px] font-bold text-zinc-400">
-                             Recorded on {new Date(lastMeasurement.recorded_at).toLocaleDateString()}
+                             Recorded on {formatDate(lastMeasurement.recorded_at)}
                            </p>
                         </div>
                      </div>
@@ -653,7 +693,7 @@ export default function MeasurementEntryPage() {
                             </span>
                           </div>
                           <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-2">
-                            <span>Recorded {new Date(lastMeasurement.recorded_at).toLocaleDateString()}</span>
+                            <span>Recorded {formatDate(lastMeasurement.recorded_at)}</span>
                             <span>•</span>
                             <span>By: {lastMeasurement.user_profiles?.full_name || 'Staff'}</span>
                           </p>
@@ -794,9 +834,26 @@ export default function MeasurementEntryPage() {
                     className="space-y-10"
                   >
                     {!selectedTemplate ? (
-                       <div className="py-20 text-center opacity-30 italic">
-                          <Package size={48} className="mx-auto mb-4" />
-                          <p className="text-sm font-black uppercase tracking-widest">Select a Template to begin Sizing</p>
+                       <div className="py-16 text-center space-y-4 bg-zinc-50/60 rounded-[2.5rem] border border-dashed border-zinc-200 p-8">
+                          <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                             <Library size={30} />
+                          </div>
+                          <div className="space-y-1">
+                             <h4 className="text-sm font-black uppercase tracking-widest text-[#3a525d]">
+                                No Industry Template Assigned
+                             </h4>
+                             <p className="text-xs text-zinc-400 font-bold max-w-md mx-auto">
+                                Uniform garment bundles have not been configured for this department or customer.
+                             </p>
+                          </div>
+                          <Button
+                             type="button"
+                             onClick={() => router.push('/measurements/templates')}
+                             className="h-11 px-6 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-wider gap-2 shadow-lg shadow-[#3a525d]/20 mx-auto"
+                          >
+                             <Plus size={15} strokeWidth={3} />
+                             Open Industry Templates
+                          </Button>
                        </div>
                     ) : (
                        <div className="space-y-12">
@@ -973,21 +1030,46 @@ export default function MeasurementEntryPage() {
                                   ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                                       {(prod.measurements || []).map((label: string) => {
-                                          const field = measurementFields.find(f => f.label === label);
+                                          const field = measurementFields.find((f: any) => f.label === label && f.product_type_id === prod.product_type_id)
+                                            || measurementFields.find((f: any) => f.label === label && !f.product_type_id)
+                                            || measurementFields.find((f: any) => f.label === label);
                                           const historyVal = lastMeasurement?.dynamic_data?.[prod.name]?.[label] || '';
                                           
                                           return (
-                                            <Input 
-                                              key={`${prod.id}-${label}`}
-                                              name={`${prod.id}-${label}`} 
-                                              label={label} 
-                                              suffix={field?.unit || 'In'}
-                                              defaultValue={historyVal} 
-                                              type="number" 
-                                              step="0.1" 
-                                              required={field?.is_required}
-                                              className={historyVal ? 'border-[#2d8d9b]/20 bg-white shadow-sm' : 'bg-white shadow-sm border-zinc-100'}
-                                            />
+                                            <div key={`${prod.id}-${label}`} className="space-y-1.5">
+                                              <div className="flex items-center justify-between">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-1.5">
+                                                  <span>{label}</span>
+                                                  {field?.description && (
+                                                    <span 
+                                                      title={field.description}
+                                                      className="cursor-help inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all text-[9px]"
+                                                    >
+                                                      <Info size={10} strokeWidth={2.5} />
+                                                    </span>
+                                                  )}
+                                                </label>
+                                                {field?.is_required && (
+                                                  <span className="text-[8px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                                    Required
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <Input 
+                                                name={`${prod.id}-${label}`} 
+                                                suffix={field?.unit || 'In'}
+                                                defaultValue={historyVal} 
+                                                type="number" 
+                                                step="0.1" 
+                                                required={field?.is_required}
+                                                className={historyVal ? 'border-[#2d8d9b]/20 bg-white shadow-sm' : 'bg-white shadow-sm border-zinc-100'}
+                                              />
+                                              {field?.description && (
+                                                <p className="text-[10px] text-zinc-400 font-medium italic leading-tight pl-0.5">
+                                                  {field.description}
+                                                </p>
+                                              )}
+                                            </div>
                                           );
                                       })}
                                     </div>
@@ -1086,5 +1168,22 @@ export default function MeasurementEntryPage() {
         onAdd={handleAddExtraField}
       />
     </div>
+  );
+}
+
+export default function MeasurementEntryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-8 bg-zinc-50/50">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2d8d9b] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Loading Measurement Workspace...</p>
+          </div>
+        </div>
+      }
+    >
+      <MeasurementEntryContent />
+    </Suspense>
   );
 }

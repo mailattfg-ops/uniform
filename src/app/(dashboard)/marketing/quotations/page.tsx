@@ -101,7 +101,16 @@ export interface ManualItem {
   attachment_fabric2_meters: string;
   attachment_fabric2_rate: string;
   attachment_fabric2_sam: string; // Fabric SAM (minutes)
-  // Accessories — optional
+  // Trims & Accessories
+  trims?: Array<{
+    id?: string | number;
+    trim_id: string;
+    category?: string;
+    name?: string;
+    count: string;
+    uom?: string;
+    unit_price?: number;
+  }>;
   button_id: string;
   button_count: string;
   thread_id: string;
@@ -148,6 +157,8 @@ export default function QuotationsPage() {
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
   const [threadsList, setThreadsList] = useState<any[]>([]);
+  const [trimsList, setTrimsList] = useState<any[]>([]);
+  const [trimCategories, setTrimCategories] = useState<any[]>([]);
   const [inwardRates, setInwardRates] = useState<any[]>([]);
   const [fabricMargins, setFabricMargins] = useState<any[]>([]);
   const [samConfigurations, setSamConfigurations] = useState<any[]>([]);
@@ -216,10 +227,40 @@ export default function QuotationsPage() {
     }
   };
 
+  const fetchTrimsData = async () => {
+    try {
+      const [resTrims, resCats] = await Promise.all([
+        api.get('/inventory/trims'),
+        api.get('/inventory/trim-categories')
+      ]);
+      const trims = resTrims.data || [];
+      const cats = resCats.data || [];
+      setTrimsList(trims);
+      setTrimCategories(cats);
+
+      const btns = trims.filter((t: any) =>
+        (t.trim_categories?.name || t.category?.name || '').toLowerCase() === 'button' ||
+        (t.name || '').toLowerCase().includes('button') ||
+        (t.code || '').toLowerCase().startsWith('btn')
+      );
+      const thrs = trims.filter((t: any) =>
+        (t.trim_categories?.name || t.category?.name || '').toLowerCase() === 'thread' ||
+        (t.name || '').toLowerCase().includes('thread') ||
+        (t.code || '').toLowerCase().startsWith('thr')
+      );
+      setButtonsList(btns.length > 0 ? btns : trims);
+      setThreadsList(thrs.length > 0 ? thrs : trims);
+    } catch (err) {
+      console.error('Failed to load trims data', err);
+    }
+  };
+
   const fetchButtons = async () => {
     try {
       const res = await api.get('/inventory/buttons');
-      setButtonsList(res.data || []);
+      if (res.data && res.data.length > 0) {
+        setButtonsList(res.data);
+      }
     } catch (err) {
       console.error('Failed to load buttons list', err);
     }
@@ -228,7 +269,9 @@ export default function QuotationsPage() {
   const fetchThreads = async () => {
     try {
       const res = await api.get('/inventory/threads');
-      setThreadsList(res.data || []);
+      if (res.data && res.data.length > 0) {
+        setThreadsList(res.data);
+      }
     } catch (err) {
       console.error('Failed to load threads list', err);
     }
@@ -246,9 +289,10 @@ export default function QuotationsPage() {
   const fetchFabricMargins = async () => {
     try {
       const res = await api.get('/sam-management/fabric/margins');
-      setFabricMargins(res.data || []);
+      setFabricMargins(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to load fabric margins', err);
+      setFabricMargins([]);
     }
   };
 
@@ -271,6 +315,7 @@ export default function QuotationsPage() {
           fetchProductTypes(),
           fetchFabrics(),
           fetchProducts(),
+          fetchTrimsData(),
           fetchButtons(),
           fetchThreads(),
           fetchInwardRates(),
@@ -344,7 +389,7 @@ export default function QuotationsPage() {
             className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
           >
             <Plus size={20} strokeWidth={3} />
-            Compile Quotation
+            New Quotation
           </Button>
         ) : (
           <Button
@@ -384,6 +429,8 @@ export default function QuotationsPage() {
           allProducts={allProducts}
           buttonsList={buttonsList}
           threadsList={threadsList}
+          trimsList={trimsList}
+          trimCategories={trimCategories}
           inwardRates={inwardRates}
           fabricMargins={fabricMargins}
           samConfigurations={samConfigurations}

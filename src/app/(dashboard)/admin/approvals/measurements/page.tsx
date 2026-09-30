@@ -10,6 +10,7 @@ import { MeasurementDetailModal } from '@/components/measurements/MeasurementDet
 import { Select } from '@/components/ui/Select';
 import { Filter } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { formatDate } from '@/lib/formatters';
 
 interface Measurement {
   id: number;
@@ -158,8 +159,8 @@ export default function MeasurementApprovals() {
 
     const rows = measurements.map(m => {
       const date = new Date(m.recorded_at);
-      const formattedDate = date.toLocaleDateString();
-      const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const formattedDate = formatDate(m.recorded_at);
+      const formattedTime = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
       const baseValues = [
         `"${m.registry_members?.full_name || ''}"`,
@@ -287,7 +288,7 @@ export default function MeasurementApprovals() {
       accessor: (m) => (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar size={14} strokeWidth={2.5} />
-          <span className="text-[10px] font-bold">{new Date(m.recorded_at).toLocaleDateString()}</span>
+          <span className="text-[10px] font-bold">{formatDate(m.recorded_at)}</span>
         </div>
       )
     },

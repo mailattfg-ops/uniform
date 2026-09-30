@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { extractGarmentDisplayMetrics } from '@/lib/formatters';
+import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -243,7 +243,7 @@ export default function DashboardPage() {
     const hasMeasurements = Boolean(latestMeasurement && (stats?.totalMeasurements || 0) > 0);
     const suggestedSize = latestMeasurement?.suggested_size || (hasMeasurements ? 'Standard' : 'Pending');
     const measureDate = latestMeasurement?.recorded_at
-      ? new Date(latestMeasurement.recorded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      ? formatDate(latestMeasurement.recorded_at)
       : null;
     const dynamicData = latestMeasurement?.dynamic_data && typeof latestMeasurement.dynamic_data === 'object'
       ? latestMeasurement.dynamic_data
@@ -571,8 +571,8 @@ export default function DashboardPage() {
     };
 
     const quickLinks = [
-      { icon: Users, label: 'Members Directory', sub: 'View all registered members', href: `/organizations/registry/${orgId}?tab=entities`, color: 'bg-[#2d8d9b]' },
-      { icon: ReceiptText, label: 'Account Statement', sub: 'View invoices & payments', href: `/organizations/registry/${orgId}?tab=ledger`, color: 'bg-[#CC9448]' },
+      { icon: Users, label: 'Members Directory', sub: 'View all registered members', href: `/customers/${orgId}?tab=entities`, color: 'bg-[#2d8d9b]' },
+      { icon: ReceiptText, label: 'Account Statement', sub: 'View invoices & payments', href: `/customers/${orgId}?tab=ledger`, color: 'bg-[#CC9448]' },
       { icon: History, label: 'Measurement History', sub: 'View captured measurements', href: '/measurements/history', color: 'bg-[#3a525d]' },
     ];
 
@@ -606,7 +606,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               {orgId && (
                 <Link
-                  href={`/organizations/registry/${orgId}`}
+                  href={`/customers/${orgId}`}
                   className="px-6 py-3 bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-[#CC9448]/25"
                 >
                   View My Account
@@ -995,13 +995,7 @@ export default function DashboardPage() {
                     <div className="p-4 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]">Target Delivery Date</p>
                       <p className="text-xs font-black text-[#2d8d9b] mt-1">
-                        {selectedQuoteDetail.expected_delivery_date
-                          ? new Date(selectedQuoteDetail.expected_delivery_date).toLocaleDateString(undefined, {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          : 'N/A'}
+                        {formatDate(selectedQuoteDetail.expected_delivery_date)}
                       </p>
                     </div>
 

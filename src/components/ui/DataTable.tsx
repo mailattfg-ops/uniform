@@ -20,6 +20,7 @@ export interface DataTableProps<T> {
   isLoading?: boolean;
   headerAction?: React.ReactNode;
   pageSize?: number;
+  emptyMessage?: string;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
@@ -32,6 +33,7 @@ export function DataTable<T extends { id: string | number }>({
   isLoading,
   headerAction,
   pageSize = 10,
+  emptyMessage,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -190,10 +192,21 @@ export function DataTable<T extends { id: string | number }>({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="p-16 md:p-24 text-center">
-                   <div className="flex flex-col items-center gap-4 opacity-30">
-                     <Search size={40} className="text-[#2d8d9b]" />
-                     <p className="text-lg font-black italic tracking-tight text-[#3a525d]">No records found</p>
+                <td colSpan={columns.length} className="p-12 md:p-16 text-center">
+                   <div className="flex flex-col items-center gap-3">
+                     <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-300">
+                       <Search size={24} />
+                     </div>
+                     <p className="text-base font-black text-[#3a525d]">
+                       {searchTerm 
+                         ? `No records matching "${searchTerm}"` 
+                         : (emptyMessage || (title ? `No ${title.toLowerCase().replace(/directory|table|registry|management|hub/gi, '').trim() || 'data'} available to display` : 'No data available to display'))}
+                     </p>
+                     <p className="text-xs text-zinc-400 font-medium max-w-sm">
+                       {searchTerm 
+                         ? 'Try adjusting your search criteria or clearing filters.' 
+                         : 'There are currently no records available in this table.'}
+                     </p>
                    </div>
                 </td>
               </tr>

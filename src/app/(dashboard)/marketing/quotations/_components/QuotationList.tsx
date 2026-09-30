@@ -17,6 +17,7 @@ import {
   Edit
 } from 'lucide-react';
 import { Quotation, Organization } from '../page';
+import { formatDate } from '@/lib/formatters';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -128,7 +129,7 @@ export default function QuotationList({
         <div>
           <p className="text-xs font-bold text-zinc-600">{q.production_days_estimate}d Prod</p>
           <p className="text-[9px] font-black text-[#3a525d] mt-0.5">
-            🚚 {q.expected_delivery_date ? new Date(q.expected_delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }) : 'N/A'}
+            🚚 {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
           </p>
         </div>
       )

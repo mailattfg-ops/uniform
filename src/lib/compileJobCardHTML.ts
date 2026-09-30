@@ -1,3 +1,5 @@
+import { formatDate } from './formatters';
+
 export interface JobCardPrintData {
   id: number;
   job_card_no: string;
@@ -169,7 +171,7 @@ export function extractDressMeasurements(
     'fabric', 'fabrics', 'button', 'thread', 'custom_measurements'
   ]);
 
-  // Identify true nested garment groups (e.g. { "shirt (1-4J012)": {...}, "pants (1-5K012)": {...} })
+  // Identify true nested garment groups (e.g. { "shirt (4J-1-012)": {...}, "pants (5K-1-012)": {...} })
   const garmentGroups = Object.entries(sourceObj).filter(([k, v]) => {
     if (k.startsWith('_')) return false;
     if (reservedKeys.has(k.toLowerCase())) return false;
@@ -298,13 +300,7 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
   const quoteNo = jc.orders?.quotations?.quotation_no || '—';
   const barcodeSVG = generateInlineBarcodeSVG(jc.job_card_no, 50, 1.8);
 
-  const printDate = new Date().toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const printDate = formatDate(new Date(), true);
 
   // Product Measurements & Sizing Breakdown (PRD M9.6, M11.1, M11.2)
   const childPieces = jc.child_pieces || [];
@@ -338,7 +334,7 @@ export function compileJobCardHTML(jc: JobCardPrintData): string {
     pieceFabric.design_number ||
     null;
 
-  // Backward compatibility: If jc.design_number contains the concatenated string "1-4J012 - shirt - cotton"
+  // Backward compatibility: If jc.design_number contains the concatenated string "4J-1-012 - shirt - cotton"
   if (jc.design_number && jc.design_number.includes(' - ')) {
     const parts = jc.design_number.split(' - ');
     if (!artNumber && parts[0]) {

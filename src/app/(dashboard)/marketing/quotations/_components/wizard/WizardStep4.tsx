@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Clock, Calendar, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, X, Scale, Building2 } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/formatters';
 
 interface ExtraCharge {
   label: string;
@@ -483,7 +484,7 @@ export default function WizardStep4({
                 </div>
                 <div>
                   <p className="text-sm font-black text-blue-600">
-                    {projectStartDate ? new Date(projectStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    {formatDate(projectStartDate)}
                   </p>
                   <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Launch Start Date</p>
                 </div>
@@ -495,7 +496,7 @@ export default function WizardStep4({
                 </div>
                 <div>
                   <p className="text-sm font-black text-green-600">
-                    {deliveryDate ? new Date(deliveryDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    {formatDate(deliveryDate)}
                   </p>
                   <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Expected Delivery Date</p>
                 </div>
@@ -702,13 +703,7 @@ export default function WizardStep4({
                     <div className="p-4 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]">Target Delivery Date</p>
                       <p className="text-xs font-black text-[#2d8d9b] mt-1">
-                        {selectedQuoteDetail.expected_delivery_date
-                          ? new Date(selectedQuoteDetail.expected_delivery_date).toLocaleDateString(undefined, {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          : 'N/A'}
+                        {formatDate(selectedQuoteDetail.expected_delivery_date)}
                       </p>
                     </div>
 

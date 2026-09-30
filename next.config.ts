@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
     // Max 2 pages kept in RAM at a time in dev
     pagesBufferLength: 2,
   },
+  async redirects() {
+    return [
+      { source: '/organizations/registry/:id', destination: '/customers/:id', permanent: false },
+      { source: '/organizations/registry', destination: '/customers', permanent: false },
+      { source: '/organizations/departments', destination: '/customers/departments', permanent: false },
+      { source: '/organizations/leads', destination: '/customers/leads', permanent: false },
+      { source: '/organizations', destination: '/customers', permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

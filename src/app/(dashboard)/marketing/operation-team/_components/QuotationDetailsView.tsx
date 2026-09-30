@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 import { Quotation, QuotationItem, Fabric, getSelectedQuotePricing, compileQuotationHTML } from '../_lib/compileQuotationHTML';
 
 interface Organization {
@@ -605,9 +606,7 @@ Forma Apparels Co.`;
                     />
                   ) : (
                     <p className="text-base font-black text-[#2d8d9b] mt-1">
-                      {selectedQuotation.expected_delivery_date
-                        ? new Date(selectedQuotation.expected_delivery_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
-                        : 'N/A'}
+                      {formatDate(selectedQuotation.expected_delivery_date)}
                     </p>
                   )}
                 </div>

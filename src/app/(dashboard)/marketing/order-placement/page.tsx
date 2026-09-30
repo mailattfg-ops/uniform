@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Barcode } from '@/components/ui/Barcode';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 import {
   TrendingUp,
   Package,
@@ -1095,11 +1096,7 @@ export default function OrderPlacementPage() {
                         <div className="flex flex-col text-right shrink-0">
                           <span className="text-[5px] text-zinc-400 font-bold uppercase leading-none">Expected Delivery</span>
                           <span className="text-[8px] font-black text-zinc-800 leading-none mt-0.5">
-                            {printOrder.quotations?.expected_delivery_date ? new Date(printOrder.quotations.expected_delivery_date).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            }) : 'N/A'}
+                            {formatDate(printOrder.quotations?.expected_delivery_date)}
                           </span>
                           <span className="text-[6px] font-mono text-[#2d8d9b] font-bold mt-0.5">Quote: {printOrder.quotations?.quotation_no}</span>
                         </div>

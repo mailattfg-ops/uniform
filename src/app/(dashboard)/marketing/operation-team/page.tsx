@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 import {
   Layers,
   Trash2,
@@ -211,7 +212,7 @@ export default function OperationTeamPage() {
         <div className="flex flex-col min-w-0">
           <span className="font-black text-[#3a525d] text-xs md:text-sm leading-tight truncate" title={q.title}>{q.title}</span>
           <span className="text-[9px] text-zinc-400 font-semibold mt-0.5">
-            {new Date(q.created_at).toLocaleDateString()}
+            {formatDate(q.created_at)}
           </span>
         </div>
       )
@@ -238,10 +239,7 @@ export default function OperationTeamPage() {
       className: 'whitespace-nowrap',
       accessor: (q) => (
         <span className="font-bold text-xs text-zinc-500 whitespace-nowrap">
-          {q.expected_delivery_date
-            ? new Date(q.expected_delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-            : 'N/A'
-          }
+          {formatDate(q.expected_delivery_date)}
         </span>
       )
     },

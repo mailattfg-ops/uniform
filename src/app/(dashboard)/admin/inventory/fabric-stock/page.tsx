@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/formatters';
 import { 
   Scissors, 
   AlertTriangle, 
@@ -606,13 +607,7 @@ export default function FabricStockPage() {
                                     {batch.batch_no}
                                   </span>
                                   <p className="text-[9px] text-zinc-400 font-bold mt-1">
-                                    {new Date(batch.created_at).toLocaleDateString(undefined, {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
+                                    {formatDate(batch.created_at, true)}
                                   </p>
                                 </div>
                                 <div className="text-right">

@@ -9,6 +9,7 @@ import { Plus, Trash2, Edit2, Scissors, ArrowRight } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { formatDate } from '@/lib/formatters';
 
 interface DressPrefix {
   id: number;
@@ -138,7 +139,7 @@ export default function DressPrefixManagementPage() {
       header: 'Registration Date',
       accessor: (dp) => (
         <p className="text-xs font-bold text-zinc-500">
-          {dp.created_at ? new Date(dp.created_at).toLocaleDateString() : 'N/A'}
+          {formatDate(dp.created_at)}
         </p>
       )
     },

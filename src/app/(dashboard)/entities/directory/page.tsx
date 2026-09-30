@@ -6,7 +6,6 @@ import { StudentRegisterForm } from '../_components/StudentRegisterForm';
 import { BulkUpload } from '../_components/BulkUpload';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
 type ViewState = 'list' | 'register' | 'bulk';

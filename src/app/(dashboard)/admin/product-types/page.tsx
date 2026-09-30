@@ -9,6 +9,7 @@ import { Plus, Trash2, Edit2, Tags, ArrowRight } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { formatDate } from '@/lib/formatters';
 
 interface ProductType {
   id: number;
@@ -110,7 +111,7 @@ export default function ProductTypeManagementPage() {
       header: 'Creation Date',
       accessor: (pt) => (
         <p className="text-xs font-bold text-zinc-500">
-          {pt.created_at ? new Date(pt.created_at).toLocaleDateString() : 'N/A'}
+          {formatDate(pt.created_at)}
         </p>
       )
     },

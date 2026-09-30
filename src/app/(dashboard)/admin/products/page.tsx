@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Edit2, Trash2, Box, Tag, Layers, Camera } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -16,6 +16,22 @@ interface RemarkEntry {
   added: string;
   removed: string;
   images: string[];
+}
+
+export interface AttachmentFabricEntry {
+  id: string;
+  role?: string;
+  fabric_id?: string;
+  meters: string;
+}
+
+export interface TrimEntry {
+  id: string;
+  category?: string;
+  trim_id?: string;
+  count: string;
+  uom: string;
+  name?: string;
 }
 
 interface Product {
@@ -42,9 +58,12 @@ interface Product {
   thread_id?: string | null;
   button_count?: number | null;
   thread_count?: number | null;
+  attachment_fabrics?: AttachmentFabricEntry[] | null;
+  trims?: TrimEntry[] | null;
   created_at: string;
   base_size?: string | null;
   fit?: string | null;
+  allowance?: string | number | null;
   other_sizes?: string | null;
   other_fits?: string | null;
   measurement_type?: string | null;
@@ -53,36 +72,52 @@ interface Product {
 }
 
 const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patterns: any[]) => {
-  if (!artNumber) return { dressCode: '', genderCode: '', patternCode: '' };
+  if (!artNumber) return { dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
 
-  // Format is [GenderCode]-[DressPrefix][PatternCode]
   const parts = artNumber.split('-');
-  if (parts.length !== 2) return { dressCode: '', genderCode: '', patternCode: '' };
 
-  const genderCode = parts[0];
-  const rest = parts[1]; // e.g. "4J012"
+  
 
-  // Find matching gender
-  const hasGender = genders.some(g => g.code === genderCode);
-  if (!hasGender) return { dressCode: '', genderCode: '', patternCode: '' };
+  // Option 1 format: [DressPrefix]-[GenderPattern]-[FitAllowance] (e.g. 4J-1012-R2, 4J-1012-R1.5, or 4J-1012-R)
+  if (parts.length === 3) {
+    const [dressCode, middle, lastPart] = parts;
+    const fitMatch = lastPart.match(/^([A-Za-z]+)(.*)$/);
+    if (fitMatch && isNaN(Number(lastPart))) {
+      const fitCode = fitMatch[1].toUpperCase();
+      const allowance = fitMatch[2] ? fitMatch[2].trim() : '';
+      const genderCode = middle.slice(0, 1);
+      const patternCode = middle.slice(1);
+      return { dressCode, genderCode, patternCode, fitCode, allowance };
+    }
+    // Legacy 3-part: [DressPrefix]-[GenderCode]-[PatternCode] (e.g. 4J-1-012)
+    return { dressCode, genderCode: middle, patternCode: lastPart, fitCode: '', allowance: '' };
+  }
 
-  // Find which dress code starts the rest string, and which pattern code is the remainder
-  let dressCode = '';
-  let patternCode = '';
+  // Fallback for 2-part legacy format
+  if (parts.length === 2) {
+    const isFirstDress = dresses.some(d => d.code === parts[0]);
+    if (isFirstDress) {
+      const dressCode = parts[0];
+      const rest = parts[1]; // e.g. "1012"
+      for (const g of genders) {
+        if (rest.startsWith(g.code)) {
+          const remainder = rest.slice(g.code.length);
+          return { dressCode, genderCode: g.code, patternCode: remainder, fitCode: '', allowance: '' };
+        }
+      }
+    }
 
-  for (const dress of dresses) {
-    if (rest.startsWith(dress.code)) {
-      const remainder = rest.slice(dress.code.length);
-      const hasPattern = patterns.some(p => p.code === remainder);
-      if (hasPattern) {
-        dressCode = dress.code;
-        patternCode = remainder;
-        break;
+    const genderCode = parts[0];
+    const rest = parts[1]; // e.g. "4J012"
+    for (const dress of dresses) {
+      if (rest.startsWith(dress.code)) {
+        const remainder = rest.slice(dress.code.length);
+        return { dressCode: dress.code, genderCode, patternCode: remainder, fitCode: '', allowance: '' };
       }
     }
   }
 
-  return { dressCode, genderCode, patternCode };
+  return { dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
 };
 
 export const parseMaterialsField = (rawText: string | undefined | null) => {
@@ -93,6 +128,8 @@ export const parseMaterialsField = (rawText: string | undefined | null) => {
   }
   return { type: '', materials: rawText };
 };
+
+
 
 const MultiEntryInput: React.FC<{
   value: string;
@@ -168,6 +205,510 @@ const MultiEntryInput: React.FC<{
   );
 };
 
+const CLASSES_LIST = [
+  'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
+  'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
+  'C1', 'C2', 'Corporate'
+];
+
+
+
+const ATTACHMENT_ROLE_PRESETS = [
+  'Contrast Collar & Cuffs',
+  'Pocketing Fabric',
+  'Inner Lining',
+  'Yoke / Contrast Patch',
+  'Piping / Contrast Trim',
+  'Waistband Lining',
+  'Placket Trim',
+  'Sleeve Hem Trim',
+  'Other Secondary Fabric'
+];
+
+const AttachmentFabricsEditor: React.FC<{
+  value: AttachmentFabricEntry[] | null | undefined;
+  onChange: (val: AttachmentFabricEntry[]) => void;
+  fabrics?: any[];
+}> = ({ value, onChange }) => {
+  const currentList = Array.isArray(value) ? value : [];
+
+  const handleAdd = () => {
+    const newItem: AttachmentFabricEntry = {
+      id: Date.now().toString(),
+      role: ATTACHMENT_ROLE_PRESETS[currentList.length % ATTACHMENT_ROLE_PRESETS.length],
+      meters: '0.25'
+    };
+    onChange([...currentList, newItem]);
+  };
+
+  const handleUpdate = (index: number, updates: Partial<AttachmentFabricEntry>) => {
+    const updated = currentList.map((item, idx) => {
+      if (idx !== index) return item;
+      return { ...item, ...updates };
+    });
+    onChange(updated);
+  };
+
+  const handleRemove = (index: number) => {
+    onChange(currentList.filter((_, idx) => idx !== index));
+  };
+
+  return (
+    <div className="space-y-4 bg-zinc-50/70 p-5 rounded-3xl border border-zinc-200">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center font-black">
+            <Layers size={16} />
+          </div>
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+              Attachment Fabrics (Optional)
+            </h4>
+            <p className="text-[10px] text-zinc-400 font-bold">
+              Role & consumption for contrast collar/cuffs, pocketing, or lining fabrics (No inventory SKU required)
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="px-3.5 py-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+        >
+          <Plus size={14} /> Add Attachment Fabric
+        </button>
+      </div>
+
+      {currentList.length === 0 ? (
+        <div className="text-center py-6 border-2 border-dashed border-zinc-200 rounded-2xl bg-white/50">
+          <p className="text-xs text-zinc-400 font-bold italic">
+            No attachment fabrics added. Click &quot;+ Add Attachment Fabric&quot; if this product uses contrast or secondary fabrics.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {currentList.map((item, index) => (
+            <div key={item.id || index} className="flex items-center gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200 shadow-sm flex-wrap sm:flex-nowrap">
+              <span className="text-[10px] font-black text-zinc-400 uppercase w-12 shrink-0">
+                Att #{index + 1}
+              </span>
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  Fabric Role / Placement
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={ATTACHMENT_ROLE_PRESETS.includes(item.role || '') ? item.role : 'Custom'}
+                    onChange={(e) => {
+                      if (e.target.value !== 'Custom') {
+                        handleUpdate(index, { role: e.target.value });
+                      }
+                    }}
+                    className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                  >
+                    {ATTACHMENT_ROLE_PRESETS.map((preset) => (
+                      <option key={preset} value={preset}>{preset}</option>
+                    ))}
+                    <option value="Custom">Custom Role...</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Role description (e.g. Contrast Collar)"
+                    value={item.role || ''}
+                    onChange={(e) => handleUpdate(index, { role: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                  />
+                </div>
+              </div>
+              <div className="w-32 shrink-0">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  Meters (m)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="e.g. 0.25"
+                  value={item.meters}
+                  onChange={(e) => handleUpdate(index, { meters: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                />
+              </div>
+              <div className="pt-5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                  className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                  title="Remove attachment fabric"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TRIM_CATEGORY_PRESETS = [
+  { category: 'Buttons', uom: 'Pcs', defaultCount: '6' },
+  { category: 'Sewing Thread', uom: 'Cones', defaultCount: '1' },
+  { category: 'Zipper', uom: 'Pcs', defaultCount: '1' },
+  { category: 'Elastic', uom: 'Meters', defaultCount: '0.75' },
+  { category: 'Brand Label / Tag', uom: 'Pcs', defaultCount: '1' },
+  { category: 'Care / Size Label', uom: 'Pcs', defaultCount: '1' },
+  { category: 'Interlining / Fusing', uom: 'Meters', defaultCount: '0.15' },
+  { category: 'Velcro / Fastener', uom: 'Meters', defaultCount: '0.10' },
+  { category: 'Drawcord / Cord', uom: 'Meters', defaultCount: '1.0' },
+  { category: 'Eyelet / Rivet', uom: 'Pcs', defaultCount: '2' },
+  { category: 'Badge / School Crest', uom: 'Pcs', defaultCount: '1' },
+  { category: 'Other Trim', uom: 'Pcs', defaultCount: '1' }
+];
+
+const TrimsEditor: React.FC<{
+  value: TrimEntry[] | null | undefined;
+  onChange: (val: TrimEntry[]) => void;
+  trimsList?: any[];
+}> = ({ value, onChange }) => {
+  const currentList = Array.isArray(value) ? value : [];
+
+  const handleAdd = () => {
+    const firstCat = TRIM_CATEGORY_PRESETS[currentList.length % TRIM_CATEGORY_PRESETS.length];
+    const newItem: TrimEntry = {
+      id: Date.now().toString(),
+      category: firstCat.category,
+      count: firstCat.defaultCount,
+      uom: firstCat.uom,
+      name: ''
+    };
+    onChange([...currentList, newItem]);
+  };
+
+  const handleUpdate = (index: number, updates: Partial<TrimEntry>) => {
+    const updated = currentList.map((item, idx) => {
+      if (idx !== index) return item;
+      const merged = { ...item, ...updates };
+      if (updates.category !== undefined) {
+        const found = TRIM_CATEGORY_PRESETS.find(p => p.category === updates.category);
+        if (found) {
+          merged.uom = found.uom;
+          if (!merged.count || merged.count === '0' || merged.count === '1') {
+            merged.count = found.defaultCount;
+          }
+        }
+      }
+      return merged;
+    });
+    onChange(updated);
+  };
+
+  const handleRemove = (index: number) => {
+    onChange(currentList.filter((_, idx) => idx !== index));
+  };
+
+  return (
+    <div className="space-y-4 bg-zinc-50/70 p-5 rounded-3xl border border-zinc-200">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black">
+            <Tag size={16} />
+          </div>
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+              Trims & Accessories Specification (Optional)
+            </h4>
+            <p className="text-[10px] text-zinc-400 font-bold">
+              Select trim category and quantity per garment. (Inventory SKU selection happens in Quotation / Production)
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="px-3.5 py-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+        >
+          <Plus size={14} /> Add Trim
+        </button>
+      </div>
+
+      {currentList.length === 0 ? (
+        <div className="text-center py-6 border-2 border-dashed border-zinc-200 rounded-2xl bg-white/50">
+          <p className="text-xs text-zinc-400 font-bold italic">
+            No trims configured. Click &quot;+ Add Trim&quot; to specify required buttons, threads, zippers, elastics, or labels.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {currentList.map((item, index) => (
+            <div key={item.id || index} className="flex items-center gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200 shadow-sm flex-wrap sm:flex-nowrap">
+              <span className="text-[10px] font-black text-zinc-400 uppercase w-12 shrink-0">
+                Trim #{index + 1}
+              </span>
+              <div className="flex-1 min-w-[160px]">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  Category
+                </label>
+                <select
+                  value={item.category || item.name || 'Buttons'}
+                  onChange={(e) => handleUpdate(index, { category: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                >
+                  {TRIM_CATEGORY_PRESETS.map((preset) => (
+                    <option key={preset.category} value={preset.category}>
+                      {preset.category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-24 shrink-0">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  Qty / Count
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="e.g. 6"
+                  value={item.count}
+                  onChange={(e) => handleUpdate(index, { count: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                />
+              </div>
+              <div className="w-24 shrink-0">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  UOM
+                </label>
+                <select
+                  value={item.uom || 'Pcs'}
+                  onChange={(e) => handleUpdate(index, { uom: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                >
+                  <option value="Pcs">Pcs</option>
+                  <option value="Cones">Cones</option>
+                  <option value="Meters">Meters</option>
+                  <option value="Gross">Gross</option>
+                  <option value="Sets">Sets</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  Specification (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 18L 4-hole / 40/2 Poly"
+                  value={item.name || ''}
+                  onChange={(e) => handleUpdate(index, { name: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                />
+              </div>
+              <div className="pt-5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                  className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                  title="Remove trim"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ClassConsumptionMatrixEditor: React.FC<{
+  value: Record<string, Record<string, string>> | null | undefined;
+  onChange: (val: Record<string, Record<string, string>>) => void;
+  classesList: string[];
+  attachmentFabrics?: AttachmentFabricEntry[];
+  selectedTrims?: TrimEntry[];
+}> = ({ value, onChange, classesList, attachmentFabrics = [], selectedTrims = [] }) => {
+  const currentObj = value || {};
+  const filledCount = Object.keys(currentObj).filter(k => {
+    const row = currentObj[k] || {};
+    return Object.values(row).some(v => v !== '' && v !== null && v !== undefined);
+  }).length;
+
+  const [isOpen, setIsOpen] = useState(filledCount > 0);
+
+  useEffect(() => {
+    if (filledCount > 0) setIsOpen(true);
+  }, [filledCount]);
+
+  const handleCellChange = (cls: string, field: string, val: string) => {
+    const updatedCls = { ...(currentObj[cls] || {}), [field]: val };
+    const updatedObj = { ...currentObj, [cls]: updatedCls };
+    onChange(updatedObj);
+  };
+
+  const handlePopulateAll = () => {
+    const mainFabInput = (document.querySelector('input[name="main_fabric"]') as HTMLInputElement)?.value || '1.25';
+    const att1Val = attachmentFabrics[0]?.meters || (document.querySelector('input[name="attachment_fabric1"]') as HTMLInputElement)?.value || '';
+    const att2Val = attachmentFabrics[1]?.meters || (document.querySelector('input[name="attachment_fabric2"]') as HTMLInputElement)?.value || '';
+    const btnVal = selectedTrims.find(t => (t.uom || '').toLowerCase() === 'pcs' || String(t.trim_id).includes('btn'))?.count || (document.querySelector('input[name="button_count"]') as HTMLInputElement)?.value || '6';
+    const thrVal = selectedTrims.find(t => (t.uom || '').toLowerCase() === 'cones' || String(t.trim_id).includes('thr'))?.count || (document.querySelector('input[name="thread_count"]') as HTMLInputElement)?.value || '1';
+
+    const newObj: Record<string, Record<string, string>> = {};
+    classesList.forEach(cls => {
+      newObj[cls] = {
+        main_fabric: mainFabInput,
+        attachment_fabric1: att1Val,
+        attachment_fabric2: att2Val,
+        button_count: btnVal,
+        thread_count: thrVal
+      };
+    });
+    onChange(newObj);
+    setIsOpen(true);
+    toast.success('Populated all classes with base product values!');
+  };
+
+  const handleClearAll = () => {
+    onChange({});
+    toast.success('Class consumption matrix cleared.');
+  };
+
+  return (
+    <div className="border border-zinc-200 rounded-3xl bg-white shadow-sm overflow-hidden transition-all">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-5 bg-zinc-50/70 hover:bg-zinc-100/60 cursor-pointer flex items-center justify-between transition-colors border-b border-zinc-100"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center font-black text-xs">
+            BOM
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                Class / Corporate Consumption Details (Optional)
+              </h4>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${filledCount > 0 ? 'bg-teal-50 text-teal-600 border border-teal-200' : 'bg-zinc-200/60 text-zinc-500'}`}>
+                {filledCount > 0 ? `${filledCount} Classes Configured` : 'Optional / Using Base'}
+              </span>
+            </div>
+            <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
+              Only required if fabric or trim consumption varies by student grade (e.g. Class 1 vs Class 12). If empty, quotations use base values.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[#2d8d9b] font-black underline">
+            {isOpen ? 'Collapse' : 'Configure Matrix'}
+          </span>
+          <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="p-5 space-y-4 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-zinc-100">
+            <p className="text-[11px] font-bold text-zinc-500">
+              Customize consumption per student grade or corporate department:
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePopulateAll}
+                className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                ⚡ Copy Base Values To All Rows
+              </button>
+              {filledCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="px-3 py-1.5 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto max-h-[360px] custom-scrollbar rounded-2xl border border-zinc-100">
+            <table className="min-w-full text-xs font-bold text-zinc-700">
+              <thead className="sticky top-0 bg-zinc-100/90 backdrop-blur z-10">
+                <tr className="border-b border-zinc-200 text-left">
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Grade / Division</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Main Fabric (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Att 1 (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Att 2 (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Buttons (pcs)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Thread (cones)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {classesList.map((cls) => {
+                  const rowData = currentObj[cls] || {};
+                  return (
+                    <tr key={cls} className="hover:bg-zinc-50/70 transition-colors">
+                      <td className="p-3 text-[#3a525d] font-black text-xs">{cls}</td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={rowData.main_fabric || ''}
+                          onChange={(e) => handleCellChange(cls, 'main_fabric', e.target.value)}
+                          placeholder="e.g. 1.25"
+                          className="w-24 px-2.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={rowData.attachment_fabric1 || ''}
+                          onChange={(e) => handleCellChange(cls, 'attachment_fabric1', e.target.value)}
+                          placeholder="e.g. 0.5"
+                          className="w-24 px-2.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={rowData.attachment_fabric2 || ''}
+                          onChange={(e) => handleCellChange(cls, 'attachment_fabric2', e.target.value)}
+                          placeholder="e.g. 0.2"
+                          className="w-24 px-2.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={rowData.button_count || ''}
+                          onChange={(e) => handleCellChange(cls, 'button_count', e.target.value)}
+                          placeholder="e.g. 6"
+                          className="w-24 px-2.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={rowData.thread_count || ''}
+                          onChange={(e) => handleCellChange(cls, 'thread_count', e.target.value)}
+                          placeholder="e.g. 1"
+                          className="w-24 px-2.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [measureConfig, setMeasureConfig] = useState<any[]>([]);
@@ -186,78 +727,20 @@ export default function ProductManagement() {
   });
 
   // Variant design number states
-  const [selectedProductForVariants, setSelectedProductForVariants] = useState<any | null>(null);
-  const [productVariants, setProductVariants] = useState<any[]>([]);
-  const [newVariantBtn, setNewVariantBtn] = useState('');
-  const [newVariantBtnCount, setNewVariantBtnCount] = useState('0');
-  const [newVariantThread, setNewVariantThread] = useState('');
-  const [newVariantThreadCount, setNewVariantThreadCount] = useState('0');
-  const [isCreatingVariant, setIsCreatingVariant] = useState(false);
 
-  const fetchProductVariants = async (prodId: any) => {
-    try {
-      const res = await api.get(`/products/${prodId}/variants`);
-      setProductVariants(res.data || []);
-    } catch (err) {
-      toast.error('Failed to load product variants');
-    }
-  };
-
-  useEffect(() => {
-    if (selectedProductForVariants) {
-      fetchProductVariants(selectedProductForVariants.id);
-      setNewVariantBtn('');
-      setNewVariantBtnCount('0');
-      setNewVariantThread('');
-      setNewVariantThreadCount('0');
-    }
-  }, [selectedProductForVariants]);
-
-  const handleCreateVariant = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProductForVariants) return;
-
-    if (!newVariantBtn && !newVariantThread) {
-      toast.error('Please specify at least a button or thread type for the variant combination.');
-      return;
-    }
-
-    setIsCreatingVariant(true);
-    const loadingToast = toast.loading('Registering variant combination...');
-    try {
-      await api.post(`/products/${selectedProductForVariants.id}/variants`, {
-        button_id: newVariantBtn || null,
-        button_count: parseInt(newVariantBtnCount, 10) || 0,
-        thread_id: newVariantThread || null,
-        thread_count: parseInt(newVariantThreadCount, 10) || 0
-      });
-      toast.success('Variant Design Number registered!', { id: loadingToast });
-      fetchProductVariants(selectedProductForVariants.id);
-      setNewVariantBtn('');
-      setNewVariantBtnCount('0');
-      setNewVariantThread('');
-      setNewVariantThreadCount('0');
-      fetchData();
-    } catch (err: any) {
-      const errMsg = err.response?.data?.error || 'Failed to create variant';
-      const code = err.response?.data?.design_number;
-      if (code) {
-        toast.error(`${errMsg} (Design Code: ${code})`, { id: loadingToast, duration: 6000 });
-      } else {
-        toast.error(errMsg, { id: loadingToast });
-      }
-    } finally {
-      setIsCreatingVariant(false);
-    }
-  };
 
   // Local state for dynamic form reactivity
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['manual']);
   const [selectedDress, setSelectedDress] = useState('');
   const [selectedGender, setSelectedGender] = useState('');
   const [selectedPattern, setSelectedPattern] = useState('');
+  const [selectedProductTypeId, setSelectedProductTypeId] = useState('');
+  const [selectedFabricId, setSelectedFabricId] = useState('');
+  const [selectedButtonId, setSelectedButtonId] = useState('');
+  const [selectedThreadId, setSelectedThreadId] = useState('');
   const [baseSize, setBaseSize] = useState('');
   const [fit, setFit] = useState('');
+  const [allowance, setAllowance] = useState('');
   const [nextDesignNumber, setNextDesignNumber] = useState('');
   const [nextPatternCode, setNextPatternCode] = useState('');
   const [productType, setProductType] = useState('');
@@ -268,11 +751,15 @@ export default function ProductManagement() {
   const [editingCombination, setEditingCombination] = useState<any | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
   const [threadsList, setThreadsList] = useState<any[]>([]);
+  const [trimsList, setTrimsList] = useState<any[]>([]);
+  const [attachmentFabrics, setAttachmentFabrics] = useState<AttachmentFabricEntry[]>([]);
+  const [selectedTrims, setSelectedTrims] = useState<TrimEntry[]>([]);
+  const [fitsList, setFitsList] = useState<any[]>([]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fabricRes, nextDnRes, gdRes, buttonsRes, threadsRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fabricRes, nextDnRes, gdRes, buttonsRes, threadsRes, trimsRes, fitsRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
         api.get('/size-charts'),
@@ -285,21 +772,55 @@ export default function ProductManagement() {
         api.get('/products/next-design-number').catch(() => ({ data: { nextDesignNumber: 'DNS-0001' } })),
         api.get('/quotations/group-designs').catch(() => ({ data: [] })),
         api.get('/inventory/buttons').catch(() => ({ data: [] })),
-        api.get('/inventory/threads').catch(() => ({ data: [] }))
+        api.get('/inventory/threads').catch(() => ({ data: [] })),
+        api.get('/inventory/trims').catch(() => ({ data: [] })),
+        api.get('/art-number-hub/fits').catch(() => ({ data: [] }))
       ]);
-      setProducts(prodRes.data);
-      setMeasureConfig(configRes.data);
-      setSizeCharts(chartRes.data);
-      setProductTypes(typeRes.data);
-      setDresses(dressRes.data);
-      setGenders(genderRes.data);
-      setPatterns(patternRes.data);
-      setNextPatternCode(nextPatternRes.data.nextCode || '001');
-      setFabrics(fabricRes.data);
-      setNextDesignNumber(nextDnRes.data.nextDesignNumber || 'DNS-0001');
+      setProducts(prodRes.data || []);
+      setMeasureConfig(configRes.data || []);
+      setSizeCharts(chartRes.data || []);
+      setProductTypes(typeRes.data || []);
+      setDresses(dressRes.data || []);
+      setGenders(genderRes.data || []);
+      setPatterns(patternRes.data || []);
+      setFitsList(fitsRes.data || []);
+      setNextPatternCode(nextPatternRes.data?.nextCode || '001');
+      setFabrics(fabricRes.data || []);
+      setNextDesignNumber(nextDnRes.data?.nextDesignNumber || 'DNS-0001');
       setGroupDesigns(gdRes.data || []);
       setButtonsList(buttonsRes.data || []);
       setThreadsList(threadsRes.data || []);
+
+      let combinedTrims: any[] = (trimsRes.data && Array.isArray(trimsRes.data)) ? [...trimsRes.data] : [];
+      if (buttonsRes.data && Array.isArray(buttonsRes.data)) {
+        buttonsRes.data.forEach((b: any) => {
+          if (!combinedTrims.some((t: any) => String(t.id) === String(b.id))) {
+            combinedTrims.push({
+              id: b.id,
+              code: b.code || `BTN-${b.id}`,
+              name: b.name || b.item_name || 'Button',
+              category: { name: 'Button' },
+              default_uom: 'Pcs',
+              uom: 'Pcs'
+            });
+          }
+        });
+      }
+      if (threadsRes.data && Array.isArray(threadsRes.data)) {
+        threadsRes.data.forEach((th: any) => {
+          if (!combinedTrims.some((t: any) => String(t.id) === String(th.id))) {
+            combinedTrims.push({
+              id: th.id,
+              code: th.code || `THR-${th.id}`,
+              name: th.name || th.item_name || 'Thread',
+              category: { name: 'Thread' },
+              default_uom: 'Cones',
+              uom: 'Cones'
+            });
+          }
+        });
+      }
+      setTrimsList(combinedTrims);
     } catch (err) {
       toast.error('Failed to load catalog data');
     } finally {
@@ -318,26 +839,84 @@ export default function ProductManagement() {
   const [classFabricConsumption, setClassFabricConsumption] = useState<Record<string, Record<string, string>>>({});
   const [remarks, setRemarks] = useState<RemarkEntry[]>([]);
 
-  const classesList = [
-    'Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6',
-    'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12',
-    'C1', 'C2', 'Corporate'
-  ];
-
   useEffect(() => {
+    const activeDresses = dresses;
+    const activeGenders = genders;
+    const activePatterns = patterns;
+
     if (editingProduct) {
       setSelectedMethods(editingProduct.entry_methods || ['manual']);
-      const parsed = parseArtNumber(editingProduct.art_number, dresses, genders, patterns);
+      const parsed = parseArtNumber(editingProduct.art_number, activeDresses, activeGenders, activePatterns);
       setSelectedDress(parsed.dressCode);
       setSelectedGender(parsed.genderCode);
       setSelectedPattern(parsed.patternCode);
+      setSelectedProductTypeId(editingProduct.product_type_id?.toString() || (editingProduct as any).product_types?.id?.toString() || '');
+      setSelectedFabricId(editingProduct.main_fabric_id?.toString() || '');
+      setSelectedButtonId(editingProduct.button_id?.toString() || '');
+      setSelectedThreadId(editingProduct.thread_id?.toString() || '');
       setBaseSize(editingProduct.base_size || '');
-      setFit(editingProduct.fit || '');
+      if (editingProduct.fit) {
+        setFit(editingProduct.fit);
+      } else if (parsed.fitCode) {
+        const matched = fitsList.find(f => f.code === parsed.fitCode);
+        setFit(matched ? matched.name : (parsed.fitCode === 'S' ? 'Slim Fit' : parsed.fitCode === 'L' ? 'Loose Fit' : 'Regular Fit'));
+      } else {
+        setFit('');
+      }
+      setAllowance(editingProduct.allowance ? String(editingProduct.allowance) : (parsed.allowance || ''));
       setOtherSizes(editingProduct.other_sizes || '');
       setOtherFits(editingProduct.other_fits || '');
       setMeasurementType(editingProduct.measurement_type || 'both');
       setClassFabricConsumption(editingProduct.class_fabric_consumption || {});
       setRemarks(editingProduct.remarks || []);
+
+      // Initialize dynamic attachment fabrics
+      const existingAtts = editingProduct.attachment_fabrics || (editingProduct.class_fabric_consumption as any)?._base_attachment_fabrics;
+      if (Array.isArray(existingAtts) && existingAtts.length > 0) {
+        setAttachmentFabrics(existingAtts);
+      } else {
+        const initialAtts: AttachmentFabricEntry[] = [];
+        if (editingProduct.attachment_fabric1) {
+          initialAtts.push({
+            id: 'att_1',
+            fabric_id: (editingProduct as any).attachment_fabric1_id?.toString() || '',
+            meters: String(editingProduct.attachment_fabric1)
+          });
+        }
+        if (editingProduct.attachment_fabric2) {
+          initialAtts.push({
+            id: 'att_2',
+            fabric_id: (editingProduct as any).attachment_fabric2_id?.toString() || '',
+            meters: String(editingProduct.attachment_fabric2)
+          });
+        }
+        setAttachmentFabrics(initialAtts);
+      }
+
+      // Initialize dynamic trims
+      const existingTrims = editingProduct.trims || (editingProduct.class_fabric_consumption as any)?._base_trims;
+      if (Array.isArray(existingTrims) && existingTrims.length > 0) {
+        setSelectedTrims(existingTrims);
+      } else {
+        const initialTrims: TrimEntry[] = [];
+        if (editingProduct.button_count || editingProduct.button_id) {
+          initialTrims.push({
+            id: 'trim_btn',
+            trim_id: editingProduct.button_id?.toString() || 'btn_default',
+            count: String(editingProduct.button_count || '6'),
+            uom: 'Pcs'
+          });
+        }
+        if (editingProduct.thread_count || editingProduct.thread_id) {
+          initialTrims.push({
+            id: 'trim_thr',
+            trim_id: editingProduct.thread_id?.toString() || 'thr_default',
+            count: String(editingProduct.thread_count || '1'),
+            uom: 'Cones'
+          });
+        }
+        setSelectedTrims(initialTrims);
+      }
 
       const parsedMat = parseMaterialsField(editingProduct.materials);
       setProductType(parsedMat.type || '');
@@ -346,16 +925,23 @@ export default function ProductManagement() {
       setSelectedDress('');
       setSelectedGender('');
       setSelectedPattern('');
+      setSelectedProductTypeId('');
+      setSelectedFabricId('');
+      setSelectedButtonId('');
+      setSelectedThreadId('');
       setBaseSize('');
       setFit('');
+      setAllowance('');
       setOtherSizes('');
       setOtherFits('');
       setMeasurementType('both');
       setClassFabricConsumption({});
       setRemarks([]);
       setProductType('');
+      setAttachmentFabrics([]);
+      setSelectedTrims([]);
       // Refresh next pattern code on form open
-      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data.nextCode || '001')).catch(() => { });
+      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data?.nextCode || '001')).catch(() => { });
     }
   }, [editingProduct, isAdding, dresses, genders, patterns]);
 
@@ -371,13 +957,18 @@ export default function ProductManagement() {
     }
   }, [isAdding, editingProduct]);
 
+  const availableProductTypes = productTypes;
+  const availableDresses = dresses;
+  const availableGenders = genders;
+  const availablePatterns = patterns;
+
   const productFields: FormField[] = [
     {
       name: 'product_type',
-      label: 'Product Type',
+      label: 'Manufacturing Classification',
       type: 'select',
       options: [
-        { label: 'Select Product Type', value: '' },
+        { label: 'Select Manufacturing Type', value: '' },
         { label: 'Readymade (Manufactured)', value: 'readymade' },
         { label: 'Readymade (Trade)', value: 'trade_readymade' },
         { label: 'Accessories', value: 'accessories' },
@@ -388,29 +979,15 @@ export default function ProductManagement() {
     },
     {
       name: 'product_type_id',
-      label: 'Garment Category',
+      label: 'Garment Category / Product Type',
       type: 'select',
       options: [
         { label: 'Select Garment Category', value: '' },
-        ...productTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
+        ...availableProductTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
       ],
-      defaultValue: editingProduct?.product_type_id?.toString() || editingProduct?.product_types?.id?.toString() || '',
+      value: selectedProductTypeId,
+      onChange: (val) => setSelectedProductTypeId(val),
       required: true
-    },
-    {
-      name: 'gender_code',
-      label: 'Gender Code',
-      type: 'select',
-      options: [
-        { label: 'Select Gender Code', value: '' },
-        ...genders.map(g => ({
-          label: `${g.code} (${g.name})`,
-          value: g.code
-        }))
-      ],
-      required: true,
-      value: selectedGender,
-      onChange: (val) => setSelectedGender(val)
     },
     {
       name: 'dress_prefix',
@@ -418,7 +995,7 @@ export default function ProductManagement() {
       type: 'select',
       options: [
         { label: 'Select Dress Prefix', value: '' },
-        ...dresses.map(d => ({
+        ...availableDresses.map(d => ({
           label: `${d.code} (${d.name})`,
           value: d.code
         }))
@@ -428,23 +1005,57 @@ export default function ProductManagement() {
       onChange: (val) => setSelectedDress(val)
     },
     {
+      name: 'gender_code',
+      label: 'Gender',
+      type: 'select',
+      options: [
+        { label: 'Select Gender', value: '' },
+        ...availableGenders.map(g => ({
+          label: `[${g.code}] ${g.name}`,
+          value: g.code
+        }))
+      ],
+      required: true,
+      value: selectedGender,
+      onChange: (val) => setSelectedGender(val)
+    },
+    {
       name: 'pattern_code',
       label: 'Pattern Code',
-      type: 'text',
-      value: editingProduct ? selectedPattern : nextPatternCode,
-      readOnly: true,
-      placeholder: 'Auto-generating...'
+      type: 'select',
+      options: [
+        { label: `Auto-Generate Next (${nextPatternCode || '001'})`, value: nextPatternCode || '001' },
+        ...availablePatterns.map(p => ({
+          label: `[${p.code}] ${p.name}`,
+          value: p.code
+        }))
+      ],
+      value: selectedPattern || nextPatternCode || '001',
+      onChange: (val) => setSelectedPattern(val),
+      required: true
     },
     {
       name: 'art_number',
       label: 'Generated Art Number',
       type: 'text',
-      value: (selectedGender && selectedDress)
-        ? `${selectedGender}-${selectedDress}${editingProduct ? selectedPattern : nextPatternCode}`
+      value: (selectedDress && selectedGender)
+        ? `${selectedDress}-${selectedGender}${selectedPattern || nextPatternCode || '001'}-${
+            fit
+              ? (fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase())?.code || (fit.toLowerCase().includes('slim') ? 'S' : fit.toLowerCase().includes('loose') ? 'L' : 'R'))
+              : 'R'
+          }${allowance && allowance.trim() ? allowance.trim() : ''}`
         : '',
       readOnly: true,
-      placeholder: 'Will generate automatically...',
+      placeholder: 'Will generate automatically from Prefix, Gender, Pattern, Fit & Allowance (e.g. 4J-1012-R2)...',
       required: true
+    },
+    {
+      name: 'design_number',
+      label: 'Design Number (Auto-assigned)',
+      type: 'text',
+      value: editingProduct ? editingProduct.design_number : nextDesignNumber,
+      readOnly: true,
+      placeholder: 'DNS-0001'
     },
     {
       name: 'name',
@@ -477,12 +1088,27 @@ export default function ProductManagement() {
       type: 'select',
       options: [
         { label: 'Select Fit Type', value: '' },
-        { label: 'Regular Fit', value: 'regular fit' },
-        { label: 'Slim Fit', value: 'slim fit' }
+        ...(fitsList.length > 0
+          ? fitsList.map(f => ({ label: `[${f.code}] ${f.name}`, value: f.name }))
+          : [
+            { label: '[R] Regular Fit', value: 'Regular Fit' },
+            { label: '[S] Slim Fit', value: 'Slim Fit' },
+            { label: '[L] Loose Fit', value: 'Loose Fit' }
+          ])
       ],
       required: false,
       value: fit,
       onChange: (val) => setFit(val),
+      hidden: productType === 'accessories'
+    },
+    {
+      name: 'allowance',
+      label: 'Allowance (inches)',
+      type: 'text',
+      placeholder: 'e.g. 2 or 1.5',
+      required: false,
+      value: allowance,
+      onChange: (val) => setAllowance(val),
       hidden: productType === 'accessories'
     },
     {
@@ -547,46 +1173,49 @@ export default function ProductManagement() {
     },
     {
       name: 'main_fabric',
-      label: 'Main Fabric (meters)',
+      label: 'Main Fabric Consumption (meters)',
       type: 'number',
-      placeholder: 'e.g. 2',
+      placeholder: 'e.g. 1.25',
       defaultValue: editingProduct?.main_fabric !== null && editingProduct?.main_fabric !== undefined ? String(editingProduct.main_fabric) : '',
       required: true,
-      step: 'any'
+      step: 'any',
+      className: 'md:col-span-2'
     },
     {
-      name: 'attachment_fabric1',
-      label: 'Attachment Fabric 1 (meters)',
-      type: 'number',
-      placeholder: 'e.g. 1',
-      defaultValue: editingProduct?.attachment_fabric1 !== null && editingProduct?.attachment_fabric1 !== undefined ? String(editingProduct.attachment_fabric1) : '',
+      name: 'attachment_fabrics',
+      label: 'Attachment Fabrics',
+      type: 'custom',
+      className: 'md:col-span-2',
+      defaultValue: attachmentFabrics,
       required: false,
-      step: 'any'
+      render: (val, onChange) => (
+        <AttachmentFabricsEditor
+          value={attachmentFabrics}
+          onChange={(newAtts) => {
+            setAttachmentFabrics(newAtts);
+            onChange(newAtts);
+          }}
+          fabrics={fabrics}
+        />
+      )
     },
     {
-      name: 'attachment_fabric2',
-      label: 'Attachment Fabric 2 (meters)',
-      type: 'number',
-      placeholder: 'e.g. 1',
-      defaultValue: editingProduct?.attachment_fabric2 !== null && editingProduct?.attachment_fabric2 !== undefined ? String(editingProduct.attachment_fabric2) : '',
+      name: 'trims',
+      label: 'Trims & Accessories',
+      type: 'custom',
+      className: 'md:col-span-2',
+      defaultValue: selectedTrims,
       required: false,
-      step: 'any'
-    },
-    {
-      name: 'button_count',
-      label: 'Buttons Count',
-      type: 'number',
-      placeholder: 'e.g. 6',
-      defaultValue: editingProduct?.button_count !== null && editingProduct?.button_count !== undefined ? String(editingProduct.button_count) : '',
-      required: true
-    },
-    {
-      name: 'thread_count',
-      label: 'Thread Count (cones/meters)',
-      type: 'number',
-      placeholder: 'e.g. 1',
-      defaultValue: editingProduct?.thread_count !== null && editingProduct?.thread_count !== undefined ? String(editingProduct.thread_count) : '',
-      required: true
+      render: (val, onChange) => (
+        <TrimsEditor
+          value={selectedTrims}
+          onChange={(newTrims) => {
+            setSelectedTrims(newTrims);
+            onChange(newTrims);
+          }}
+          trimsList={trimsList}
+        />
+      )
     },
     {
       name: 'class_fabric_consumption',
@@ -596,89 +1225,15 @@ export default function ProductManagement() {
       defaultValue: classFabricConsumption,
       required: false,
       onChange: (val) => setClassFabricConsumption(val),
-      render: (val, onChange) => {
-        const handleCellChange = (cls: string, field: string, value: string) => {
-          const currentObj = val || {};
-          const updatedCls = { ...(currentObj[cls] || {}), [field]: value };
-          const updatedObj = { ...currentObj, [cls]: updatedCls };
-          onChange(updatedObj);
-        };
-
-        return (
-          <div className="overflow-x-auto border border-zinc-150 rounded-2xl bg-white shadow-sm p-4">
-            <table className="min-w-full text-xs font-bold text-zinc-700">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50 text-left">
-                  <th className="p-3 uppercase tracking-wider">Class / Corporate</th>
-                  <th className="p-3 uppercase tracking-wider">Main Fabric (m)</th>
-                  <th className="p-3 uppercase tracking-wider">Att Fabric 1 (m)</th>
-                  <th className="p-3 uppercase tracking-wider">Att Fabric 2 (m)</th>
-                  <th className="p-3 uppercase tracking-wider">Buttons (pcs)</th>
-                  <th className="p-3 uppercase tracking-wider">Thread (cones)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classesList.map((cls) => {
-                  const rowData = (val && val[cls]) || {};
-                  return (
-                    <tr key={cls} className="border-b border-zinc-100 hover:bg-zinc-50/50">
-                      <td className="p-3 text-[#3a525d] font-black">{cls === 'Corporate' ? 'Corporate' : cls}</td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          step="any"
-                          value={rowData.main_fabric || ''}
-                          onChange={(e) => handleCellChange(cls, 'main_fabric', e.target.value)}
-                          placeholder="e.g. 1.25"
-                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          step="any"
-                          value={rowData.attachment_fabric1 || ''}
-                          onChange={(e) => handleCellChange(cls, 'attachment_fabric1', e.target.value)}
-                          placeholder="e.g. 0.5"
-                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          step="any"
-                          value={rowData.attachment_fabric2 || ''}
-                          onChange={(e) => handleCellChange(cls, 'attachment_fabric2', e.target.value)}
-                          placeholder="e.g. 0.2"
-                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          value={rowData.button_count || ''}
-                          onChange={(e) => handleCellChange(cls, 'button_count', e.target.value)}
-                          placeholder="e.g. 6"
-                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          value={rowData.thread_count || ''}
-                          onChange={(e) => handleCellChange(cls, 'thread_count', e.target.value)}
-                          placeholder="e.g. 1"
-                          className="w-20 px-2 py-1.5 border border-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus:border-[#2d8d9b]"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        );
-      }
+      render: (val, onChange) => (
+        <ClassConsumptionMatrixEditor
+          value={val}
+          onChange={onChange}
+          classesList={CLASSES_LIST}
+          attachmentFabrics={attachmentFabrics}
+          selectedTrims={selectedTrims}
+        />
+      )
     },
     {
       name: 'entry_methods',
@@ -708,7 +1263,17 @@ export default function ProductManagement() {
       name: 'measurements',
       label: 'Required Manual Metrics',
       type: 'checkbox-group',
-      options: measureConfig.map(m => ({ label: m.label, value: m.label })),
+      options: (
+        selectedProductTypeId 
+          ? measureConfig.filter(m => !m.product_type_id || String(m.product_type_id) === String(selectedProductTypeId))
+          : measureConfig
+      ).map(m => {
+        const typeObj = m.product_types || productTypes.find(pt => pt.id === m.product_type_id);
+        return {
+          label: `${m.label}${typeObj ? ` • [${typeObj.name}]` : ''}`,
+          value: m.label
+        };
+      }),
       defaultValue: editingProduct?.measurements || [],
       className: 'md:col-span-2',
       disabled: !selectedMethods.includes('manual')
@@ -951,11 +1516,26 @@ export default function ProductManagement() {
 
     // Process fabric meters as float numbers to support decimals
     data.main_fabric = data.main_fabric !== '' && data.main_fabric !== null && data.main_fabric !== undefined ? parseFloat(data.main_fabric) : 0;
-    data.attachment_fabric1 = data.attachment_fabric1 !== '' && data.attachment_fabric1 !== null && data.attachment_fabric1 !== undefined ? parseFloat(data.attachment_fabric1) : null;
-    data.attachment_fabric2 = data.attachment_fabric2 !== '' && data.attachment_fabric2 !== null && data.attachment_fabric2 !== undefined ? parseFloat(data.attachment_fabric2) : null;
+    
+    // Dynamic attachment fabrics and trims
+    data.attachment_fabrics = attachmentFabrics;
+    data.trims = selectedTrims;
 
-    data.button_count = data.button_count !== '' && data.button_count !== null && data.button_count !== undefined ? parseInt(data.button_count, 10) : 0;
-    data.thread_count = data.thread_count !== '' && data.thread_count !== null && data.thread_count !== undefined ? parseInt(data.thread_count, 10) : 0;
+    // Map first two attachment fabrics to legacy fields for backward compatibility
+    data.attachment_fabric1 = attachmentFabrics[0]?.meters ? parseFloat(attachmentFabrics[0].meters) : null;
+    data.attachment_fabric2 = attachmentFabrics[1]?.meters ? parseFloat(attachmentFabrics[1].meters) : null;
+    data.attachment_fabric1_id = attachmentFabrics[0]?.fabric_id || null;
+    data.attachment_fabric2_id = attachmentFabrics[1]?.fabric_id || null;
+
+    // Map first button and thread trims to legacy fields
+    const btnTrim = selectedTrims.find(t => (t.uom || '').toLowerCase() === 'pcs' || (t.name || '').toLowerCase().includes('button') || String(t.trim_id).includes('btn'));
+    const thrTrim = selectedTrims.find(t => (t.uom || '').toLowerCase() === 'cones' || (t.name || '').toLowerCase().includes('thread') || String(t.trim_id).includes('thr'));
+
+    data.button_count = btnTrim ? parseInt(btnTrim.count, 10) : 0;
+    data.button_id = selectedButtonId || null;
+    data.thread_count = thrTrim ? parseInt(thrTrim.count, 10) : 0;
+    data.thread_id = selectedThreadId || null;
+
     if (!data.product_type_id || data.product_type_id === '') data.product_type_id = null;
     else data.product_type_id = parseInt(data.product_type_id);
 
@@ -973,13 +1553,45 @@ export default function ProductManagement() {
     data.class_fabric_consumption = data.class_fabric_consumption || {};
     data.remarks = remarks && remarks.length > 0 ? remarks : null;
 
-    // Generate dynamic art_number and map gender name
-    const effectivePattern = editingProduct ? selectedPattern : nextPatternCode;
-    data.art_number = (selectedGender && selectedDress && effectivePattern)
-      ? `${selectedGender}-${selectedDress}${effectivePattern}`
+    // Pass selected controlled dropdown IDs
+    data.product_type_id = selectedProductTypeId || data.product_type_id || null;
+    data.main_fabric_id = selectedFabricId || data.main_fabric_id || null;
+    data.button_id = selectedButtonId || data.button_id || null;
+    data.thread_id = selectedThreadId || data.thread_id || null;
+
+    // Generate dynamic art_number: Option 1 [Prefix]-[Gender][Pattern]-[Fit]-[Allowance] (e.g. 4J-1012-R-2)
+    const effectivePattern = selectedPattern || nextPatternCode || '001';
+    let fitCode = 'R';
+    if (fit) {
+      const matched = fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase());
+      if (matched) {
+        fitCode = matched.code;
+      } else {
+        fitCode = fit.toLowerCase().includes('slim') ? 'S' : fit.toLowerCase().includes('loose') ? 'L' : 'R';
+      }
+    }
+    data.pattern_code = effectivePattern;
+    const cleanAllowance = allowance ? allowance.trim() : '';
+    data.allowance = cleanAllowance || null;
+    data.art_number = (selectedDress && selectedGender && effectivePattern)
+      ? `${selectedDress}-${selectedGender}${effectivePattern}-${fitCode}${cleanAllowance || ''}`
       : '';
-    const genderObj = genders.find(g => g.code === selectedGender);
+    const activeGenders = genders;
+    const genderObj = activeGenders.find(g => g.code === selectedGender);
     data.gender = genderObj ? genderObj.name : 'Unisex';
+
+    // Auto-infer category if not present
+    if (!data.category) {
+      const activeTypes = productTypes;
+      const ptName = activeTypes.find(p => p.id?.toString() === selectedProductTypeId)?.name?.toLowerCase() || '';
+      if (ptName.includes('pant') || ptName.includes('trouser') || ptName.includes('skirt') || ptName.includes('bottom')) {
+        data.category = 'bottom_wear';
+      } else if (ptName.includes('tie') || ptName.includes('belt') || ptName.includes('accessory') || productType === 'accessories') {
+        data.category = 'accessories';
+      } else {
+        data.category = 'top_wear';
+      }
+    }
 
     // Set base size and fit
     data.base_size = baseSize.trim() || null;
@@ -1042,16 +1654,16 @@ export default function ProductManagement() {
             <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-1">
               {p.design_number ? `DN: ${p.design_number} | ` : ''}SN: {p.art_number}
             </p>
-            {(p.base_size || p.fit) && (
+            {(p.base_size || p.fit || p.allowance) && (
               <div className="grid items-center gap-1.5 mt-1 text-[9px] font-bold text-zinc-400 uppercase">
                 {p.base_size && (
-                  <>
-                    <span>Size: <span className="text-[#3a525d] font-black">{p.base_size}</span></span>
-                    {/* {p.fit && <span className="text-zinc-300">|</span>} */}
-                  </>
+                  <span>Size: <span className="text-[#3a525d] font-black">{p.base_size}</span></span>
                 )}
                 {p.fit && (
                   <span>Fit: <span className="text-[#3a525d] font-black">{p.fit}</span></span>
+                )}
+                {p.allowance && (
+                  <span>Allowance: <span className="text-[#3a525d] font-black">{p.allowance}&quot;</span></span>
                 )}
               </div>
             )}
@@ -1188,13 +1800,7 @@ export default function ProductManagement() {
           >
             <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
           </button>
-          <button
-            onClick={() => setSelectedProductForVariants(p)}
-            className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200"
-            title="Manage Design Variants"
-          >
-            <Layers size={16} className="text-amber-600 shrink-0" />
-          </button>
+
           <button
             onClick={() => setDeleteConfirm({ isOpen: true, id: p.id })}
             className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-200"
@@ -1234,7 +1840,11 @@ export default function ProductManagement() {
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Inventory & Specification Hub</p>
         </div>
         <Button
-          onClick={() => setIsAdding(true)}
+          onClick={() => {
+            setEditingProduct(null);
+            setIsAdding(true);
+            fetchData();
+          }}
           className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
         >
           <Plus size={20} strokeWidth={3} />
@@ -1259,135 +1869,7 @@ export default function ProductManagement() {
         variant="danger"
       />
 
-      {/* Product Variants Modal */}
-      {selectedProductForVariants && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white border border-zinc-100 rounded-[2.5rem] shadow-2xl max-w-4xl w-full p-8 max-h-[85vh] overflow-y-auto space-y-6 flex flex-col">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-2xl font-black italic text-[#3a525d]">Manage Design Variants</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1">
-                  Product: {selectedProductForVariants.name} ({selectedProductForVariants.art_number})
-                </p>
-                <p className="text-xs text-zinc-400 mt-1 font-semibold">
-                  Default Design Number: <span className="text-[#3a525d] font-bold">{selectedProductForVariants.design_number}</span>
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedProductForVariants(null)}
-                className="text-zinc-400 hover:text-zinc-600 font-bold text-xs uppercase bg-zinc-50 border border-zinc-200 px-4 py-2 rounded-xl transition-all"
-              >
-                Close
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start overflow-y-auto pr-1">
-
-              {/* LIST OF VARIANTS */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d] border-b border-zinc-100 pb-2">
-                  Registered Design Numbers ({productVariants.length})
-                </h4>
-                {productVariants.length === 0 ? (
-                  <div className="bg-zinc-50 border border-zinc-150 p-6 rounded-2xl text-center text-zinc-400 text-xs font-medium">
-                    No variant design numbers registered for this product. Use the form to add one.
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
-                    {productVariants.map((v) => (
-                      <div key={v.id} className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl flex flex-col gap-1.5 relative hover:border-[#2d8d9b]/35 transition-all">
-                        <div className="flex justify-between items-center">
-                          <span className="px-2 py-0.5 bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 text-[9px] font-black uppercase rounded">
-                            {v.design_code}
-                          </span>
-                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-green-50 text-green-600 border border-green-100 rounded">
-                            {v.variant_status}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-zinc-500 font-semibold grid grid-cols-2 gap-2 mt-1">
-                          <div>
-                            <span className="font-bold text-zinc-400">Buttons: </span>
-                            <span className="text-[#3a525d]">{v.button_name} ({v.button_count} pcs)</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-zinc-400">Thread: </span>
-                            <span className="text-[#3a525d]">{v.thread_name} ({v.thread_count} unit)</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* CREATE VARIANT FORM */}
-              <form onSubmit={handleCreateVariant} className="bg-zinc-50/50 border border-zinc-200/60 p-6 rounded-3xl space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d] border-b border-zinc-100 pb-2">
-                  Create Design Variant
-                </h4>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Button Brand</label>
-                  <select
-                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
-                    value={newVariantBtn}
-                    onChange={(e) => setNewVariantBtn(e.target.value)}
-                  >
-                    <option value="">Select button...</option>
-                    {buttonsList.map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Buttons Count (pcs)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
-                    value={newVariantBtnCount}
-                    onChange={(e) => setNewVariantBtnCount(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Thread Brand/Color</label>
-                  <select
-                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
-                    value={newVariantThread}
-                    onChange={(e) => setNewVariantThread(e.target.value)}
-                  >
-                    <option value="">Select thread...</option>
-                    {threadsList.map(t => (
-                      <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Thread Count (units)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-full bg-white border border-zinc-200 rounded-xl p-2.5 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
-                    value={newVariantThreadCount}
-                    onChange={(e) => setNewVariantThreadCount(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isCreatingVariant}
-                  className="w-full py-3 bg-[#3a525d] hover:bg-[#2d8d9b] disabled:bg-zinc-300 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg"
-                >
-                  {isCreatingVariant ? 'Registering...' : 'Register Variant Design Number'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
