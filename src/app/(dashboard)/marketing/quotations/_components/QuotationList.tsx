@@ -2,11 +2,9 @@
 
 import React from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import {
   TrendingUp,
-  Plus,
   Trash2,
   Eye,
   CheckCircle2,
@@ -14,7 +12,8 @@ import {
   Clock,
   Layers,
   AlertTriangle,
-  Edit
+  Edit,
+  Send
 } from 'lucide-react';
 import { Quotation, Organization } from '../page';
 import { formatDate } from '@/lib/formatters';
@@ -27,6 +26,7 @@ interface QuotationListProps {
   onViewDetails: (q: Quotation) => void;
   onStartEdit: (q: Quotation) => void;
   onDeleteCandidate: (q: Quotation) => void;
+  onSubmitToOps?: (q: Quotation) => void;
 }
 
 export default function QuotationList({
@@ -36,7 +36,8 @@ export default function QuotationList({
   onCompileQuotation,
   onViewDetails,
   onStartEdit,
-  onDeleteCandidate
+  onDeleteCandidate,
+  onSubmitToOps
 }: QuotationListProps) {
 
   const columns: Column<Quotation>[] = [
@@ -139,14 +140,20 @@ export default function QuotationList({
       className: 'whitespace-nowrap',
       accessor: (q) => {
         const colors: Record<string, string> = {
-          'Draft': 'bg-zinc-50 text-zinc-600 border-zinc-100',
+          'Draft': 'bg-zinc-50 text-zinc-600 border-zinc-200',
+          'Pending': 'bg-amber-50 text-amber-700 border-amber-200',
           'Sent': 'bg-blue-50 text-blue-600 border-blue-100',
           'Approved': 'bg-green-50 text-green-600 border-green-100',
           'Rejected': 'bg-red-50 text-red-600 border-red-100',
         };
+        const statusLabel = q.status === 'Pending' 
+          ? 'Under Ops Review' 
+          : q.status === 'Draft' 
+          ? 'Draft' 
+          : q.status;
         return (
           <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border ${colors[q.status] || colors.Draft}`}>
-            {q.status}
+            {statusLabel}
           </span>
         );
       }
@@ -154,35 +161,50 @@ export default function QuotationList({
     {
       header: 'Actions',
       className: 'whitespace-nowrap text-right',
-      accessor: (q) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            onClick={() => onViewDetails(q)}
-            className="w-8 h-8 rounded-lg bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 shadow-sm"
-            title="View Details"
-          >
-            <Eye size={14} />
-          </button>
+      accessor: (q) => {
+        const isSubmittedToOps = q.status !== 'Draft' || q.metrics_summary?.submitted_to_ops;
 
-          {q.status !== 'Approved' && (
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            {!isSubmittedToOps && onSubmitToOps && (
+              <button
+                onClick={() => onSubmitToOps(q)}
+                className="h-8 px-2.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1.5 border border-emerald-200 shadow-sm text-[10px] font-black uppercase tracking-wider whitespace-nowrap"
+                title="Submit Quotation to Operations Team"
+              >
+                <Send size={12} strokeWidth={2.5} />
+                <span>Submit to Ops</span>
+              </button>
+            )}
+
             <button
-              onClick={() => onStartEdit(q)}
-              className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200 shadow-sm"
-              title="Edit Quotation"
+              onClick={() => onViewDetails(q)}
+              className="w-8 h-8 rounded-lg bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 shadow-sm"
+              title="View Details"
             >
-              <Edit size={14} />
+              <Eye size={14} />
             </button>
-          )}
 
-          <button
-            onClick={() => onDeleteCandidate(q)}
-            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 shadow-sm"
-            title="Remove Quotation"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      )
+            {q.status !== 'Approved' && (
+              <button
+                onClick={() => onStartEdit(q)}
+                className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200 shadow-sm"
+                title="Edit Quotation"
+              >
+                <Edit size={14} />
+              </button>
+            )}
+
+            <button
+              onClick={() => onDeleteCandidate(q)}
+              className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 shadow-sm"
+              title="Remove Quotation"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        );
+      }
     }
   ];
 
@@ -241,7 +263,7 @@ export default function QuotationList({
         columns={columns}
         data={quotations}
         isLoading={isLoading}
-        searchPlaceholder="Search compiled quotations by title or code..."
+        searchPlaceholder="Search quotations by title or code..."
       />
     </div>
   );

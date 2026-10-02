@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import { FileUp, FileSpreadsheet, CheckCircle2, AlertCircle, X, ArrowRight, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface BulkUploadProps {
   onComplete?: () => void;
@@ -167,7 +167,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
             onClick={() => onComplete?.()}
             className="w-full h-14 rounded-2xl bg-[#3a525d] text-white hover:bg-[#2d8d9b] font-black uppercase tracking-widest text-[10px]"
           >
-            Back to Registry
+            Back to Entity Directory
           </Button>
         </div>
       </div>

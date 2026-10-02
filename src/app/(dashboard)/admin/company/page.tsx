@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import {
   Building2,
   Landmark,
@@ -13,7 +13,6 @@ import {
   Globe,
   Phone,
   Mail,
-  MapPin,
   FileText,
   CreditCard,
   QrCode

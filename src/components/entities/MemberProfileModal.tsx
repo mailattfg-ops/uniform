@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Ruler, Clock, Mail, Phone, MapPin, Activity, History, ChevronRight } from 'lucide-react';
+import { X, User, Ruler, Mail, Phone, MapPin, Activity, History, ChevronRight } from 'lucide-react';
 import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';

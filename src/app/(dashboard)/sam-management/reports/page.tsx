@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { 
   FileSpreadsheet, 
   History, 
@@ -11,8 +11,6 @@ import {
   Coins, 
   Percent, 
   Clock, 
-  Sparkles,
-  ArrowRight,
   Filter
 } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';

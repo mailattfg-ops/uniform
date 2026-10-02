@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import Link from 'next/link';
 import {
   Calculator,

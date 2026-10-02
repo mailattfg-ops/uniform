@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
-import { Button } from './Button';
 
 interface ConfirmModalProps {
   isOpen: boolean;

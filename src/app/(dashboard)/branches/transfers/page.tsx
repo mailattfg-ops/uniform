@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { ArrowLeftRight, Plus, CheckCircle2, Clock, Truck, RefreshCw, Building2, Package } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface Branch {
   id: number;

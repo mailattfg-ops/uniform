@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, MessageCircle, Paperclip, Send } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { Quotation } from '../_lib/compileQuotationHTML';
 
 interface Organization {
@@ -51,7 +51,7 @@ export const MessageModal: React.FC<MessageModalProps> = ({
 
 We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${quote.title}" (${quote.quotation_no}).
 
-The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled.
+The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been drafted.
 
 You can view and download your official Proposal PDF here:
 ${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
@@ -81,7 +81,7 @@ Total finalized contract value: *₹${Number(quote.final_quote_value).toLocaleSt
 Download your official Proposal PDF directly here:
 ${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
 
-The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled. We have dispatched a copy to your email, and you can also download or view the details directly under your Forma Apparels portal.
+The secure, operations-verified PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been drafted. We have dispatched a copy to your email, and you can also download or view the details directly under your Forma Apparels portal.
 
 Please let us know if you have any questions or are ready to proceed with contract execution!
 
@@ -99,7 +99,7 @@ Best regards,
 
 We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${quote.title}" (${quote.quotation_no}).
 
-The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified vector PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been compiled.
+The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been drafted.
 
 You can view and download your official Proposal PDF here:
 ${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
@@ -302,7 +302,7 @@ Forma Apparels Co.`;
                 <p className="text-[11px] font-black text-gray-800">proposal_{quote.quotation_no}.pdf</p>
                 <p className="text-[9px] text-zinc-400 font-bold">
                   {channel === 'email'
-                    ? '1.2 MB • Sizing Audit Vector Compiled'
+                    ? '1.2 MB • Proposal Drafted'
                     : 'Retrieve & download details dynamically linked in chat.'}
                 </p>
               </div>

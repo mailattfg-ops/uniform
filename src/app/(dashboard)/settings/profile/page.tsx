@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { 
-  User, ShieldCheck, Mail, MapPin, Ruler, Calendar, Award, 
-  History, ArrowRight, Settings2, Camera, Scale, TrendingUp, 
-  TrendingDown, Activity, Box, Maximize2, Layers 
+  User, ShieldCheck, Mail, MapPin, Calendar, Award, 
+  ArrowRight, Camera, Scale, TrendingUp, 
+  TrendingDown, Box, Maximize2, Layers 
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 
 export default function UserProfilePage() {

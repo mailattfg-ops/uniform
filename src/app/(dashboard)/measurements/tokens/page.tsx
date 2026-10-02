@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { Tag, Plus, Search, RefreshCw, CheckCircle, School, Shield } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Tag, Plus, Search, RefreshCw, CheckCircle } from 'lucide-react';
+import toast from '@/components/ui/toast';
 
 interface MeasurementToken {
   id: number;

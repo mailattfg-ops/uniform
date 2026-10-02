@@ -13,20 +13,15 @@ import {
   Users, 
   Key, 
   ReceiptText,
-  Search,
-  Filter,
   CheckCircle2,
   XCircle,
   Star,
   AlertTriangle,
-  ExternalLink,
-  ChevronDown,
-  ShieldCheck,
-  Briefcase
+  ExternalLink
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 

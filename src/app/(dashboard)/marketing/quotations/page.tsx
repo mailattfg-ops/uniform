@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { Plus, ArrowLeft } from 'lucide-react';
 
 import QuotationList from './_components/QuotationList';
@@ -69,6 +69,9 @@ export interface Quotation {
       extra_charges?: Array<{ label: string; quantity: string; rate: string }>;
       separate_fabrics?: SeparateFabricItem[];
       project_start_date?: string;
+      submitted_to_ops?: boolean;
+      submitted_to_ops_at?: string;
+      [key: string]: any;
     };
   created_at: string;
   pdf_html?: string;
@@ -154,6 +157,7 @@ export default function QuotationsPage() {
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'details'>('list');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Quotation | null>(null);
+  const [submitCandidate, setSubmitCandidate] = useState<Quotation | null>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
   const [threadsList, setThreadsList] = useState<any[]>([]);
@@ -368,6 +372,27 @@ export default function QuotationsPage() {
     fetchQuotations();
   };
 
+  const handleSubmitToOps = async () => {
+    if (!submitCandidate) return;
+    const toastId = toast.loading(`Submitting ${submitCandidate.quotation_no} to Operations Team...`);
+    try {
+      await api.put(`/quotations/${submitCandidate.id}/submit-to-ops`);
+      toast.success(`Quotation ${submitCandidate.quotation_no} submitted to Operations Team!`, { id: toastId });
+      fetchQuotations();
+      if (selectedQuotation && selectedQuotation.id === submitCandidate.id) {
+        setSelectedQuotation(prev => prev ? { 
+          ...prev, 
+          status: 'Pending', 
+          metrics_summary: { ...(prev.metrics_summary || {}), submitted_to_ops: true } 
+        } : null);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to submit quotation to Operations Team', { id: toastId });
+    } finally {
+      setSubmitCandidate(null);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* HEADER CONTROLS */}
@@ -401,7 +426,7 @@ export default function QuotationsPage() {
             }}
             className="h-16 px-10 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2"
           >
-            <ArrowLeft size={16} /> Back to Registry
+            <ArrowLeft size={16} /> Back to Quotations
           </Button>
         )}
       </div>
@@ -416,6 +441,7 @@ export default function QuotationsPage() {
           onViewDetails={handleViewDetails}
           onStartEdit={handleStartEdit}
           onDeleteCandidate={setDeleteCandidate}
+          onSubmitToOps={setSubmitCandidate}
         />
       )}
 
@@ -452,6 +478,7 @@ export default function QuotationsPage() {
             setActiveTab('list');
           }}
           onStartEdit={handleStartEdit}
+          onSubmitToOps={setSubmitCandidate}
         />
       )}
 
@@ -464,6 +491,17 @@ export default function QuotationsPage() {
         onCancel={() => setDeleteCandidate(null)}
         confirmLabel="Yes, Delete Proposal"
         variant="danger"
+      />
+
+      {/* CONFIRMATION FOR SUBMISSION TO OPERATIONS */}
+      <ConfirmModal
+        isOpen={!!submitCandidate}
+        title="Submit to Operations Team"
+        message={`Are you sure you want to submit quotation "${submitCandidate?.quotation_no} - ${submitCandidate?.title}" to the Operations Team for review and approval?`}
+        onConfirm={handleSubmitToOps}
+        onCancel={() => setSubmitCandidate(null)}
+        confirmLabel="Yes, Submit to Ops"
+        variant="primary"
       />
     </div>
   );

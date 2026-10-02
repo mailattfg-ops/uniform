@@ -27,7 +27,7 @@ import {
   History
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { AddBranchModal } from './AddBranchModal';
@@ -390,7 +390,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
               className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20 transition-all hover:scale-105 active:scale-95"
             >
               <UserPlus size={15} strokeWidth={3} />
-              + Onboard Staff
+              + Add New Staff
             </Button>
           </div>
         </div>

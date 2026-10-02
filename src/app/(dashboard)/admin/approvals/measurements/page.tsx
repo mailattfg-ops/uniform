@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle2, XCircle, User, Calendar, Ruler, MessageSquare, Loader2, Eye, Download } from 'lucide-react';
+import { CheckCircle2, XCircle, User, Calendar, MessageSquare, Loader2, Eye, Download } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
 import { Select } from '@/components/ui/Select';
 import { Filter } from 'lucide-react';

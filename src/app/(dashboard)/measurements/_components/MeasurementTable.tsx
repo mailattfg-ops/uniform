@@ -5,7 +5,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { Eye, Clock, ShieldCheck, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
 import { Select } from '@/components/ui/Select';
 import { Filter } from 'lucide-react';

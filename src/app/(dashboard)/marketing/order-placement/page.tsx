@@ -6,35 +6,26 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Barcode } from '@/components/ui/Barcode';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
 import {
   TrendingUp,
   Package,
   Printer,
-  ChevronRight,
   Plus,
   Clock,
   CheckCircle2,
-  Calendar,
   X,
   Sliders,
-  FileText,
-  User,
-  ShoppingBag,
-  ListTodo,
   Send,
   ShieldAlert,
   ShieldCheck,
   PauseCircle,
   AlertCircle,
+  AlertTriangle,
   Check,
-  HelpCircle,
   RefreshCw,
-  Building2,
-  Mail,
-  Copy,
-  Share2
+  Mail
 } from 'lucide-react';
 
 interface Organization {
@@ -50,11 +41,13 @@ interface Quotation {
   quotation_no: string;
   title: string;
   organization_id: number;
-  organizations?: { name: string };
+  organizations?: { name: string; address?: string };
   final_quote_value: number;
   paid_amount: number;
   payment_status: string;
   status: string;
+  expected_delivery_date?: string | null;
+  items?: QuotationItem[];
 }
 
 interface QuotationItem {
@@ -65,6 +58,9 @@ interface QuotationItem {
   quantity: number;
   unit_price: number;
   total_price: number;
+  product_name?: string;
+  main_fabric?: string;
+  attachment_fabrics?: string;
 }
 
 interface Order {
@@ -83,6 +79,7 @@ interface Order {
   order_notes: string;
   created_at: string;
   updated_at: string;
+  items?: QuotationItem[];
   quotations?: {
     id: number;
     quotation_no: string;
@@ -117,6 +114,9 @@ export default function OrderPlacementPage() {
   const [corporateDecision, setCorporateDecision] = useState<'Accept' | 'Reject' | 'Hold'>('Accept');
   const [corporateReason, setCorporateReason] = useState('');
   const [isSubmittingCorporate, setIsSubmittingCorporate] = useState(false);
+  const [materialFeasibility, setMaterialFeasibility] = useState<any>(null);
+  const [isLoadingFeasibility, setIsLoadingFeasibility] = useState(false);
+  const [autoGeneratePO, setAutoGeneratePO] = useState(true);
 
   // Print Label State
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
@@ -214,10 +214,18 @@ export default function OrderPlacementPage() {
     }
   }, [activeTab, orders, heldOrders, pendingOrders, activeProductionOrders]);
 
-  const handleOpenPlaceOrder = (quote: Quotation) => {
+  const handleOpenPlaceOrder = async (quote: Quotation) => {
     setSelectedQuotation(quote);
     setOrderNotes('');
     setIsPlaceOrderModalOpen(true);
+    try {
+      const res = await api.get(`/quotations/${quote.id}`);
+      if (res.data) {
+        setSelectedQuotation(res.data);
+      }
+    } catch (e) {
+      console.error('Failed to load full quotation items:', e);
+    }
   };
 
   const handlePlaceOrderSubmit = async (e: React.FormEvent) => {
@@ -284,11 +292,28 @@ export default function OrderPlacementPage() {
   };
 
   // Open Corporate Action Review Modal
-  const handleOpenCorporateModal = (order: Order) => {
+  const handleOpenCorporateModal = async (order: Order) => {
     setCorporateOrder(order);
     setCorporateDecision('Accept');
     setCorporateReason('');
+    setAutoGeneratePO(true);
     setIsCorporateModalOpen(true);
+    setMaterialFeasibility(null);
+    setIsLoadingFeasibility(true);
+    try {
+      const [feasibilityRes, orderRes] = await Promise.all([
+        api.get(`/orders/${order.id}/material-feasibility`),
+        api.get(`/orders/${order.id}`)
+      ]);
+      setMaterialFeasibility(feasibilityRes.data);
+      if (orderRes.data) {
+        setCorporateOrder(orderRes.data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load material feasibility or order details:', err);
+    } finally {
+      setIsLoadingFeasibility(false);
+    }
   };
 
   // Execute Corporate Triage Decision
@@ -303,12 +328,17 @@ export default function OrderPlacementPage() {
 
     setIsSubmittingCorporate(true);
     try {
-      await api.put(`/orders/${corporateOrder.id}/corporate-action`, {
+      const res = await api.put(`/orders/${corporateOrder.id}/corporate-action`, {
         action: corporateDecision,
-        reason: corporateReason.trim()
+        reason: corporateReason.trim(),
+        auto_generate_po: autoGeneratePO
       });
 
-      toast.success(`Corporate action applied: ${corporateDecision}!`);
+      if (res.data?.auto_po) {
+        toast.success(`Corporate Accepted! Auto-PO ${res.data.auto_po.po_number} generated for material shortages.`);
+      } else {
+        toast.success(`Corporate action applied: ${corporateDecision}!`);
+      }
       setIsCorporateModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -864,6 +894,39 @@ export default function OrderPlacementPage() {
                 </div>
               </div>
 
+              {/* Garment Line Items & Products Breakdown */}
+              {selectedQuotation.items && selectedQuotation.items.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6b5a]">
+                    Quotation Products &amp; Quantities ({selectedQuotation.items.length} items)
+                  </span>
+                  <div className="max-h-36 overflow-y-auto rounded-2xl border border-[#fce4d4] bg-white p-1">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#fce4d4]/30 text-[#3a525d] font-black text-[10px] uppercase border-b border-[#fce4d4]/60">
+                        <tr>
+                          <th className="py-2 px-3">Product / Garment</th>
+                          <th className="py-2 px-2 text-right">Qty</th>
+                          <th className="py-2 px-2 text-right">Unit Price</th>
+                          <th className="py-2 px-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#fce4d4]/30 text-slate-800 text-[11px]">
+                        {selectedQuotation.items.map((item: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-[#fce4d4]/10">
+                            <td className="py-1.5 px-3 font-bold text-[#3a525d]">
+                              {item.product_types?.name || item.product_type_name || 'Garment Item'}
+                            </td>
+                            <td className="py-1.5 px-2 text-right font-black text-zinc-700">{item.quantity} pcs</td>
+                            <td className="py-1.5 px-2 text-right font-mono text-zinc-600">₹{parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right font-mono font-bold text-[#2d8d9b]">₹{parseFloat(item.total_price || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {/* PRD Notice */}
               <div className="bg-amber-50 border border-amber-200/70 rounded-2xl p-4 text-xs text-amber-800 leading-relaxed font-semibold flex items-start gap-2.5">
                 <PauseCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
@@ -949,6 +1012,43 @@ export default function OrderPlacementPage() {
                 )}
               </div>
 
+              {/* Garment Specifications & Products in this Order */}
+              {((materialFeasibility?.products && materialFeasibility.products.length > 0) || (corporateOrder.items && corporateOrder.items.length > 0)) && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    Sales Order Products &amp; Garments ({(materialFeasibility?.products || corporateOrder.items).length} items)
+                  </span>
+                  <div className="max-h-36 overflow-y-auto rounded-2xl border border-purple-100 bg-white shadow-xs p-1">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-purple-50/80 text-purple-900 font-black text-[10px] uppercase border-b border-purple-100">
+                        <tr>
+                          <th className="py-2 px-3">Product</th>
+                          <th className="py-2 px-2">Main Fabric</th>
+                          <th className="py-2 px-2">Attachments</th>
+                          <th className="py-2 px-3 text-right">Order Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-purple-50 text-slate-800 text-[11px]">
+                        {(materialFeasibility?.products || corporateOrder.items || []).map((p: any, idx: number) => {
+                          const prodName = p.product_name || p.product_types?.name || p.product_type_name || 'Garment Item';
+                          const mainFab = p.main_fabric || 'Standard';
+                          const attFab = p.attachment_fabrics || 'None';
+                          const qty = p.quantity || 1;
+                          return (
+                            <tr key={idx} className="hover:bg-purple-50/30">
+                              <td className="py-1.5 px-3 font-bold text-slate-900">{prodName}</td>
+                              <td className="py-1.5 px-2 text-slate-600 font-medium truncate max-w-[120px]">{mainFab}</td>
+                              <td className="py-1.5 px-2 text-slate-500 font-medium truncate max-w-[100px]">{attFab}</td>
+                              <td className="py-1.5 px-3 text-right font-black text-purple-900">{qty} pcs</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
                   Corporate Decision
@@ -1012,9 +1112,80 @@ export default function OrderPlacementPage() {
               )}
 
               {corporateDecision === 'Accept' && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-                  <span>Accepting will mark the order as <strong>Corporate Accepted</strong> and trigger inventory stock reservation.</span>
+                <div className="space-y-3">
+                  {isLoadingFeasibility ? (
+                    <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-center gap-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#1B365D] border-t-transparent" />
+                      <span className="text-xs font-bold text-zinc-500">Checking raw materials inventory (Fabrics & Trims)...</span>
+                    </div>
+                  ) : materialFeasibility && materialFeasibility.is_sufficient ? (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2.5">
+                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                      <div>
+                        <p className="font-bold">All Required Fabrics & Trims are In Stock!</p>
+                        <p className="text-[11px] text-emerald-700 font-normal">Warehouse inventory is sufficient to fulfill this order. Approving will reserve the required stock.</p>
+                      </div>
+                    </div>
+                  ) : materialFeasibility && !materialFeasibility.is_sufficient ? (
+                    <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-4 space-y-3 shadow-sm">
+                      <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-900">
+                            Raw Material Deficit ({materialFeasibility.shortage_items_count} item{materialFeasibility.shortage_items_count > 1 ? 's' : ''} short)
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                          PO Required
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-amber-800 font-medium">
+                        Current warehouse stock cannot cover the entire order requirement. Extra materials will be ordered:
+                      </p>
+
+                      <div className="max-h-44 overflow-y-auto rounded-xl border border-amber-200 bg-white">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-amber-100/70 text-amber-900 font-black text-[10px] uppercase border-b border-amber-200">
+                            <tr>
+                              <th className="py-2 px-3">Material</th>
+                              <th className="py-2 px-2">Type</th>
+                              <th className="py-2 px-2">Required</th>
+                              <th className="py-2 px-2">In Stock</th>
+                              <th className="py-2 px-3 text-right font-black text-rose-700">Auto-PO Qty</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-amber-100 text-slate-800 text-[11px]">
+                            {materialFeasibility.shortages.map((s: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-amber-50/50">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">
+                                  {s.name} {s.code ? <span className="font-mono text-[10px] text-slate-500 font-normal">({s.code})</span> : null}
+                                </td>
+                                <td className="py-1.5 px-2 uppercase text-[9px] font-bold text-slate-500">
+                                  {s.type}
+                                </td>
+                                <td className="py-1.5 px-2 font-medium">{s.required} {s.unit}</td>
+                                <td className="py-1.5 px-2 text-amber-700 font-medium">{s.available} {s.unit}</td>
+                                <td className="py-1.5 px-3 text-right font-black text-rose-700 bg-rose-50/60">
+                                  +{s.reorder_quantity} {s.unit}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none text-xs font-bold text-amber-950">
+                        <input 
+                          type="checkbox" 
+                          checked={autoGeneratePO} 
+                          onChange={(e) => setAutoGeneratePO(e.target.checked)} 
+                          className="w-4 h-4 rounded border-amber-300 text-[#1B365D] focus:ring-[#1B365D]"
+                        />
+                        <span>Auto-generate Purchase Order (PO) with rounded integer amounts on Accept</span>
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
               )}
 

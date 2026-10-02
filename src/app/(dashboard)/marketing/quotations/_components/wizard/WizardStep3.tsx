@@ -3,7 +3,6 @@
 import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Scale, ArrowRight } from 'lucide-react';
 import { ProductType, ManualItem, SeparateFabricItem } from '../../page';
@@ -72,7 +71,7 @@ export default function WizardStep3({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
-        <h3 className="text-2xl font-black italic text-[#3a525d]">Expenses & Sizing Compiler</h3>
+        <h3 className="text-2xl font-black italic text-[#3a525d]">Cost & Sizing Calculation</h3>
         <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
           Sizing multipliers scale fabric expenses automatically based on metrics
         </p>

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw } from 'lucide-react';
 import { ProductType, TemplateLineItem, ManualItem, SeparateFabricItem } from '../../page';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
@@ -573,7 +573,7 @@ export default function WizardStep2({
     }
 
     setIsLoadingEntities(true);
-    const loadingToast = toast.loading('Querying organization entities & sizing measurements...');
+    const loadingToast = toast.loading('Loading student & sizing data...');
 
     try {
       const res = await api.get(`/quotations/calculate/${selectedOrgId}`);

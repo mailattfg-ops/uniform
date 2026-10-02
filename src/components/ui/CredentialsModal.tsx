@@ -3,7 +3,7 @@
 import React from 'react';
 import { X, Key, Clipboard, Check, ShieldCheck } from 'lucide-react';
 import { Button } from './Button';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface CredentialsModalProps {
   isOpen: boolean;

@@ -11,12 +11,11 @@ import {
   Edit2,
   Trash2,
   Maximize2,
-  Settings2,
   X,
   PlusCircle
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';

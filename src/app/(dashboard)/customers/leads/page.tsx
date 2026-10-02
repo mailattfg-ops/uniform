@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, UserCheck, Eye, Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { formatDate } from '@/lib/formatters';

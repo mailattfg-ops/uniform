@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { 
   Layers, 
   AlertTriangle, 
@@ -14,12 +14,10 @@ import {
   Package,
   Plus,
   Minus,
-  CheckCircle2,
-  SlidersHorizontal,
   CircleDot,
   Scissors
 } from 'lucide-react';
-import { formatQuantity, formatCurrency } from '@/lib/formatters';
+import { formatQuantity } from '@/lib/formatters';
 
 interface TrimCategory {
   id: string;

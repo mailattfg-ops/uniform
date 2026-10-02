@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Building2, Package, Layers, Scissors, Disc, RefreshCw, Plus, AlertTriangle, Filter } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
 
 interface Branch {

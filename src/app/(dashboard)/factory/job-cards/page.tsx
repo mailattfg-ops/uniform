@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { FileText, Check, X, Pause, Printer, Plus, AlertCircle, RefreshCw, ChevronDown, Package2, Layers, Tag, QrCode, Search, User, Users, ExternalLink } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 import { compileJobCardHTML, compileGarmentStickersHTML, compilePersonWiseTravelerSheetsHTML, type JobCardPrintData, type ChildJobCardData } from '@/lib/compileJobCardHTML';
 import { StatusBadge } from '@/components/ui/StatusBadge';

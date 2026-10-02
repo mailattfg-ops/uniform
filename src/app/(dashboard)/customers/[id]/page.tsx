@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import {
   Building2,
@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { Select } from '@/components/ui/Select';
@@ -776,9 +776,9 @@ function OrganizationDetailsPageContent() {
   if (!org) {
     return (
       <div className="p-8 text-center bg-white rounded-3xl border border-zinc-100">
-        <h3 className="text-xl font-bold text-zinc-700">Organization Not Found</h3>
+        <h3 className="text-xl font-bold text-zinc-700">Customer Not Found</h3>
         <Button onClick={() => router.push('/customers')} className="mt-4">
-          Back to Registry
+          Back to Customers
         </Button>
       </div>
     );
@@ -1148,7 +1148,7 @@ function OrganizationDetailsPageContent() {
                 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-6 bg-transparent border-none shadow-none px-0"
               >
                 <ArrowLeft size={14} />
-                Back to Registry Directory
+                Back to Entity Directory
               </Button>
 
               {generatedEntityCreds ? (
@@ -1548,7 +1548,7 @@ function OrganizationDetailsPageContent() {
               onClick={() => router.push('/marketing/quotations')}
               className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#3a525d]/10"
             >
-              <Plus size={16} /> Compile New Quotation
+              <Plus size={16} /> Create New Quotation
             </Button>
           </div>
 

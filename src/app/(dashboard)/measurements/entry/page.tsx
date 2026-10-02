@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
-import { Search, Ruler, User, ShieldCheck, CheckCircle2, Save, History, Scale, Building2, Library, Settings2, Clock, Plus, Package, Info, AlertCircle } from 'lucide-react';
+import { Ruler, User, ShieldCheck, CheckCircle2, Save, History, Scale, Building2, Library, Clock, Plus, Package, Info, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 import { LabelConfigModal } from '../_components/LabelConfigModal';
 import { AdHocFieldModal } from '../_components/AdHocFieldModal';
@@ -18,12 +18,15 @@ function MeasurementEntryContent() {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
 
-  // Redirect client users to history (staff-only capture)
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Redirect client users to history (staff-only capture) & capture logged-in profile
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
         const u = JSON.parse(stored);
+        setCurrentUser(u);
         const roleLower = (u?.role || '').toLowerCase();
         const isClient = Boolean(u?.organizationId || u?.memberId || ['organisation', 'organization', 'school', 'entity', 'student', 'member'].includes(roleLower));
         if (isClient) {
@@ -37,7 +40,6 @@ function MeasurementEntryContent() {
   const [members, setMembers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [measurementFields, setMeasurementFields] = useState<any[]>([]);
-  const [staff, setStaff] = useState<any[]>([]);
   
   const [selectedOrg, setSelectedOrg] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
@@ -81,18 +83,16 @@ function MeasurementEntryContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [orgsRes, configRes, productsRes, sizeChartsRes, staffRes] = await Promise.all([
+        const [orgsRes, configRes, productsRes, sizeChartsRes] = await Promise.all([
           api.get('/organizations'),
           api.get('/measurements/config').catch(() => ({ data: [] })),
           api.get('/products'),
           api.get('/size-charts'),
-          api.get('/employees').catch(() => ({ data: [] }))
         ]);
         setOrganizations(orgsRes.data.map((o: any) => ({ label: o.name, value: o.id.toString() })));
         setMeasurementFields(configRes.data);
         setProducts(productsRes.data);
         setSizeCharts(sizeChartsRes.data);
-        setStaff(staffRes.data.map((s: any) => ({ label: s.full_name, value: s.user_id })));
       } catch (err) {
         toast.error('Failed to initialize settings');
       }
@@ -250,7 +250,7 @@ function MeasurementEntryContent() {
     const formData = new FormData(e.currentTarget);
     const suggested_size = formData.get('suggested_size');
     const notes = formData.get('notes');
-    const recorded_by = formData.get('recorded_by');
+    const recorded_by = currentUser?.id || undefined;
     
     // Group measurements product-wise
     const config = selectedMember.gender === 'Female' ? selectedTemplate.girls_config : selectedTemplate.boys_config;
@@ -485,7 +485,7 @@ function MeasurementEntryContent() {
                         onClick={() => setSelectedMember(null)}
                         className="h-10 px-6 rounded-xl bg-white/20 hover:bg-white/30 border-none text-white text-[10px] font-black uppercase tracking-widest mb-8 gap-2"
                       >
-                         &larr; Back to Registry
+                         &larr; Back to Measurements
                       </Button>
                       <h2 className="text-3xl font-black italic tracking-tighter mb-4">{selectedMember.full_name}</h2>
                       <div className="space-y-2 opacity-70">
@@ -656,10 +656,10 @@ function MeasurementEntryContent() {
                                     <span className="text-[10px] font-black text-orange-600 uppercase">Captured By</span>
                                     <span className="text-[9px] font-bold text-[#3a525d] opacity-60">{lastMeasurement.user_profiles?.full_name || 'System'}</span>
                                 </div>
-                                <div className="flex flex-col items-end">
+                                {/* <div className="flex flex-col items-end">
                                     <span className="text-[10px] font-black text-orange-600 uppercase">Suggested Size</span>
                                     <span className="px-3 py-1 bg-white rounded-lg font-black text-[#3a525d] shadow-sm">{lastMeasurement.suggested_size}</span>
-                                </div>
+                                </div> */}
                             </div>
                             <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-xl border border-green-100 shadow-sm animate-in zoom-in duration-500">
                                 <ShieldCheck size={14} strokeWidth={3} />
@@ -1080,25 +1080,29 @@ function MeasurementEntryContent() {
                        </div>
                     )}
 
-                    <div className="md:col-span-2 pt-8 border-t border-zinc-50 grid grid-cols-1 md:grid-cols-2 gap-8">
-                       <Select 
-                          name="suggested_size" 
-                          label="Suggested Size" 
-                          required
-                          defaultValue={lastMeasurement?.suggested_size}
-                          options={[
-                            { label: 'Small (S)', value: 'S' }, { label: 'Medium (M)', value: 'M' },
-                            { label: 'Large (L)', value: 'L' }, { label: 'Extra Large (XL)', value: 'XL' },
-                            { label: '2XL', value: '2XL' }, { label: 'Custom', value: 'Custom' }
-                          ]}
-                       />
-                       <Select 
-                          name="recorded_by" 
-                          label="Recorded By (Staff/Admin)" 
-                          defaultValue={typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').id : ''}
-                          options={staff}
-                       />
-                       
+                    <div className="md:col-span-2 pt-6 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200/60">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b] font-black text-sm shrink-0">
+                             {currentUser?.fullName?.charAt(0) || <User size={18} />}
+                          </div>
+                          <div>
+                             <div className="flex items-center gap-2">
+                                <span className="text-[12px] font-black uppercase text-[#3a525d] tracking-wide">
+                                   {currentUser?.fullName || currentUser?.email || 'Active Staff'}
+                                </span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#2d8d9b]/15 text-[#2d8d9b]">
+                                   {currentUser?.role || 'Staff'}
+                                </span>
+                             </div>
+                             <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                                Recording Officer &bull; Automatically attributed to your logged-in profile
+                             </p>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100/60 shrink-0 self-start sm:self-auto">
+                          <CheckCircle2 size={13} className="text-emerald-500" />
+                          <span>Auto-Attributed</span>
+                       </div>
                     </div>
                     <div className="md:col-span-2 pt-8 border-t border-zinc-50 grid grid-cols-1 gap-8">
                        <Input 

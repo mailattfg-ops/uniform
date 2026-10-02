@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Truck, Printer, Package, RefreshCw, AlertTriangle, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface DeliveryChallan {
   id: number;

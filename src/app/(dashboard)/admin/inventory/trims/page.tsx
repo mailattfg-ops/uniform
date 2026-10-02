@@ -12,12 +12,10 @@ import {
   Trash2, 
   ArrowLeft, 
   FolderPlus,
-  Layers,
-  X,
-  Package
+  X
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface TrimCategory {
   id: string;

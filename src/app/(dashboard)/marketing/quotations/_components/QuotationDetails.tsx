@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Building2, Edit, Scale, Clock, Calendar, ArrowLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Building2, Edit, Scale, ArrowLeft, Send } from 'lucide-react';
+import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
 import { formatDate } from '@/lib/formatters';
@@ -14,6 +14,7 @@ interface QuotationDetailsProps {
   fabricsList: any[];
   onBack: () => void;
   onStartEdit: (q: Quotation) => void;
+  onSubmitToOps?: (q: Quotation) => void;
 }
 
 // Helpers for department and division cleanup
@@ -34,6 +35,7 @@ export default function QuotationDetails({
   fabricsList,
   onBack,
   onStartEdit,
+  onSubmitToOps
 }: QuotationDetailsProps) {
 
   const [companySettings, setCompanySettings] = useState<any>({
@@ -578,6 +580,15 @@ export default function QuotationDetails({
             >
               📥 Download Proposal PDF
             </Button>
+            {selectedQuotation.status === 'Draft' && onSubmitToOps && (
+              <Button
+                onClick={() => onSubmitToOps(selectedQuotation)}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 px-4 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-full"
+              >
+                <Send size={14} strokeWidth={2.5} />
+                Submit to Ops Team
+              </Button>
+            )}
             {selectedQuotation.status !== 'Approved' && (
               <Button
                 variant="outline"
@@ -699,7 +710,7 @@ export default function QuotationDetails({
                               <td colSpan={7} className="p-3 font-black">DEPARTMENT: {cleanDeptName}</td>
                             </tr>,
                             ...groupItems.map((item: any, idx: number) => {
-                              const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+                              const pTypeName = item.product_name || item.size_breakdown?.product_name || item.manual_item_name || item.product_types?.name || item.product_type_name || 'Uniform Item';
                               const deptId = item.size_breakdown?.department_id;
                               const qty = Number(item.quantity) || 0;
                               
@@ -808,7 +819,7 @@ export default function QuotationDetails({
                           ]);
                         } else {
                           return standardItems.map((item: any, idx: number) => {
-                            const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+                            const pTypeName = item.product_name || item.size_breakdown?.product_name || item.manual_item_name || item.product_types?.name || item.product_type_name || 'Uniform Item';
                             const fabricId = item.size_breakdown?.fabric_id;
                             const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
                             const getFabricTitle = (f: any) => {

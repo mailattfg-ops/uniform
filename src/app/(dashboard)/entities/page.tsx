@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserPlus, FileUp, Users, ChevronRight, Building2, History, Ruler } from 'lucide-react';
+import { ChevronRight, Building2, History, Ruler } from 'lucide-react';
 
 export default function EntitiesRoot() {
   const router = useRouter();

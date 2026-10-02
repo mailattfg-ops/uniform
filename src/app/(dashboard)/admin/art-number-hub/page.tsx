@@ -9,10 +9,10 @@ import { Select } from '@/components/ui/Select';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import {
   Plus, Trash2, Edit2, ArrowRight, Scissors, UserCheck, Palette,
-  Hash, Sparkles, AlertCircle, RefreshCw, Eye
+  Hash, Sparkles, RefreshCw, Eye
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
 
 interface Dress {

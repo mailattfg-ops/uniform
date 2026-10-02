@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Check, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Organization, ProductType, Quotation, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
+import { Organization, ProductType, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
 
 // Steps imports
 import WizardStep1 from './wizard/WizardStep1';
@@ -1104,10 +1104,14 @@ export default function QuotationWizard({
           const qty = parseInt(item.quantity) || 0;
           const price = parseFloat(item.price) || 0;
           const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
+          const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
+          const resolvedProductName = actualProduct?.name || selectedProduct?.name || 'Uniform Item';
           totalQty += qty;
           payloadItems.push({
             product_type_id: parseInt(item.product_type_id),
             product_type_name: selectedProduct?.name || 'Uniform Item',
+            product_name: resolvedProductName,
+            name: resolvedProductName,
             quantity: qty,
             unit_price: price,
             total_price: qty * price,
@@ -1117,6 +1121,7 @@ export default function QuotationWizard({
               department_id: dept.id,
               department_name: dept.name,
               product_id: item.product_id || null,
+              product_name: resolvedProductName,
               fabric_id: item.fabric_id || null,
               main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
               main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
@@ -1136,7 +1141,7 @@ export default function QuotationWizard({
               trims: item.trims || [],
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
-              art_number: item.art_number || null,
+              art_number: item.art_number || actualProduct?.art_number || null,
               computed_unit_cost: price,
               selected_size: item.size_breakdown?.selected_size || null
             },
@@ -1154,6 +1159,7 @@ export default function QuotationWizard({
       payloadItems = [{
         product_type_id: parseInt(selectedProductTypeId),
         product_type_name: selectedProduct?.name || 'Uniform Item',
+        product_name: selectedProduct?.name || 'Uniform Item',
         quantity: totalQty,
         unit_price: totals.avgSellingPrice,
         total_price: totals.finalValue,
@@ -1171,12 +1177,16 @@ export default function QuotationWizard({
           const isPriceBased = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
           const unitCost = isPriceBased ? (parseFloat(item.price) || 0) : computeItemUnitCost(item);
           const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
+          const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
+          const resolvedProductName = actualProduct?.name || selectedProduct?.name || (isPriceBased ? 'Item' : 'Uniform Item');
           totalQty += qty;
 
           if (isPriceBased) {
             return {
               product_type_id: parseInt(item.product_type_id) || null,
               product_type_name: selectedProduct?.name || 'Item',
+              product_name: resolvedProductName,
+              name: resolvedProductName,
               quantity: qty,
               unit_price: unitCost,
               total_price: qty * unitCost,
@@ -1184,8 +1194,9 @@ export default function QuotationWizard({
               size_breakdown: {
                 is_manual: true,
                 product_id: item.product_id || null,
+                product_name: resolvedProductName,
                 design_number: item.design_number || null,
-                art_number: item.art_number || null,
+                art_number: item.art_number || actualProduct?.art_number || null,
                 computed_unit_cost: unitCost,
                 is_readymade: true,
                 selected_size: item.size_breakdown?.selected_size || null
@@ -1199,6 +1210,8 @@ export default function QuotationWizard({
           return {
             product_type_id: parseInt(item.product_type_id),
             product_type_name: selectedProduct?.name || 'Uniform Item',
+            product_name: resolvedProductName,
+            name: resolvedProductName,
             quantity: qty,
             unit_price: unitCost,
             total_price: qty * unitCost,
@@ -1206,6 +1219,7 @@ export default function QuotationWizard({
             size_breakdown: {
               is_manual: true,
               product_id: item.product_id || null,
+              product_name: resolvedProductName,
               fabric_id: item.fabric_id || null,
               main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
               main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
@@ -1225,7 +1239,7 @@ export default function QuotationWizard({
               trims: item.trims || [],
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
-              art_number: item.art_number || null,
+              art_number: item.art_number || actualProduct?.art_number || null,
               computed_unit_cost: unitCost,
               class_name: item.size_breakdown?.class_name || null
             },

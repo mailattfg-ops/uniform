@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Building2, Plus, RefreshCw, Package, Truck, Layers, CheckCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { AddBranchModal } from '@/app/(dashboard)/employees/_components/AddBranchModal';
 
 interface Branch {

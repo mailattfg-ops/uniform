@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CreditCard, Plus, Scan, Trash2, Edit3, ShieldAlert, CheckCircle2, FileCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 

@@ -14,11 +14,15 @@ export interface Fabric {
   id: string;
   brand_name: string;
   name?: string;
+  shade?: string;
+  width?: string;
 }
 
 export interface QuotationItem {
   id?: number;
   product_type_id: number;
+  product_name?: string;
+  manual_item_name?: string;
   product_type_name?: string;
   quantity: number;
   unit_price: number;
@@ -27,19 +31,27 @@ export interface QuotationItem {
   accessories_cost_per_item: number;
   labor_cost_per_item: number;
   size_breakdown?: {
+    product_name?: string | null;
     fabric_id?: string | null;
     sam_value?: number | null;
     design_number?: string | null;
+    product_design_number?: string | null;
+    selected_size?: string | null;
+    class_name?: string | null;
+    main_fabric_meters?: number | string | null;
     is_manual?: boolean;
+    is_separate_fabric?: boolean;
     department_id?: string | null;
     department_name?: string | null;
     attachment_fabric1_id?: string | null;
     attachment_fabric2_id?: string | null;
+    [key: string]: any;
   };
   product_types?: {
     id: number;
     name: string;
   };
+  [key: string]: any;
 }
 
 export interface Quotation {
@@ -47,7 +59,9 @@ export interface Quotation {
   quotation_no: string;
   title: string;
   organization_id: number;
-  organizations?: { name: string };
+  organizations?: { name: string; address?: string };
+  group_design_number?: { code: string };
+  group_design_number_id?: number | null;
   estimated_expenses: number;
   total_estimated_time: string;
   production_days_estimate: number;
@@ -66,6 +80,11 @@ export interface Quotation {
     gst_percent?: number;
     pre_tax_subtotal?: number;
     departments?: any[];
+    separate_fabrics?: any[];
+    quotation_type?: string;
+    submitted_to_ops?: boolean;
+    submitted_to_ops_at?: string;
+    [key: string]: any;
   };
   created_at: string;
   pdf_html?: string;
@@ -130,7 +149,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         `;
 
         groupItems.forEach((item: any) => {
-          const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+          const pTypeName = item.product_name || item.size_breakdown?.product_name || item.manual_item_name || item.product_types?.name || item.product_type_name || 'Uniform Item';
           const deptId = item.size_breakdown?.department_id;
           const qty = Number(item.quantity) || 0;
           
@@ -195,7 +214,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
       });
     } else {
       standardItems.forEach((item: any) => {
-        const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
+        const pTypeName = item.product_name || item.size_breakdown?.product_name || item.manual_item_name || item.product_types?.name || item.product_type_name || 'Uniform Item';
         
         const className = item.size_breakdown?.class_name;
         const classPrefix = className ? `[${className}] ` : '';

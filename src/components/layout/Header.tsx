@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Bell, User, Settings, LogOut, ChevronDown, Menu, X } from 'lucide-react';
+import { User, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useLayout } from '@/hooks/useLayout';
 import { useRouter } from 'next/navigation';

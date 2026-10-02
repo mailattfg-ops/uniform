@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { UserPlus, ArrowLeft, ShieldCheck, Briefcase, Mail, Phone, Calendar, Key } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 
@@ -161,9 +161,9 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
             </div>
             <div>
               <h2 className="text-3xl font-black italic tracking-tight text-[#3a525d]">
-                {initialData ? 'Update Staff Member' : 'Onboard New Employee'}
+                {initialData ? 'Update Staff Member' : 'Add New Employee'}
               </h2>
-              <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-1">Unified HRMS & Branch Personnel Registry</p>
+              <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-1">Staff Management</p>
             </div>
           </div>
 
@@ -353,7 +353,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
             </div>
             <div>
                <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] mb-1">Confidential Note</h4>
-               <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">Upon onboarding, the system will automatically architect a unique login package. This includes a hashed password and a professional domain-mapped username for the Forma Apparels Enterprise Portal.</p>
+               <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">Upon Adding, the system will automatically architect a unique login package. This includes a hashed password and a professional domain-mapped username for the Forma Apparels Enterprise Portal.</p>
             </div>
          </div>
       </div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
 import {
   Layers,
@@ -25,8 +25,7 @@ import {
   Organization, 
   ProductType, 
   Fabric, 
-  compileQuotationHTML, 
-  getSelectedQuotePricing 
+  compileQuotationHTML 
 } from './_lib/compileQuotationHTML';
 
 import { MessageModal } from './_components/MessageModal';
@@ -176,19 +175,23 @@ export default function OperationTeamPage() {
 
   // Filtered quotations list
   const filteredQuotations = useMemo(() => {
-    if (filterStatus === 'All') return quotations;
+    if (filterStatus === 'All') {
+      // Operations desk default: show quotations submitted to ops (Pending, Approved, Rejected)
+      return quotations.filter(q => q.status !== 'Draft' || q.metrics_summary?.submitted_to_ops);
+    }
     return quotations.filter(q => q.status === filterStatus);
   }, [quotations, filterStatus]);
 
   // Statistics summaries
   const stats = useMemo(() => {
-    const total = quotations.length;
-    const pending = quotations.filter(q => q.status === 'Pending' || q.status === 'Draft').length;
+    const submittedQuotes = quotations.filter(q => q.status !== 'Draft' || q.metrics_summary?.submitted_to_ops);
+    const total = submittedQuotes.length;
+    const pending = quotations.filter(q => q.status === 'Pending').length;
     const approvedVal = quotations
       .filter(q => q.status === 'Approved')
       .reduce((acc, q) => acc + Number(q.final_quote_value), 0);
     const avgMargin = total > 0
-      ? Math.round(quotations.reduce((acc, q) => acc + (q.profit_margin_percent || 0), 0) / total)
+      ? Math.round(submittedQuotes.reduce((acc, q) => acc + (q.profit_margin_percent || 0), 0) / total)
       : 0;
 
     return { total, pending, approvedVal, avgMargin };
@@ -282,7 +285,7 @@ export default function OperationTeamPage() {
             className="flex items-center gap-1 rounded-lg border border-zinc-200 text-[#3a525d] font-black hover:bg-zinc-50 py-0.5 px-2 text-[10px] shadow-sm h-7"
           >
             <Eye size={11} />
-            Analyze
+            Review
           </Button>
 
           {q.status !== 'Approved' && (
@@ -336,7 +339,7 @@ export default function OperationTeamPage() {
             Operations Quotation Registry
           </h2>
           <p className="text-sm font-bold text-zinc-400 mt-1">
-            Deep-audit, modify, analyze, and verify quotation entries prior to contract finalization.
+            Deep-audit, modify, Review, and verify quotation entries prior to contract finalization.
           </p>
         </div>
       </div>

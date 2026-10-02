@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { Card } from '@/components/ui/Card';
 
 interface RemarkEntry {
   title: string;

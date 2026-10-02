@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { 
   Edit2, 
@@ -11,20 +10,13 @@ import {
   Layers, 
   Box, 
   Shirt, 
-  Scissors, 
   ChevronDown, 
   ChevronUp, 
-  SlidersHorizontal, 
-  CheckCircle2, 
-  Package, 
-  Sparkles,
-  Search,
-  ExternalLink,
-  Plus
+  Search
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/formatters';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 // Types
 export interface DNSItem {

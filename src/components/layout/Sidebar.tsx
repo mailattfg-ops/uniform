@@ -7,23 +7,17 @@ import Cookies from 'js-cookie';
 import {
   Star,
   Settings,
-  Grid,
   Building2,
-  Library,
   ChevronLeft,
   Ruler,
-  ShieldAlert,
   ChevronDown,
   User,
-  Box,
-  TrendingUp,
   Calculator,
   Package,
   LogOut,
   ReceiptText,
   Users,
   History,
-  Home,
   Tag,
   ShoppingBag,
   ShoppingCart,
@@ -91,10 +85,6 @@ const modules: ModuleItem[] = [
     icon: Package, label: 'Inventory', href: '/admin/inventory/product-stock',
     subsections: [
       { label: 'Stock Transfers', href: '/branches/transfers' },
-      { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
-      { label: 'Trims Stock', href: '/admin/inventory/trims-stock' },
-      { label: 'Button Stock', href: '/admin/inventory/button-stock' },
-      { label: 'Thread Stock', href: '/admin/inventory/thread-stock' },
       { label: 'Product Stock', href: '/admin/inventory/product-stock' },
       { label: 'Branch Inventory', href: '/branches/inventory' },
       { label: 'Move Items', href: '/coming-soon?feature=Move%20Items&module=Inventory' },
@@ -393,8 +383,8 @@ function ClientPortalSidebar({
                   </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-black tracking-[0.2em] text-white leading-none">FORMA</span>
-                  <span className="text-[8px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
+                  <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
+                  <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
                 </div>
               </div>
             )}
@@ -411,7 +401,7 @@ function ClientPortalSidebar({
         {isExpanded && (
           <div className="mx-4 mb-4 px-3 py-2 rounded-xl bg-[#CC9448]/10 border border-[#CC9448]/20 flex items-center gap-2 animate-in fade-in duration-500">
             <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse shrink-0" />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#CC9448]">{portalLabel}</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#CC9448]">{portalLabel}</span>
           </div>
         )}
 
@@ -437,16 +427,16 @@ function ClientPortalSidebar({
                   >
                     <div className="flex items-center gap-4">
                       <div className="shrink-0">
-                        <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                        <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />
                       </div>
                       {isExpanded && (
-                        <span className="text-xs font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
+                        <span className="text-[13.5px] font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
                           {item.label}
                         </span>
                       )}
                     </div>
                     {isExpanded && item.badge && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
+                      <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
                         {item.badge}
                       </span>
                     )}
@@ -472,9 +462,9 @@ function ClientPortalSidebar({
                   }`}
                 >
                   <div className="flex items-center gap-4">
-                    <Settings size={18} strokeWidth={2} />
+                    <Settings size={19} strokeWidth={2} />
                     {isExpanded && (
-                      <span className="text-xs font-semibold tracking-wide">Profile & Settings</span>
+                      <span className="text-[13.5px] font-semibold tracking-wide">Profile & Settings</span>
                     )}
                   </div>
                 </Link>
@@ -491,14 +481,14 @@ function ClientPortalSidebar({
                 <Link
                   href="/settings/profile"
                   onClick={() => { setIsDropdownOpen(false); if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
                 >
                   <User size={16} className="text-[#CC9448]" />
                   <span>Profile Settings</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left w-full"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left w-full"
                 >
                   <LogOut size={16} />
                   <span>Logout</span>
@@ -521,10 +511,10 @@ function ClientPortalSidebar({
               </div>
               {isExpanded && (
                 <div className="flex flex-col min-w-0">
-                  <p className="text-xs font-bold truncate leading-tight text-white">
+                  <p className="text-sm font-bold truncate leading-tight text-white">
                     {displayName}
                   </p>
-                  <p className="text-[9px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none truncate">
+                  <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none truncate">
                     {subLabel}
                   </p>
                 </div>
@@ -658,8 +648,8 @@ export const Sidebar: React.FC = () => {
                   </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-black tracking-[0.2em] text-white leading-none">FORMA</span>
-                  <span className="text-[8px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
+                  <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
+                  <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
                 </div>
               </div>
             )}
@@ -714,16 +704,16 @@ export const Sidebar: React.FC = () => {
                   >
                     <div className="flex items-center gap-4">
                       <div className="shrink-0">
-                        <Icon size={18} strokeWidth={isPathActive ? 2.5 : 2} />
+                        <Icon size={19} strokeWidth={isPathActive ? 2.5 : 2} />
                       </div>
                       {isExpanded && (
-                        <span className="text-xs font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
+                        <span className="text-[13.5px] font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
                           {item.label}
                         </span>
                       )}
                     </div>
                     {isExpanded && item.subsections.length > 0 && (
-                      <ChevronDown size={12} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={13} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                     )}
                   </div>
 
@@ -743,7 +733,7 @@ export const Sidebar: React.FC = () => {
                             key={idx}
                             href={sub.href}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
-                            className={`relative flex items-center gap-2.5 group text-[11px] transition-all py-1.5 px-3 rounded-xl ${isSubActive
+                            className={`relative flex items-center gap-2.5 group text-[12.5px] transition-all py-2 px-3 rounded-xl ${isSubActive
                               ? 'text-white bg-[#CC9448]/20 font-bold shadow-inner'
                               : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'
                               }`}
@@ -780,14 +770,14 @@ export const Sidebar: React.FC = () => {
                       setIsSidebarOpen(false);
                     }
                   }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
                 >
                   <User size={16} className="text-[#CC9448]" />
                   <span>Profile Settings</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left w-full"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left w-full"
                 >
                   <LogOut size={16} />
                   <span>Logout</span>
@@ -806,10 +796,10 @@ export const Sidebar: React.FC = () => {
               </div>
               {isExpanded && (
                 <div className="flex flex-col min-w-0">
-                  <p className="text-xs font-bold truncate leading-tight text-white">
+                  <p className="text-sm font-bold truncate leading-tight text-white">
                     {user?.fullName || 'John Lee'}
                   </p>
-                  <p className="text-[9px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none">
+                  <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none">
                     {user?.role || 'Admin'}
                   </p>
                 </div>

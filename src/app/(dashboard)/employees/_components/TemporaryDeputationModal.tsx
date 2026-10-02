@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlaneTakeoff, X, Building2, Calendar, FileText, ArrowRightLeft, Undo2, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
 
 interface BranchOption {

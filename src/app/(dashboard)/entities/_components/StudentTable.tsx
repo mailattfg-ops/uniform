@@ -5,7 +5,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Edit2, Trash2, UserPlus, FileUp, Key, Download, Filter, User } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { Select } from '@/components/ui/Select';

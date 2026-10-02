@@ -21,7 +21,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface IndustryTemplate {
   id: number;
@@ -660,7 +660,7 @@ export default function IndustryTemplatesPage() {
                     Select Department(s) To Configure Uniform Bundles
                   </h4>
                   <p className="text-xs text-zinc-400 font-bold max-w-md mx-auto">
-                    The template will automatically analyze the gender distribution of enrolled members in the selected department(s) and provide provisions for those genders only.
+                    The template will automatically review the gender distribution of enrolled members in the selected department(s) and provide provisions for those genders only.
                   </p>
                 </div>
               </Card>
@@ -711,7 +711,7 @@ export default function IndustryTemplatesPage() {
                             </p>
                             {deptDemographics.hasMale && (
                               <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                                {deptDemographics.male} Registered Male Entities
+                                {deptDemographics.male} Registered Male Members
                               </span>
                             )}
                           </div>
@@ -817,7 +817,7 @@ export default function IndustryTemplatesPage() {
                             </p>
                             {deptDemographics.hasFemale && (
                               <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-pink-100 text-pink-800 border border-pink-200">
-                                {deptDemographics.female} Registered Female Entities
+                                {deptDemographics.female} Registered Female Members
                               </span>
                             )}
                           </div>

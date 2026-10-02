@@ -11,7 +11,6 @@ import {
   Building2,
   Scale,
   X,
-  TrendingUp,
   Users,
   Ruler,
   ReceiptText,
@@ -20,10 +19,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Printer,
   Tag,
   Sparkles,
-  User,
   Phone
 } from 'lucide-react';
 import api from '@/lib/api';

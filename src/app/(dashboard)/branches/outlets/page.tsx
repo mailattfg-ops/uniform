@@ -8,7 +8,7 @@ import {
   Mail, Phone, MapPin, Copy, Check, ExternalLink, History,
   X, Store
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { AddBranchModal } from '@/app/(dashboard)/employees/_components/AddBranchModal';
 import { EmployeeWorkHistoryModal } from '@/app/(dashboard)/employees/_components/EmployeeWorkHistoryModal';
 import { formatDate } from '@/lib/formatters';

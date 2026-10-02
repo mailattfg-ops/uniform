@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Building2, X, Plus, ShieldCheck, Mail, Phone, MapPin, Key } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface AddBranchModalProps {
   isOpen: boolean;

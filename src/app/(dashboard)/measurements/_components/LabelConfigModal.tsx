@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Plus, Trash2, Ruler, Settings2, GripVertical, X } from 'lucide-react';
+import { Trash2, Settings2, GripVertical, X } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface LabelModalProps {
