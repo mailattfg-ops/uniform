@@ -173,20 +173,27 @@ export default function OperationTeamPage() {
     }
   };
 
-  // Filtered quotations list
+  // Filtered quotations list (Only displays quotations that have passed Branch Manager approval)
+  const isEligibleForOps = (q: Quotation) => {
+    if (q.status === 'Draft' || q.status === 'Pending Branch Approval') {
+      return false;
+    }
+    return q.status === 'Pending' || q.status === 'Approved' || q.status === 'Rejected' || q.metrics_summary?.submitted_to_ops;
+  };
+
   const filteredQuotations = useMemo(() => {
     if (filterStatus === 'All') {
-      // Operations desk default: show quotations submitted to ops (Pending, Approved, Rejected)
-      return quotations.filter(q => q.status !== 'Draft' || q.metrics_summary?.submitted_to_ops);
+      // Operations desk default: show quotations that have been endorsed to ops
+      return quotations.filter(isEligibleForOps);
     }
-    return quotations.filter(q => q.status === filterStatus);
+    return quotations.filter(q => q.status === filterStatus && isEligibleForOps(q));
   }, [quotations, filterStatus]);
 
   // Statistics summaries
   const stats = useMemo(() => {
-    const submittedQuotes = quotations.filter(q => q.status !== 'Draft' || q.metrics_summary?.submitted_to_ops);
+    const submittedQuotes = quotations.filter(isEligibleForOps);
     const total = submittedQuotes.length;
-    const pending = quotations.filter(q => q.status === 'Pending').length;
+    const pending = quotations.filter(q => q.status === 'Pending' && isEligibleForOps(q)).length;
     const approvedVal = quotations
       .filter(q => q.status === 'Approved')
       .reduce((acc, q) => acc + Number(q.final_quote_value), 0);

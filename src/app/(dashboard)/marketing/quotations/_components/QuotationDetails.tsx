@@ -3,7 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Building2, Edit, Scale, ArrowLeft, Send } from 'lucide-react';
+import {
+  Building2,
+  Edit,
+  Scale,
+  ArrowLeft,
+  Send,
+  Check,
+  RotateCcw,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  AlertTriangle,
+  FileCheck
+} from 'lucide-react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
@@ -15,6 +28,10 @@ interface QuotationDetailsProps {
   onBack: () => void;
   onStartEdit: (q: Quotation) => void;
   onSubmitToOps?: (q: Quotation) => void;
+  onSubmitToBm?: (q: Quotation) => void;
+  onBmApprove?: (q: Quotation) => void;
+  onBmReject?: (q: Quotation) => void;
+  currentUser?: any;
 }
 
 // Helpers for department and division cleanup
@@ -35,7 +52,11 @@ export default function QuotationDetails({
   fabricsList,
   onBack,
   onStartEdit,
-  onSubmitToOps
+  onSubmitToOps,
+  onSubmitToBm,
+  onBmApprove,
+  onBmReject,
+  currentUser
 }: QuotationDetailsProps) {
 
   const [companySettings, setCompanySettings] = useState<any>({
@@ -550,6 +571,21 @@ export default function QuotationDetails({
 
   const pricing = getSelectedQuotePricing(selectedQuotation);
 
+  const userPermissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const isAdmin = ['admin', 'super admin', 'superadmin', 'corporate'].includes(userRole) || userPermissions.includes('all');
+  
+  // Dynamic permission check for submitting to Ops Team (manageable by admin in User Roles)
+  const canSubmitToOps = isAdmin || userPermissions.includes('submit_quotations_ops') || userPermissions.includes('corporate_approver');
+  const canSubmitToBm = (userPermissions.includes('submit_quotations_bm') || userPermissions.includes('manage_quotations')) && !canSubmitToOps;
+
+  // Determine stage states for 4-step lifecycle stepper
+  const isBmApproved = Boolean(selectedQuotation.metrics_summary?.bm_approved);
+  const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval';
+  const isBmRevision = Boolean(selectedQuotation.metrics_summary?.needs_revision);
+  const isUnderOps = selectedQuotation.status === 'Pending';
+  const isOpsApproved = selectedQuotation.status === 'Approved';
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <Card className="p-10 border border-zinc-100 rounded-[3rem] shadow-2xl space-y-8 bg-white">
@@ -565,43 +601,248 @@ export default function QuotationDetails({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               variant="secondary"
               onClick={onBack}
-              className="flex items-center gap-1.5 rounded-xl py-2.5 px-4 text-xs font-black uppercase tracking-widest border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 h-full"
+              className="flex items-center gap-1.5 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 h-9"
             >
               <ArrowLeft size={14} />
               Back
             </Button>
-            <Button
-              onClick={() => handleDownloadPDF(selectedQuotation)}
-              className="flex items-center gap-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl py-2.5 px-4 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#2d8d9b]/10 border-none"
-            >
-              📥 Download Proposal PDF
-            </Button>
-            {selectedQuotation.status === 'Draft' && onSubmitToOps && (
+
+            {/* Branch Manager Review Actions */}
+            {selectedQuotation.status === 'Pending Branch Approval' && canSubmitToOps && (
+              <>
+                {onBmApprove && (
+                  <Button
+                    onClick={() => onBmApprove(selectedQuotation)}
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-9"
+                  >
+                    <Check size={14} strokeWidth={2.5} />
+                    Approve & Ops
+                  </Button>
+                )}
+                {onBmReject && (
+                  <Button
+                    onClick={() => onBmReject(selectedQuotation)}
+                    className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest shadow-lg shadow-amber-500/10 border-none h-9"
+                  >
+                    <RotateCcw size={14} />
+                    Revision
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Marketing Submit to Branch Manager */}
+            {selectedQuotation.status === 'Draft' && canSubmitToBm && onSubmitToBm && (
               <Button
-                onClick={() => onSubmitToOps(selectedQuotation)}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 px-4 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-full"
+                onClick={() => onSubmitToBm(selectedQuotation)}
+                className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-600/10 border-none h-9"
               >
                 <Send size={14} strokeWidth={2.5} />
-                Submit to Ops Team
+                Submit to BM
               </Button>
             )}
+
+            {/* Direct Branch Manager / Admin Submit to Ops */}
+            {selectedQuotation.status === 'Draft' && canSubmitToOps && onSubmitToOps && (
+              <Button
+                onClick={() => onSubmitToOps(selectedQuotation)}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-9"
+              >
+                <Send size={14} strokeWidth={2.5} />
+                Submit to Ops
+              </Button>
+            )}
+
+            {/* Download PDF button (when approved) */}
+            {isOpsApproved && (
+              <Button
+                onClick={() => handleDownloadPDF(selectedQuotation)}
+                className="flex items-center gap-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#2d8d9b]/10 border-none h-9"
+              >
+                📥 Proposal PDF
+              </Button>
+            )}
+
+            {/* Edit button (disabled once finalized) */}
             {selectedQuotation.status !== 'Approved' && (
               <Button
                 variant="outline"
                 onClick={() => onStartEdit(selectedQuotation)}
-                className="flex items-center gap-1.5 border border-amber-500 hover:bg-amber-50 text-amber-600 rounded-xl py-2.5 px-4 text-xs font-black uppercase tracking-widest bg-white h-full"
+                className="flex items-center gap-1.5 border border-amber-500 hover:bg-amber-50 text-amber-600 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest bg-white h-9"
               >
                 <Edit size={14} />
-                Edit Quotation
+                Edit
               </Button>
             )}
-            <span className="px-4 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-100 text-sm font-black text-[#3a525d]">
-              Status: <strong className="text-[#2d8d9b] uppercase">{selectedQuotation.status}</strong>
+
+            <span className={`px-3 py-1.5 rounded-xl border text-xs font-black uppercase tracking-wider ${
+              isOpsApproved
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : isUnderOps
+                ? 'bg-sky-50 text-sky-700 border-sky-200'
+                : isAwaitingBm
+                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                : isBmRevision
+                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+            }`}>
+              {isAwaitingBm ? 'Awaiting BM' : isUnderOps ? 'Ops Review' : selectedQuotation.status}
             </span>
+          </div>
+        </div>
+
+        {/* REVISION REQUEST ALERT BANNER */}
+        {isBmRevision && selectedQuotation.metrics_summary?.bm_rejection_reason && (
+          <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200/80 shadow-sm flex items-start gap-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle size={20} strokeWidth={2.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-xs font-black text-rose-900 uppercase tracking-wider">
+                  Revision Requested by Branch Manager {selectedQuotation.metrics_summary.bm_rejected_by_name ? `(${selectedQuotation.metrics_summary.bm_rejected_by_name})` : ''}
+                </p>
+                {selectedQuotation.metrics_summary.bm_rejected_at && (
+                  <span className="text-[10px] text-rose-500 font-bold">
+                    {formatDate(selectedQuotation.metrics_summary.bm_rejected_at)}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs md:text-sm font-semibold text-rose-950 mt-1 whitespace-pre-wrap leading-relaxed">
+                "{selectedQuotation.metrics_summary.bm_rejection_reason}"
+              </p>
+              <p className="text-[10px] text-rose-700 font-medium mt-2">
+                Click &quot;Edit&quot; above to update specifications and resubmit to the Branch Manager for sign-off.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 4-STAGE LIFECYCLE PROGRESS STEPPER */}
+        <div className="bg-zinc-50/70 border border-zinc-200/70 rounded-3xl p-5 md:p-6">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">
+            Quotation Governance Pipeline
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+            {/* Step 1: Draft Creation */}
+            <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={16} strokeWidth={2.5} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">1. Draft Created</p>
+                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
+                  {formatDate(selectedQuotation.created_at)}
+                </p>
+              </div>
+            </div>
+
+            {/* Step 2: Branch Manager Review */}
+            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
+              isBmApproved
+                ? 'border-emerald-200'
+                : isAwaitingBm
+                ? 'border-amber-400 ring-2 ring-amber-100'
+                : isBmRevision
+                ? 'border-rose-300'
+                : 'border-zinc-200 opacity-60'
+            }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                isBmApproved
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : isAwaitingBm
+                  ? 'bg-amber-100 text-amber-700 animate-pulse'
+                  : isBmRevision
+                  ? 'bg-rose-100 text-rose-600'
+                  : 'bg-zinc-100 text-zinc-400'
+              }`}>
+                {isBmApproved ? (
+                  <CheckCircle2 size={16} strokeWidth={2.5} />
+                ) : isAwaitingBm ? (
+                  <Clock size={16} strokeWidth={2.5} />
+                ) : isBmRevision ? (
+                  <AlertTriangle size={16} strokeWidth={2.5} />
+                ) : (
+                  <ShieldCheck size={16} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">2. Branch Review</p>
+                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
+                  {isBmApproved
+                    ? `Endorsed ${selectedQuotation.metrics_summary?.bm_approved_by_name ? `(${selectedQuotation.metrics_summary.bm_approved_by_name})` : ''}`
+                    : isAwaitingBm
+                    ? 'Awaiting Sign-off'
+                    : isBmRevision
+                    ? 'Revision Requested'
+                    : 'Pending Submission'}
+                </p>
+              </div>
+            </div>
+
+            {/* Step 3: Central Operations Desk */}
+            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
+              isOpsApproved
+                ? 'border-emerald-200'
+                : isUnderOps
+                ? 'border-sky-400 ring-2 ring-sky-100'
+                : 'border-zinc-200 opacity-60'
+            }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                isOpsApproved
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : isUnderOps
+                  ? 'bg-sky-100 text-sky-700 animate-pulse'
+                  : 'bg-zinc-100 text-zinc-400'
+              }`}>
+                {isOpsApproved ? (
+                  <CheckCircle2 size={16} strokeWidth={2.5} />
+                ) : isUnderOps ? (
+                  <Clock size={16} strokeWidth={2.5} />
+                ) : (
+                  <Scale size={16} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">3. Operations Desk</p>
+                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
+                  {isOpsApproved
+                    ? 'Technical Sign-off'
+                    : isUnderOps
+                    ? 'Evaluating Feasibility'
+                    : 'Awaiting Branch'}
+                </p>
+              </div>
+            </div>
+
+            {/* Step 4: Proposal Issued */}
+            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
+              isOpsApproved
+                ? 'border-emerald-200'
+                : 'border-zinc-200 opacity-60'
+            }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                isOpsApproved
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : 'bg-zinc-100 text-zinc-400'
+              }`}>
+                {isOpsApproved ? (
+                  <CheckCircle2 size={16} strokeWidth={2.5} />
+                ) : (
+                  <FileCheck size={16} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">4. Client Proposal</p>
+                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
+                  {isOpsApproved ? 'PDF Ready for Dispatch' : 'Locked Until Approval'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

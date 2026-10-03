@@ -29,150 +29,15 @@ interface Role {
   created_at?: string;
 }
 
-interface PermissionItem {
-  id: string;
-  label: string;
-  category: string;
-  description: string;
-}
-
-const AVAILABLE_PERMISSIONS: PermissionItem[] = [
-  // ── 1. System & Administration ──
-  { id: 'all', label: 'Super Admin Access (Universal Bypass)', category: 'System & Security', description: 'Universal root control over all system modules, configurations, and data' },
-  { id: 'manage_system', label: 'Manage System Settings & Masters', category: 'System & Security', description: 'Configure company profile, bank settings, branches, prefixes, and global rules' },
-  { id: 'view_audit_logs', label: 'View System Audit & Activity Logs', category: 'System & Security', description: 'Access audit trails, activity history, and authentication logs' },
-  { id: 'manage_employees', label: 'Manage Staff & System Users', category: 'System & Security', description: 'Create, edit, and assign roles to internal employees and staff' },
-  { id: 'view_employees', label: 'View Staff Registry Directory', category: 'System & Security', description: 'View staff members directory and employee profiles' },
-
-  // ── 2. Factory Operations & Production Floor ──
-  { id: 'factory_po_handler', label: 'Factory PO Handler & Job Cards', category: 'Factory Operations', description: 'Issue job cards, review approved purchase orders, and allocate fabrics' },
-  { id: 'factory_floor', label: 'Production Queue & Factory Floor Execution', category: 'Factory Operations', description: 'Execute cutting, stitching, finishing, packing, and dispatch on the floor' },
-
-  // ── 3. Multi-Branch Hub & Retail POS ──
-  { id: 'branch_inventory', label: 'Branch Stock & Local Inventory', category: 'Multi-Branch Hub', description: 'Manage local outlet stock, variants, stock inwards, and branch counts' },
-  { id: 'branch_sales', label: 'Branch Sales & Counter Orders', category: 'Multi-Branch Hub', description: 'Create and process customer counter orders, retail sales, and dispatches' },
-  { id: 'branch_transfers', label: 'Inter-Branch Stock Transfers', category: 'Multi-Branch Hub', description: 'Issue, request, dispatch, and accept stock transfers between branches' },
-
-  // ── 4. Marketing & Quotations ──
-  { id: 'manage_quotations', label: 'Create & Manage Quotations & Work Orders', category: 'Marketing & Sales', description: 'Issue quotations, pricing, terms, corporate approvals, and order placements' },
-  { id: 'view_quotations', label: 'View Quotations & Proposals', category: 'Marketing & Sales', description: 'View client quotations, discount structures, and proposals' },
-  { id: 'corporate_approver', label: 'Corporate Approver & Order Triage', category: 'Marketing & Sales', description: 'Review, accept, reject with reason, or hold sales orders submitted by branch managers' },
-
-  // ── 5. Billing & Invoicing ──
-  { id: 'manage_invoices', label: 'Manage Invoices & Delivery Challans (DC)', category: 'Billing & Invoicing', description: 'Generate GST customer invoices, record payments, and issue delivery challans' },
-  { id: 'view_invoices', label: 'View Billing & Invoice History', category: 'Billing & Invoicing', description: 'Access invoice history, DC logs, and client account statements' },
-
-  // ── 6. Measurements & Fitting ──
-  { id: 'manage_measurements', label: 'Execute & Record Measurements', category: 'Measurements & Sizing', description: 'Record bespoke customer measurements, use fitting templates, and manage tokens' },
-  { id: 'view_measurements', label: 'View Measurement History', category: 'Measurements & Sizing', description: 'Inspect historic customer measurements, sizing logs, and fitting trends' },
-
-  // ── 7. Organizations & School Registry ──
-  { id: 'view_schools', label: 'View Schools & Organizations', category: 'Organizations & Registry', description: 'Browse schools, corporate institutions, and client accounts' },
-  { id: 'manage_schools', label: 'Manage Schools & Organizations', category: 'Organizations & Registry', description: 'Register, edit, configure, and onboard organizations and schools' },
-  { id: 'view_organizations', label: 'View Organization Profiles & Portals', category: 'Organizations & Registry', description: 'View client accounts, billing information, departments, and details' },
-
-  // ── 8. Members & Student Registry ──
-  { id: 'view_students', label: 'View Student / Member Registry', category: 'Members & Students', description: 'Browse enrolled students, employees, and organization members' },
-  { id: 'register_students', label: 'Register New Students / Members', category: 'Members & Students', description: 'Enroll individual students and members into registry' },
-  { id: 'manage_students', label: 'Edit & Manage Members / Students', category: 'Members & Students', description: 'Update student profiles, departments, admission info, and details' },
-  { id: 'manage_classes', label: 'Manage Classes & Sections', category: 'Members & Students', description: 'Configure school grades, classes, and section divisions' },
-
-  // ── 9. Catalogs & Product Master ──
-  { id: 'view_products', label: 'View Products & Design Catalogs', category: 'Product Catalog', description: 'Browse products, art number hub, designs, fabrics, and trim catalogs' },
-  { id: 'manage_products', label: 'Manage Products, Types & Designs', category: 'Product Catalog', description: 'Create and update products, product types, group designs, and art numbers' },
-  { id: 'view_size_charts', label: 'View Standard Size Charts', category: 'Product Catalog', description: 'View US/UK size specifications and standard measurements' },
-  { id: 'manage_size_charts', label: 'Manage Size Charts & Grading', category: 'Product Catalog', description: 'Create and modify standard size charts and dimension matrices' },
-
-  // ── 10. Central Warehouse & Inventory ──
-  { id: 'view_inventory', label: 'View Central Warehouse Stock & POs', category: 'Warehouse & Inventory', description: 'View central fabric, button, thread, and finished product stock' },
-  { id: 'manage_inventory', label: 'Manage Stock Levels & Purchase Orders', category: 'Warehouse & Inventory', description: 'Inward materials, issue purchase orders, and adjust central warehouse stock' },
-
-  // ── 11. Apparel Engineering / SAM ──
-  { id: 'manage_sam', label: 'Manage SAM Calculator & Operations', category: 'Engineering & SAM', description: 'Configure Standard Allowed Minute operations, fabric SAMs, and machine studies' },
-
-  // ── 12. Master Configurations ──
-  { id: 'manage_industries', label: 'Manage Industry Sectors', category: 'Industry Masters', description: 'Configure industry verticals (Schools, Healthcare, Hospitality, Corporate)' },
-  { id: 'manage_departments', label: 'Manage Departments & Wings', category: 'Industry Masters', description: 'Configure organization departments, wings, and divisions' },
-
-  // ── 13. Client Portal Access ──
-  { id: 'view_own_students', label: 'Client Portal: View Own Members/Students', category: 'Client Portal', description: 'Allows client organization users to view their own enrolled students' },
-  { id: 'view_own_measurements', label: 'Client Portal: View Own Measurements', category: 'Client Portal', description: 'Allows client organization/entity users to view fitting and size data' },
-];
+import { 
+  AVAILABLE_PERMISSIONS, 
+  ROLE_PRESETS, 
+  PermissionItem, 
+  RolePreset,
+  PERMISSION_CATEGORIES 
+} from '@/lib/permissions';
 
 const PROTECTED_ROLES = ['Admin', 'Super Admin', 'Branch Manager', 'Factory PO Handler'];
-
-interface RolePreset {
-  name: string;
-  badge: string;
-  description: string;
-  permissions: string[];
-}
-
-const ROLE_PRESETS: RolePreset[] = [
-  {
-    name: 'Branch Manager',
-    badge: 'Retail Hub',
-    description: 'Full store management, inventory, sales, quotes, invoices, measurements & registry',
-    permissions: [
-      'branch_inventory', 'branch_sales', 'branch_transfers',
-      'view_employees', 'view_organizations', 'manage_schools', 'view_schools',
-      'manage_classes', 'manage_departments', 'view_students', 'register_students',
-      'manage_students', 'view_products', 'manage_products', 'view_measurements',
-      'manage_measurements', 'manage_quotations', 'view_quotations', 'manage_invoices', 'view_invoices'
-    ]
-  },
-  {
-    name: 'Branch Staff',
-    badge: 'Store Counter',
-    description: 'Store counter sales, measurements, stock view, student registry & quotes view',
-    permissions: [
-      'branch_inventory', 'branch_sales', 'view_organizations',
-      'view_schools', 'view_students', 'register_students',
-      'view_products', 'view_measurements', 'manage_measurements',
-      'view_quotations', 'view_invoices'
-    ]
-  },
-  {
-    name: 'Factory PO Handler',
-    badge: 'Manufacturing',
-    description: 'Factory job cards, PO allocations, production queue & warehouse inventory',
-    permissions: [
-      'factory_po_handler', 'factory_floor', 'view_inventory', 'manage_inventory'
-    ]
-  },
-  {
-    name: 'Factory Production Staff',
-    badge: 'Floor Execution',
-    description: 'Production queue execution, cutting, stitching, finishing & packing',
-    permissions: [
-      'factory_floor'
-    ]
-  },
-  {
-    name: 'Marketing Executive',
-    badge: 'Sales & Quotes',
-    description: 'Quotations, pricing, proposals, sales leads, and client accounts',
-    permissions: [
-      'manage_quotations', 'view_quotations', 'branch_sales', 'view_organizations', 'view_schools', 'view_products'
-    ]
-  },
-  {
-    name: 'Corporate Approver',
-    badge: 'HQ Sign-off',
-    description: 'Review branch sales orders, accept/reject/hold triage, view client quotes & products',
-    permissions: [
-      'corporate_approver', 'view_quotations', 'view_organizations', 'view_schools', 'view_products'
-    ]
-  },
-  {
-    name: 'Client Organization',
-    badge: 'Portal',
-    description: 'Client portal access to school registry, own students, classes & measurements',
-    permissions: [
-      'view_schools', 'view_own_students', 'manage_classes', 'view_own_measurements'
-    ]
-  }
-];
 
 export default function RoleManagementPage() {
   const [roles, setRoles] = useState<Role[]>([]);

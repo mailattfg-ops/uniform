@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -25,7 +26,8 @@ import {
   AlertTriangle,
   Check,
   RefreshCw,
-  Mail
+  Mail,
+  Layers
 } from 'lucide-react';
 
 interface Organization {
@@ -697,6 +699,18 @@ export default function OrderPlacementPage() {
               <Mail size={11} />
               Notify
             </Button>
+
+            {/* Direct shortcut to Job Cards for active orders */}
+            {(item.status === 'Corporate Accepted' || item.status === 'In Production') && (
+              <Link
+                href="/factory/job-cards"
+                className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 h-7 px-2 transition shadow-2xs whitespace-nowrap"
+                title="Go to Factory Job Cards & PO Handler"
+              >
+                <Layers size={11} />
+                Job Cards
+              </Link>
+            )}
           </div>
         );
       }

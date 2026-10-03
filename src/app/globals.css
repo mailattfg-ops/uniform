@@ -25,11 +25,13 @@
   --color-orange-accent: #CC9448;
   --color-sidebar-bg: #030303;
 
-  --font-sans: var(--font-dm-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  --font-mono: var(--font-geist-mono, 'Geist Mono', monospace);
 }
 
 :root {
+  --font-dm-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-geist-mono: 'Geist Mono', monospace;
   --color-primary: 204 148 72; /* #CC9448 */
   --color-primary-foreground: 3 3 3; /* #030303 */
   --color-background: 3 3 3; /* #030303 */

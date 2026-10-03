@@ -60,7 +60,8 @@ const modules: ModuleItem[] = [
       { label: 'ART Number Hub', href: '/admin/art-number-hub' },
       { label: 'Design Numbers (DNS/DNG)', href: '/admin/design-numbers' },
       { label: 'Fabrics', href: '/admin/inventory/fabrics' },
-      { label: 'Trims', href: '/admin/inventory/trims' }
+      { label: 'Trims', href: '/admin/inventory/trims' },
+      { label: 'Accessories', href: '/admin/accessories' }
     ]
   },
   {
@@ -84,8 +85,11 @@ const modules: ModuleItem[] = [
   {
     icon: Package, label: 'Inventory', href: '/admin/inventory/product-stock',
     subsections: [
+      { label: 'Readymade (Trade) Stock', href: '/admin/inventory/product-stock' },
+      { label: 'Accessories Stock', href: '/admin/inventory/accessories-stock' },
+      { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
+      { label: 'Trims Stock', href: '/admin/inventory/trims-stock' },
       { label: 'Stock Transfers', href: '/branches/transfers' },
-      { label: 'Product Stock', href: '/admin/inventory/product-stock' },
       { label: 'Branch Inventory', href: '/branches/inventory' },
       { label: 'Move Items', href: '/coming-soon?feature=Move%20Items&module=Inventory' },
     ]
@@ -147,22 +151,22 @@ const modules: ModuleItem[] = [
 
 // ── Static Permission Mapping Rules ──────────────────────────────────────────
 const MODULE_PERMISSION_MAP: Record<string, string[]> = {
-  'CRM': ['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales'],
-  'Items': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
-  'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements'],
+  'CRM': ['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales', 'view_leads', 'manage_leads'],
+  'Items': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products', 'manage_art_numbers', 'manage_design_numbers', 'manage_group_designs'],
+  'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements', 'manage_templates', 'manage_tokens', 'approve_measurements', 'manage_measurement_config'],
   'SAM Engineering': ['manage_system', 'manage_sam'],
-  'Inventory': ['manage_inventory', 'view_inventory', 'branch_transfers', 'branch_inventory'],
-  'Sales': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver'],
-  'Purchase': ['manage_system', 'manage_inventory', 'view_inventory'],
+  'Inventory': ['manage_inventory', 'view_inventory', 'branch_transfers', 'branch_inventory', 'move_inventory'],
+  'Sales': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver', 'submit_quotations_ops', 'view_orders', 'manage_orders', 'manage_delivery_challans', 'submit_quotations_bm', 'dispatch_proposals'],
+  'Purchase': ['manage_system', 'manage_inventory', 'view_inventory', 'view_vendors', 'manage_vendors', 'manage_purchase_orders', 'manage_purchase_bills'],
   'Factory Operations': ['manage_system', 'factory_po_handler', 'factory_floor'],
-  'Accounts': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'],
-  'Reports': ['manage_system', 'manage_sam', 'view_audit_logs'],
-  'Admin Settings': ['manage_system', 'view_audit_logs', 'manage_employees', 'manage_industries', 'manage_size_charts'],
+  'Accounts': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank'],
+  'Reports': ['manage_system', 'manage_sam', 'view_audit_logs', 'view_sam_reports'],
+  'Admin Settings': ['manage_system', 'view_audit_logs', 'manage_employees', 'manage_industries', 'manage_size_charts', 'manage_roles', 'manage_branches', 'approve_measurements', 'manage_measurement_config'],
   // Legacy aliases
   'Customer & Lead Management': ['view_schools', 'manage_schools', 'view_organizations'],
   'Product Management': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products'],
   'Admin Controls': ['manage_system', 'view_audit_logs'],
-  'Marketing': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver'],
+  'Marketing': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver', 'submit_quotations_ops'],
   'SAM Management': ['manage_system', 'manage_sam'],
   'Multi-Branch Hub': ['branch_sales', 'manage_system', 'branch_transfers'],
   'Billing & Invoicing': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices']
@@ -172,20 +176,28 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   // CRM
   'Customer Portal': ['view_schools', 'manage_schools', 'view_organizations'],
   'Organizations CRM': ['view_schools', 'manage_schools', 'view_organizations'],
-  'Leads Registry': ['view_schools', 'manage_schools', 'view_organizations', 'branch_sales'],
-  'Quotations': ['manage_quotations', 'view_quotations', 'branch_sales'],
+  'Customer Directory': ['view_schools', 'manage_schools', 'view_organizations'],
+  'Customer Departments': ['view_schools', 'manage_schools', 'view_organizations', 'manage_departments'],
+  'Leads': ['view_leads', 'manage_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales', 'manage_system'],
+  'Leads Registry': ['view_leads', 'manage_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales'],
+  'Quotations': ['manage_quotations', 'view_quotations', 'branch_sales', 'submit_quotations_bm', 'submit_quotations_ops', 'corporate_approver', 'manage_system'],
   'Organization': ['view_schools', 'manage_schools', 'view_organizations'],
 
   // Items
   'Product Registry': ['manage_products', 'view_products'],
   'Product Types': ['manage_products', 'view_products'],
-  'Group Designs': ['manage_products', 'view_products'],
-  'Group Design Catalog': ['manage_products', 'view_products'],
-  'Design Numbers (DNS/DMG)': ['manage_products', 'view_products'],
-  'Design Number Catalog': ['manage_products', 'view_products'],
-  'ART Number Hub': ['manage_system', 'manage_products'],
+  'Group Designs': ['manage_products', 'view_products', 'manage_group_designs'],
+  'Group Design Catalog': ['manage_products', 'view_products', 'manage_group_designs'],
+  'Design Numbers (DNS/DMG)': ['manage_products', 'view_products', 'manage_design_numbers'],
+  'Design Numbers (DNS/DNG)': ['manage_products', 'view_products', 'manage_design_numbers'],
+  'Design Number Catalog': ['manage_products', 'view_products', 'manage_design_numbers'],
+  'ART Number Hub': ['manage_art_numbers', 'manage_system', 'manage_products'],
+  'Fabrics': ['manage_inventory', 'view_inventory'],
+  'Trims': ['manage_inventory', 'view_inventory'],
   'Fabric Catalog': ['manage_inventory', 'view_inventory'],
   'Trims Catalog': ['manage_inventory', 'view_inventory'],
+  'Accessories': ['manage_products', 'view_products', 'manage_inventory', 'view_inventory'],
+  'Accessories Catalog': ['manage_products', 'view_products', 'manage_inventory', 'view_inventory'],
   'Button Catalog': ['manage_inventory', 'view_inventory'],
   'Thread Catalog': ['manage_inventory', 'view_inventory'],
 
@@ -194,12 +206,12 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Record Entry': ['manage_measurements', 'view_measurements'],
   'Measurement History': ['view_measurements', 'manage_measurements'],
   'History': ['view_measurements', 'manage_measurements'],
-  'Industry Templates': ['manage_measurements', 'view_measurements'],
-  'Measurement Config': ['manage_measurements', 'view_measurements', 'manage_system'],
-  'Measurement Configurations': ['manage_measurements', 'view_measurements', 'manage_system'],
-  'Measures Architect': ['manage_measurements', 'view_measurements', 'manage_system'],
-  'Measures': ['manage_measurements', 'view_measurements', 'manage_system'],
-  'Fitting Tokens': ['manage_measurements', 'view_measurements'],
+  'Industry Templates': ['manage_templates', 'manage_measurements', 'view_measurements'],
+  'Measurement Config': ['manage_measurement_config', 'manage_measurements', 'view_measurements', 'manage_system'],
+  'Measurement Configurations': ['manage_measurement_config', 'manage_measurements', 'view_measurements', 'manage_system'],
+  'Measures Architect': ['manage_measurement_config', 'manage_measurements', 'view_measurements', 'manage_system'],
+  'Measures': ['manage_measurement_config', 'manage_measurements', 'view_measurements', 'manage_system'],
+  'Fitting Tokens': ['manage_tokens', 'manage_measurements', 'view_measurements'],
   'Consumption List': ['manage_measurements', 'view_measurements'],
 
   // SAM Engineering
@@ -207,8 +219,8 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Configurations': ['manage_sam', 'manage_system'],
   'SAM Configurations': ['manage_sam', 'manage_system'],
   'Fabric SAM': ['manage_sam', 'manage_system'],
-  'SAM & Operations Reports': ['manage_sam', 'manage_system'],
-  'Reports': ['manage_sam', 'manage_system'],
+  'SAM & Operations Reports': ['view_sam_reports', 'manage_sam', 'manage_system'],
+  'Reports': ['view_sam_reports', 'manage_sam', 'manage_system'],
 
   // Inventory
   'Stock Transfers': ['branch_transfers', 'manage_system'],
@@ -218,24 +230,26 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Button Stock': ['manage_inventory', 'view_inventory'],
   'Thread Stock': ['manage_inventory', 'view_inventory'],
   'Product Stock': ['manage_inventory', 'view_inventory'],
+  'Readymade (Trade) Stock': ['manage_inventory', 'view_inventory'],
+  'Accessories Stock': ['manage_inventory', 'view_inventory'],
   'Branch Inventory': ['branch_inventory', 'manage_system'],
   'Branch Stock & Inventory': ['branch_inventory', 'manage_system'],
-  'Move Items': ['manage_inventory', 'view_inventory', 'branch_transfers'],
+  'Move Items': ['move_inventory', 'manage_inventory', 'view_inventory', 'branch_transfers'],
 
   // Sales
-  'Sales Orders': ['manage_quotations', 'corporate_approver', 'branch_sales', 'manage_system'],
-  'Order Placement': ['manage_quotations', 'corporate_approver', 'branch_sales'],
-  'Operations Review': ['manage_quotations', 'manage_system'],
-  'Operation Team': ['manage_quotations', 'manage_system'],
-  'Delivery Challans (DC)': ['manage_system', 'manage_quotations', 'branch_sales', 'manage_invoices', 'view_invoices'],
+  'Sales Orders': ['view_orders', 'manage_orders', 'manage_quotations', 'corporate_approver', 'branch_sales', 'manage_system'],
+  'Order Placement': ['view_orders', 'manage_orders', 'manage_quotations', 'corporate_approver', 'branch_sales'],
+  'Operations Review': ['manage_quotations', 'corporate_approver', 'manage_system'],
+  'Operation Team': ['manage_quotations', 'corporate_approver', 'manage_system'],
+  'Delivery Challans (DC)': ['manage_delivery_challans', 'manage_system', 'manage_quotations', 'branch_sales', 'manage_invoices', 'view_invoices'],
   'Packages': ['manage_quotations', 'manage_system'],
   'Alterations & Returns': ['manage_quotations', 'manage_system'],
 
   // Purchase
-  'Vendors Manager': ['manage_system', 'manage_inventory'],
-  'Purchase Orders (PO)': ['manage_system', 'manage_inventory'],
-  'Purchase Orders': ['manage_system', 'manage_inventory'],
-  'Purchase Bills & Receives': ['manage_system', 'manage_inventory'],
+  'Vendors Manager': ['manage_vendors', 'view_vendors', 'manage_system', 'manage_inventory'],
+  'Purchase Orders (PO)': ['manage_purchase_orders', 'manage_system', 'manage_inventory'],
+  'Purchase Orders': ['manage_purchase_orders', 'manage_system', 'manage_inventory'],
+  'Purchase Bills & Receives': ['manage_purchase_bills', 'manage_system', 'manage_inventory'],
 
   // Factory
   'Job Cards & PO Handler': ['manage_system', 'factory_po_handler'],
@@ -244,24 +258,24 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
 
   // Accounts
   'Customer Invoices': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'],
-  'Customer Payments': ['manage_quotations', 'view_quotations', 'branch_sales'],
-  'Initial Payment': ['manage_quotations', 'view_quotations', 'branch_sales'],
-  'Vendor Payments & Expenses': ['manage_system'],
-  'Company Bank & Profile': ['manage_system'],
-  'Company Profile & Bank': ['manage_system'],
+  'Customer Payments': ['manage_payments', 'manage_quotations', 'view_quotations', 'branch_sales'],
+  'Initial Payment': ['manage_payments', 'manage_quotations', 'view_quotations', 'branch_sales'],
+  'Vendor Payments & Expenses': ['manage_expenses', 'manage_system'],
+  'Company Bank & Profile': ['manage_company_bank', 'manage_system'],
+  'Company Profile & Bank': ['manage_company_bank', 'manage_system'],
 
   // Admin Settings
   'Industry Sectors': ['manage_system', 'manage_industries'],
   'Staff Management': ['manage_employees', 'view_employees', 'manage_system'],
-  'User Roles & Permissions': ['manage_system'],
-  'User Roles': ['manage_system'],
+  'User Roles & Permissions': ['manage_roles', 'manage_employees', 'manage_system'],
+  'User Roles': ['manage_roles', 'manage_employees', 'manage_system'],
   'US Size Charts': ['manage_size_charts', 'view_size_charts', 'manage_system'],
-  'Measurement Approvals': ['manage_system'],
-  'Measurements Approvals': ['manage_system'],
-  'Measurement Setup': ['manage_system', 'manage_measurements'],
+  'Measurement Approvals': ['approve_measurements', 'manage_measurements', 'manage_system'],
+  'Measurements Approvals': ['approve_measurements', 'manage_measurements', 'manage_system'],
+  'Measurement Setup': ['manage_measurement_config', 'manage_system', 'manage_measurements'],
   'Dress Prefixes': ['manage_system'],
-  'Branches & Outlets': ['manage_system'],
-  'Outlets & Credentials': ['manage_system'],
+  'Branches & Outlets': ['manage_branches', 'manage_system'],
+  'Outlets & Credentials': ['manage_branches', 'manage_system'],
   'Audit Trail Logs': ['view_audit_logs', 'manage_system'],
   'Audit Logs': ['view_audit_logs', 'manage_system']
 };
@@ -689,8 +703,10 @@ export const Sidebar: React.FC = () => {
                 if (!hasAnyVisibleSub) return null;
               }
 
-              const isPathActive = item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href))) ||
-                (item.href !== '/' && pathname === item.href) ||
+              const isPathActive = item.subsections.some(sub => 
+                pathname === sub.href || (sub.href !== '/' && (pathname.startsWith(sub.href + '/') || pathname.startsWith(sub.href + '?')))
+              ) ||
+                (item.href !== '/' && (pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?'))) ||
                 (item.label === 'Dashboard' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);

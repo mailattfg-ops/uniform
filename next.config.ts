@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       { source: '/organizations/departments', destination: '/customers/departments', permanent: false },
       { source: '/organizations/leads', destination: '/customers/leads', permanent: false },
       { source: '/organizations', destination: '/customers', permanent: false },
+      { source: '/uniforms', destination: '/admin/products', permanent: false },
+      { source: '/inventory/fabrics', destination: '/admin/inventory/fabric-stock', permanent: false },
+      { source: '/inventory/trims', destination: '/admin/inventory/trims', permanent: false },
     ];
   },
 };

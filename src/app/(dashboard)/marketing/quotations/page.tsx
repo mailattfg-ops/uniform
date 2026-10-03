@@ -10,6 +10,7 @@ import { Plus, ArrowLeft } from 'lucide-react';
 import QuotationList from './_components/QuotationList';
 import QuotationDetails from './_components/QuotationDetails';
 import QuotationWizard from './_components/QuotationWizard';
+import { RevisionModal } from './_components/RevisionModal';
 
 export interface Organization {
   id: number;
@@ -69,6 +70,17 @@ export interface Quotation {
       extra_charges?: Array<{ label: string; quantity: string; rate: string }>;
       separate_fabrics?: SeparateFabricItem[];
       project_start_date?: string;
+      submitted_to_bm?: boolean;
+      submitted_to_bm_at?: string;
+      submitted_to_bm_by?: number | string;
+      submitted_to_bm_by_name?: string;
+      bm_approved?: boolean;
+      bm_approved_at?: string;
+      bm_approved_by?: number | string;
+      bm_approved_by_name?: string;
+      bm_notes?: string;
+      bm_rejection_reason?: string;
+      needs_revision?: boolean;
       submitted_to_ops?: boolean;
       submitted_to_ops_at?: string;
       [key: string]: any;
@@ -158,6 +170,11 @@ export default function QuotationsPage() {
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Quotation | null>(null);
   const [submitCandidate, setSubmitCandidate] = useState<Quotation | null>(null);
+  const [submitToBmCandidate, setSubmitToBmCandidate] = useState<Quotation | null>(null);
+  const [bmApproveCandidate, setBmApproveCandidate] = useState<Quotation | null>(null);
+  const [bmRejectCandidate, setBmRejectCandidate] = useState<Quotation | null>(null);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
   const [threadsList, setThreadsList] = useState<any[]>([]);
@@ -166,6 +183,15 @@ export default function QuotationsPage() {
   const [inwardRates, setInwardRates] = useState<any[]>([]);
   const [fabricMargins, setFabricMargins] = useState<any[]>([]);
   const [samConfigurations, setSamConfigurations] = useState<any[]>([]);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch (e) {}
+    }
+  }, []);
 
   useEffect(() => {
     if (searchParams && quotations.length > 0) {
@@ -372,6 +398,71 @@ export default function QuotationsPage() {
     fetchQuotations();
   };
 
+  const handleSubmitToBm = async () => {
+    if (!submitToBmCandidate) return;
+    const toastId = toast.loading(`Submitting ${submitToBmCandidate.quotation_no} to Branch Manager...`);
+    try {
+      await api.put(`/quotations/${submitToBmCandidate.id}/submit-to-bm`);
+      toast.success(`Quotation ${submitToBmCandidate.quotation_no} submitted to Branch Manager for approval!`, { id: toastId });
+      fetchQuotations();
+      if (selectedQuotation && selectedQuotation.id === submitToBmCandidate.id) {
+        setSelectedQuotation(prev => prev ? { 
+          ...prev, 
+          status: 'Pending Branch Approval', 
+          metrics_summary: { ...(prev.metrics_summary || {}), submitted_to_bm: true, needs_revision: false } 
+        } : null);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to submit quotation to Branch Manager', { id: toastId });
+    } finally {
+      setSubmitToBmCandidate(null);
+    }
+  };
+
+  const handleBmApprove = async () => {
+    if (!bmApproveCandidate) return;
+    const toastId = toast.loading(`Approving ${bmApproveCandidate.quotation_no} and submitting to Operations...`);
+    try {
+      await api.put(`/quotations/${bmApproveCandidate.id}/bm-approve`);
+      toast.success(`Quotation ${bmApproveCandidate.quotation_no} approved by Branch Manager & submitted to Operations!`, { id: toastId });
+      fetchQuotations();
+      if (selectedQuotation && selectedQuotation.id === bmApproveCandidate.id) {
+        setSelectedQuotation(prev => prev ? { 
+          ...prev, 
+          status: 'Pending', 
+          metrics_summary: { ...(prev.metrics_summary || {}), bm_approved: true, submitted_to_ops: true } 
+        } : null);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to approve quotation', { id: toastId });
+    } finally {
+      setBmApproveCandidate(null);
+    }
+  };
+
+  const handleBmReject = async (reason: string) => {
+    if (!bmRejectCandidate) return;
+    setIsRejecting(true);
+    const toastId = toast.loading(`Returning ${bmRejectCandidate.quotation_no} to Draft for revision...`);
+    try {
+      await api.put(`/quotations/${bmRejectCandidate.id}/bm-reject`, { reason });
+      toast.success(`Quotation ${bmRejectCandidate.quotation_no} returned to Draft with feedback.`, { id: toastId });
+      fetchQuotations();
+      if (selectedQuotation && selectedQuotation.id === bmRejectCandidate.id) {
+        setSelectedQuotation(prev => prev ? { 
+          ...prev, 
+          status: 'Draft', 
+          metrics_summary: { ...(prev.metrics_summary || {}), needs_revision: true, bm_rejection_reason: reason } 
+        } : null);
+      }
+      setBmRejectCandidate(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to request revision', { id: toastId });
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   const handleSubmitToOps = async () => {
     if (!submitCandidate) return;
     const toastId = toast.loading(`Submitting ${submitCandidate.quotation_no} to Operations Team...`);
@@ -383,7 +474,7 @@ export default function QuotationsPage() {
         setSelectedQuotation(prev => prev ? { 
           ...prev, 
           status: 'Pending', 
-          metrics_summary: { ...(prev.metrics_summary || {}), submitted_to_ops: true } 
+          metrics_summary: { ...(prev.metrics_summary || {}), submitted_to_ops: true, bm_approved: true } 
         } : null);
       }
     } catch (err: any) {
@@ -442,6 +533,10 @@ export default function QuotationsPage() {
           onStartEdit={handleStartEdit}
           onDeleteCandidate={setDeleteCandidate}
           onSubmitToOps={setSubmitCandidate}
+          onSubmitToBm={setSubmitToBmCandidate}
+          onBmApprove={setBmApproveCandidate}
+          onBmReject={setBmRejectCandidate}
+          currentUser={currentUser}
         />
       )}
 
@@ -479,6 +574,10 @@ export default function QuotationsPage() {
           }}
           onStartEdit={handleStartEdit}
           onSubmitToOps={setSubmitCandidate}
+          onSubmitToBm={setSubmitToBmCandidate}
+          onBmApprove={setBmApproveCandidate}
+          onBmReject={setBmRejectCandidate}
+          currentUser={currentUser}
         />
       )}
 
@@ -493,11 +592,45 @@ export default function QuotationsPage() {
         variant="danger"
       />
 
-      {/* CONFIRMATION FOR SUBMISSION TO OPERATIONS */}
+      {/* CONFIRMATION FOR SUBMISSION TO BRANCH MANAGER */}
+      <ConfirmModal
+        isOpen={!!submitToBmCandidate}
+        title="Submit to Branch Manager"
+        message={`Are you sure you want to submit quotation "${submitToBmCandidate?.quotation_no} - ${submitToBmCandidate?.title}" to your Branch Manager for review and sign-off?`}
+        onConfirm={handleSubmitToBm}
+        onCancel={() => setSubmitToBmCandidate(null)}
+        confirmLabel="Yes, Submit to Branch Manager"
+        variant="primary"
+      />
+
+      {/* CONFIRMATION FOR BRANCH MANAGER APPROVAL */}
+      <ConfirmModal
+        isOpen={!!bmApproveCandidate}
+        title="Approve & Transmit to Operations"
+        message={`As Branch Manager, are you endorsing quotation "${bmApproveCandidate?.quotation_no} - ${bmApproveCandidate?.title}"? Approving will transmit this quotation directly to the central Operations Team for factory costing & production scheduling.`}
+        onConfirm={handleBmApprove}
+        onCancel={() => setBmApproveCandidate(null)}
+        confirmLabel="Approve & Send to Ops"
+        variant="primary"
+      />
+
+      {/* MODAL FOR BRANCH MANAGER REVISION REQUEST */}
+      {bmRejectCandidate && (
+        <RevisionModal
+          isOpen={!!bmRejectCandidate}
+          quotationNo={bmRejectCandidate.quotation_no}
+          quotationTitle={bmRejectCandidate.title}
+          onConfirm={handleBmReject}
+          onCancel={() => setBmRejectCandidate(null)}
+          isSubmitting={isRejecting}
+        />
+      )}
+
+      {/* CONFIRMATION FOR DIRECT SUBMISSION TO OPERATIONS */}
       <ConfirmModal
         isOpen={!!submitCandidate}
         title="Submit to Operations Team"
-        message={`Are you sure you want to submit quotation "${submitCandidate?.quotation_no} - ${submitCandidate?.title}" to the Operations Team for review and approval?`}
+        message={`Are you sure you want to submit quotation "${submitCandidate?.quotation_no} - ${submitCandidate?.title}" directly to the Operations Team for review and approval?`}
         onConfirm={handleSubmitToOps}
         onCancel={() => setSubmitCandidate(null)}
         confirmLabel="Yes, Submit to Ops"

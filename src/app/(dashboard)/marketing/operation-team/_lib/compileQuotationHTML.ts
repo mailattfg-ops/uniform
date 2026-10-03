@@ -82,6 +82,17 @@ export interface Quotation {
     departments?: any[];
     separate_fabrics?: any[];
     quotation_type?: string;
+    submitted_to_bm?: boolean;
+    submitted_to_bm_at?: string;
+    submitted_to_bm_by?: number | string;
+    submitted_to_bm_by_name?: string;
+    bm_approved?: boolean;
+    bm_approved_at?: string;
+    bm_approved_by?: number | string;
+    bm_approved_by_name?: string;
+    bm_notes?: string;
+    bm_rejection_reason?: string;
+    needs_revision?: boolean;
     submitted_to_ops?: boolean;
     submitted_to_ops_at?: string;
     [key: string]: any;
