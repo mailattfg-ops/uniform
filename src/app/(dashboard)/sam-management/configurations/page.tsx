@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { 
-  Settings, 
-  Plus, 
   Trash2, 
   Save,
   Clock,
   Database,
   PlusCircle,
-  AlertCircle
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { formatDate } from '@/lib/formatters';
 
 interface Component {
   name: string;
@@ -272,9 +271,11 @@ export default function SAMConfigurations() {
     {
       header: 'Timestamp',
       accessor: (l) => (
-        <div className="flex items-center gap-1.5 text-zinc-400">
-          <Clock size={12} />
-          <span className="text-[10px] font-bold tracking-widest">{l.time}</span>
+        <div className="flex items-center gap-1.5 text-zinc-400 whitespace-nowrap">
+          <Clock size={12} className="text-[#2d8d9b]" />
+          <span className="text-[10px] font-bold tracking-wider">
+            {formatDate(l.created_at || l.time, true, true)}
+          </span>
         </div>
       )
     }
@@ -290,14 +291,25 @@ export default function SAMConfigurations() {
 
   if (!config) {
     return (
-      <div className="p-12 bg-white rounded-[2.5rem] border-2 border-dashed border-zinc-100 flex flex-col items-center text-center space-y-6">
-        <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500">
-          <AlertCircle size={40} />
+      <div className="max-w-2xl mx-auto my-12 p-8 md:p-12 bg-white rounded-[2.5rem] border border-[#fce4d4] shadow-xl flex flex-col items-center text-center space-y-6">
+        <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner">
+          <Database size={38} />
         </div>
         <div className="space-y-2 max-w-md">
-          <h3 className="text-xl font-black text-[#3a525d]">SAM Schema Missing</h3>
-          <p className="text-sm text-muted-foreground font-medium">Please run the SQL migration inside your Supabase Editor to create the SAM configurations and component database tables.</p>
+          <h3 className="text-2xl font-black text-[#3a525d]">SAM Database Tables Not Found</h3>
+          <p className="text-sm text-zinc-500 font-medium leading-relaxed">
+            The SAM configuration tables are not found in the database. Please ensure your database migrations have been executed.
+          </p>
         </div>
+
+        <Button
+          onClick={fetchGlobalConfig}
+          variant="outline"
+          className="border-zinc-200 text-[#3a525d] hover:bg-zinc-50 px-5 py-3 rounded-2xl font-bold flex items-center gap-2"
+        >
+          <RefreshCw size={16} />
+          Check Connection Again
+        </Button>
       </div>
     );
   }

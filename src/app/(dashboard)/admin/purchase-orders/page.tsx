@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { 
   Layers, 
   Clock, 
@@ -38,12 +38,21 @@ interface POItemFabric {
 interface POItem {
   id: number;
   purchase_order_id: number;
-  fabric_id: string;
+  item_type?: string;
+  fabric_id?: string;
+  trim_id?: string;
   quantity: number;
+  unit_price?: number;
   status: string;
   created_at: string;
   updated_at: string;
   fabrics?: POItemFabric;
+  trims?: {
+    id: string;
+    name: string;
+    code: string;
+    uom?: string;
+  };
 }
 
 interface PurchaseOrder {
@@ -595,54 +604,68 @@ export default function PurchaseOrdersPage() {
 
                 {/* Items Catalog List */}
                 <div className="space-y-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Ordered Fabric Roll details</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Ordered Raw Materials (Fabrics &amp; Trims)</h4>
                   
                   <div className="border border-zinc-100 rounded-2xl overflow-hidden max-h-60 overflow-y-auto no-scrollbar">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-zinc-50 border-b border-zinc-100">
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Fabric</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Material</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Type</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Code</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Brand / Shade</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Width</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Ordered meters</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Details / Spec</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Ordered Qty</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
                         {selectedPO.items && selectedPO.items.length > 0 ? (
-                          selectedPO.items.map((item) => (
-                            <tr key={item.id} className="hover:bg-zinc-50/50">
-                              <td className="p-4 font-extrabold text-[#3a525d]">
-                                {item.fabrics?.name || `Fabric ID: ${item.fabric_id}`}
-                              </td>
-                              <td className="p-4 text-zinc-500 font-bold">
-                                {item.fabrics?.code || 'N/A'}
-                              </td>
-                              <td className="p-4 font-bold text-zinc-600">
-                                {item.fabrics?.brand_name || 'Generic'} {item.fabrics?.shade ? `(Shade: ${item.fabrics.shade})` : ''}
-                              </td>
-                              <td className="p-4 text-zinc-500 font-medium">
-                                {item.fabrics?.width || 'N/A'}
-                              </td>
-                              <td className="p-4 font-black text-[#2d8d9b] text-center text-sm">
-                                {Number(item.quantity).toFixed(2)} m
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                  item.status === 'Received' 
-                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                                    : 'bg-amber-50 text-amber-600 border border-amber-100'
-                                }`}>
-                                  {item.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
+                          selectedPO.items.map((item) => {
+                            const isTrim = item.item_type === 'trim' || Boolean(item.trim_id);
+                            const name = item.fabrics?.name || item.trims?.name || (isTrim ? `Trim #${item.trim_id}` : `Fabric #${item.fabric_id}`);
+                            const code = item.fabrics?.code || item.trims?.code || 'N/A';
+                            const uom = isTrim ? (item.trims?.uom || 'pcs') : 'meters';
+                            const spec = item.fabrics 
+                              ? [item.fabrics.brand_name, item.fabrics.shade ? `Shade: ${item.fabrics.shade}` : null, item.fabrics.width ? `Width: ${item.fabrics.width}` : null].filter(Boolean).join(' • ') || 'Roll Spec'
+                              : `UOM: ${uom}`;
+
+                            return (
+                              <tr key={item.id} className="hover:bg-zinc-50/50">
+                                <td className="p-4 font-extrabold text-[#3a525d]">
+                                  {name}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                    isTrim ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  }`}>
+                                    {isTrim ? 'Trim' : 'Fabric'}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-zinc-500 font-bold font-mono">
+                                  {code}
+                                </td>
+                                <td className="p-4 font-medium text-zinc-600">
+                                  {spec}
+                                </td>
+                                <td className="p-4 font-black text-[#2d8d9b] text-center text-sm">
+                                  {Math.ceil(Number(item.quantity))} {uom}
+                                </td>
+                                <td className="p-4 text-right">
+                                  <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                    item.status === 'Received' 
+                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                      : 'bg-amber-50 text-amber-600 border border-amber-100'
+                                  }`}>
+                                    {item.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
                             <td colSpan={6} className="p-8 text-center text-zinc-400 italic font-bold">
-                              No fabric items compiled inside this Purchase Order.
+                              No raw material items compiled inside this Purchase Order.
                             </td>
                           </tr>
                         )}

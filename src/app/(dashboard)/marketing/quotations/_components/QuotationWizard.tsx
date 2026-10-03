@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Check, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Organization, ProductType, Quotation, SeparateFabricItem } from '../page';
+import { Organization, ProductType, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
 
 // Steps imports
 import WizardStep1 from './wizard/WizardStep1';
@@ -24,48 +24,6 @@ const SIZE_FABRIC_MULTIPLIERS: Record<string, number> = {
   'XXL': 1.35,
 };
 
-interface ManualItem {
-  id: number;
-  product_type_id: string;
-  product_id?: string;
-  fabric_id: string;
-  main_fabric_meters: string;
-  main_fabric_rate: string;
-  main_fabric_sam: string;
-  attachment_fabric1_id: string;
-  attachment_fabric1_meters: string;
-  attachment_fabric1_rate: string;
-  attachment_fabric1_sam: string;
-  attachment_fabric2_id: string;
-  attachment_fabric2_meters: string;
-  attachment_fabric2_rate: string;
-  attachment_fabric2_sam: string;
-  button_id: string;
-  button_count: string;
-  thread_id: string;
-  thread_count: string;
-  sam_value: string;
-  design_number: string;
-  quantity: string;
-  price: string;
-  size_breakdown?: any;
-}
-
-interface TemplateLineItem {
-  product_id: number;
-  art_number: string;
-  product_name: string;
-  gender: string;
-  sam_value: number | null;
-  materials: string | null;
-  product_type: string | null;
-  design_id: string | null;
-  design_code: string | null;
-  design_number_override: string; // editable
-  price_override: string;          // optional price per unit
-  template_quantity: number | null;
-}
-
 interface QuotationWizardProps {
   editingQuotationId: number | null;
   organizations: Organization[];
@@ -74,6 +32,8 @@ interface QuotationWizardProps {
   allProducts: any[];
   buttonsList: any[];
   threadsList: any[];
+  trimsList?: any[];
+  trimCategories?: any[];
   inwardRates: any[];
   fabricMargins: any[];
   samConfigurations: any[];
@@ -89,6 +49,8 @@ export default function QuotationWizard({
   allProducts,
   buttonsList,
   threadsList,
+  trimsList = [],
+  trimCategories = [],
   inwardRates,
   fabricMargins,
   samConfigurations,
@@ -137,6 +99,10 @@ export default function QuotationWizard({
       attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
       attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
       button_id: '', button_count: '', thread_id: '', thread_count: '',
+      trims: [
+        { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
+        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+      ],
       sam_value: '', design_number: '', quantity: '1', price: ''
     }
   ]);
@@ -182,6 +148,7 @@ export default function QuotationWizard({
   const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
     { label: '', quantity: '1', rate: '0' }
   ]);
+  const [isTaxInclusive, setIsTaxInclusive] = useState<boolean>(false);
 
   // Reset items when quotation type changes — but NOT during edit initialization
   useEffect(() => {
@@ -200,6 +167,10 @@ export default function QuotationWizard({
       attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
       attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
       button_id: '', button_count: '', thread_id: '', thread_count: '',
+      trims: [
+        { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
+        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+      ],
       sam_value: '', design_number: '', quantity: '1', price: '',
       size_breakdown: {}
     }]);
@@ -311,6 +282,7 @@ export default function QuotationWizard({
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
         setGstPercent(String(fullQuote.metrics_summary?.gst_percent ?? '18'));
+        setIsTaxInclusive(Boolean(fullQuote.metrics_summary?.is_tax_inclusive));
         setStatus(fullQuote.status || 'Pending');
 
         if (fullQuote.metrics_summary?.sales_type) {
@@ -391,6 +363,10 @@ export default function QuotationWizard({
               button_count: String(item.size_breakdown?.button_count || ''),
               thread_id: String(item.size_breakdown?.thread_id || ''),
               thread_count: String(item.size_breakdown?.thread_count || ''),
+              trims: item.size_breakdown?.trims || [
+                { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
+                { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || '1'), uom: 'cones', unit_price: 0 }
+              ],
               sam_value: String(item.size_breakdown?.sam_value || ''),
               design_number: String(item.size_breakdown?.design_number || ''),
               quantity: String(item.quantity),
@@ -514,8 +490,13 @@ export default function QuotationWizard({
         button_count: String(prod.button_count || '0'),
         thread_id: String(prod.thread_id || threadsList[0]?.id || ''),
         thread_count: String(prod.thread_count || '0'),
+        trims: [
+          { id: 'btn', trim_id: String(prod.button_id || buttonsList[0]?.id || ''), category: 'Buttons', name: 'Buttons', count: String(prod.button_count || '10'), uom: 'pcs', unit_price: 0 },
+          { id: 'thr', trim_id: String(prod.thread_id || threadsList[0]?.id || ''), category: 'Thread', name: 'Thread', count: String(prod.thread_count || '1'), uom: 'cones', unit_price: 0 }
+        ],
         sam_value: String(prod.sam_value || ''),
-        design_number: String(prod.design_number || ''),
+        design_number: String(prod.design_number || 'DNS-STANDARD'),
+        art_number: String(prod.art_number || ''),
         quantity: '1',
         price: ''
       };
@@ -561,6 +542,10 @@ export default function QuotationWizard({
         button_count: String(item.size_breakdown?.button_count || ''),
         thread_id: String(item.size_breakdown?.thread_id || ''),
         thread_count: String(item.size_breakdown?.thread_count || ''),
+        trims: item.size_breakdown?.trims || [
+          { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
+          { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || '1'), uom: 'cones', unit_price: 0 }
+        ],
         sam_value: String(item.size_breakdown?.sam_value || ''),
         design_number: String(item.size_breakdown?.design_number || ''),
         quantity: String(item.quantity || '1'),
@@ -1066,18 +1051,36 @@ export default function QuotationWizard({
     preTaxSubtotal += totalExtraCharges;
 
     const gstRate = parseFloat(gstPercent) || 0;
-    const gstValue = preTaxSubtotal * (gstRate / 100);
-    const finalValue = preTaxSubtotal + gstValue;
-    const profit = preTaxSubtotal - expenses.total;
-    const avgSellingPrice = preTaxSubtotal / qty;
+    let subtotal = 0;
+    let gstValue = 0;
+    let finalValue = 0;
+
+    if (isTaxInclusive) {
+      // Contract Gross Price (MRP) already includes tax: calculate taxable base backwards
+      finalValue = Math.round(preTaxSubtotal * 100) / 100;
+      subtotal = Math.round((finalValue / (1 + gstRate / 100)) * 100) / 100;
+      gstValue = Math.round((finalValue - subtotal) * 100) / 100;
+    } else {
+      // Standard B2B pricing: add GST forwards on top of taxable subtotal
+      subtotal = Math.round(preTaxSubtotal * 100) / 100;
+      gstValue = Math.round(subtotal * (gstRate / 100) * 100) / 100;
+      finalValue = Math.round((subtotal + gstValue) * 100) / 100;
+    }
+
+    const profit = subtotal - expenses.total;
+    const avgSellingPrice = qty > 0 ? (isTaxInclusive ? finalValue : subtotal) / qty : 0;
+    const halfGst = Math.round((gstValue / 2) * 100) / 100;
 
     return {
       expenses: expenses.total,
-      subtotal: Math.round(preTaxSubtotal * 100) / 100,
-      gstValue: Math.round(gstValue * 100) / 100,
-      finalValue: Math.round(finalValue * 100) / 100,
+      subtotal,
+      gstValue,
+      finalValue,
       profit: Math.round(profit * 100) / 100,
-      avgSellingPrice: Math.round(avgSellingPrice * 100) / 100
+      avgSellingPrice: Math.round(avgSellingPrice * 100) / 100,
+      isTaxInclusive,
+      cgst: halfGst,
+      sgst: Math.round((gstValue - halfGst) * 100) / 100
     };
   };
 
@@ -1101,10 +1104,14 @@ export default function QuotationWizard({
           const qty = parseInt(item.quantity) || 0;
           const price = parseFloat(item.price) || 0;
           const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
+          const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
+          const resolvedProductName = actualProduct?.name || selectedProduct?.name || 'Uniform Item';
           totalQty += qty;
           payloadItems.push({
             product_type_id: parseInt(item.product_type_id),
             product_type_name: selectedProduct?.name || 'Uniform Item',
+            product_name: resolvedProductName,
+            name: resolvedProductName,
             quantity: qty,
             unit_price: price,
             total_price: qty * price,
@@ -1114,6 +1121,7 @@ export default function QuotationWizard({
               department_id: dept.id,
               department_name: dept.name,
               product_id: item.product_id || null,
+              product_name: resolvedProductName,
               fabric_id: item.fabric_id || null,
               main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
               main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
@@ -1130,8 +1138,10 @@ export default function QuotationWizard({
               button_count: parseFloat(item.button_count) || null,
               thread_id: item.thread_id || null,
               thread_count: parseFloat(item.thread_count) || null,
+              trims: item.trims || [],
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
+              art_number: item.art_number || actualProduct?.art_number || null,
               computed_unit_cost: price,
               selected_size: item.size_breakdown?.selected_size || null
             },
@@ -1149,6 +1159,7 @@ export default function QuotationWizard({
       payloadItems = [{
         product_type_id: parseInt(selectedProductTypeId),
         product_type_name: selectedProduct?.name || 'Uniform Item',
+        product_name: selectedProduct?.name || 'Uniform Item',
         quantity: totalQty,
         unit_price: totals.avgSellingPrice,
         total_price: totals.finalValue,
@@ -1166,12 +1177,16 @@ export default function QuotationWizard({
           const isPriceBased = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
           const unitCost = isPriceBased ? (parseFloat(item.price) || 0) : computeItemUnitCost(item);
           const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
+          const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
+          const resolvedProductName = actualProduct?.name || selectedProduct?.name || (isPriceBased ? 'Item' : 'Uniform Item');
           totalQty += qty;
 
           if (isPriceBased) {
             return {
               product_type_id: parseInt(item.product_type_id) || null,
               product_type_name: selectedProduct?.name || 'Item',
+              product_name: resolvedProductName,
+              name: resolvedProductName,
               quantity: qty,
               unit_price: unitCost,
               total_price: qty * unitCost,
@@ -1179,7 +1194,9 @@ export default function QuotationWizard({
               size_breakdown: {
                 is_manual: true,
                 product_id: item.product_id || null,
+                product_name: resolvedProductName,
                 design_number: item.design_number || null,
+                art_number: item.art_number || actualProduct?.art_number || null,
                 computed_unit_cost: unitCost,
                 is_readymade: true,
                 selected_size: item.size_breakdown?.selected_size || null
@@ -1193,6 +1210,8 @@ export default function QuotationWizard({
           return {
             product_type_id: parseInt(item.product_type_id),
             product_type_name: selectedProduct?.name || 'Uniform Item',
+            product_name: resolvedProductName,
+            name: resolvedProductName,
             quantity: qty,
             unit_price: unitCost,
             total_price: qty * unitCost,
@@ -1200,6 +1219,7 @@ export default function QuotationWizard({
             size_breakdown: {
               is_manual: true,
               product_id: item.product_id || null,
+              product_name: resolvedProductName,
               fabric_id: item.fabric_id || null,
               main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
               main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
@@ -1216,8 +1236,10 @@ export default function QuotationWizard({
               button_count: parseFloat(item.button_count) || null,
               thread_id: item.thread_id || null,
               thread_count: parseFloat(item.thread_count) || null,
+              trims: item.trims || [],
               sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
               design_number: item.design_number || null,
+              art_number: item.art_number || actualProduct?.art_number || null,
               computed_unit_cost: unitCost,
               class_name: item.size_breakdown?.class_name || null
             },
@@ -1276,7 +1298,15 @@ export default function QuotationWizard({
         sizes: hasMeasurements ? orgAnalysis.size_distribution : {},
         cover_letter: coverLetter,
         gst_percent: parseFloat(gstPercent) || 0,
+        is_tax_inclusive: isTaxInclusive,
+        tax_amount: totals.gstValue,
         pre_tax_subtotal: totals.subtotal,
+        tax_breakdown: {
+          rate: parseFloat(gstPercent) || 0,
+          cgst: totals.cgst,
+          sgst: totals.sgst,
+          total_tax: totals.gstValue
+        },
         sales_type: salesType,
         customer_type: customerType,
         quotation_type: quotationType,
@@ -1389,6 +1419,7 @@ Forma Apparels Co.`;
     setTemplateLineItems([]);
     setCoverLetter('');
     setGstPercent('18');
+    setIsTaxInclusive(false);
     setOrgAnalysis({
       total_entities: 0,
       measured_count: 0,
@@ -1502,6 +1533,8 @@ Forma Apparels Co.`;
             fabricsList={fabricsList}
             buttonsList={buttonsList}
             threadsList={threadsList}
+            trimsList={trimsList}
+            trimCategories={trimCategories}
             inwardRates={inwardRates}
             fabricMargins={fabricMargins}
             samConfigurations={samConfigurations}
@@ -1571,6 +1604,8 @@ Forma Apparels Co.`;
             quoteTotals={getCalculatedQuoteTotals()}
             gstPercent={gstPercent}
             setGstPercent={setGstPercent}
+            isTaxInclusive={isTaxInclusive}
+            setIsTaxInclusive={setIsTaxInclusive}
             extraCharges={extraCharges}
             setExtraCharges={setExtraCharges}
             status={status}

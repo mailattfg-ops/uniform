@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { Clipboard, Check, UserCheck, Key, LogIn, ArrowRight, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 

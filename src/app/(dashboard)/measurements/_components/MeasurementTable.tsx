@@ -5,10 +5,11 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { Eye, Clock, ShieldCheck, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
 import { Select } from '@/components/ui/Select';
 import { Filter } from 'lucide-react';
+import { formatDate } from '@/lib/formatters';
 
 interface MeasurementRecord {
   id: string;
@@ -28,6 +29,11 @@ interface MeasurementRecord {
   user_profiles?: {
     full_name: string;
   };
+  search_name?: string;
+  search_id?: string;
+  search_org?: string;
+  search_staff?: string;
+  search_all?: string;
 }
 
 export const MeasurementTable: React.FC = () => {
@@ -45,10 +51,10 @@ export const MeasurementTable: React.FC = () => {
   const fetchFilters = async () => {
     try {
       const [orgsRes, deptsRes, chartsRes, configRes] = await Promise.all([
-        api.get('/organizations'),
-        api.get('/departments'),
-        api.get('/size-charts'),
-        api.get('/measurements/config')
+        api.get('/organizations').catch(() => ({ data: [] })),
+        api.get('/departments').catch(() => ({ data: [] })),
+        api.get('/size-charts').catch(() => ({ data: [] })),
+        api.get('/measurements/config').catch(() => ({ data: [] }))
       ]);
       setOrganizations(orgsRes.data);
       setDepartments(deptsRes.data);
@@ -139,8 +145,8 @@ export const MeasurementTable: React.FC = () => {
     // 3. Prepare Rows
     const rows = data.map(r => {
       const date = new Date(r.recorded_at);
-      const formattedDate = date.toLocaleDateString();
-      const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const formattedDate = formatDate(r.recorded_at);
+      const formattedTime = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
       
       const baseValues = [
         `"${r.registry_members?.full_name || ''}"`,
@@ -260,18 +266,14 @@ export const MeasurementTable: React.FC = () => {
     {
       header: 'Capture Log',
       accessor: (r) => {
-        const date = new Date(r.recorded_at);
-        const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-        const formattedTime = date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-        
         return (
           <div className="space-y-1.5 py-2">
-            <div className="flex items-center gap-2 text-zinc-400">
-               <Clock size={10} />
-               <span className="text-[10px] font-bold">{formattedDate} • {formattedTime}</span>
+            <div className="flex items-center gap-2 text-zinc-600 font-mono">
+               <Clock size={11} className="text-[#2d8d9b]" />
+               <span className="text-[11px] font-bold">{formatDate(r.recorded_at, true)}</span>
             </div>
             <p className="text-[9px] font-black text-[#8b6b5a] uppercase tracking-widest">
-               REF: {r.user_profiles?.full_name || 'System Auto'}
+               By: {r.user_profiles?.full_name || r.search_staff || 'Staff'}
             </p>
           </div>
         );

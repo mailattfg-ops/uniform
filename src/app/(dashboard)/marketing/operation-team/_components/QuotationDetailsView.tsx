@@ -1,16 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { 
-  ArrowLeft, Edit3, Check, CheckCircle2, XCircle, Eye, Trash2, Plus, Scale, Clock, Percent, Building2, Layers
+  ArrowLeft, Edit3, Check, CheckCircle2, XCircle, Trash2, Plus, Scale, Building2
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
+import { formatDate } from '@/lib/formatters';
 import { Quotation, QuotationItem, Fabric, getSelectedQuotePricing, compileQuotationHTML } from '../_lib/compileQuotationHTML';
+
+// Helpers for department, division, and fabric cleanup
+const getCleanDeptName = (name: string) => {
+  if (!name) return 'General Items';
+  return name.replace(/\s*\([^)]*\)\s*/g, '').trim();
+};
+
+const getCleanDivision = (name: string, fallbackDiv?: string) => {
+  if (fallbackDiv) return fallbackDiv;
+  if (!name) return '';
+  const match = name.match(/\(([^)]+)\)/);
+  return match ? match[1].trim() : '';
+};
+
+const getFabricTitle = (f: any) => {
+  if (!f) return 'Custom Fabric';
+  const n = f.name || '';
+  const b = f.brand_name ? ` (${f.brand_name})` : '';
+  const s = f.shade ? ` - ${f.shade}` : '';
+  return `${n}${b}${s}`.trim() || f.brand_name || 'Custom Fabric';
+};
 
 interface Organization {
   id: number;
@@ -384,7 +406,7 @@ Forma Apparels Co.`;
           className="flex items-center gap-2 shadow-sm rounded-xl py-2.5 border-zinc-200"
         >
           <ArrowLeft size={14} />
-          Back to Registry
+          Back to Operations Quotation Registry
         </Button>
 
         <div className="flex items-center gap-3 font-semibold">
@@ -517,111 +539,151 @@ Forma Apparels Co.`;
             )}
           </div>
         </div>
-
         {/* CORE PARAMETERS GRID */}
+        {editMode ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* CUSTOMER ORG */}
+            <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Customer Client</span>
+                <Select
+                  options={organizations.map(org => ({ label: org.name, value: String(org.id) }))}
+                  value={editedOrgId}
+                  onChange={(val) => setEditedOrgId(val)}
+                  className="bg-white border-zinc-200 rounded-xl font-bold text-xs mt-1 w-full text-[#3a525d]"
+                />
+              </div>
+            </Card>
+
+            {/* ESTIMATED TIME */}
+            <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Production Time Metrics</span>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Input
+                    type="text"
+                    value={editedTime}
+                    onChange={(e) => setEditedTime(e.target.value)}
+                    placeholder="E.g. 50 Hours"
+                    className="bg-white text-xs font-bold rounded-xl text-center"
+                  />
+                  <Input
+                    type="number"
+                    value={editedDays}
+                    onChange={(e) => setEditedDays(parseInt(e.target.value) || 0)}
+                    placeholder="Days"
+                    className="bg-white text-xs font-bold rounded-xl text-center"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* MARGIN PERCENTAGE */}
+            <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Profit Markup Margin</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    value={editedMargin}
+                    onChange={(e) => handleMarginChange(e.target.value)}
+                    className="bg-white font-mono font-bold text-xs rounded-xl"
+                  />
+                  <span className="text-xs font-bold text-zinc-400">%</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* EXPECTED DELIVERY DATE */}
+            <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Target Delivery Date</span>
+                <Input
+                  type="date"
+                  value={editedDeliveryDate}
+                  onChange={(e) => setEditedDeliveryDate(e.target.value)}
+                  className="bg-white font-mono font-bold text-xs rounded-xl mt-1"
+                />
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Customer Client</p>
+              <p className="text-base font-black text-[#3a525d] mt-1">
+                {selectedQuotation.organizations?.name || 'Customer'}
+              </p>
+            </Card>
+
+            <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Group Design Number</p>
+              <p className="text-base font-black text-[#2d8d9b] mt-1">
+                {selectedQuotation.group_design_number?.code || '—'}
+              </p>
+            </Card>
+
+            <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Target Product</p>
+              <p className="text-base font-black text-[#3a525d] mt-1">
+                {selectedQuotation.items && selectedQuotation.items.some((item: any) => item.size_breakdown?.is_manual)
+                  ? 'Multiple Manual Garment Lines'
+                  : (selectedQuotation.items?.[0]?.product_types?.name || selectedQuotation.items?.[0]?.product_type_name || 'Uniform item')}
+              </p>
+            </Card>
+
+            <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Production Time</p>
+              <p className="text-base font-black text-[#3a525d] mt-1">{selectedQuotation.total_estimated_time || 'N/A'}</p>
+              <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">
+                ({selectedQuotation.production_days_estimate} Production Days)
+              </p>
+            </Card>
+
+            <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">Expected Delivery Schedule</p>
+              <p className="text-base font-black text-[#2d8d9b] mt-1">
+                {formatDate(selectedQuotation.expected_delivery_date)}
+              </p>
+            </Card>
+
+            <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
+              <p className="text-base font-black text-[#3a525d] mt-1">
+                {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'HOLD') && 'Readymade'}
+                {selectedQuotation.metrics_summary?.quotation_type === 'SET_TYPE' && 'Set Type'}
+                {(!selectedQuotation.metrics_summary?.quotation_type || selectedQuotation.metrics_summary.quotation_type === 'STANDARD') && 'Standard'}
+              </p>
+            </Card>
+          </div>
+        )}
+
+        {/* TWO COLUMN DETAILS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-          {/* 2/3 COLUMN: SYSTEM INPUTS */}
-          <div className="md:col-span-2 space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* 2/3 COLUMN: CONTENT */}
+          <div className="md:col-span-2 space-y-6">
 
-              {/* CUSTOMER ORG */}
-              <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Customer Client</span>
-                  {editMode ? (
-                    <Select
-                      options={organizations.map(org => ({ label: org.name, value: String(org.id) }))}
-                      value={editedOrgId}
-                      onChange={(val) => setEditedOrgId(val)}
-                      className="bg-white border-zinc-200 rounded-xl font-bold text-xs mt-1 w-full text-[#3a525d]"
-                    />
-                  ) : (
-                    <p className="text-base font-black text-[#3a525d] mt-1">{selectedQuotation.organizations?.name || 'Customer'}</p>
-                  )}
+            {/* PROPOSAL COVER LETTER BANNER (READ-ONLY) */}
+            {selectedQuotation.metrics_summary?.cover_letter && !editMode && (
+              <div className="p-8 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-[2rem] space-y-4 mb-6">
+                <div className="flex items-center gap-2 border-b border-[#2d8d9b]/10 pb-2">
+                  <Building2 size={16} className="text-[#2d8d9b]" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Proposal Cover Letter</span>
                 </div>
-              </Card>
+                <p className="text-xs font-semibold text-zinc-600 whitespace-pre-wrap leading-relaxed italic">
+                  {selectedQuotation.metrics_summary.cover_letter}
+                </p>
+              </div>
+            )}
 
-              {/* ESTIMATED TIME */}
-              <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Production Time Metrics</span>
-                  {editMode ? (
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                      <Input
-                        type="text"
-                        value={editedTime}
-                        onChange={(e) => setEditedTime(e.target.value)}
-                        placeholder="E.g. 50 Hours"
-                        className="bg-white text-xs font-bold rounded-xl text-center"
-                      />
-                      <Input
-                        type="number"
-                        value={editedDays}
-                        onChange={(e) => setEditedDays(parseInt(e.target.value) || 0)}
-                        placeholder="Days"
-                        className="bg-white text-xs font-bold rounded-xl text-center"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-base font-black text-[#3a525d] mt-1">{selectedQuotation.total_estimated_time || 'N/A'}</p>
-                      <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">({selectedQuotation.production_days_estimate} Production Days)</p>
-                    </>
-                  )}
-                </div>
-              </Card>
-
-              {/* MARGIN PERCENTAGE */}
-              <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Profit Markup Margin</span>
-                  {editMode ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        type="number"
-                        value={editedMargin}
-                        onChange={(e) => handleMarginChange(e.target.value)}
-                        className="bg-white font-mono font-bold text-xs rounded-xl"
-                      />
-                      <span className="text-xs font-bold text-zinc-400">%</span>
-                    </div>
-                  ) : (
-                    <p className="text-base font-black text-green-600 mt-1">+{selectedQuotation.profit_margin_percent}%</p>
-                  )}
-                </div>
-              </Card>
-
-              {/* EXPECTED DELIVERY DATE */}
-              <Card className="p-6 border border-zinc-100 bg-zinc-50/50 rounded-2xl flex flex-col justify-between">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Target Delivery Date</span>
-                  {editMode ? (
-                    <Input
-                      type="date"
-                      value={editedDeliveryDate}
-                      onChange={(e) => setEditedDeliveryDate(e.target.value)}
-                      className="bg-white font-mono font-bold text-xs rounded-xl mt-1"
-                    />
-                  ) : (
-                    <p className="text-base font-black text-[#2d8d9b] mt-1">
-                      {selectedQuotation.expected_delivery_date
-                        ? new Date(selectedQuotation.expected_delivery_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
-                        : 'N/A'}
-                    </p>
-                  )}
-                </div>
-              </Card>
-
-            </div>
-
-            {/* EDITABLE/READONLY ITEMS BREAKDOWN LIST */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
-                  Quotation Garment Line Items
-                </h4>
-                {editMode && (
+            {/* EDITABLE GARMENT LINES OR RICH READ-ONLY PRODUCT LINES BREAKDOWN */}
+            {editMode ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    Quotation Garment Line Items
+                  </h4>
                   <Button
                     variant="outline"
                     size="sm"
@@ -631,45 +693,40 @@ Forma Apparels Co.`;
                     <Plus size={10} />
                     Add Garment
                   </Button>
-                )}
-              </div>
+                </div>
 
-              <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">Product Type</th>
-                      <th className="p-3">Fabric Catalog</th>
-                      <th className="p-3">SAM Price (₹)</th>
-                      <th className="p-3">Design Ref</th>
-                      <th className="p-3 text-center w-20">Quantity</th>
-                      <th className="p-3 text-right">Base Cost</th>
-                      <th className="p-3 text-right">Selling Price</th>
-                      <th className="p-3 text-right">Total Price</th>
-                      {editMode && <th className="p-3 text-center">Del</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
-                    {(editMode ? editedItems : selectedQuotation.items || []).map((item, idx) => {
-                      const pTypeName = item.product_types?.name ||
-                        productTypes.find(p => p.id === item.product_type_id)?.name ||
-                        'Garment';
-                      const fabricId = item.size_breakdown?.fabric_id;
-                      const fabricBrand = fabricsList.find(f => f.id === fabricId)?.brand_name || 'Custom Fabric';
+                <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                        <th className="p-3">Product Type</th>
+                        <th className="p-3">Fabric Catalog</th>
+                        <th className="p-3">SAM Price (₹)</th>
+                        <th className="p-3">Design Ref</th>
+                        <th className="p-3 text-center w-20">Quantity</th>
+                        <th className="p-3 text-right">Base Cost</th>
+                        <th className="p-3 text-right">Selling Price</th>
+                        <th className="p-3 text-right">Total Price</th>
+                        <th className="p-3 text-center">Del</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
+                      {editedItems.map((item, idx) => {
+                        const totalBaseCost = (item.fabric_cost_per_item || 0) +
+                          (item.accessories_cost_per_item || 0) +
+                          (item.labor_cost_per_item || 0);
 
-                      const totalBaseCost = (item.fabric_cost_per_item || 0) +
-                        (item.accessories_cost_per_item || 0) +
-                        (item.labor_cost_per_item || 0);
-
-                      if (editMode) {
                         return (
                           <tr key={idx} className="hover:bg-zinc-50/50">
-                            {/* PRODUCT TYPE SELECT */}
+                            {/* PRODUCT TYPE / PRODUCT NAME */}
                             <td className="p-2">
+                              <div className="font-bold text-[#3a525d] text-xs leading-tight">
+                                {item.product_name || item.size_breakdown?.product_name || item.manual_item_name || 'Garment'}
+                              </div>
                               <select
                                 value={item.product_type_id}
                                 onChange={(e) => handleItemChange(idx, 'product_type_id', e.target.value)}
-                                className="bg-white border border-zinc-200 rounded-lg text-xs font-bold w-32 py-1 px-2 text-[#3a525d] outline-none"
+                                className="bg-zinc-50 border border-zinc-200 rounded text-[10px] font-semibold text-zinc-500 mt-1 py-0.5 px-1 outline-none w-32"
                               >
                                 {productTypes.map(p => (
                                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -781,64 +838,314 @@ Forma Apparels Co.`;
                             </td>
                           </tr>
                         );
-                      }
-
-                      // Read-only row
-                      return (
-                        <tr key={idx} className="hover:bg-zinc-50/20">
-                          <td className="p-4 font-black text-[#3a525d]">{pTypeName}</td>
-                          <td className="p-4 text-zinc-500">{fabricBrand}</td>
-                          <td className="p-4 font-mono">{item.size_breakdown?.sam_value ? `₹${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A'}</td>
-                          <td className="p-4">{item.size_breakdown?.design_number || 'N/A'}</td>
-                          <td className="p-4 text-center font-black">{item.quantity}</td>
-                          <td className="p-4 text-right font-mono text-zinc-400">
-                            ₹{totalBaseCost.toFixed(2)}
-                            <div className="text-[9px] opacity-75">
-                              (F:{item.fabric_cost_per_item} + A:{item.accessories_cost_per_item} + L:{item.labor_cost_per_item})
-                            </div>
-                          </td>
-                          <td className="p-4 text-right font-bold font-mono">₹{Number(item.unit_price).toFixed(2)}</td>
-                          <td className="p-4 text-right font-black text-[#2d8d9b] font-mono">₹{Number(item.total_price).toFixed(2)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-
-                  {/* FOOTER TOTALS */}
-                  <tfoot>
-                    <tr className="bg-zinc-50/50 font-black text-[#3a525d] border-t border-zinc-150">
-                      <td colSpan={2} className="p-4 uppercase text-[9px] tracking-widest text-[#3a525d]">Sum totals:</td>
-                      <td className="p-4 font-mono font-black">
-                        ₹{((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + ((it.size_breakdown?.sam_value || 0) * (it.quantity || 0)), 0)).toFixed(2)}
-                      </td>
-                      <td></td>
-                      <td className="p-4 text-center text-sm">
-                        {(editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0)} Qty
-                      </td>
-                      <td className="p-4 text-right font-mono text-xs text-zinc-400">
-                        ₹{((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => {
-                          const totalBaseCost = (it.fabric_cost_per_item || 0) + (it.accessories_cost_per_item || 0) + (it.labor_cost_per_item || 0);
-                          return acc + (totalBaseCost * (it.quantity || 0));
-                        }, 0)).toFixed(2)}
-                      </td>
-                      <td></td>
-                      <td className="p-4 text-right text-base text-[#2d8d9b] font-mono font-black">
-                        ₹{((editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.total_price || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      {editMode && <td></td>}
-                    </tr>
-                  </tfoot>
-                </table>
+                      })}
+                    </tbody>
+                    {/* FOOTER TOTALS */}
+                    <tfoot>
+                      <tr className="bg-zinc-50/50 font-black text-[#3a525d] border-t border-zinc-150">
+                        <td colSpan={2} className="p-4 uppercase text-[9px] tracking-widest text-[#3a525d]">Sum totals:</td>
+                        <td className="p-4 font-mono font-black">
+                          ₹{(editedItems.reduce((acc, it) => acc + ((it.size_breakdown?.sam_value || 0) * (it.quantity || 0)), 0)).toFixed(2)}
+                        </td>
+                        <td></td>
+                        <td className="p-4 text-center text-sm">
+                          {editedItems.reduce((acc, it) => acc + (it.quantity || 0), 0)} Qty
+                        </td>
+                        <td className="p-4 text-right font-mono text-xs text-zinc-400">
+                          ₹{(editedItems.reduce((acc, it) => {
+                            const totalBaseCost = (it.fabric_cost_per_item || 0) + (it.accessories_cost_per_item || 0) + (it.labor_cost_per_item || 0);
+                            return acc + (totalBaseCost * (it.quantity || 0));
+                          }, 0)).toFixed(2)}
+                        </td>
+                        <td></td>
+                        <td className="p-4 text-right text-base text-[#2d8d9b] font-mono font-black">
+                          ₹{(editedItems.reduce((acc, it) => acc + (it.total_price || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* RICH READ-ONLY PRODUCT LINES BREAKDOWN (MATCHING QUOTATION HISTORY) */
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product Lines Breakdown</h4>
+                <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                        <th className="p-3">Product Type</th>
+                        <th className="p-3">Fabric Options</th>
+                        <th className="p-3">SAM Cost</th>
+                        <th className="p-3">Design Number</th>
+                        <th className="p-3 text-right">Quantity</th>
+                        <th className="p-3 text-right">Unit Price</th>
+                        <th className="p-3 text-right">Total Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
+                      {(() => {
+                        const standardItems = (selectedQuotation.items || []).filter((item: any) => !item.size_breakdown?.is_separate_fabric);
+                        const hasDeptItems = standardItems.some((item: any) => item.size_breakdown?.department_name);
 
-            {/* COVER LETTER SECTION */}
-            <div className="space-y-4 pt-6 border-t border-zinc-100 animate-in fade-in duration-500">
-              <div className="flex justify-between items-center flex-wrap gap-2">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
-                  Proposal Cover Letter (100% Customizable)
-                </h4>
-                {editMode && (
+                        if (hasDeptItems) {
+                          const groups: Record<string, any[]> = {};
+                          standardItems.forEach((item: any) => {
+                            const deptName = item.size_breakdown?.department_name || 'General Items';
+                            const cleanDept = getCleanDeptName(deptName);
+                            if (!groups[cleanDept]) {
+                              groups[cleanDept] = [];
+                            }
+                            groups[cleanDept].push(item);
+                          });
+
+                          return Object.entries(groups).flatMap(([cleanDeptName, groupItems]) => [
+                            <tr key={`header-${cleanDeptName}`} className="bg-zinc-50/80 border-t border-b border-zinc-150 text-[10px] font-black uppercase text-[#3a525d] tracking-wider">
+                              <td colSpan={7} className="p-3 font-black">DEPARTMENT: {cleanDeptName}</td>
+                            </tr>,
+                            ...groupItems.map((item: any, idx: number) => {
+                              const pTypeName = item.product_name || item.size_breakdown?.product_name || item.manual_item_name || item.product_types?.name || item.product_type_name || productTypes.find(p => p.id === item.product_type_id)?.name || 'Uniform Item';
+                              const deptId = item.size_breakdown?.department_id;
+                              const qty = Number(item.quantity) || 0;
+                              
+                              const deptMeta = selectedQuotation.metrics_summary?.departments?.find((d: any) => String(d.id) === String(deptId));
+                              let divisionName = '';
+                              if (deptMeta && deptMeta.division) {
+                                divisionName = deptMeta.division;
+                              } else if (String(deptId).includes('_')) {
+                                divisionName = String(deptId).split('_')[1];
+                              }
+                              if (!divisionName && item.size_breakdown?.department_name) {
+                                divisionName = getCleanDivision(item.size_breakdown.department_name);
+                              }
+
+                              const persons = deptMeta ? deptMeta.persons : Math.ceil(qty / 2);
+                              const sets = deptMeta ? deptMeta.sets : 2;
+                              const divisionLabel = divisionName ? `Division: ${divisionName}` : 'Main Division';
+                              const deptHeader = `${divisionLabel} (${persons} Persons × ${sets} Sets)`;
+
+                              const designNotes = item.size_breakdown?.design_number || '';
+                              const selectedSize = item.size_breakdown?.selected_size;
+                              const sizeLabel = selectedSize ? ` (Size: ${selectedSize})` : '';
+                              const productLine = designNotes ? `* ${pTypeName}${sizeLabel} - ${designNotes}` : `* ${pTypeName}${sizeLabel}`;
+                              
+                              const fabricId = item.size_breakdown?.fabric_id;
+                              const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+                              
+                              const att1Id = item.size_breakdown?.attachment_fabric1_id;
+                              const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
+                              
+                              const att2Id = item.size_breakdown?.attachment_fabric2_id;
+                              const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
+
+                              const firstCellJSX = (
+                                <div className="space-y-0.5 py-1 text-left">
+                                  <div className="font-bold text-zinc-400 uppercase text-[9px] tracking-wider">{deptHeader}</div>
+                                  <div className="font-bold text-[#3a525d] text-xs">{productLine}</div>
+                                </div>
+                              );
+
+                              const fabricStyleJSX = (
+                                <div className="space-y-1 py-1 text-left text-xs">
+                                  {fabricId ? (
+                                    <div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-wider border border-amber-200/60">FAB(M)</span>
+                                        <span className="font-bold text-zinc-700">{getFabricTitle(fabric)}</span>
+                                      </div>
+                                      {item.size_breakdown?.main_fabric_meters && (
+                                        <span className="text-[10px] text-zinc-400 pl-1">{item.size_breakdown.main_fabric_meters}m</span>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                  {att1Id ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[9px] font-black uppercase tracking-wider border border-zinc-200/60">FAB(A1)</span>
+                                      <span className="text-zinc-600 font-medium text-[11px]">{getFabricTitle(att1Fabric)}</span>
+                                    </div>
+                                  ) : null}
+                                  {att2Id ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[9px] font-black uppercase tracking-wider border border-zinc-200/60">FAB(A2)</span>
+                                      <span className="text-zinc-600 font-medium text-[11px]">{getFabricTitle(att2Fabric)}</span>
+                                    </div>
+                                  ) : null}
+                                  {!fabricId && !att1Id && !att2Id && (
+                                    <span className="text-zinc-350">—</span>
+                                  )}
+                                </div>
+                              );
+
+                              const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
+                              const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A';
+                              const price = Number(item.unit_price) || 0;
+                              const total = Number(item.total_price) || 0;
+
+                              return (
+                                <tr key={`${cleanDeptName}-${item.id || idx}`} className="hover:bg-zinc-50/50 bg-white">
+                                  <td className="p-3">{firstCellJSX}</td>
+                                  <td className="p-3">{fabricStyleJSX}</td>
+                                  <td className="p-3 font-mono">{sam}</td>
+                                  <td className="p-3 text-zinc-550 text-xs">{designNum}</td>
+                                  <td className="p-3 text-right font-black">{qty}</td>
+                                  <td className="p-3 text-right font-mono">₹{price.toFixed(2)}</td>
+                                  <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{total.toFixed(2)}</td>
+                                </tr>
+                              );
+                            })
+                          ]);
+                        } else {
+                          return standardItems.map((item: any, idx: number) => {
+                            const pTypeName = item.product_name || item.size_breakdown?.product_name || item.manual_item_name || item.product_types?.name || item.product_type_name || productTypes.find(p => p.id === item.product_type_id)?.name || 'Uniform Item';
+                            const fabricId = item.size_breakdown?.fabric_id;
+                            const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+
+                            const className = item.size_breakdown?.class_name;
+                            const classPrefix = className ? `[${className}] ` : '';
+                            const selectedSize = item.size_breakdown?.selected_size;
+                            const sizeLabel = selectedSize ? ` (Size: ${selectedSize})` : '';
+                            
+                            const firstCellJSX = <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}{sizeLabel}</span>;
+                            const fabricStyleJSX = (
+                              <div className="space-y-0.5 text-xs font-semibold text-zinc-700">
+                                {fabricId ? <span>{getFabricTitle(fabric)}</span> : <span className="text-zinc-350">—</span>}
+                              </div>
+                            );
+
+                            const designNum = item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—';
+                            const sam = item.size_breakdown?.sam_value ? `₹ ${Number(item.size_breakdown.sam_value).toFixed(2)}` : 'N/A';
+                            const price = Number(item.unit_price) || 0;
+                            const total = Number(item.total_price) || 0;
+
+                            return (
+                              <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
+                                <td className="p-3">{firstCellJSX}</td>
+                                <td className="p-3">{fabricStyleJSX}</td>
+                                <td className="p-3 font-mono">{sam}</td>
+                                <td className="p-3">
+                                  {item.size_breakdown?.product_design_number ? (
+                                    <span className="font-bold text-[#2d8d9b] block">{item.size_breakdown.product_design_number}</span>
+                                  ) : null}
+                                  {item.size_breakdown?.design_number ? (
+                                    <span className="text-zinc-500 text-[10px] font-semibold">{item.size_breakdown.design_number}</span>
+                                  ) : '—'}
+                                </td>
+                                <td className="p-3 text-right font-black">{item.quantity}</td>
+                                <td className="p-3 text-right font-mono">₹{price.toFixed(2)}</td>
+                                <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{total.toFixed(2)}</td>
+                              </tr>
+                            );
+                          });
+                        }
+                      })()}
+                    </tbody>
+                    {/* FOOTER TOTALS */}
+                    <tfoot>
+                      <tr className="bg-zinc-50/50 font-black text-[#3a525d] border-t border-zinc-150">
+                        <td colSpan={4} className="p-3 uppercase text-[9px] tracking-widest text-[#3a525d]">Total:</td>
+                        <td className="p-3 text-right font-black text-sm">
+                          {(selectedQuotation.items || []).reduce((acc, it) => acc + (Number(it.quantity) || 0), 0)} Qty
+                        </td>
+                        <td></td>
+                        <td className="p-3 text-right text-base text-[#2d8d9b] font-mono font-black">
+                          ₹{((selectedQuotation.items || []).reduce((acc, it) => acc + (Number(it.total_price) || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SEPARATE FABRICS TABLE */}
+            {!editMode && selectedQuotation.metrics_summary?.separate_fabrics && selectedQuotation.metrics_summary.separate_fabrics.length > 0 && (
+              <div className="space-y-3 pt-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Separate Fabric Materials Supplied</h4>
+                <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                        <th className="p-3 pl-4">Fabric Details</th>
+                        <th className="p-3 text-right">Meters</th>
+                        <th className="p-3 text-right">Rate/Meter</th>
+                        <th className="p-3 text-right pr-4">Total Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
+                      {selectedQuotation.metrics_summary.separate_fabrics.map((sf: any, idx: number) => {
+                        const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
+                        const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+                        const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
+                        const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                        const meters = Number(sf.meters) || 0;
+                        const rate = Number(sf.rate) || 0;
+                        const total = meters * rate;
+
+                        return (
+                          <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                            <td className="p-3 text-right">{meters} m</td>
+                            <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
+                            <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* DEPARTMENTS INCLUDED TABLE */}
+            {!editMode && selectedQuotation.metrics_summary?.departments && selectedQuotation.metrics_summary.departments.length > 0 && (
+              <div className="space-y-3 pt-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Departments Included</h4>
+                <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                        <th className="p-3 pl-4">Department Name</th>
+                        <th className="p-3">Division</th>
+                        <th className="p-3 text-right">No. of Persons</th>
+                        <th className="p-3 text-right">Sets / Person</th>
+                        <th className="p-3 text-right pr-4">Total Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
+                      {selectedQuotation.metrics_summary.departments.map((dept: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                          <td className="p-3 pl-4 font-black text-[#3a525d]">{dept.name}</td>
+                          <td className="p-3 text-zinc-400">{dept.division || '—'}</td>
+                          <td className="p-3 text-right">{dept.persons}</td>
+                          <td className="p-3 text-right">{dept.sets}</td>
+                          <td className="p-3 text-right font-black text-[#2d8d9b] pr-4">{dept.persons * dept.sets}</td>
+                        </tr>
+                      ))}
+                      {/* Total Row */}
+                      <tr className="bg-zinc-50/50 border-t border-zinc-250/60 text-[10px] font-black uppercase text-[#3a525d]">
+                        <td className="p-3 pl-4" colSpan={2}>Total</td>
+                        <td className="p-3 text-right">
+                          {selectedQuotation.metrics_summary.departments.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
+                        </td>
+                        <td className="p-3"></td>
+                        <td className="p-3 text-right text-[#2d8d9b] pr-4">
+                          {selectedQuotation.metrics_summary.departments.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* EDIT MODE COVER LETTER SECTION */}
+            {editMode && (
+              <div className="space-y-4 pt-6 border-t border-zinc-100 animate-in fade-in duration-500">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    Proposal Cover Letter (100% Customizable)
+                  </h4>
                   <button
                     type="button"
                     onClick={generateAutoCoverLetter}
@@ -846,9 +1153,7 @@ Forma Apparels Co.`;
                   >
                     ✨ Auto-Generate Cover Letter Template
                   </button>
-                )}
-              </div>
-              {editMode ? (
+                </div>
                 <textarea
                   rows={6}
                   placeholder="Enter custom cover letter introduction for the client proposal..."
@@ -856,18 +1161,8 @@ Forma Apparels Co.`;
                   value={editedCoverLetter}
                   onChange={(e) => setEditedCoverLetter(e.target.value)}
                 />
-              ) : (
-                selectedQuotation.metrics_summary?.cover_letter ? (
-                  <div className="text-xs text-zinc-650 leading-relaxed font-semibold whitespace-pre-wrap italic bg-gray-50/60 p-6 rounded-2xl border border-zinc-150 shadow-inner">
-                    {selectedQuotation.metrics_summary.cover_letter}
-                  </div>
-                ) : (
-                  <div className="text-xs text-zinc-400 leading-relaxed font-semibold italic bg-zinc-50/30 p-4 rounded-xl border border-dashed border-zinc-200 text-center">
-                    No cover letter drafted for this proposal yet.
-                  </div>
-                )
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
 
@@ -884,9 +1179,9 @@ Forma Apparels Co.`;
 
                 <div className="space-y-3 divide-y divide-zinc-200/50 text-sm font-semibold">
                   <div className="flex justify-between py-2 text-zinc-500">
-                    <span>Total Items Quantity:</span>
+                    <span>Total Members Quantity:</span>
                     <span className="text-[#3a525d] font-black">
-                      {(editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0)} Garments
+                      {selectedQuotation.metrics_summary?.total_entities || (editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0)} Items
                     </span>
                   </div>
 
@@ -944,11 +1239,13 @@ Forma Apparels Co.`;
                   </div>
 
                   <div className="flex justify-between py-2 text-zinc-500">
-                    <span>Avg Price / Garment:</span>
+                    <span>Suggested Retail/Item (Pre-Tax):</span>
                     <span className="font-mono text-[#2d8d9b] font-black">
                       ₹{(
-                        (editMode ? editedFinalValue : selectedQuotation.final_quote_value) /
-                        Math.max(1, (editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0))
+                        (editMode
+                          ? editedItems.reduce((acc, it) => acc + (it.total_price || 0), 0)
+                          : pricing.subtotal) /
+                        Math.max(1, (selectedQuotation.metrics_summary?.total_entities || (editMode ? editedItems : selectedQuotation.items || []).reduce((acc, it) => acc + (it.quantity || 0), 0)))
                       ).toFixed(2)}
                     </span>
                   </div>
@@ -957,7 +1254,7 @@ Forma Apparels Co.`;
 
               <div className="border-t border-zinc-200 pt-6 space-y-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">
-                  Formal Quotation Value
+                  Total Contract Value (With GST)
                 </p>
                 {editMode ? (
                   <div className="flex items-center gap-2">

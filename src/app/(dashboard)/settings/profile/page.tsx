@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { 
-  User, ShieldCheck, Mail, MapPin, Ruler, Calendar, Award, 
-  History, ArrowRight, Settings2, Camera, Scale, TrendingUp, 
-  TrendingDown, Activity, Box, Maximize2, Layers 
+  User, ShieldCheck, Mail, MapPin, Calendar, Award, 
+  ArrowRight, Camera, Scale, TrendingUp, 
+  TrendingDown, Box, Maximize2, Layers 
 } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
+import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 
 export default function UserProfilePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -101,7 +101,7 @@ export default function UserProfilePage() {
       return [
         { label: 'INSTITUTION', val: details?.organizations?.name, icon: MapPin },
         { label: 'ACADEMIC GROUP', val: details?.departments?.name, icon: Award },
-        { label: 'ENROLLMENT', val: details?.created_at ? new Date(details.created_at).toLocaleDateString() : 'Active', icon: Calendar },
+        { label: 'ENROLLMENT', val: details?.created_at ? formatDate(details.created_at) : 'Active', icon: Calendar },
         { label: 'VERIFIED_MAIL', val: profile?.email, icon: Mail }
       ];
     }
@@ -186,22 +186,8 @@ export default function UserProfilePage() {
             {latestFit ? (
               <div className="space-y-8">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {Object.entries(latestFit.dynamic_data || {}).map(([category, metrics]: [string, any]) => {
-                       const strategy = metrics.strategy || 'manual';
-                       const technicalKeys = ['strategy', 'chart_id'];
-                       
-                       // For size chart, we might have selected_size and the size name key
-                       let displayMetrics: [string, any][] = [];
-                       let sizeName = null;
-
-                       if (strategy === 'us_size_chart') {
-                          sizeName = Object.keys(metrics).find(k => !technicalKeys.includes(k) && k !== 'selected_size');
-                          if (metrics.selected_size) {
-                             displayMetrics = Object.entries(metrics.selected_size);
-                          }
-                       } else {
-                          displayMetrics = Object.entries(metrics).filter(([k]) => !technicalKeys.includes(k));
-                       }
+                    {latestFit.dynamic_data && Object.entries(latestFit.dynamic_data).map(([category, metrics]: [string, any]) => {
+                       const display = extractGarmentDisplayMetrics(category, metrics);
 
                        return (
                           <div key={category} className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden flex flex-col p-8 space-y-6 transition-all hover:shadow-xl group">
@@ -211,26 +197,23 @@ export default function UserProfilePage() {
                                    <h4 className="text-sm font-black uppercase tracking-widest text-[#3a525d]">{category}</h4>
                                 </div>
                                 <div className="flex gap-2">
-                                   {sizeName && (
-                                      <span className="text-[9px] font-black uppercase px-3 py-1 bg-[#3a525d] text-white rounded-lg shadow-sm">
-                                         {sizeName}
-                                      </span>
-                                   )}
-                                   <span className="text-[9px] font-black uppercase px-3 py-1 bg-zinc-50 border border-zinc-100 rounded-lg text-zinc-400">
-                                      {strategy === 'us_size_chart' ? 'Size Chart' : 'Manual Entry'}
+                                   <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border ${
+                                      display.strategy === 'us_size_chart'
+                                         ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                         : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                   }`}>
+                                      {display.strategy === 'us_size_chart' ? 'Standard US Size' : 'Custom Bespoke'}
                                    </span>
                                 </div>
                              </div>
 
                              <div className="space-y-3">
-                                {displayMetrics.length > 0 ? displayMetrics.map(([label, val]: [any, any]) => {
-                                   const unit = config.find(f => f.label?.toLowerCase() === label?.toLowerCase())?.unit || 'in';
+                                {display.metrics.length > 0 ? display.metrics.map((m: any) => {
                                    return (
-                                      <div key={label} className="flex justify-between items-center bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50 hover:bg-white hover:border-[#2d8d9b]/20 hover:shadow-sm transition-all group/row">
-                                         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-hover/row:text-[#2d8d9b] transition-colors">{label}</span>
+                                      <div key={m.label} className="flex justify-between items-center bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50 hover:bg-white hover:border-[#2d8d9b]/20 hover:shadow-sm transition-all group/row">
+                                         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-hover/row:text-[#2d8d9b] transition-colors">{m.label}</span>
                                          <div className="flex items-baseline gap-1">
-                                            <span className="text-sm font-black text-[#3a525d]">{val}</span>
-                                            <span className="text-[8px] font-bold text-zinc-300 uppercase italic">{unit}</span>
+                                            <span className="text-sm font-black text-[#3a525d]">{m.value}</span>
                                          </div>
                                       </div>
                                    );
@@ -274,7 +257,7 @@ export default function UserProfilePage() {
                    {measurements.slice(1, 5).map((m, idx) => (
                      <Card key={idx} className="p-6 border-none bg-white shadow-xl hover:shadow-2xl transition-all group flex items-center justify-between">
                         <div>
-                           <p className="text-[10px] font-black text-zinc-300 uppercase leading-none mb-1">{new Date(m.recorded_at).toLocaleDateString()}</p>
+                           <p className="text-[10px] font-black text-zinc-300 uppercase leading-none mb-1">{formatDate(m.recorded_at)}</p>
                            <p className="text-xl font-black text-[#3a525d]">SIZE_{m.suggested_size}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-zinc-50 flex items-center justify-center group-hover:bg-[#2d8d9b] group-hover:text-white transition-all">

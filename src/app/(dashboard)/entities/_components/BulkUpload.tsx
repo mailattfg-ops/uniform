@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import { FileUp, FileSpreadsheet, CheckCircle2, AlertCircle, X, ArrowRight, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 interface BulkUploadProps {
   onComplete?: () => void;
@@ -15,7 +15,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
   const [file, setFile] = useState<File | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
+  const [results, setResults] = useState<{ success: number; failed: number; errors?: any[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,18 +57,44 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
     const loadingToast = toast.loading(`Importing ${data.length} records...`);
 
     try {
-      const payload = data.map(item => ({
-        full_name: item['Full Name'] || item['Name'] || item['full_name'] || '',
-        admission_no: String(item['Reference ID'] || item['Admission No'] || item['ID'] || item['admission_no'] || ''),
-        organization_id: item['Organization ID'] || item['School ID'] || item['school_id'] || '',
-        department_id: item['Department ID'] || item['Class ID'] || item['class_id'] || '',
-        contact_mobile: String(item['Mobile'] || item['Phone'] || item['contact_mobile'] || ''),
-        gender: item['Gender'] || item['gender'] || 'Male'
-      }));
+      const payload = data.map(item => {
+        const findVal = (keys: string[]) => {
+          for (const k of keys) {
+            if (item[k] !== undefined && item[k] !== null && String(item[k]).trim() !== '') {
+              return item[k];
+            }
+          }
+          const itemKeys = Object.keys(item);
+          for (const k of keys) {
+            const match = itemKeys.find(ik => ik.toLowerCase().trim() === k.toLowerCase().trim());
+            if (match && item[match] !== undefined && item[match] !== null && String(item[match]).trim() !== '') {
+              return item[match];
+            }
+          }
+          return '';
+        };
+
+        return {
+          full_name: findVal(['Full Name', 'Name', 'Student Name', 'Member Name', 'full_name', 'Employee Name']),
+          admission_no: String(findVal(['Admission / Employee ID (Optional)', 'Admission / Employee ID', 'Reference ID', 'Admission No', 'Admission Number', 'Roll No', 'Roll Number', 'Employee ID', 'Emp ID', 'ID', 'admission_no', 'Reg No', 'Registration No', 'Code']) || ''),
+          organization_id: findVal(['Organization Name / ID (Optional)', 'Organization ID', 'Organization', 'Organization Name', 'School ID', 'School', 'organization_id', 'school_id', 'org_id']) || '',
+          department_id: findVal(['Department / Class', 'Department/Class', 'Department', 'Class', 'Grade', 'Standard', 'Section', 'Division', 'Department ID', 'Class ID', 'department_id', 'class_id']) || '',
+          contact_mobile: String(findVal(['Mobile (Optional)', 'Mobile', 'Mobile Number', 'Phone', 'Phone Number', 'contact_mobile', 'Contact', 'Mobile No', 'contact_number']) || ''),
+          gender: findVal(['Gender', 'gender', 'Sex']) || 'Male'
+        };
+      });
 
       const response = await api.post('/members/bulk-register', { members: payload });
-      setResults({ success: response.data.successCount, failed: response.data.errorCount });
-      toast.success('Data import completed!', { id: loadingToast });
+      setResults({ 
+        success: response.data.successCount, 
+        failed: response.data.errorCount,
+        errors: response.data.errors || []
+      });
+      if (response.data.successCount > 0) {
+        toast.success(`Imported ${response.data.successCount} records!`, { id: loadingToast });
+      } else {
+        toast.error(`Import failed for all ${response.data.errorCount} records.`, { id: loadingToast });
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Bulk upload failed', { id: loadingToast });
     } finally {
@@ -79,18 +105,34 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
   const downloadTemplate = () => {
     const templateData = [
       {
-        'Full Name': 'John Doe',
-        'Reference ID': 'EMP-2024-001',
-        'Organization ID': 1,
-        'Department ID': 1,
-        'Mobile': '9876543210',
-        'Gender': 'Male'
+        'Full Name': 'Samuel Jackson',
+        'Department / Class': 'Grade 5-A',
+        'Admission / Employee ID (Optional)': 'ADM1001',
+        'Mobile (Optional)': '9876543210',
+        'Gender': 'Male',
+        'Organization Name / ID (Optional)': 'Greenwood High'
+      },
+      {
+        'Full Name': 'Alice Cooper',
+        'Department / Class': 'Grade 10-B',
+        'Admission / Employee ID (Optional)': '',
+        'Mobile (Optional)': '',
+        'Gender': 'Female',
+        'Organization Name / ID (Optional)': ''
+      },
+      {
+        'Full Name': 'Robert Downy',
+        'Department / Class': 'Cardiology',
+        'Admission / Employee ID (Optional)': 'EMP-204',
+        'Mobile (Optional)': '9555444333',
+        'Gender': 'Male',
+        'Organization Name / ID (Optional)': ''
       }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'Entity_Import_Template.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Entity_Import');
+    XLSX.writeFile(wb, 'Entity_Bulk_Import_Template.xlsx');
   };
 
   if (results) {
@@ -111,11 +153,21 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
               <p className="text-3xl font-black text-red-700">{results.failed}</p>
             </div>
           </div>
+          {results.errors && results.errors.length > 0 && (
+            <div className="text-left bg-red-50/60 border border-red-100 rounded-2xl p-4 max-h-48 overflow-y-auto space-y-1.5">
+              <p className="text-[10px] font-black uppercase text-red-700 tracking-wider mb-2">Error Details:</p>
+              {results.errors.map((err: any, idx: number) => (
+                <p key={idx} className="text-xs text-red-600 font-medium">
+                  • Row {err.row} ({err.student}): {err.message}
+                </p>
+              ))}
+            </div>
+          )}
           <Button
             onClick={() => onComplete?.()}
             className="w-full h-14 rounded-2xl bg-[#3a525d] text-white hover:bg-[#2d8d9b] font-black uppercase tracking-widest text-[10px]"
           >
-            Back to Registry
+            Back to Entity Directory
           </Button>
         </div>
       </div>
@@ -213,8 +265,13 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
           <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
             <AlertCircle size={20} />
           </div>
-          <h4 className="text-sm font-black text-[#3a525d] uppercase tracking-tight">Requirement</h4>
-          <p className="text-xs font-semibold text-zinc-500 leading-relaxed">Ensure Excel columns: <span className="text-[#2d8d9b]">Full Name, Reference ID, Organization ID, Department ID</span>. Values must match the system identifiers.</p>
+          <h4 className="text-sm font-black text-[#3a525d] uppercase tracking-tight">Excel Format & Column Rules</h4>
+          <p className="text-xs font-semibold text-zinc-500 leading-relaxed">
+            • <strong className="text-[#3a525d]">Full Name</strong> & <strong className="text-[#3a525d]">Organization ID</strong>: Required.<br />
+            • <strong className="text-[#2d8d9b]">Department / Class</strong>: Optional. Type class/department name (e.g. <em>Grade 5-A</em> or <em>ICU</em>). Non-existent departments are auto-created.<br />
+            • <strong className="text-[#2d8d9b]">Reference ID / Admission No</strong>: Optional. If omitted, the system auto-generates a unique reference.<br />
+            • <strong className="text-[#2d8d9b]">Mobile</strong>: Optional.
+          </p>
         </div>
         <div className="p-8 bg-amber-50/50 rounded-[2.5rem] border border-amber-100/50 flex flex-col gap-3">
           <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm">

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ArrowRight } from 'lucide-react';
 import { Organization } from '../../page';
+import { formatDate } from '@/lib/formatters';
 
 interface WizardStep1Props {
   organizations: Organization[];
@@ -140,9 +141,35 @@ export default function WizardStep1({
         <>
           {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') && (
             <div className="space-y-4 border-t border-zinc-100 pt-6">
-              <div>
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments for Quotation</h4>
-                <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Check the departments to include — person counts and sets are configured in the next step</p>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments / Classes for Quotation</h4>
+                  <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Check the departments to include — student headcounts, measurements, and sets are auto-loaded in Step 2</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (setOrgDepartments) {
+                        setOrgDepartments(orgDepartments.map(d => ({ ...d, selected: true })));
+                      }
+                    }}
+                    className="px-3 py-1 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    Select All Classes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (setOrgDepartments) {
+                        setOrgDepartments(orgDepartments.map(d => ({ ...d, selected: false })));
+                      }
+                    }}
+                    className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
               </div>
               <div className="overflow-hidden border border-zinc-200 rounded-3xl bg-white shadow-sm">
                 <table className="w-full text-left border-collapse">
@@ -207,7 +234,7 @@ export default function WizardStep1({
                     {q.organizations?.name && (
                       <span className="text-[#2d8d9b] font-black">{q.organizations.name} · </span>
                     )}
-                    {q.quotation_no || 'Auto'} · {new Date(q.created_at).toLocaleDateString()}
+                    {q.quotation_no || 'Auto'} · {formatDate(q.created_at)}
                   </p>
                 </div>
                 <div className="flex justify-between items-center">

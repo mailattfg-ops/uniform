@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { Plus, Edit2, Trash2, ArrowLeft, X } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface Item {

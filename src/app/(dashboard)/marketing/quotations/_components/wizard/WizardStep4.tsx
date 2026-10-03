@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Clock, Calendar, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, X, Scale, Building2 } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/formatters';
 
 interface ExtraCharge {
   label: string;
@@ -29,9 +30,21 @@ interface WizardStep4Props {
   setProfitMargin: (val: string) => void;
   orgAnalysis: any;
   timeMetrics: { totalHours: number; workingDays: number };
-  quoteTotals: { expenses: number; subtotal: number; gstValue: number; finalValue: number; profit: number; avgSellingPrice: number };
+  quoteTotals: { 
+    expenses: number; 
+    subtotal: number; 
+    gstValue: number; 
+    finalValue: number; 
+    profit: number; 
+    avgSellingPrice: number;
+    isTaxInclusive?: boolean;
+    cgst?: number;
+    sgst?: number;
+  };
   gstPercent: string;
   setGstPercent: (val: string) => void;
+  isTaxInclusive: boolean;
+  setIsTaxInclusive: (val: boolean) => void;
   extraCharges: ExtraCharge[];
   setExtraCharges: (val: ExtraCharge[]) => void;
   status: string;
@@ -76,6 +89,8 @@ export default function WizardStep4({
   quoteTotals,
   gstPercent,
   setGstPercent,
+  isTaxInclusive,
+  setIsTaxInclusive,
   extraCharges,
   setExtraCharges,
   status,
@@ -293,6 +308,45 @@ export default function WizardStep4({
             </div>
           </div>
 
+          {/* TAX TREATMENT MODE (PRD M5.2) */}
+          <div className="pt-4">
+            <div className="bg-zinc-50/80 border border-zinc-200/80 p-4 rounded-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-1.5">
+                    <Scale size={13} className="text-[#2d8d9b]" />
+                    Pricing Tax Treatment Mode
+                  </label>
+                  <p className="text-[9px] text-zinc-400 font-semibold mt-0.5">
+                    {isTaxInclusive 
+                      ? 'Tax Inclusive: Contract MRP includes GST. Pre-tax base is calculated backwards.' 
+                      : 'Tax Exclusive: B2B pricing. GST is added on top of the calculated base.'}
+                  </p>
+                </div>
+                <div className="flex bg-zinc-200/70 p-1 rounded-xl w-fit shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsTaxInclusive(false)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      !isTaxInclusive ? 'bg-white text-[#3a525d] shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    Tax Exclusive
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsTaxInclusive(true)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      isTaxInclusive ? 'bg-[#2d8d9b] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    Tax Inclusive
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">GST Tax Slab (%)</label>
@@ -430,7 +484,7 @@ export default function WizardStep4({
                 </div>
                 <div>
                   <p className="text-sm font-black text-blue-600">
-                    {projectStartDate ? new Date(projectStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    {formatDate(projectStartDate)}
                   </p>
                   <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Launch Start Date</p>
                 </div>
@@ -442,7 +496,7 @@ export default function WizardStep4({
                 </div>
                 <div>
                   <p className="text-sm font-black text-green-600">
-                    {deliveryDate ? new Date(deliveryDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    {formatDate(deliveryDate)}
                   </p>
                   <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Expected Delivery Date</p>
                 </div>
@@ -468,13 +522,29 @@ export default function WizardStep4({
                 <span>Production Expenses:</span>
                 <span className="font-mono text-[#3a525d]">₹{quoteTotals.expenses.toFixed(2)}</span>
               </div>
+              <div className="flex justify-between items-center">
+                <span>Tax Treatment:</span>
+                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                  quoteTotals.isTaxInclusive ? 'bg-teal-50 text-[#2d8d9b] border border-teal-200' : 'bg-zinc-100 text-zinc-600'
+                }`}>
+                  {quoteTotals.isTaxInclusive ? 'Tax Inclusive (MRP)' : 'Tax Exclusive (+GST)'}
+                </span>
+              </div>
               <div className="flex justify-between">
-                <span>Subtotal (Pre-Tax):</span>
+                <span>Taxable Base Subtotal:</span>
                 <span className="font-mono text-zinc-700">₹{quoteTotals.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-red-500">
-                <span>GST Tax ({gstPercent}%):</span>
-                <span className="font-mono">+₹{quoteTotals.gstValue.toFixed(2)}</span>
+              <div className="flex justify-between text-[#2d8d9b] text-[11px]">
+                <span>CGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
+                <span className="font-mono">₹{((quoteTotals.cgst !== undefined ? quoteTotals.cgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[#2d8d9b] text-[11px]">
+                <span>SGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
+                <span className="font-mono">₹{((quoteTotals.sgst !== undefined ? quoteTotals.sgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-red-500 border-t border-zinc-100 pt-1">
+                <span>Total GST ({gstPercent}%):</span>
+                <span className="font-mono">{quoteTotals.isTaxInclusive ? '(Included) ' : '+'}₹{quoteTotals.gstValue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-[#2d8d9b] font-black border-t border-dashed border-zinc-200 pt-1.5 mt-1">
                 <span>Suggested Retail / Item:</span>
@@ -484,7 +554,9 @@ export default function WizardStep4({
           </div>
 
           <div className="border-t border-zinc-200 pt-4 mt-6">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Contract Value (With GST)</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              {quoteTotals.isTaxInclusive ? 'Total Contract Value (GST Inclusive)' : 'Total Contract Value (With GST)'}
+            </p>
             <p className="text-4xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-1">
               ₹{quoteTotals.finalValue.toFixed(2)}
             </p>
@@ -631,13 +703,7 @@ export default function WizardStep4({
                     <div className="p-4 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]">Target Delivery Date</p>
                       <p className="text-xs font-black text-[#2d8d9b] mt-1">
-                        {selectedQuoteDetail.expected_delivery_date
-                          ? new Date(selectedQuoteDetail.expected_delivery_date).toLocaleDateString(undefined, {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          : 'N/A'}
+                        {formatDate(selectedQuoteDetail.expected_delivery_date)}
                       </p>
                     </div>
 

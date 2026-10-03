@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
+import Link from 'next/link';
 import {
   Calculator,
   Save,
@@ -10,9 +11,13 @@ import {
   TrendingUp,
   Coins,
   Percent,
-  Sparkles,
-  Info
+  Sliders,
+  Database,
+  RefreshCw,
+  SlidersHorizontal,
+  Sparkles
 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface Product {
   id: number;
@@ -54,29 +59,36 @@ export default function SAMCalculator() {
   const [config, setConfig] = useState<SAMConfig | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isSchemaMissing, setIsSchemaMissing] = useState<boolean>(false);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [prodRes, configRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/sam-management/configurations')
+      ]);
+
+      setProducts(prodRes.data || []);
+
+      if (configRes.data && configRes.data.error === 'SCHEMA_MISSING') {
+        setIsSchemaMissing(true);
+        setConfig(null);
+      } else if (configRes.data && !configRes.data.error) {
+        setIsSchemaMissing(false);
+        // Use the global config (product_id is null)
+        const globalConfig = (configRes.data || []).find((c: any) => c.product_id === null) || configRes.data?.[0];
+        setConfig(globalConfig || null);
+      }
+    } catch (err: any) {
+      toast.error('Failed to load data. Please ensure database tables exist.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Fetch products and active configurations on mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodRes, configRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/sam-management/configurations')
-        ]);
-
-        setProducts(prodRes.data || []);
-
-        if (configRes.data && !configRes.data.error) {
-          // Use the global config (product_id is null)
-          const globalConfig = (configRes.data || []).find((c: any) => c.product_id === null) || configRes.data?.[0];
-          setConfig(globalConfig || null);
-        }
-      } catch (err: any) {
-        toast.error('Failed to load data. Please ensure database tables exist.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
@@ -198,13 +210,42 @@ export default function SAMCalculator() {
 
   if (!config) {
     return (
-      <div className="p-12 bg-white rounded-[2.5rem] border-2 border-dashed border-zinc-100 flex flex-col items-center text-center space-y-6">
-        <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500">
-          <Info size={40} />
+      <div className="max-w-2xl mx-auto my-12 p-8 md:p-12 bg-white rounded-[2.5rem] border border-[#fce4d4] shadow-xl flex flex-col items-center text-center space-y-6">
+        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-inner ${isSchemaMissing ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'}`}>
+          {isSchemaMissing ? <Database size={38} /> : <Sliders size={38} />}
         </div>
+
         <div className="space-y-2 max-w-md">
-          <h3 className="text-xl font-black text-[#3a525d]">SAM Configuration Missing</h3>
-          <p className="text-sm text-muted-foreground font-medium">Please execute database migrations and set up your SAM cost components configuration first.</p>
+          <h3 className="text-2xl font-black text-[#3a525d]">
+            {isSchemaMissing ? 'SAM Database Tables Not Found' : 'No SAM Configurations Available'}
+          </h3>
+          <p className="text-sm text-zinc-500 font-medium leading-relaxed">
+            {isSchemaMissing 
+              ? 'The required database tables (sam_configurations, sam_calculations) are missing in the database. Please execute your database migrations.' 
+              : 'There are currently no active SAM cost configurations in the database. Please set up your cost heads and volume slabs in SAM Configurations.'}
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Link href="/sam-management/configurations">
+            <Button
+              className="bg-[#2d8d9b] hover:bg-[#257480] text-white px-6 py-3 rounded-2xl font-bold shadow-md shadow-[#2d8d9b]/20 flex items-center gap-2"
+            >
+              <SlidersHorizontal size={16} />
+              Set Up in SAM Configurations
+            </Button>
+          </Link>
+
+          <Button
+            onClick={fetchData}
+            variant="outline"
+            className="border-zinc-200 text-[#3a525d] hover:bg-zinc-50 px-5 py-3 rounded-2xl font-bold flex items-center gap-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </Button>
         </div>
       </div>
     );

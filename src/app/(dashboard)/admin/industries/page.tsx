@@ -5,10 +5,11 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Plus, Trash2, Edit2, Globe, Tags, ArrowRight, Briefcase } from 'lucide-react';
+import { Plus, Trash2, Edit2, Globe, ArrowRight, Briefcase } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { formatDate } from '@/lib/formatters';
 
 interface Industry {
   id: number;
@@ -135,7 +136,7 @@ export default function IndustryManagementPage() {
       header: 'Registration Date',
       accessor: (ind) => (
         <p className="text-xs font-bold text-zinc-500">
-           {ind.created_at ? new Date(ind.created_at).toLocaleDateString() : 'N/A'}
+           {formatDate(ind.created_at)}
         </p>
       )
     },

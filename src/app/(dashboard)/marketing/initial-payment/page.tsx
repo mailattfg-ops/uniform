@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
+import { formatDate } from '@/lib/formatters';
 import {
   TrendingUp,
   CreditCard,
@@ -17,7 +18,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ArrowLeft,
   Calendar,
   X,
   FileText,
@@ -53,6 +53,7 @@ export default function InitialPaymentPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<'awaiting' | 'completed' | 'cancelled'>('awaiting');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<'all' | 'Partially Paid' | 'Pending'>('all');
 
   // Modal / Drawer state for recording payment
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -212,64 +213,96 @@ export default function InitialPaymentPage() {
     };
   }, [quotations]);
 
-  // Filter lists based on tab
+  const awaitingCount = React.useMemo(() => {
+    return quotations.filter(q => q.status === 'Approved' && q.payment_status !== 'Paid').length;
+  }, [quotations]);
+
+  const partiallyPaidCount = React.useMemo(() => {
+    return quotations.filter(q => q.status === 'Approved' && q.payment_status === 'Partially Paid').length;
+  }, [quotations]);
+
+  const pendingCount = React.useMemo(() => {
+    return quotations.filter(q => q.status === 'Approved' && (q.payment_status === 'Pending' || !q.payment_status)).length;
+  }, [quotations]);
+
+  const completedCount = React.useMemo(() => {
+    return quotations.filter(q => q.status === 'Approved' && q.payment_status === 'Paid').length;
+  }, [quotations]);
+
+  const cancelledCount = React.useMemo(() => {
+    return quotations.filter(q => q.status === 'Cancelled').length;
+  }, [quotations]);
+
+  // Filter lists based on tab and payment status filter
   const displayedQuotations = React.useMemo(() => {
     if (activeSubTab === 'awaiting') {
-      return quotations.filter(q => q.status === 'Approved' && q.payment_status !== 'Paid');
+      let list = quotations.filter(q => q.status === 'Approved' && q.payment_status !== 'Paid');
+      if (paymentStatusFilter === 'Partially Paid') {
+        list = list.filter(q => q.payment_status === 'Partially Paid');
+      } else if (paymentStatusFilter === 'Pending') {
+        list = list.filter(q => q.payment_status === 'Pending' || !q.payment_status);
+      }
+      return list;
     } else if (activeSubTab === 'completed') {
       return quotations.filter(q => q.status === 'Approved' && q.payment_status === 'Paid');
     } else {
       return quotations.filter(q => q.status === 'Cancelled');
     }
-  }, [quotations, activeSubTab]);
+  }, [quotations, activeSubTab, paymentStatusFilter]);
 
   const columns: Column<Quotation>[] = [
     {
       header: 'Quote No',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-mono font-bold text-zinc-900">{item.quotation_no}</span>
+        <span className="font-mono font-bold text-zinc-900 text-xs">{item.quotation_no}</span>
       )
     },
     {
       header: 'Title & Client',
+      className: 'min-w-[160px] max-w-[220px]',
       accessor: (item) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-zinc-800 text-sm">{item.title}</span>
-          <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-0.5">
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
             {item.organizations?.name || 'Unknown Client'}
           </span>
         </div>
       )
     },
     {
-      header: 'Quotation Value',
+      header: 'Quote Value',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-black text-[#2d8d9b] text-base">
+        <span className="font-black text-[#2d8d9b] text-xs md:text-sm font-mono">
           ₹{parseFloat(item.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Collected',
+      className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-bold text-emerald-600 text-sm">
+        <span className="font-bold text-emerald-600 text-xs md:text-sm font-mono">
           ₹{parseFloat(item.paid_amount as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
     },
     {
       header: 'Remaining',
+      className: 'whitespace-nowrap',
       accessor: (item) => {
         const remaining = Math.max(0, item.final_quote_value - (item.paid_amount || 0));
         return (
-          <span className={`font-black text-sm ${remaining > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>
+          <span className={`font-black text-xs md:text-sm font-mono ${remaining > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>
             ₹{remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       }
     },
     {
-      header: 'Payment Status',
+      header: 'Status',
+      className: 'whitespace-nowrap',
       accessor: (item) => {
         const stat = item.payment_status || 'Pending';
         const styles = {
@@ -279,13 +312,13 @@ export default function InitialPaymentPage() {
         }[stat] || 'bg-zinc-50 text-zinc-700 border-zinc-200/50';
 
         const icon = {
-          'Paid': <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
-          'Partially Paid': <Clock className="w-3.5 h-3.5 text-amber-600" />,
-          'Pending': <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-        }[stat] || <AlertTriangle className="w-3.5 h-3.5 text-zinc-600" />;
+          'Paid': <CheckCircle2 className="w-3 h-3 text-emerald-600" />,
+          'Partially Paid': <Clock className="w-3 h-3 text-amber-600" />,
+          'Pending': <AlertTriangle className="w-3 h-3 text-rose-600" />
+        }[stat] || <AlertTriangle className="w-3 h-3 text-zinc-600" />;
 
         return (
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black uppercase tracking-wider ${styles}`}>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase tracking-wider ${styles}`}>
             {icon}
             {stat}
           </span>
@@ -294,30 +327,31 @@ export default function InitialPaymentPage() {
     },
     {
       header: 'Actions',
+      className: 'whitespace-nowrap text-right',
       accessor: (item) => {
         const isPaid = item.payment_status === 'Paid';
         const isCancelled = item.status === 'Cancelled';
         return (
-          <div className="flex gap-2">
+          <div className="flex items-center justify-end gap-1.5">
             {!isPaid && !isCancelled && (
               <>
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => handleOpenPaymentModal(item)}
-                  className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-[#2d8d9b]"
+                  className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider bg-[#2d8d9b] h-7 px-2"
                 >
-                  <Plus size={12} strokeWidth={3} />
-                  Record Payment
+                  <Plus size={11} strokeWidth={3} />
+                  Record
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => handleCancelQuotation(item.id)}
-                  className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider bg-red-50 hover:bg-red-500 text-red-650 hover:text-white border border-red-150"
+                  className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider bg-red-50 hover:bg-red-500 text-red-650 hover:text-white border border-red-150 h-7 px-2"
                 >
-                  <X size={12} strokeWidth={3} />
-                  Cancel Order
+                  <X size={11} strokeWidth={3} />
+                  Cancel
                 </Button>
               </>
             )}
@@ -325,9 +359,9 @@ export default function InitialPaymentPage() {
               variant="secondary"
               size="sm"
               onClick={() => handleOpenHistoryModal(item)}
-              className="rounded-xl flex items-center gap-1 text-[10px] font-black tracking-wider border-[#fce4d4]"
+              className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider border-[#fce4d4] h-7 px-2"
             >
-              <History size={12} />
+              <History size={11} />
               History
             </Button>
           </div>
@@ -387,63 +421,154 @@ export default function InitialPaymentPage() {
         </Card>
 
         <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-blue-50/10">
-          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
+          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] shrink-0">
             <TrendingUp size={24} />
           </div>
           <div>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Fulfillment Statuses</p>
-            <p className="text-base font-black text-[#3a525d] mt-0.5">
-              {stats.fullyPaidQuotes} Paid / {stats.partialPaidQuotes} Partial
-            </p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('completed')}
+                className="px-2 py-0.5 rounded-lg text-xs font-black bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60 transition-colors"
+                title="View Paid Quotations"
+              >
+                {stats.fullyPaidQuotes} Paid
+              </button>
+              <span className="text-zinc-300">/</span>
+              <button
+                type="button"
+                onClick={() => { setActiveSubTab('awaiting'); setPaymentStatusFilter('Partially Paid'); }}
+                className="px-2 py-0.5 rounded-lg text-xs font-black bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60 transition-colors"
+                title="Filter by Partially Paid"
+              >
+                {stats.partialPaidQuotes} Partial
+              </button>
+              <span className="text-zinc-300">/</span>
+              <button
+                type="button"
+                onClick={() => { setActiveSubTab('awaiting'); setPaymentStatusFilter('Pending'); }}
+                className="px-2 py-0.5 rounded-lg text-xs font-black bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60 transition-colors"
+                title="Filter by Pending"
+              >
+                {pendingCount} Pending
+              </button>
+            </div>
           </div>
         </Card>
       </div>
 
       {/* Tab Selectors */}
-      <div className="flex gap-2 border-b border-zinc-200 pb-px">
-        <button
-          onClick={() => setActiveSubTab('awaiting')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'awaiting'
-              ? 'border-[#2d8d9b] text-[#2d8d9b]'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
-            }`}
-        >
-          Awaiting Payment ({quotations.filter(q => q.status === 'Approved' && q.payment_status !== 'Paid').length})
-        </button>
-        <button
-          onClick={() => setActiveSubTab('completed')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'completed'
-              ? 'border-[#2d8d9b] text-[#2d8d9b]'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
-            }`}
-        >
-          Paid & Completed ({quotations.filter(q => q.status === 'Approved' && q.payment_status === 'Paid').length})
-        </button>
-        <button
-          onClick={() => setActiveSubTab('cancelled')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'cancelled'
-              ? 'border-[#2d8d9b] text-[#2d8d9b]'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
-            }`}
-        >
-          Cancelled ({quotations.filter(q => q.status === 'Cancelled').length})
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 pb-px">
+        <div className="flex gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveSubTab('awaiting')}
+            className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors flex items-center gap-2 ${activeSubTab === 'awaiting'
+                ? 'border-[#2d8d9b] text-[#2d8d9b]'
+                : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              }`}
+          >
+            <span>Awaiting Payment ({awaitingCount})</span>
+            {partiallyPaidCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[9px] font-black">
+                {partiallyPaidCount} Partial
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[9px] font-black">
+                {pendingCount} Pending
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveSubTab('completed')}
+            className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'completed'
+                ? 'border-[#2d8d9b] text-[#2d8d9b]'
+                : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              }`}
+          >
+            Paid & Completed ({completedCount})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('cancelled')}
+            className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'cancelled'
+                ? 'border-[#2d8d9b] text-[#2d8d9b]'
+                : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              }`}
+          >
+            Cancelled ({cancelledCount})
+          </button>
+        </div>
       </div>
 
-      {/* Main Table */}
+      {/* Main Table with Status Filter Actions */}
       <DataTable
         columns={columns}
         data={displayedQuotations}
         title={
           activeSubTab === 'awaiting' 
-            ? 'Quotations Awaiting Payment' 
+            ? paymentStatusFilter === 'Partially Paid'
+              ? 'Partially Paid Quotations' 
+              : paymentStatusFilter === 'Pending'
+                ? 'Pending Quotations (Unpaid)'
+                : 'Quotations Awaiting Payment'
             : activeSubTab === 'completed' 
               ? 'Paid & Settled Quotations' 
               : 'Cancelled Quotation Orders'
         }
-        subtitle="Tracking deposit entries and ledger transitions in real time"
+        subtitle={
+          activeSubTab === 'awaiting'
+            ? paymentStatusFilter === 'all'
+              ? 'Tracking deposit entries and ledger transitions in real time'
+              : `Filtered by ${paymentStatusFilter} status (${displayedQuotations.length} of ${awaitingCount} quotations)`
+            : 'Tracking deposit entries and ledger transitions in real time'
+        }
         isLoading={isLoading}
         searchPlaceholder="Filter by quotation no, customer, title..."
+        headerAction={
+          activeSubTab === 'awaiting' ? (
+            <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-[#fce4d4] shadow-xs flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 pl-2 pr-1 hidden sm:inline">
+                Status:
+              </span>
+              <button
+                type="button"
+                onClick={() => setPaymentStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                  paymentStatusFilter === 'all'
+                    ? 'bg-[#2d8d9b] text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
+                }`}
+              >
+                All ({awaitingCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentStatusFilter('Partially Paid')}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                  paymentStatusFilter === 'Partially Paid'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-amber-700 bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/50'
+                }`}
+              >
+                <Clock size={12} strokeWidth={2.5} />
+                Partially Paid ({partiallyPaidCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentStatusFilter('Pending')}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                  paymentStatusFilter === 'Pending'
+                    ? 'bg-rose-500 text-white shadow-sm font-black'
+                    : 'text-rose-700 bg-rose-50/70 hover:bg-rose-100/70 border border-rose-200/50'
+                }`}
+              >
+                <AlertTriangle size={12} strokeWidth={2.5} />
+                Pending ({pendingCount})
+              </button>
+            </div>
+          ) : undefined
+        }
       />
 
       {/* 1. Record Payment Modal Dialog */}
@@ -673,11 +798,7 @@ export default function InitialPaymentPage() {
                           )}
                           <div className="text-[10px] text-zinc-400 font-bold mt-1 flex items-center gap-1 justify-end">
                             <Calendar size={10} />
-                            {new Date(p.paid_at).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                            {formatDate(p.paid_at)}
                           </div>
                         </div>
                         <button

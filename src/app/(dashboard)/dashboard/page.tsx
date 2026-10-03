@@ -1,25 +1,46 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Loader2, 
   Star, 
   Activity, 
-  ChevronRight,
+  ChevronRight, 
   ChevronLeft,
   Calendar,
   Building2,
   Scale,
   X,
-  TrendingUp
+  Users,
+  Ruler,
+  ReceiptText,
+  ArrowRight,
+  History,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Tag,
+  Sparkles,
+  Phone,
+  TrendingUp,
+  CreditCard,
+  Package,
+  Layers,
+  Factory,
+  RefreshCw,
+  ExternalLink,
+  Briefcase
 } from 'lucide-react';
 import api from '@/lib/api';
+import Link from 'next/link';
+import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [allQuotations, setAllQuotations] = useState<any[]>([]);
   const [fabricsList, setFabricsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   // Calendar states
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -31,37 +52,28 @@ export default function DashboardPage() {
   const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    // Fetch dashboard stats
+  const fetchDashboardData = useCallback(() => {
+    setLoading(true);
+    // 1. Fetch primary dashboard telemetry - unblocks page render immediately
     api.get('/dashboard/stats')
-      .then(res => {
-        if (active) setStats(res.data);
-      })
-      .catch(err => console.error('Dashboard stats fetch error:', err))
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      .then(res => setStats(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
 
-    // Fetch all quotations for delivery calendar
+    // 2. Fetch delivery calendar data in background without blocking the UI
     api.get('/quotations')
-      .then(res => {
-        if (active) setAllQuotations(res.data || []);
-      })
-      .catch(err => console.error('Dashboard quotations fetch error:', err));
-
-    // Fetch all fabrics
-    api.get('/inventory/fabrics')
-      .then(res => {
-        if (active) setFabricsList(res.data || []);
-      })
-      .catch(err => console.error('Dashboard fabrics fetch error:', err));
-
-    return () => {
-      active = false;
-    };
+      .then(res => setAllQuotations(res.data || []))
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    // Load user from localStorage
+    if (typeof window !== 'undefined') {
+      const u = localStorage.getItem('user');
+      if (u) setUser(JSON.parse(u));
+    }
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     if (selectedQuoteDetail) {
@@ -201,19 +213,484 @@ export default function DashboardPage() {
     );
   }
 
-  const totalMembers = stats?.totalMembers || 55;
-  const totalOrgs = stats?.totalOrganizations || 11;
-  const totalProducts = stats?.totalProducts || 2;
-  const totalMeasurements = stats?.totalMeasurements || 50;
-  const totalInventory = stats?.totalInventory || 5;
-  const reach = stats?.reach || 5;
+  // ── Client Portal Detection ──────────────────────────────────────────────────
+  const roleLower = (user?.role || '').toLowerCase();
+  const isClientEntity = Boolean(
+    user?.memberId || ['entity', 'student', 'member'].includes(roleLower)
+  );
+  const isClientOrg = !isClientEntity && Boolean(
+    user?.organizationId || ['organisation', 'organization', 'school'].includes(roleLower)
+  );
+
+  // ── 1. ENTITY (MEMBER / STUDENT) DASHBOARD ────────────────────────────────────
+  if (isClientEntity) {
+    const memberName = user?.fullName || stats?.memberDetails?.full_name || 'Member';
+    const admissionNo = user?.admissionNo || stats?.memberDetails?.admission_no || '';
+    const orgName = user?.organizationName || stats?.memberDetails?.organizations?.name || 'Your Institution';
+    const deptName = user?.departmentName || stats?.memberDetails?.departments?.name || '';
+    
+    const latestMeasurement = stats?.latestMeasurement;
+    const hasMeasurements = Boolean(latestMeasurement && (stats?.totalMeasurements || 0) > 0);
+    const suggestedSize = latestMeasurement?.suggested_size || (hasMeasurements ? 'Standard' : 'Pending');
+    const measureDate = latestMeasurement?.recorded_at
+      ? formatDate(latestMeasurement.recorded_at)
+      : null;
+    const dynamicData = latestMeasurement?.dynamic_data && typeof latestMeasurement.dynamic_data === 'object'
+      ? latestMeasurement.dynamic_data
+      : {};
+    const notes = latestMeasurement?.notes || '';
+    const isApproved = latestMeasurement?.status?.toLowerCase() === 'approved';
+
+    // Parse dynamic_data structure (flat or nested by garment e.g. pants, shirt)
+    const parseGarmentMetrics = (data: any) => {
+      if (!data || typeof data !== 'object') return [];
+      
+      const entries = Object.entries(data);
+      const isNested = entries.some(([_, val]) => val && typeof val === 'object' && !Array.isArray(val));
+
+      if (!isNested) {
+        const items = entries.filter(([k]) => k !== 'strategy').map(([name, val]) => ({
+          name: name.replace(/_/g, ' '),
+          value: typeof val === 'object' ? JSON.stringify(val) : String(val ?? '--')
+        }));
+        return items.length > 0 ? [{ garment: 'General Measurements', items }] : [];
+      }
+
+      return entries.map(([garment, val]) => {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          const display = extractGarmentDisplayMetrics(garment, val);
+          const items = display.metrics.map((m) => ({
+            name: m.label,
+            value: m.value
+          }));
+
+          return {
+            garment: garment.charAt(0).toUpperCase() + garment.slice(1),
+            strategy: display.strategy,
+            items
+          };
+        }
+        return {
+          garment: garment.charAt(0).toUpperCase() + garment.slice(1),
+          strategy: 'manual',
+          items: [{ name: garment.replace(/_/g, ' '), value: String(val ?? '--') }]
+        };
+      });
+    };
+
+    const measurementGarments = parseGarmentMetrics(dynamicData);
+
+    return (
+      <div className="space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700 pb-12">
+        {/* Entity Hero Banner */}
+        <div className="relative bg-[#030303] rounded-[2.5rem] p-8 md:p-12 overflow-hidden text-white shadow-2xl border border-white/5">
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #CC9448 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-[#CC9448]/20 text-[#CC9448] border border-[#CC9448]/30 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#CC9448] animate-pulse" />
+                  Member Portal
+                </span>
+                {admissionNo && (
+                  <span className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold bg-white/10 text-white/80 border border-white/10">
+                    #{admissionNo}
+                  </span>
+                )}
+                {deptName && (
+                  <span className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-white/10 text-white/80 border border-white/10">
+                    {deptName}
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                Welcome back,<br />
+                <span className="text-[#CC9448]">{memberName}</span>
+              </h1>
+              <p className="text-white/60 text-sm font-medium leading-relaxed">
+                Your official uniform fitting profile, biometric measurements, and tailored size recommendations for <strong className="text-white">{orgName}</strong>.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/measurements/history"
+                className="px-6 py-3.5 bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-[#CC9448]/25 active:scale-95"
+              >
+                <span>My Measurements</span>
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Core Entity Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Card 1: Fitting Status */}
+          <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all space-y-3">
+            <div className="flex items-center justify-between">
+              <div className={`w-12 h-12 rounded-2xl ${isApproved ? 'bg-emerald-500/10 text-emerald-500' : hasMeasurements ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500'} flex items-center justify-center`}>
+                {isApproved ? <ShieldCheck size={24} /> : hasMeasurements ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${isApproved ? 'bg-emerald-50 text-emerald-600' : hasMeasurements ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                {isApproved ? 'Approved' : hasMeasurements ? 'Recorded' : 'Required'}
+              </span>
+            </div>
+            <div>
+              <p className="text-xl font-black text-[#030303]">
+                {isApproved ? 'Approved & Ready' : hasMeasurements ? 'Recorded' : 'Fitting Pending'}
+              </p>
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1">
+                {measureDate ? `Fitted on ${measureDate}` : 'Visit campus/branch to measure'}
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Recommended Size */}
+          <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-[#CC9448]/10 text-[#CC9448] flex items-center justify-center">
+                <Tag size={22} />
+              </div>
+              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-[#CC9448]/10 text-[#CC9448]">
+                Assigned Size
+              </span>
+            </div>
+            <div>
+              <p className="text-xl font-black text-[#030303] truncate">
+                {suggestedSize}
+              </p>
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1">
+                Based on captured biometrics
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Total Recorded Sessions */}
+          <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center">
+                <History size={22} />
+              </div>
+              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-[#2d8d9b]/10 text-[#2d8d9b]">
+                Archive
+              </span>
+            </div>
+            <div>
+              <p className="text-xl font-black text-[#030303]">
+                {stats?.totalMeasurements ?? (hasMeasurements ? 1 : 0)} Record(s)
+              </p>
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1">
+                Full fitting log history
+              </p>
+            </div>
+          </div>
+
+          {/* Card 4: Institution Roster */}
+          <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-zinc-700 flex items-center justify-center">
+                <Building2 size={22} />
+              </div>
+              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 truncate max-w-[100px]">
+                {deptName || 'Enrolled'}
+              </span>
+            </div>
+            <div>
+              <p className="text-xl font-black text-[#030303] truncate" title={orgName}>
+                {orgName}
+              </p>
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1 truncate">
+                {deptName ? `Department: ${deptName}` : 'Active Member'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Biometric Measurements Breakdown */}
+        <div className="bg-white border border-zinc-100 rounded-[2.5rem] p-8 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 pb-5">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Ruler size={18} className="text-[#CC9448]" />
+                <h2 className="text-lg font-black text-[#030303] tracking-tight">Active Biometric Profile</h2>
+              </div>
+              <p className="text-xs text-zinc-400 font-medium">
+                {measureDate ? `Official measurements recorded on ${measureDate}` : 'No active measurement session captured yet'}
+              </p>
+            </div>
+
+            {hasMeasurements && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/measurements/history"
+                  className="px-4 py-2 bg-[#CC9448]/10 hover:bg-[#CC9448]/20 text-[#CC9448] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <span>Full History</span>
+                  <ChevronRight size={14} />
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {hasMeasurements && measurementGarments.length > 0 ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {measurementGarments.map((group, idx) => (
+                  <div key={idx} className="bg-zinc-50/80 border border-zinc-100 rounded-3xl p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-zinc-200/60 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#CC9448]" />
+                        <h3 className="text-xs font-black uppercase tracking-widest text-[#030303]">{group.garment}</h3>
+                      </div>
+                      <span className="text-[9px] font-bold text-zinc-400 bg-white px-2.5 py-0.5 rounded-md border border-zinc-100 uppercase tracking-wider">
+                        {group.items.length} Metric(s)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {group.items.map((item: any, i: number) => (
+                        <div key={i} className="bg-white border border-zinc-150/70 rounded-2xl p-3.5 text-center shadow-sm hover:border-[#CC9448]/30 transition-all">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 capitalize">{item.name}</p>
+                          <p className="text-xl font-black text-[#030303] mt-1">
+                            {item.value} <span className="text-[10px] text-zinc-400 font-normal">in</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {notes && (
+                <div className="bg-[#FAF7F2] border border-[#CC9448]/20 rounded-2xl p-4 flex items-start gap-3">
+                  <Sparkles size={16} className="text-[#CC9448] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#CC9448]">Tailor & Fitting Notes</p>
+                    <p className="text-xs text-zinc-700 font-medium mt-0.5">{notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-12 px-4 space-y-4 max-w-lg mx-auto">
+              <div className="w-16 h-16 rounded-3xl bg-[#CC9448]/10 text-[#CC9448] flex items-center justify-center mx-auto">
+                <Ruler size={32} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-[#030303]">No Measurements Captured Yet</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+                  Your official uniform measurements have not been recorded. When the Forma Apparels fitting masters visit your campus or when you visit our outlet, your bespoke sizing will be displayed here.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link
+                  href="/measurements/history"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#030303] hover:bg-[#CC9448] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                >
+                  <Ruler size={14} />
+                  <span>View Measurement Records</span>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Access Grid */}
+        <div className="space-y-4">
+          <h2 className="text-xs font-black text-[#030303] uppercase tracking-[0.2em]">Quick Actions & Resources</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+              href="/measurements/history"
+              className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex items-center gap-5"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-[#CC9448] flex items-center justify-center shrink-0 shadow-lg shadow-[#CC9448]/20">
+                <Ruler size={22} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-[#030303] leading-tight">My Measurement History</p>
+                <p className="text-[10px] text-zinc-400 font-semibold mt-1">Review complete fitting logs, garments & size details</p>
+              </div>
+              <ArrowRight size={16} className="text-zinc-300 group-hover:text-[#CC9448] group-hover:translate-x-1 transition-all shrink-0" />
+            </Link>
+
+            <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-[#2d8d9b] flex items-center justify-center shrink-0 shadow-lg shadow-[#2d8d9b]/20">
+                <ShieldCheck size={22} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-[#030303] leading-tight">Official Forma Apparels Fit</p>
+                <p className="text-[10px] text-zinc-400 font-semibold mt-1">All garments tailored according to institutional specification</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Support Help Banner */}
+        <div className="bg-[#F7EBE1] border border-[#CC9448]/20 rounded-[2rem] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-[#CC9448]/20 flex items-center justify-center shrink-0">
+              <Star size={18} className="text-[#CC9448]" fill="#CC9448" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-[#030303]">Need sizing assistance or replacement?</p>
+              <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                Contact your campus uniform coordinator or Forma Apparels support desk.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#CC9448] bg-white px-4 py-2 rounded-xl border border-[#CC9448]/20">
+            <Phone size={14} />
+            <span>+91 7902 499 990</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 2. CLIENT ORGANIZATION (SCHOOL / B2B) DASHBOARD ──────────────────────────
+  if (isClientOrg) {
+    const orgId = user?.organizationId;
+    const orgName = user?.organizationName || user?.fullName || 'Your Organization';
+    const clientStats = {
+      members: stats?.totalMembers ?? 0,
+      measurements: stats?.totalMeasurements ?? 0,
+      outstandingBalance: stats?.outstandingBalance ?? 0,
+      pendingMeasurements: stats?.pendingMeasurements ?? Math.max(0, (stats?.totalMembers ?? 0) - (stats?.totalMeasurements ?? 0)),
+    };
+
+    const quickLinks = [
+      { icon: Users, label: 'Members Directory', sub: 'View all registered members', href: `/customers/${orgId}?tab=entities`, color: 'bg-[#2d8d9b]' },
+      { icon: ReceiptText, label: 'Account Statement', sub: 'View invoices & payments', href: `/customers/${orgId}?tab=ledger`, color: 'bg-[#CC9448]' },
+      { icon: History, label: 'Measurement History', sub: 'View captured measurements', href: '/measurements/history', color: 'bg-[#3a525d]' },
+    ];
+
+    const statCards = [
+      { label: 'Total Members', value: clientStats.members, icon: Users, color: 'text-[#2d8d9b]', bg: 'bg-[#2d8d9b]/10' },
+      { label: 'Measurements Taken', value: clientStats.measurements, icon: Ruler, color: 'text-[#CC9448]', bg: 'bg-[#CC9448]/10' },
+      { label: 'Outstanding Balance', value: `₹${Number(clientStats.outstandingBalance).toLocaleString()}`, icon: ReceiptText, color: 'text-red-500', bg: 'bg-red-50' },
+      { label: 'Pending Measurements', value: clientStats.pendingMeasurements, icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    ];
+
+    return (
+      <div className="space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700 pb-10">
+        {/* Welcome Banner */}
+        <div className="relative bg-[#030303] rounded-[2.5rem] p-8 md:p-12 overflow-hidden text-white shadow-2xl">
+          {/* background grid decoration */}
+          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, #CC9448 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#CC9448]">Client Portal</span>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                Welcome back,<br />
+                <span className="text-[#CC9448]">{orgName}</span>
+              </h1>
+              <p className="text-white/50 text-sm font-medium mt-2">
+                Manage your team, track measurements and review your account statement.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {orgId && (
+                <Link
+                  href={`/customers/${orgId}`}
+                  className="px-6 py-3 bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-[#CC9448]/25"
+                >
+                  View My Account
+                  <ArrowRight size={14} />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Cards */}
+        <div className={`grid gap-6 ${statCards.length >= 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          {statCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div key={i} className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-lg transition-all space-y-4">
+                <div className={`w-12 h-12 rounded-2xl ${card.bg} flex items-center justify-center`}>
+                  <Icon size={22} className={card.color} strokeWidth={2} />
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-[#030303]">{card.value}</p>
+                  <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest mt-1">{card.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Quick Links */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-black text-[#030303] uppercase tracking-[0.15em]">Quick Access</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {quickLinks.map((link, i) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={i}
+                  href={link.href}
+                  className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex items-center gap-5"
+                >
+                  <div className={`w-14 h-14 rounded-2xl ${link.color} flex items-center justify-center shrink-0 shadow-lg`}>
+                    <Icon size={22} className="text-white" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-[#030303] leading-tight">{link.label}</p>
+                    <p className="text-[10px] text-zinc-400 font-semibold mt-1 leading-snug">{link.sub}</p>
+                  </div>
+                  <ArrowRight size={16} className="text-zinc-300 group-hover:text-[#CC9448] group-hover:translate-x-1 transition-all shrink-0" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Help Banner */}
+        <div className="bg-[#F7EBE1] border border-[#CC9448]/20 rounded-[2rem] p-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#CC9448]/20 flex items-center justify-center shrink-0">
+            <Star size={18} className="text-[#CC9448]" fill="#CC9448" />
+          </div>
+          <div>
+            <p className="text-xs font-black text-[#030303]">Need help or have questions?</p>
+            <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+              Contact <span className="font-bold text-[#CC9448]">Forma Apparels</span> at <span className="font-mono font-bold">+91 7902 499 990</span> or <span className="font-mono font-bold">info@formaapparels.com</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ── End Client Portal Dashboard ──────────────────────────────────────────────
+
+  const totalMembers = stats?.totalMembers || 0;
+  const totalOrgs = stats?.totalOrganizations || 0;
+  const totalProducts = stats?.totalProducts || 0;
+  const totalMeasurements = stats?.totalMeasurements || 0;
+  const totalInventory = stats?.totalInventory || 0;
+  const reach = stats?.measurementCompletionRate || stats?.reach || 0;
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in duration-1000 pb-10">
       
       {/* Dashboard Heading */}
-      <div>
+      <div className="flex items-center justify-between">
         <h1 className="text-[32px] font-semibold text-[#030303] leading-none">Dashboard</h1>
+        <button
+          type="button"
+          onClick={fetchDashboardData}
+          disabled={loading}
+          className="text-xs font-semibold text-zinc-400 hover:text-[#CC9448] flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-xl hover:bg-zinc-100/60"
+          title="Refresh Data"
+        >
+          <RefreshCw size={13} className={loading ? "animate-spin text-[#CC9448]" : ""} />
+          <span>Sync</span>
+        </button>
       </div>
 
       {/* TOP ROW: Large Welcomer Stat Banner & Deployment Reach Sidepanel */}
@@ -232,29 +709,47 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md">
-                  <Star size={16} fill="white" className="text-white" />
+              <Link 
+                href="/customers"
+                className="flex items-center justify-between gap-4 p-2 -ml-2 rounded-2xl hover:bg-white/10 transition-colors group"
+                title="View client organizations"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-105 transition-transform">
+                    <Star size={16} fill="white" className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] opacity-75 font-semibold tracking-wider uppercase leading-none">
+                      Member Organizations
+                    </p>
+                    <p className="font-bold text-base mt-1 leading-none">{totalOrgs}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[9px] opacity-75 font-semibold tracking-wider uppercase leading-none">
-                    Member Organizations
-                  </p>
-                  <p className="font-bold text-base mt-1 leading-none">{totalOrgs}</p>
-                </div>
-              </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-lg">
+                  View <ChevronRight size={11} />
+                </span>
+              </Link>
               
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md">
-                  <Activity size={16} className="text-white" />
+              <Link 
+                href="/measurements/entry"
+                className="flex items-center justify-between gap-4 p-2 -ml-2 rounded-2xl hover:bg-white/10 transition-colors group"
+                title="Open measurement entry module"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-105 transition-transform">
+                    <Activity size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] opacity-75 font-semibold tracking-wider uppercase leading-none">
+                      Measurements Captured
+                    </p>
+                    <p className="font-bold text-base mt-1 leading-none">{totalMeasurements}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[9px] opacity-75 font-semibold tracking-wider uppercase leading-none">
-                    Measurements Captured
-                  </p>
-                  <p className="font-bold text-base mt-1 leading-none">{totalMeasurements}</p>
-                </div>
-              </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-lg">
+                  Log <ChevronRight size={11} />
+                </span>
+              </Link>
             </div>
           </div>
 
@@ -265,10 +760,13 @@ export default function DashboardPage() {
               alt="Dashboard Illustration" 
               className="object-contain max-h-full max-w-full opacity-95 rounded-2xl"
             />
-            <button type="button" className="absolute bottom-4 right-4 bg-[#b88036] hover:bg-[#a6712d] transition-all px-4 py-2 rounded-xl flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider shadow-lg text-white">
-              System Overview
+            <Link 
+              href="/marketing/order-placement" 
+              className="absolute bottom-4 right-4 bg-[#b88036] hover:bg-[#a6712d] transition-all px-4 py-2 rounded-xl flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider shadow-lg text-white"
+            >
+              Order Pipeline
               <ChevronRight size={12} strokeWidth={2.5} />
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -283,10 +781,10 @@ export default function DashboardPage() {
             <div className="w-16 h-16 relative">
               <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
                 <circle cx="18" cy="18" r="16" fill="none" stroke="white" strokeWidth="4" />
-                <circle cx="18" cy="18" r="16" fill="none" stroke="#CC9448" strokeWidth="4" strokeDasharray="15 100" strokeLinecap="round" />
+                <circle cx="18" cy="18" r="16" fill="none" stroke="#CC9448" strokeWidth="4" strokeDasharray={`${Math.min(Math.max(reach, 8), 100)} 100`} strokeLinecap="round" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[#CC9448] font-bold text-[10px]">+9</span>
+                <span className="text-[#CC9448] font-bold text-[10px]">+{reach}</span>
               </div>
             </div>
           </div>
@@ -295,9 +793,18 @@ export default function DashboardPage() {
             <p className="text-[12px] opacity-90 leading-relaxed font-medium">
               Real-time analytics monitor <span className="text-[#CC9448] font-bold">Enterprise Expansion</span> and regional deployment efficiency across all nodes.
             </p>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#CC9448]" />
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#CC9448]">Live Intelligence</span>
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#CC9448]" />
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#CC9448]">Live Intelligence</span>
+              </div>
+              <Link
+                href="/measurements/entry"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[#CC9448] hover:text-white text-[9.5px] font-bold uppercase tracking-wider transition-all"
+              >
+                <span>Fitting Log</span>
+                <ChevronRight size={10} />
+              </Link>
             </div>
           </div>
         </div>
@@ -309,49 +816,97 @@ export default function DashboardPage() {
         
         {/* 1. Product Registry Card */}
         <div className="col-span-12 md:col-span-4 bg-white border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col gap-6">
-          <h3 className="text-lg font-bold text-[#030303] tracking-tight">Product Registry</h3>
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/admin/products"
+              className="text-lg font-bold text-[#030303] tracking-tight hover:text-[#CC9448] transition-colors"
+              title="Open Product Registry"
+            >
+              Product Registry
+            </Link>
+            <Link 
+              href="/admin/products" 
+              className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
+              title="Manage product registry"
+            >
+              <span>Manage</span>
+              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
           
           <div className="space-y-4 my-auto">
-            <div className="flex items-center gap-4 bg-[#F5F4F2]/50 p-4 rounded-2xl border border-zinc-100/55">
-              <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-teal-500/20 shrink-0">
-                P
+            <Link 
+              href="/admin/products" 
+              className="flex items-center justify-between gap-4 bg-[#F5F4F2]/50 hover:bg-[#F5F4F2] p-4 rounded-2xl border border-zinc-100/55 hover:border-teal-300 transition-all group"
+              title="View uniform articles in product registry"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-teal-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                  P
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-[#030303] leading-none">{totalProducts}</p>
+                  <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 leading-none">
+                    Total Uniform Articles
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xl font-bold text-[#030303] leading-none">{totalProducts}</p>
-                <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 leading-none">
-                  Total Uniform Articles
-                </p>
-              </div>
-            </div>
+              <span className="text-[10px] font-bold uppercase text-teal-600 opacity-60 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
+                Catalog <ChevronRight size={12} />
+              </span>
+            </Link>
             
-            <div className="flex items-center gap-4 bg-[#F5F4F2]/50 p-4 rounded-2xl border border-zinc-100/55">
-              <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-orange-500/20 shrink-0">
-                I
+            <Link 
+              href="/admin/inventory/fabric-stock" 
+              className="flex items-center justify-between gap-4 bg-[#F5F4F2]/50 hover:bg-[#F5F4F2] p-4 rounded-2xl border border-zinc-100/55 hover:border-orange-300 transition-all group"
+              title="View fabric inventory stock"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-orange-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                  I
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-[#030303] leading-none">{totalInventory}</p>
+                  <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 leading-none">
+                    Inventory Items
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xl font-bold text-[#030303] leading-none">{totalInventory}</p>
-                <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 leading-none">
-                  Inventory Items
-                </p>
-              </div>
-            </div>
+              <span className="text-[10px] font-bold uppercase text-orange-600 opacity-60 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
+                Fabrics <ChevronRight size={12} />
+              </span>
+            </Link>
           </div>
         </div>
 
         {/* 2. Global Metrics Card */}
         <div className="col-span-12 md:col-span-4 bg-white border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col gap-6">
-          <h3 className="text-lg font-bold text-[#030303] tracking-tight">Global Metrics</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-[#030303] tracking-tight">Global Metrics</h3>
+            <Link 
+              href="/customers" 
+              className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
+            >
+              <span>Directory</span>
+              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
           
           <div className="space-y-4">
             {[
-              { label: 'Member Onboarding', status: 'ACTIVE', value: totalMembers },
-              { label: 'Measurement Log', status: 'HEALTHY', value: totalMeasurements },
-              { label: 'Organization Sync', status: 'OPTIMIZED', value: totalOrgs }
+              { label: 'Member Onboarding', status: 'ACTIVE', value: totalMembers, href: '/customers' },
+              { label: 'Measurement Log', status: 'HEALTHY', value: totalMeasurements, href: '/measurements/entry' },
+              { label: 'Organization Sync', status: 'OPTIMIZED', value: totalOrgs, href: '/customers' }
             ].map((metric, i) => (
-              <div key={i} className="flex items-center justify-between p-2.5 bg-[#F5F4F2]/20 rounded-2xl hover:bg-[#F5F4F2]/50 transition-all">
+              <Link 
+                key={i} 
+                href={metric.href}
+                className="flex items-center justify-between p-2.5 bg-[#F5F4F2]/20 hover:bg-[#F5F4F2]/70 rounded-2xl transition-all group"
+                title={`Open ${metric.label}`}
+              >
                 <div className="flex items-center gap-3.5">
                   <div className="relative">
-                    <div className="w-11 h-11 rounded-xl bg-white border border-zinc-150 flex items-center justify-center shadow-sm">
+                    <div className="w-11 h-11 rounded-xl bg-white border border-zinc-150 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
                       <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
                       </svg>
@@ -359,24 +914,36 @@ export default function DashboardPage() {
                     <span className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#030303] leading-none mb-1">{metric.label}</h4>
+                    <h4 className="text-xs font-bold text-[#030303] leading-none mb-1 group-hover:text-[#CC9448] transition-colors">{metric.label}</h4>
                     <p className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">{metric.status}</p>
                   </div>
                 </div>
-                <span className="text-sm font-bold text-zinc-400 font-mono">{metric.value}</span>
-              </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-zinc-400 font-mono group-hover:text-zinc-700">{metric.value}</span>
+                  <ChevronRight size={13} className="text-zinc-300 group-hover:text-[#CC9448] group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </Link>
             ))}
           </div>
         </div>
 
         {/* 3. Deployment Status Card */}
-        <div className="col-span-12 md:col-span-4 bg-[#fdfbf7] border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col gap-6 relative overflow-hidden">
-          <div>
-            <h3 className="text-lg font-bold text-[#030303] tracking-tight">Deployment Status</h3>
-            <p className="text-[9px] text-[#8b6b5a]/60 font-bold uppercase tracking-[0.2em] mt-1">Instance Health</p>
+        <div className="col-span-12 md:col-span-4 bg-[#fdfbf7] border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col justify-between gap-6 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-[#030303] tracking-tight">Deployment Status</h3>
+              <p className="text-[9px] text-[#8b6b5a]/60 font-bold uppercase tracking-[0.2em] mt-1">Instance Health</p>
+            </div>
+            <Link 
+              href="/factory/job-cards" 
+              className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
+            >
+              <span>Floor</span>
+              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
           
-          <div className="flex-1 flex items-center justify-center py-4">
+          <div className="flex-1 flex flex-col items-center justify-center py-2">
             <div className="bg-white px-5 py-3.5 rounded-2xl shadow-xl shadow-zinc-200/50 border border-zinc-50 flex items-center gap-3.5 scale-105 hover:scale-110 transition-transform duration-300">
               <div className="w-7 h-4 bg-teal-600 rounded" />
               <div>
@@ -385,6 +952,24 @@ export default function DashboardPage() {
                   Operational
                 </span>
               </div>
+            </div>
+
+            {/* Direct Quick Action Buttons */}
+            <div className="flex items-center gap-2.5 mt-5">
+              <Link 
+                href="/marketing/order-placement"
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 text-[10px] font-bold shadow-xs hover:border-[#CC9448]/50 flex items-center gap-1 transition-all"
+              >
+                <span>Orders Queue</span>
+                <ChevronRight size={11} className="text-zinc-400" />
+              </Link>
+              <Link 
+                href="/factory/job-cards"
+                className="px-3 py-1.5 rounded-xl bg-[#3a525d] hover:bg-[#2c3e47] text-white text-[10px] font-bold shadow-xs flex items-center gap-1 transition-all"
+              >
+                <span>Job Cards</span>
+                <ChevronRight size={11} className="text-white/60" />
+              </Link>
             </div>
           </div>
         </div>
@@ -518,13 +1103,7 @@ export default function DashboardPage() {
                     <div className="p-4 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]">Target Delivery Date</p>
                       <p className="text-xs font-black text-[#2d8d9b] mt-1">
-                        {selectedQuoteDetail.expected_delivery_date
-                          ? new Date(selectedQuoteDetail.expected_delivery_date).toLocaleDateString(undefined, {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          : 'N/A'}
+                        {formatDate(selectedQuoteDetail.expected_delivery_date)}
                       </p>
                     </div>
 

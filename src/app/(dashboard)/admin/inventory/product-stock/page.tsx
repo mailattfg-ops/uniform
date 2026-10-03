@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { 
   Box, 
   AlertTriangle, 
   XCircle, 
   ShieldCheck, 
   Search, 
-  Sliders, 
   Plus, 
-  Minus, 
   Loader2, 
   RotateCw, 
   Layers,
@@ -81,12 +79,20 @@ export default function ProductStockPage() {
     setIsLoading(true);
     try {
       const res = await api.get('/inventory/stock');
-      const productsData = res.data?.products || [];
-      setProducts(productsData);
-      calculateStats(productsData);
+      const allProducts: any[] = res.data?.products || [];
+      // Strictly show Readymade (Trade) products; manufactured custom items and accessories are excluded
+      const tradeProducts = allProducts.filter((p: any) => {
+        const { type } = parseMaterialsField(p.materials);
+        const pType = (p.product_type || type || '').toLowerCase();
+        const isTrade = pType === 'trade_readymade' || pType === 'trade' || pType === 'readymade_trade';
+        const isAccessory = (p.category || '').toLowerCase() === 'accessories' || pType === 'accessories';
+        return isTrade && !isAccessory;
+      });
+      setProducts(tradeProducts);
+      calculateStats(tradeProducts);
     } catch (err: any) {
       console.error(err);
-      toast.error('Failed to load product stock catalog.');
+      toast.error('Failed to load readymade trade stock catalog.');
     } finally {
       setIsLoading(false);
     }
@@ -251,10 +257,10 @@ export default function ProductStockPage() {
             <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
               <Layers size={20} />
             </div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Product Stock</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Readymade (Trade) Stock</h1>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-2 opacity-80">
-            Real-time finished garments inventory levels & alert thresholds
+            Finished Garments Procured For Trade / Resale & Sizing Stock
           </p>
         </div>
 
@@ -519,11 +525,16 @@ export default function ProductStockPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#fce4d4] rounded-[3rem] p-24 text-center">
-          <div className="flex flex-col items-center gap-4 opacity-30">
-            <Box size={48} className="text-[#2d8d9b]" />
-            <p className="text-xl font-black italic text-[#3a525d]">No matching stock records found</p>
-            <p className="text-xs font-bold max-w-sm text-zinc-500">Try adjusting your filters or search keywords to locate specific articles.</p>
+        <div className="bg-white border border-[#fce4d4] rounded-[3rem] p-16 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
+              <Box size={32} />
+            </div>
+            <p className="text-xl font-black italic text-[#3a525d]">No Readymade (Trade) Stock Records</p>
+            <p className="text-xs font-bold max-w-md text-zinc-500 leading-relaxed">
+              Custom manufactured uniforms are produced on-demand via Job Cards and do not sit in warehouse finished stock.
+              To manage trade finished stock here, register articles with <span className="text-[#2d8d9b] font-black">"Readymade (Trade)"</span> in the Product Registry.
+            </p>
           </div>
         </div>
       )}

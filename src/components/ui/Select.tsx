@@ -46,6 +46,12 @@ export const Select: React.FC<SelectProps> = ({
   const currentValue = controlledValue !== undefined ? controlledValue : internalValue;
 
   useEffect(() => {
+    if (defaultValue !== undefined && controlledValue === undefined) {
+      setInternalValue(defaultValue);
+    }
+  }, [defaultValue, controlledValue]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);

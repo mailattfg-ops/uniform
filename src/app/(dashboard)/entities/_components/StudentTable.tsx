@@ -5,11 +5,12 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Edit2, Trash2, UserPlus, FileUp, Key, Download, Filter, User } from 'lucide-react';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { Select } from '@/components/ui/Select';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
+import { formatDate } from '@/lib/formatters';
 
 interface Entity {
   id: number;
@@ -110,7 +111,7 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
       `"${e.departments?.name || 'N/A'}"`,
       `"${e.status || 'Active'}"`,
       `"${e.measurement_status || 'Missing'}"`,
-      `"${new Date(e.created_at).toLocaleDateString()}"`
+      `"${formatDate(e.created_at)}"`
     ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');

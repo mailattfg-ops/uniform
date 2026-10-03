@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package } from 'lucide-react';
+import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw } from 'lucide-react';
 import { ProductType, TemplateLineItem, ManualItem, SeparateFabricItem } from '../../page';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
+import api from '@/lib/api';
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
   if (!rawText) return { type: '', materials: '' };
@@ -13,6 +14,428 @@ const parseMaterialsField = (rawText: string | undefined | null) => {
     return { type: match[1].trim(), materials: match[2].trim() };
   }
   return { type: '', materials: rawText };
+};
+
+export const resolveClassConsumption = (prod: any, deptName: string) => {
+  if (!prod) return null;
+  if (!prod.class_fabric_consumption || typeof prod.class_fabric_consumption !== 'object') {
+    return {
+      main_fabric: prod.main_fabric,
+      attachment_fabric1: prod.attachment_fabric1,
+      attachment_fabric2: prod.attachment_fabric2,
+      button_count: prod.button_count,
+      thread_count: prod.thread_count
+    };
+  }
+
+  const matrix = prod.class_fabric_consumption;
+  let clean = (deptName || '').replace(/\(boys\)|\(girls\)|boys|girls/gi, '').trim();
+  clean = clean.replace(/[-_]\s*[A-Za-z0-9]$/, '').trim();
+
+  if (matrix[deptName]) return matrix[deptName];
+  if (matrix[clean]) return matrix[clean];
+
+  const numMatch = clean.match(/(\d+)/);
+  if (numMatch) {
+    const gradeNum = numMatch[1];
+    const candidateKeys = [
+      `Class ${gradeNum}`,
+      `Class${gradeNum}`,
+      `Grade ${gradeNum}`,
+      `Grade${gradeNum}`,
+      `C${gradeNum}`,
+      gradeNum
+    ];
+    for (const ck of candidateKeys) {
+      const foundKey = Object.keys(matrix).find(k => k.toLowerCase().replace(/\s+/g, '') === ck.toLowerCase().replace(/\s+/g, ''));
+      if (foundKey && matrix[foundKey]) return matrix[foundKey];
+    }
+  }
+
+  const lower = clean.toLowerCase();
+  for (const k of Object.keys(matrix)) {
+    const lk = k.toLowerCase();
+    if (lower.includes('nur') && lk.includes('nur')) return matrix[k];
+    if (lower.includes('lkg') && lk.includes('lkg')) return matrix[k];
+    if (lower.includes('ukg') && lk.includes('ukg')) return matrix[k];
+    if (lower.includes('kg') && lk.includes('kg')) return matrix[k];
+  }
+
+  const strippedClean = clean.toLowerCase().replace(/\s+/g, '');
+  const matchedKey = Object.keys(matrix).find(k => {
+    const strippedK = k.toLowerCase().replace(/\s+/g, '');
+    return strippedClean === strippedK || strippedClean.includes(strippedK) || strippedK.includes(strippedClean);
+  });
+  if (matchedKey && matrix[matchedKey]) return matrix[matchedKey];
+
+  if (matrix['Corporate']) return matrix['Corporate'];
+
+  return null;
+};
+
+// Calculate class-wise average fabric lengths and trim counts across all configured classes
+export const getClassWiseAverage = (prod: any) => {
+  if (!prod?.class_fabric_consumption || typeof prod.class_fabric_consumption !== 'object') {
+    return null;
+  }
+  const matrix = prod.class_fabric_consumption;
+  const classEntries = Object.entries(matrix).filter(
+    ([k, v]) => !k.startsWith('_') && k.toLowerCase() !== 'corporate' && typeof v === 'object' && v !== null
+  );
+  if (classEntries.length === 0) return null;
+
+  let sumMain = 0, cntMain = 0;
+  let sumAtt1 = 0, cntAtt1 = 0;
+  let sumAtt2 = 0, cntAtt2 = 0;
+  let sumBtn = 0, cntBtn = 0;
+  let sumThr = 0, cntThr = 0;
+
+  for (const [, val] of classEntries) {
+    const v: any = val;
+    if (v.main_fabric !== undefined && v.main_fabric !== null && v.main_fabric !== '') {
+      const num = parseFloat(String(v.main_fabric));
+      if (!isNaN(num) && num > 0) {
+        sumMain += num;
+        cntMain++;
+      }
+    }
+    if (v.attachment_fabric1 !== undefined && v.attachment_fabric1 !== null && v.attachment_fabric1 !== '') {
+      const num = parseFloat(String(v.attachment_fabric1));
+      if (!isNaN(num) && num > 0) {
+        sumAtt1 += num;
+        cntAtt1++;
+      }
+    }
+    if (v.attachment_fabric2 !== undefined && v.attachment_fabric2 !== null && v.attachment_fabric2 !== '') {
+      const num = parseFloat(String(v.attachment_fabric2));
+      if (!isNaN(num) && num > 0) {
+        sumAtt2 += num;
+        cntAtt2++;
+      }
+    }
+    if (v.button_count !== undefined && v.button_count !== null && v.button_count !== '') {
+      const num = parseFloat(String(v.button_count));
+      if (!isNaN(num) && num > 0) {
+        sumBtn += num;
+        cntBtn++;
+      }
+    }
+    if (v.thread_count !== undefined && v.thread_count !== null && v.thread_count !== '') {
+      const num = parseFloat(String(v.thread_count));
+      if (!isNaN(num) && num > 0) {
+        sumThr += num;
+        cntThr++;
+      }
+    }
+  }
+
+  const formatMeters = (avg: number) => (Math.round(avg * 100) / 100).toString();
+  const formatCount = (avg: number) => (Math.round(avg * 10) / 10).toString();
+
+  return {
+    main_fabric: cntMain > 0 ? formatMeters(sumMain / cntMain) : null,
+    attachment_fabric1: cntAtt1 > 0 ? formatMeters(sumAtt1 / cntAtt1) : null,
+    attachment_fabric2: cntAtt2 > 0 ? formatMeters(sumAtt2 / cntAtt2) : null,
+    button_count: cntBtn > 0 ? formatCount(sumBtn / cntBtn) : null,
+    thread_count: cntThr > 0 ? formatCount(sumThr / cntThr) : null,
+  };
+};
+
+export const getAutoProductDefaults = ({
+  prod,
+  isSchool,
+  deptName,
+  fabricsList = [],
+  buttonsList = [],
+  threadsList = [],
+  trimsList = [],
+  trimCategories = []
+}: {
+  prod: any;
+  isSchool: boolean;
+  deptName?: string;
+  fabricsList?: any[];
+  buttonsList?: any[];
+  threadsList?: any[];
+  trimsList?: any[];
+  trimCategories?: any[];
+}) => {
+  if (!prod) return null;
+
+  // Base attachment fabrics and trims from product
+  const baseAttFabrics = Array.isArray(prod.attachment_fabrics) && prod.attachment_fabrics.length > 0
+    ? prod.attachment_fabrics
+    : (prod.class_fabric_consumption?._base_attachment_fabrics || []);
+
+  const baseTrims = Array.isArray(prod.trims) && prod.trims.length > 0
+    ? prod.trims
+    : (Array.isArray(prod.class_fabric_consumption?._base_trims) ? prod.class_fabric_consumption._base_trims : []);
+
+  const btnTrim = baseTrims.find((t: any) =>
+    (t.uom || '').toLowerCase() === 'pcs' ||
+    (t.name || '').toLowerCase().includes('button') ||
+    (t.category || '').toLowerCase().includes('button') ||
+    String(t.trim_id).includes('btn')
+  );
+  const thrTrim = baseTrims.find((t: any) =>
+    (t.uom || '').toLowerCase() === 'cones' ||
+    (t.name || '').toLowerCase().includes('thread') ||
+    (t.category || '').toLowerCase().includes('thread') ||
+    String(t.trim_id).includes('thr')
+  );
+
+  let baseMainMeters = '';
+  if (prod.main_fabric !== null && prod.main_fabric !== undefined && prod.main_fabric !== '') {
+    baseMainMeters = String(prod.main_fabric);
+  } else if (prod.main_fabric_meters !== null && prod.main_fabric_meters !== undefined && prod.main_fabric_meters !== '') {
+    baseMainMeters = String(prod.main_fabric_meters);
+  } else if (prod.class_fabric_consumption?._base_main_fabric !== null && prod.class_fabric_consumption?._base_main_fabric !== undefined && prod.class_fabric_consumption?._base_main_fabric !== '') {
+    baseMainMeters = String(prod.class_fabric_consumption._base_main_fabric);
+  } else if (prod.class_fabric_consumption?.Corporate?.main_fabric !== null && prod.class_fabric_consumption?.Corporate?.main_fabric !== undefined && prod.class_fabric_consumption?.Corporate?.main_fabric !== '') {
+    baseMainMeters = String(prod.class_fabric_consumption.Corporate.main_fabric);
+  }
+  if (!baseMainMeters && prod.materials) {
+    const matMatch = String(prod.materials).match(/\[MainFabricMeters:\s*([^\]]+)\]/i);
+    if (matMatch && matMatch[1]) {
+      baseMainMeters = matMatch[1].trim();
+    }
+  }
+
+  const baseAtt1Meters = (prod.attachment_fabric1 !== null && prod.attachment_fabric1 !== undefined && prod.attachment_fabric1 !== '')
+    ? String(prod.attachment_fabric1)
+    : (baseAttFabrics[0]?.meters ? String(baseAttFabrics[0].meters) : '');
+  const baseAtt2Meters = (prod.attachment_fabric2 !== null && prod.attachment_fabric2 !== undefined && prod.attachment_fabric2 !== '')
+    ? String(prod.attachment_fabric2)
+    : (baseAttFabrics[1]?.meters ? String(baseAttFabrics[1].meters) : '');
+  const baseBtnCount = (prod.button_count !== null && prod.button_count !== undefined && prod.button_count !== '')
+    ? String(prod.button_count)
+    : (btnTrim?.count ? String(btnTrim.count) : '');
+  const baseThrCount = (prod.thread_count !== null && prod.thread_count !== undefined && prod.thread_count !== '')
+    ? String(prod.thread_count)
+    : (thrTrim?.count ? String(thrTrim.count) : '');
+
+  let resolvedMain = '';
+  let resolvedAtt1 = '';
+  let resolvedAtt2 = '';
+  let resolvedBtn = '';
+  let resolvedThr = '';
+
+  if (isSchool) {
+    let matchedSpecific = false;
+    if (deptName) {
+      const specific = resolveClassConsumption(prod, deptName);
+      if (specific) {
+        matchedSpecific = true;
+        if (specific.main_fabric !== null && specific.main_fabric !== undefined && specific.main_fabric !== '') {
+          resolvedMain = String(specific.main_fabric);
+        }
+        if (specific.attachment_fabric1 !== null && specific.attachment_fabric1 !== undefined && specific.attachment_fabric1 !== '') {
+          resolvedAtt1 = String(specific.attachment_fabric1);
+        }
+        if (specific.attachment_fabric2 !== null && specific.attachment_fabric2 !== undefined && specific.attachment_fabric2 !== '') {
+          resolvedAtt2 = String(specific.attachment_fabric2);
+        }
+        if (specific.button_count !== null && specific.button_count !== undefined && specific.button_count !== '') {
+          resolvedBtn = String(specific.button_count);
+        }
+        if (specific.thread_count !== null && specific.thread_count !== undefined && specific.thread_count !== '') {
+          resolvedThr = String(specific.thread_count);
+        }
+      }
+    }
+
+    if (!matchedSpecific || !resolvedMain) {
+      // Calculate class-wise average
+      const avg = getClassWiseAverage(prod);
+      if (avg) {
+        if (!resolvedMain && avg.main_fabric) resolvedMain = avg.main_fabric;
+        if (!resolvedAtt1 && avg.attachment_fabric1) resolvedAtt1 = avg.attachment_fabric1;
+        if (!resolvedAtt2 && avg.attachment_fabric2) resolvedAtt2 = avg.attachment_fabric2;
+        if (!resolvedBtn && avg.button_count) resolvedBtn = avg.button_count;
+        if (!resolvedThr && avg.thread_count) resolvedThr = avg.thread_count;
+      }
+    }
+
+    // Fallbacks to base product if not found in class matrix
+    if (!resolvedMain) resolvedMain = baseMainMeters;
+    if (!resolvedAtt1) resolvedAtt1 = baseAtt1Meters;
+    if (!resolvedAtt2) resolvedAtt2 = baseAtt2Meters;
+    if (!resolvedBtn) resolvedBtn = baseBtnCount;
+    if (!resolvedThr) resolvedThr = baseThrCount;
+  } else {
+    // Non-school: load average data given while creating product
+    resolvedMain = baseMainMeters || (prod.class_fabric_consumption?.Corporate?.main_fabric ? String(prod.class_fabric_consumption.Corporate.main_fabric) : '');
+    resolvedAtt1 = baseAtt1Meters || (prod.class_fabric_consumption?.Corporate?.attachment_fabric1 ? String(prod.class_fabric_consumption.Corporate.attachment_fabric1) : '');
+    resolvedAtt2 = baseAtt2Meters || (prod.class_fabric_consumption?.Corporate?.attachment_fabric2 ? String(prod.class_fabric_consumption.Corporate.attachment_fabric2) : '');
+    resolvedBtn = baseBtnCount || (prod.class_fabric_consumption?.Corporate?.button_count ? String(prod.class_fabric_consumption.Corporate.button_count) : '');
+    resolvedThr = baseThrCount || (prod.class_fabric_consumption?.Corporate?.thread_count ? String(prod.class_fabric_consumption.Corporate.thread_count) : '');
+  }
+
+  // Universal fallbacks if still empty
+  if (!resolvedMain) {
+    const avg = getClassWiseAverage(prod);
+    if (avg?.main_fabric) resolvedMain = avg.main_fabric;
+  }
+  if (!resolvedMain && prod.class_fabric_consumption && typeof prod.class_fabric_consumption === 'object') {
+    for (const [k, v] of Object.entries(prod.class_fabric_consumption)) {
+      if (!k.startsWith('_') && v && typeof v === 'object' && (v as any).main_fabric) {
+        resolvedMain = String((v as any).main_fabric);
+        break;
+      }
+    }
+  }
+  if (!resolvedMain) resolvedMain = baseMainMeters;
+
+  // Preload dropdown selection IDs
+  let mainFabricId = '';
+  if (prod.main_fabric_id) {
+    mainFabricId = String(prod.main_fabric_id);
+  } else if (prod.fabric_id) {
+    mainFabricId = String(prod.fabric_id);
+  } else if (prod.class_fabric_consumption?._base_main_fabric_id) {
+    mainFabricId = String(prod.class_fabric_consumption._base_main_fabric_id);
+  }
+  if (fabricsList.length > 0 && mainFabricId && !fabricsList.some(f => String(f.id) === mainFabricId)) {
+    mainFabricId = '';
+  }
+
+  let att1FabricId = '';
+  if (prod.attachment_fabric1_id) {
+    att1FabricId = String(prod.attachment_fabric1_id);
+  } else if (baseAttFabrics[0]?.fabric_id) {
+    att1FabricId = String(baseAttFabrics[0].fabric_id);
+  }
+  if (fabricsList.length > 0 && att1FabricId && !fabricsList.some(f => String(f.id) === att1FabricId)) {
+    att1FabricId = '';
+  }
+
+  let att2FabricId = '';
+  if (prod.attachment_fabric2_id) {
+    att2FabricId = String(prod.attachment_fabric2_id);
+  } else if (baseAttFabrics[1]?.fabric_id) {
+    att2FabricId = String(baseAttFabrics[1].fabric_id);
+  }
+  if (fabricsList.length > 0 && att2FabricId && !fabricsList.some(f => String(f.id) === att2FabricId)) {
+    att2FabricId = '';
+  }
+
+  let buttonId = '';
+  if (prod.button_id) {
+    buttonId = String(prod.button_id);
+  } else if (btnTrim?.trim_id && !String(btnTrim.trim_id).startsWith('btn_default')) {
+    buttonId = String(btnTrim.trim_id);
+  }
+  if (buttonsList.length > 0 && buttonId && !buttonsList.some(b => String(b.id) === buttonId)) {
+    buttonId = '';
+  }
+
+  let threadId = '';
+  if (prod.thread_id) {
+    threadId = String(prod.thread_id);
+  } else if (thrTrim?.trim_id && !String(thrTrim.trim_id).startsWith('thr_default')) {
+    threadId = String(thrTrim.trim_id);
+  }
+  if (threadsList.length > 0 && threadId && !threadsList.some(t => String(t.id) === threadId)) {
+    threadId = '';
+  }
+
+  // Preload and map dynamic trims from database
+  let resolvedTrims: Array<{
+    id: string | number;
+    trim_id: string;
+    category: string;
+    name: string;
+    count: string;
+    uom: string;
+    unit_price: number;
+  }> = [];
+
+  if (baseTrims.length > 0) {
+    resolvedTrims = baseTrims.map((t: any, idx: number) => {
+      const matched = trimsList.find((dbTrim: any) =>
+        String(dbTrim.id) === String(t.trim_id) ||
+        (dbTrim.name && t.name && dbTrim.name.toLowerCase() === t.name.toLowerCase()) ||
+        (dbTrim.code && t.code && dbTrim.code.toLowerCase() === t.code.toLowerCase())
+      );
+      const catName = t.category || matched?.category?.name || matched?.trim_categories?.name || 'Trim';
+      const isThread = (catName || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || (matched?.name || '').toLowerCase().includes('thread');
+      const uom = isThread 
+        ? (matched?.uom && matched.uom.toLowerCase() !== 'pcs' ? matched.uom : (matched?.category?.default_uom || 'cones'))
+        : (matched?.uom || t.uom || 'pcs');
+      const unitPrice = parseFloat(matched?.unit_price || t.unit_price || '0') || 0;
+      return {
+        id: t.id || `trim-${Date.now()}-${idx}`,
+        trim_id: matched ? String(matched.id) : (t.trim_id ? String(t.trim_id) : ''),
+        category: catName,
+        name: matched?.name || t.name || 'Trim',
+        count: t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1',
+        uom: uom,
+        unit_price: unitPrice
+      };
+    });
+  } else {
+    // If no trims configured on the product, search database for a Button and a Thread
+    const dbBtn = trimsList.find((t: any) =>
+      (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('button') ||
+      (t.name || '').toLowerCase().includes('button')
+    ) || (buttonsList.length > 0 ? buttonsList[0] : null);
+
+    const dbThr = trimsList.find((t: any) =>
+      (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
+      (t.name || '').toLowerCase().includes('thread')
+    ) || (threadsList.length > 0 ? threadsList[0] : null);
+
+    if (dbBtn || resolvedBtn || buttonId) {
+      resolvedTrims.push({
+        id: `btn-${Date.now()}-0`,
+        trim_id: dbBtn ? String(dbBtn.id) : (buttonId || ''),
+        category: 'Buttons',
+        name: dbBtn?.name || 'Buttons',
+        count: resolvedBtn || '10',
+        uom: dbBtn?.uom || 'pcs',
+        unit_price: parseFloat(dbBtn?.unit_price || '0') || 0
+      });
+      if (!buttonId && dbBtn) buttonId = String(dbBtn.id);
+    }
+
+    if (dbThr || resolvedThr || threadId) {
+      resolvedTrims.push({
+        id: `thr-${Date.now()}-1`,
+        trim_id: dbThr ? String(dbThr.id) : (threadId || ''),
+        category: 'Thread',
+        name: dbThr?.name || 'Thread',
+        count: resolvedThr || '1',
+        uom: dbThr?.uom || dbThr?.category?.default_uom || 'cones',
+        unit_price: parseFloat(dbThr?.unit_price || '0') || 0
+      });
+      if (!threadId && dbThr) threadId = String(dbThr.id);
+    }
+  }
+
+  const buttonUom = btnTrim?.uom || 'pcs';
+  const threadUom = thrTrim?.uom || 'cones';
+
+  return {
+    main_fabric_meters: resolvedMain,
+    attachment_fabric1_meters: resolvedAtt1,
+    attachment_fabric2_meters: resolvedAtt2,
+    button_count: resolvedBtn,
+    thread_count: resolvedThr,
+    button_uom: buttonUom,
+    thread_uom: threadUom,
+    fabric_id: mainFabricId,
+    attachment_fabric1_id: att1FabricId,
+    attachment_fabric2_id: att2FabricId,
+    button_id: buttonId,
+    thread_id: threadId,
+    trims: resolvedTrims,
+    sam_value: prod.sam_value !== null && prod.sam_value !== undefined ? String(prod.sam_value) : '',
+    main_fabric_sam: '6.777',
+    attachment_fabric1_sam: (resolvedAtt1 && resolvedAtt1 !== '0') ? '6.777' : '',
+    attachment_fabric2_sam: (resolvedAtt2 && resolvedAtt2 !== '0') ? '6.777' : '',
+    design_number: prod.design_number || 'DNS-STANDARD',
+    art_number: prod.art_number || ''
+  };
 };
 
 interface WizardStep2Props {
@@ -33,6 +456,8 @@ interface WizardStep2Props {
   fabricsList: any[];
   buttonsList: any[];
   threadsList: any[];
+  trimsList?: any[];
+  trimCategories?: any[];
   inwardRates: any[];
   fabricMargins: any[];
   samConfigurations: any[];
@@ -68,6 +493,8 @@ export default function WizardStep2({
   fabricsList,
   buttonsList,
   threadsList,
+  trimsList = [],
+  trimCategories = [],
   inwardRates,
   fabricMargins,
   samConfigurations,
@@ -84,6 +511,321 @@ export default function WizardStep2({
   organizations = [],
   selectedOrgId = '',
 }: WizardStep2Props) {
+
+  // Group all trims from database by category
+  const trimsByCategory = React.useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    if (Array.isArray(trimsList) && trimsList.length > 0) {
+      trimsList.forEach((t: any) => {
+        const catName = t.category?.name || t.trim_categories?.name || 'Other Trims';
+        if (!groups[catName]) groups[catName] = [];
+        groups[catName].push(t);
+      });
+    }
+    if (Array.isArray(buttonsList) && buttonsList.length > 0) {
+      const targetCat = groups['Buttons'] ? 'Buttons' : (groups['Button'] ? 'Button' : 'Buttons');
+      if (!groups[targetCat]) groups[targetCat] = [];
+      buttonsList.forEach((b: any) => {
+        if (!groups[targetCat].some((existing: any) => String(existing.id) === String(b.id))) {
+          groups[targetCat].push(b);
+        }
+      });
+    }
+    if (Array.isArray(threadsList) && threadsList.length > 0) {
+      const targetCat = groups['Threads'] ? 'Threads' : (groups['Thread'] ? 'Thread' : 'Threads');
+      if (!groups[targetCat]) groups[targetCat] = [];
+      threadsList.forEach((th: any) => {
+        if (!groups[targetCat].some((existing: any) => String(existing.id) === String(th.id))) {
+          groups[targetCat].push({
+            ...th,
+            uom: th.uom || 'cones'
+          });
+        }
+      });
+    }
+    return groups;
+  }, [trimsList, buttonsList, threadsList]);
+
+  const [isLoadingEntities, setIsLoadingEntities] = useState(false);
+  const [globalSets, setGlobalSets] = useState('2');
+  const [entityAuditSummary, setEntityAuditSummary] = useState<{
+    totalEntities: number;
+    measuredCount: number;
+    pendingCount: number;
+    missingCount: number;
+    classesCount: number;
+  } | null>(null);
+
+  const selectedOrg = organizations?.find((org: any) => String(org.id) === String(selectedOrgId));
+  const isSchool = Boolean(
+    selectedOrg?.industries?.name?.toLowerCase().includes('school') ||
+    selectedOrg?.industries?.name?.toLowerCase().includes('educat') ||
+    selectedOrg?.industry_type?.toLowerCase().includes('school') ||
+    selectedOrg?.name?.toLowerCase().match(/school|vidyalaya|academy|matriculation|college|institution|campus|kindergarten/i) ||
+    customerType?.toLowerCase().includes('school') ||
+    orgDepartments?.some((d: any) => /class|grade|std|standard|lkg|ukg|nursery|kg/i.test(d.name || d.baseDeptName || ''))
+  );
+
+  const handleAutoLoadEntitiesAndMeasurements = async () => {
+    if (!selectedOrgId) {
+      toast.error('No customer organization selected. Please return to Step 1 and select an organization.');
+      return;
+    }
+
+    setIsLoadingEntities(true);
+    const loadingToast = toast.loading('Loading student & sizing data...');
+
+    try {
+      const res = await api.get(`/quotations/calculate/${selectedOrgId}`);
+      const data = res.data;
+
+      const members: any[] = data.entities || [];
+      const dbDepts: any[] = data.departments || [];
+      const totalEntities = data.total_entities !== undefined ? data.total_entities : members.length;
+      const measuredCount = data.measured_count || 0;
+      const pendingCount = data.pending_count || 0;
+      const missingCount = data.missing_count || 0;
+
+      // Dynamic gender suffixes based on industry sector (School vs Corporate/Dealership)
+      const maleSuffix = isSchool ? 'Boys' : 'Men';
+      const femaleSuffix = isSchool ? 'Girls' : 'Women';
+
+      // Group members by department and separate by gender
+      const deptBoys: Record<string, any[]> = {};
+      const deptGirls: Record<string, any[]> = {};
+      const deptOthers: Record<string, any[]> = {};
+
+      // If an organization has only 1 department, map unassigned members to that department
+      const soleDeptId = dbDepts.length === 1 ? String(dbDepts[0].id) : null;
+
+      members.forEach((m: any) => {
+        let dId = String(m.department_id || '');
+        if (!dId && soleDeptId) {
+          dId = soleDeptId;
+        } else if (!dId) {
+          dId = 'unassigned';
+        }
+
+        const g = (m.gender || '').toLowerCase().trim();
+        if (g === 'male' || g === 'boy' || g === 'm' || g === 'men') {
+          if (!deptBoys[dId]) deptBoys[dId] = [];
+          deptBoys[dId].push(m);
+        } else if (g === 'female' || g === 'girl' || g === 'f' || g === 'women') {
+          if (!deptGirls[dId]) deptGirls[dId] = [];
+          deptGirls[dId].push(m);
+        } else {
+          if (!deptOthers[dId]) deptOthers[dId] = [];
+          deptOthers[dId].push(m);
+        }
+      });
+
+      // Split into gender-separated department rows
+      const updatedDepts: any[] = [];
+      const effectiveDepts = [...dbDepts];
+      if ((deptBoys['unassigned']?.length || 0) > 0 || (deptGirls['unassigned']?.length || 0) > 0) {
+        effectiveDepts.push({
+          id: 'unassigned',
+          name: isSchool ? 'General / Unassigned' : 'General Staff',
+          division: 'General'
+        });
+      }
+
+      effectiveDepts.forEach((d: any) => {
+        const rawId = String(d.id);
+        const boys = deptBoys[rawId] || [];
+        const girls = deptGirls[rawId] || [];
+
+        if (boys.length > 0 && girls.length > 0) {
+          // Both genders present -> create 2 separate rows
+          updatedDepts.push({
+            id: `${rawId}_boys`,
+            name: `${d.name} (${maleSuffix})`,
+            baseDeptName: d.name,
+            gender: 'male',
+            division: d.division ? `${d.division} - ${maleSuffix}` : maleSuffix,
+            selected: true,
+            persons: String(boys.length),
+            sets: globalSets || '2',
+            _memberCount: boys.length,
+            _measuredCount: boys.filter(m => m.measurement_status === 'Completed').length,
+            _members: boys
+          });
+          updatedDepts.push({
+            id: `${rawId}_girls`,
+            name: `${d.name} (${femaleSuffix})`,
+            baseDeptName: d.name,
+            gender: 'female',
+            division: d.division ? `${d.division} - ${femaleSuffix}` : femaleSuffix,
+            selected: true,
+            persons: String(girls.length),
+            sets: globalSets || '2',
+            _memberCount: girls.length,
+            _measuredCount: girls.filter(m => m.measurement_status === 'Completed').length,
+            _members: girls
+          });
+        } else if (boys.length > 0) {
+          updatedDepts.push({
+            id: `${rawId}_boys`,
+            name: `${d.name} (${maleSuffix})`,
+            baseDeptName: d.name,
+            gender: 'male',
+            division: d.division || maleSuffix,
+            selected: true,
+            persons: String(boys.length),
+            sets: globalSets || '2',
+            _memberCount: boys.length,
+            _measuredCount: boys.filter(m => m.measurement_status === 'Completed').length,
+            _members: boys
+          });
+        } else if (girls.length > 0) {
+          updatedDepts.push({
+            id: `${rawId}_girls`,
+            name: `${d.name} (${femaleSuffix})`,
+            baseDeptName: d.name,
+            gender: 'female',
+            division: d.division || femaleSuffix,
+            selected: true,
+            persons: String(girls.length),
+            sets: globalSets || '2',
+            _memberCount: girls.length,
+            _measuredCount: girls.filter(m => m.measurement_status === 'Completed').length,
+            _members: girls
+          });
+        } else {
+          // If no members uploaded yet or unassigned
+          updatedDepts.push({
+            id: `${rawId}_boys`,
+            name: `${d.name} (${maleSuffix})`,
+            baseDeptName: d.name,
+            gender: 'male',
+            division: d.division ? `${d.division} - ${maleSuffix}` : maleSuffix,
+            selected: false,
+            persons: '0',
+            sets: globalSets || '2',
+            _memberCount: 0,
+            _measuredCount: 0
+          });
+          updatedDepts.push({
+            id: `${rawId}_girls`,
+            name: `${d.name} (${femaleSuffix})`,
+            baseDeptName: d.name,
+            gender: 'female',
+            division: d.division ? `${d.division} - ${femaleSuffix}` : femaleSuffix,
+            selected: false,
+            persons: '0',
+            sets: globalSets || '2',
+            _memberCount: 0,
+            _measuredCount: 0
+          });
+        }
+      });
+
+      if (setOrgDepartments) {
+        setOrgDepartments(updatedDepts);
+      }
+
+      // Re-apply class-wise measurements/BOM and scale quantities
+      if (setDepartmentItems) {
+        const updatedDeptItems: Record<string, ManualItem[]> = {};
+
+        updatedDepts.forEach((dept: any) => {
+          const deptId = String(dept.id);
+          const currentItems = (departmentItems || {})[deptId] || [];
+          const personsNum = parseInt(dept.persons, 10) || 0;
+          const setsNum = parseInt(dept.sets, 10) || 0;
+          const totalUnits = personsNum * setsNum;
+
+          if (currentItems.length > 0) {
+            updatedDeptItems[deptId] = currentItems.map((item) => {
+              const updatedItem = { ...item, quantity: String(totalUnits || 1) };
+
+              if (item.product_id) {
+                const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
+                if (prod) {
+                  const autoDefaults = getAutoProductDefaults({
+                    prod,
+                    isSchool,
+                    deptName: dept.baseDeptName || dept.name || '',
+                    fabricsList,
+                    buttonsList,
+                    threadsList,
+                    trimsList,
+                    trimCategories
+                  });
+                  if (autoDefaults) {
+                    if (autoDefaults.main_fabric_meters) updatedItem.main_fabric_meters = autoDefaults.main_fabric_meters;
+                    if (autoDefaults.attachment_fabric1_meters) updatedItem.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+                    if (autoDefaults.attachment_fabric2_meters) updatedItem.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
+                    if (autoDefaults.button_count) updatedItem.button_count = autoDefaults.button_count;
+                    if (autoDefaults.thread_count) updatedItem.thread_count = autoDefaults.thread_count;
+                    if (!updatedItem.fabric_id && autoDefaults.fabric_id) updatedItem.fabric_id = autoDefaults.fabric_id;
+                    if (!updatedItem.button_id && autoDefaults.button_id) updatedItem.button_id = autoDefaults.button_id;
+                    if (!updatedItem.thread_id && autoDefaults.thread_id) updatedItem.thread_id = autoDefaults.thread_id;
+                    if (autoDefaults.trims && autoDefaults.trims.length > 0) updatedItem.trims = autoDefaults.trims;
+                  }
+                }
+              }
+
+              return updatedItem;
+            });
+          }
+        });
+
+        setDepartmentItems({ ...(departmentItems || {}), ...updatedDeptItems });
+      }
+
+      const activeCount = updatedDepts.filter((d: any) => d.selected).length;
+      setEntityAuditSummary({
+        totalEntities,
+        measuredCount,
+        pendingCount,
+        missingCount,
+        classesCount: activeCount
+      });
+
+      toast.success(
+        `⚡ Auto-loaded ${totalEntities} students across ${activeCount} gender-separated divisions! (${measuredCount} verified measurements)`,
+        { id: loadingToast, duration: 6000 }
+      );
+    } catch (err: any) {
+      console.error('Failed to load organization entities and measurements', err);
+      toast.error('Failed to load entity measurement records.', { id: loadingToast });
+    } finally {
+      setIsLoadingEntities(false);
+    }
+  };
+
+  const handleApplySetsGlobally = (setsValue: string) => {
+    setGlobalSets(setsValue);
+    const setsNum = parseInt(setsValue, 10) || 1;
+
+    if (setOrgDepartments) {
+      const updatedDepts = (orgDepartments || []).map((dept: any) => ({
+        ...dept,
+        sets: setsValue
+      }));
+      setOrgDepartments(updatedDepts);
+
+      if (setDepartmentItems) {
+        const updatedDeptItems: Record<string, ManualItem[]> = {};
+        updatedDepts.forEach((dept: any) => {
+          const deptId = String(dept.id);
+          const currentItems = (departmentItems || {})[deptId] || [];
+          const personsNum = parseInt(dept.persons, 10) || 0;
+          const totalUnits = personsNum * setsNum;
+          if (currentItems.length > 0) {
+            updatedDeptItems[deptId] = currentItems.map(item => ({
+              ...item,
+              quantity: String(totalUnits || 1)
+            }));
+          }
+        });
+        setDepartmentItems({ ...(departmentItems || {}), ...updatedDeptItems });
+      }
+
+      toast.success(`Applied ${setsValue} sets per person to all classes! Total units updated.`);
+    }
+  };
 
   // Deduplicate template line items by product_id
   const mergedMap = new Map<number, TemplateLineItem & { _indices: number[] }>();
@@ -191,6 +933,83 @@ export default function WizardStep2({
     setManualItems(updated);
   };
 
+  const updateItemTrim = (itemIndex: number, trimIndex: number, changes: any) => {
+    const updated = [...manualItems];
+    const item = { ...updated[itemIndex] };
+    const defaultTrims = [
+      { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+    ];
+    const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    while (curTrims.length <= trimIndex) {
+      curTrims.push({
+        id: Date.now() + Math.random(),
+        trim_id: '',
+        category: 'Trim',
+        name: '',
+        count: '1',
+        uom: 'pcs',
+        unit_price: 0
+      });
+    }
+    curTrims[trimIndex] = { ...curTrims[trimIndex], ...changes };
+    item.trims = curTrims;
+
+    const btn = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('button') || (t.name || '').toLowerCase().includes('button') || String(t.id).startsWith('btn'));
+    if (btn) {
+      item.button_id = btn.trim_id || '';
+      item.button_count = btn.count || '';
+    }
+    const thr = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || String(t.id).startsWith('thr'));
+    if (thr) {
+      item.thread_id = thr.trim_id || '';
+      item.thread_count = thr.count || '';
+    }
+
+    const costs = getItemCosts(item);
+    item.price = costs.unitTotal.toFixed(2);
+    updated[itemIndex] = item;
+    setManualItems(updated);
+  };
+
+  const addItemTrim = (itemIndex: number) => {
+    const updated = [...manualItems];
+    const item = { ...updated[itemIndex] };
+    const defaultTrims = [
+      { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+    ];
+    const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    curTrims.push({
+      id: Date.now() + Math.random(),
+      trim_id: '',
+      category: 'Trim',
+      name: '',
+      count: '1',
+      uom: 'pcs',
+      unit_price: 0
+    });
+    item.trims = curTrims;
+    updated[itemIndex] = item;
+    setManualItems(updated);
+  };
+
+  const removeItemTrim = (itemIndex: number, trimIndex: number) => {
+    const updated = [...manualItems];
+    const item = { ...updated[itemIndex] };
+    const defaultTrims = [
+      { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+    ];
+    const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    curTrims.splice(trimIndex, 1);
+    item.trims = curTrims;
+    const costs = getItemCosts(item);
+    item.price = costs.unitTotal.toFixed(2);
+    updated[itemIndex] = item;
+    setManualItems(updated);
+  };
+
   const addNewItem = () => {
     setManualItems([
       ...manualItems,
@@ -200,6 +1019,10 @@ export default function WizardStep2({
         attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
         attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
         button_id: '', button_count: '', thread_id: '', thread_count: '',
+        trims: [
+          { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
+          { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+        ],
         sam_value: '', design_number: '', quantity: '1', price: ''
       }
     ]);
@@ -338,29 +1161,47 @@ export default function WizardStep2({
                     const prod = allProducts.find(p => String(p.id) === val);
                     const updates: Partial<ManualItem> = { product_id: val };
                     if (prod) {
-                      updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
-                      if (prod.main_fabric !== null && prod.main_fabric !== undefined)
-                        updates.main_fabric_meters = String(prod.main_fabric);
-                      if (prod.attachment_fabric1 !== null && prod.attachment_fabric1 !== undefined)
-                        updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
-                      if (prod.attachment_fabric2 !== null && prod.attachment_fabric2 !== undefined)
-                        updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
-                      if (prod.button_count !== null && prod.button_count !== undefined)
-                        updates.button_count = String(prod.button_count);
-                      if (prod.thread_count !== null && prod.thread_count !== undefined)
-                        updates.thread_count = String(prod.thread_count);
-
-                      updates.main_fabric_sam = '6.777'; // Default Fabric SAM value
-                      updates.attachment_fabric1_sam = prod.attachment_fabric1 ? '6.777' : '';
-                      updates.attachment_fabric2_sam = prod.attachment_fabric2 ? '6.777' : '';
-
-                      updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                      const autoDefaults = getAutoProductDefaults({
+                        prod,
+                        isSchool,
+                        fabricsList,
+                        buttonsList,
+                        threadsList,
+                        trimsList,
+                        trimCategories
+                      });
+                      if (autoDefaults) {
+                        updates.sam_value = autoDefaults.sam_value;
+                        updates.main_fabric_meters = autoDefaults.main_fabric_meters;
+                        updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+                        updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
+                        updates.button_count = autoDefaults.button_count;
+                        updates.thread_count = autoDefaults.thread_count;
+                        if (autoDefaults.fabric_id) updates.fabric_id = autoDefaults.fabric_id;
+                        if (autoDefaults.attachment_fabric1_id) updates.attachment_fabric1_id = autoDefaults.attachment_fabric1_id;
+                        if (autoDefaults.attachment_fabric2_id) updates.attachment_fabric2_id = autoDefaults.attachment_fabric2_id;
+                        if (autoDefaults.button_id) updates.button_id = autoDefaults.button_id;
+                        if (autoDefaults.thread_id) updates.thread_id = autoDefaults.thread_id;
+                        if (autoDefaults.trims) updates.trims = autoDefaults.trims;
+                        updates.main_fabric_sam = autoDefaults.main_fabric_sam;
+                        updates.attachment_fabric1_sam = autoDefaults.attachment_fabric1_sam;
+                        updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
+                        updates.design_number = autoDefaults.design_number;
+                        updates.art_number = autoDefaults.art_number;
+                      }
                     } else {
                       updates.sam_value = '';
+                      updates.main_fabric_meters = '';
+                      updates.attachment_fabric1_meters = '';
+                      updates.attachment_fabric2_meters = '';
+                      updates.button_count = '';
+                      updates.thread_count = '';
+                      updates.trims = [];
                       updates.main_fabric_sam = '';
                       updates.attachment_fabric1_sam = '';
                       updates.attachment_fabric2_sam = '';
                       updates.design_number = '';
+                      updates.art_number = '';
                     }
                     updateItem(index, updates);
                   }}
@@ -473,15 +1314,32 @@ export default function WizardStep2({
               </button>
             </div>
 
-            {/* Notes / Design */}
-            <div className="mt-3">
-              <input
-                type="text"
-                value={item.design_number}
-                onChange={(e) => updateItem(index, { design_number: e.target.value })}
-                className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
-                placeholder="Design notes, color, fit details..."
-              />
+            {/* Pattern / Art Number & Design Number (DNS) Identifiers */}
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/70 p-3 rounded-xl border border-zinc-100">
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-widest text-sky-700 mb-1">
+                  Art # (Pattern / Article Code)
+                </label>
+                <input
+                  type="text"
+                  value={item.art_number || ''}
+                  onChange={(e) => updateItem(index, { art_number: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-sky-200/70 rounded-lg text-sky-900 focus:outline-none focus:border-sky-500 bg-white placeholder:text-zinc-300 transition-all"
+                  placeholder="e.g. 4J-1-012"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-widest text-indigo-700 mb-1">
+                  Design # (DNS Code)
+                </label>
+                <input
+                  type="text"
+                  value={item.design_number || ''}
+                  onChange={(e) => updateItem(index, { design_number: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-indigo-200/70 rounded-lg text-indigo-900 focus:outline-none focus:border-indigo-500 bg-white placeholder:text-zinc-300 transition-all"
+                  placeholder="e.g. DNS-0001 or DNS-STANDARD"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -597,7 +1455,7 @@ export default function WizardStep2({
                         updateItem(index, updates);
                       }}
                     >
-                      <option value="">Optional...</option>
+                      <option value="">Select Att. Fabric 1 (Optional)...</option>
                       {fabricsList.map((f: any) => (
                         <option key={f.id} value={String(f.id)}>
                           {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
@@ -615,7 +1473,6 @@ export default function WizardStep2({
                       <input
                         type="number" step="0.1" min="0" placeholder="0.0"
                         value={item.attachment_fabric1_meters}
-                        disabled={!item.attachment_fabric1_id}
                         onChange={(e) => updateItem(index, { attachment_fabric1_meters: e.target.value })}
                         className={`${inputCls} w-20`}
                       />
@@ -670,7 +1527,7 @@ export default function WizardStep2({
                         updateItem(index, updates);
                       }}
                     >
-                      <option value="">Optional...</option>
+                      <option value="">Select Att. Fabric 2 (Optional)...</option>
                       {fabricsList.map((f: any) => (
                         <option key={f.id} value={String(f.id)}>
                           {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
@@ -688,7 +1545,6 @@ export default function WizardStep2({
                       <input
                         type="number" step="0.1" min="0" placeholder="0.0"
                         value={item.attachment_fabric2_meters}
-                        disabled={!item.attachment_fabric2_id}
                         onChange={(e) => updateItem(index, { attachment_fabric2_meters: e.target.value })}
                         className={`${inputCls} w-20`}
                       />
@@ -722,101 +1578,157 @@ export default function WizardStep2({
                   </td>
                 </tr>
 
-                {/* ── Buttons (OPTIONAL) ── */}
-                <tr className="hover:bg-zinc-50/50">
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
-                      <span className="font-semibold text-zinc-500">Buttons</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <select
-                      className={selectCls}
-                      value={item.button_id}
-                      onChange={(e) => updateItem(index, { button_id: e.target.value })}
-                    >
-                      <option value="">Optional...</option>
-                      {buttonsList.map((b: any) => (
-                        <option key={b.id} value={String(b.id)}>
-                          {b.name}{b.unit_price ? ` — ₹${Number(b.unit_price).toFixed(2)}/pc` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number" step="1" min="0" placeholder="0"
-                        value={item.button_count}
-                        disabled={!item.button_id}
-                        onChange={(e) => updateItem(index, { button_count: e.target.value })}
-                        className={`${inputCls} w-20`}
-                      />
-                      <span className="text-zinc-400 font-bold text-[10px]">pcs</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-zinc-300 font-semibold text-[10px]">—</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">
-                      Included
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
-                    <span className="font-mono font-black text-zinc-300">
-                      ₹0.00
-                    </span>
-                  </td>
-                </tr>
+                {/* ── Dynamic Database Trims ── */}
+                {((item.trims && item.trims.length > 0) ? item.trims : [
+                  { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
+                  { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '0', uom: 'cones' }
+                ]).map((trimItem: any, trimIdx: number) => {
+                  const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
+                                 threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
+                                 buttonsList.find((b: any) => String(b.id) === String(trimItem.trim_id));
+                  const isThr = trimIdx === 1 ||
+                                String(trimItem.id).startsWith('thr') ||
+                                (trimItem.category || '').toLowerCase().includes('thread') ||
+                                (trimItem.name || '').toLowerCase().includes('thread') ||
+                                (dbTrim?.category?.name || '').toLowerCase().includes('thread') ||
+                                (dbTrim?.trim_categories?.name || '').toLowerCase().includes('thread') ||
+                                (dbTrim?.name || '').toLowerCase().includes('thread') ||
+                                (dbTrim?.code || '').toUpperCase().startsWith('THR');
+                  const trimCat = (trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || (isThr ? 'Thread' : (trimIdx === 0 ? 'Buttons' : 'Trim')));
+                  const isBtn = !isThr && (trimIdx === 0 || String(trimItem.id).startsWith('btn') || trimCat.toLowerCase().includes('button'));
+                  const isZip = trimCat.toLowerCase().includes('zip');
+                  const isElas = trimCat.toLowerCase().includes('elastic');
 
-                {/* ── Thread (OPTIONAL) ── */}
-                <tr className="hover:bg-zinc-50/50">
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0"></span>
-                      <span className="font-semibold text-zinc-500">Thread</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <select
-                      className={selectCls}
-                      value={item.thread_id}
-                      onChange={(e) => updateItem(index, { thread_id: e.target.value })}
+                  return (
+                    <tr key={trimItem.id || trimIdx} className="hover:bg-zinc-50/50">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            isBtn ? 'bg-amber-400' :
+                            isThr ? 'bg-purple-400' :
+                            isZip ? 'bg-blue-400' :
+                            isElas ? 'bg-emerald-400' :
+                            'bg-teal-500'
+                          }`}></span>
+                          <span className="font-semibold text-zinc-500">{trimCat}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <select
+                          className={selectCls}
+                          value={trimItem.trim_id || ''}
+                          onChange={(e) => {
+                            const selectedTrimId = e.target.value;
+                            const found = trimsList.find((t: any) => String(t.id) === selectedTrimId) ||
+                                          buttonsList.find((b: any) => String(b.id) === selectedTrimId) ||
+                                          threadsList.find((th: any) => String(th.id) === selectedTrimId);
+                            const itemIsThread = isThr ||
+                              (found?.category?.name || '').toLowerCase().includes('thread') ||
+                              (found?.trim_categories?.name || '').toLowerCase().includes('thread') ||
+                              (found?.name || '').toLowerCase().includes('thread') ||
+                              (found?.code || '').toUpperCase().startsWith('THR');
+                            const resolvedCategory = itemIsThread ? 'Thread' : (found?.category?.name || found?.trim_categories?.name || trimCat);
+                            const resolvedUom = itemIsThread
+                              ? ((found?.uom && found.uom.toLowerCase() !== 'pcs') ? found.uom : (found?.category?.default_uom || 'cones'))
+                              : (found?.uom || found?.category?.default_uom || 'pcs');
+
+                            updateItemTrim(index, trimIdx, {
+                              trim_id: selectedTrimId,
+                              name: found?.name || '',
+                              category: resolvedCategory,
+                              uom: resolvedUom,
+                              unit_price: parseFloat(found?.unit_price || '0') || 0
+                            });
+                          }}
+                        >
+                          <option value="">Select {trimCat} (Optional)...</option>
+                          {Object.entries(trimsByCategory).map(([catName, items]) => (
+                            <optgroup key={catName} label={catName}>
+                              {items.map((t: any) => (
+                                <option key={t.id} value={String(t.id)}>
+                                  {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${t.uom || (isThr ? 'cones' : 'pc')}` : ''}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                          {Object.keys(trimsByCategory).length === 0 && (
+                            <>
+                              <optgroup label="Buttons">
+                                {buttonsList.map((b: any) => (
+                                  <option key={b.id} value={String(b.id)}>
+                                    {b.name}{b.unit_price ? ` — ₹${Number(b.unit_price).toFixed(2)}/pc` : ''}
+                                  </option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Threads">
+                                {threadsList.map((t: any) => (
+                                  <option key={t.id} value={String(t.id)}>
+                                    {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}` : ''}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            </>
+                          )}
+                        </select>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number" step="0.5" min="0" placeholder="0"
+                            value={trimItem.count || ''}
+                            onChange={(e) => updateItemTrim(index, trimIdx, { count: e.target.value })}
+                            className={`${inputCls} w-20`}
+                          />
+                          <span className="text-zinc-400 font-bold text-[10px]">
+                            {(() => {
+                              if (isThr) {
+                                if (trimItem.uom && trimItem.uom.toLowerCase() !== 'pcs') return trimItem.uom;
+                                if (dbTrim?.uom && dbTrim.uom.toLowerCase() !== 'pcs') return dbTrim.uom;
+                                if (dbTrim?.category?.default_uom) return dbTrim.category.default_uom;
+                                return 'cones';
+                              }
+                              return trimItem.uom || dbTrim?.uom || 'pcs';
+                            })()}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-zinc-300 font-semibold text-[10px]">—</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">
+                          Included
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="font-mono font-black text-zinc-300">
+                            ₹0.00
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeItemTrim(index, trimIdx)}
+                            className="text-zinc-300 hover:text-red-500 transition-colors p-1"
+                            title="Remove trim"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* ── Add Trim Button ── */}
+                <tr className="bg-zinc-50/40">
+                  <td colSpan={6} className="px-3 py-2 border-t border-zinc-100">
+                    <button
+                      type="button"
+                      onClick={() => addItemTrim(index)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
                     >
-                      <option value="">Optional...</option>
-                      {threadsList.map((t: any) => (
-                        <option key={t.id} value={String(t.id)}>
-                          {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number" step="1" min="0" placeholder="0"
-                        value={item.thread_count}
-                        disabled={!item.thread_id}
-                        onChange={(e) => updateItem(index, { thread_count: e.target.value })}
-                        className={`${inputCls} w-20`}
-                      />
-                      <span className="text-zinc-400 font-bold text-[10px]">units</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-zinc-300 font-semibold text-[10px]">—</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">
-                      Included
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
-                    <span className="font-mono font-black text-zinc-300">
-                      ₹0.00
-                    </span>
+                      <Plus size={13} strokeWidth={2.5} /> Add Trim (Button, Thread, Zipper, Elastic, Label, etc.)
+                    </button>
                   </td>
                 </tr>
 
@@ -1377,12 +2289,116 @@ export default function WizardStep2({
         </>
       ) : (
         <>
-          {/* BRANCH B — No Measurements */}
-          <div className="p-5 bg-amber-50/50 border border-amber-200 rounded-3xl flex gap-3 text-amber-800 text-xs">
-            <AlertTriangle className="shrink-0 text-amber-600" size={20} />
-            <div>
-              <p className="font-black">No Sizing/Measurement Metrics Found (Branch B)</p>
-              <p className="font-medium mt-0.5">Define garment lines manually. Each product requires Main Fabric (mandatory). Attachment fabrics, buttons, thread, and SAM cost are optional.</p>
+          {/* ═══ ENTITY SIZING AUTOMATION & GLOBAL SETS TOOLBAR ═══ */}
+          <div className="bg-gradient-to-r from-[#2d8d9b]/10 via-[#fce4d4]/20 to-white p-6 rounded-3xl border-2 border-[#2d8d9b]/25 shadow-sm space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-4 border-b border-zinc-200/60 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b] text-white flex items-center justify-center shadow-sm">
+                  <GraduationCap size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-black text-[#3a525d]">
+                      {selectedOrg?.name || 'Customer Organization'}
+                    </h4>
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b]/15 text-[#2d8d9b]">
+                      {isSchool ? 'School Grade Scaling' : 'Department Sizing'}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-zinc-500 mt-0.5">
+                    Auto-load student/staff headcounts &amp; link class-wise measurements from product matrix
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Button: Auto-Load Entities & Measurements */}
+              <button
+                type="button"
+                onClick={handleAutoLoadEntitiesAndMeasurements}
+                disabled={isLoadingEntities || !selectedOrgId}
+                className="h-12 px-6 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-wider text-xs flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isLoadingEntities ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>Auditing Measurements...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={16} className="fill-current text-amber-300" />
+                    <span>Auto-Load Entities &amp; Measurements</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Sizing Audit Metrics Summary if loaded */}
+            {entityAuditSummary && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/80 backdrop-blur p-4 rounded-2xl border border-[#2d8d9b]/20 animate-in fade-in duration-300">
+                <div className="space-y-0.5">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Total Enrolled</p>
+                  <p className="text-lg font-black text-[#3a525d] font-mono">{entityAuditSummary.totalEntities} Members</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Measured (Ready)</p>
+                  <p className="text-lg font-black text-emerald-600 font-mono">{entityAuditSummary.measuredCount} Sized</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending Sizing</p>
+                  <p className="text-lg font-black text-amber-600 font-mono">{entityAuditSummary.pendingCount} Pending</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-[#2d8d9b]">{isSchool ? 'Classes Synced' : 'Departments Synced'}</p>
+                  <p className="text-lg font-black text-[#2d8d9b] font-mono">{entityAuditSummary.classesCount} {isSchool ? 'Classes' : 'Depts'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Provision to Select Number of Sets */}
+            <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-1.5">
+                  <Package size={14} className="text-[#2d8d9b]" />
+                  Provision: Uniform Sets Per Person
+                </label>
+                <p className="text-[10px] text-zinc-400 font-semibold">
+                  Select uniform sets to automatically calculate total units across all {isSchool ? 'grades' : 'departments'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {['1', '2', '3', '4'].map((setVal) => (
+                  <button
+                    key={setVal}
+                    type="button"
+                    onClick={() => handleApplySetsGlobally(setVal)}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      globalSets === setVal
+                        ? 'bg-[#2d8d9b] text-white shadow-sm ring-2 ring-[#2d8d9b]/30'
+                        : 'bg-white hover:bg-zinc-100 text-[#3a525d] border border-zinc-200'
+                    }`}
+                  >
+                    {setVal} {setVal === '1' ? 'Set' : 'Sets'} {setVal === '2' ? '(Default)' : ''}
+                  </button>
+                ))}
+
+                <div className="flex items-center gap-1.5 ml-2 bg-white px-2.5 py-1 rounded-xl border border-zinc-200">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase">Custom:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="2"
+                    value={globalSets}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) handleApplySetsGlobally(val);
+                      else setGlobalSets(val);
+                    }}
+                    className="w-12 text-xs font-mono font-bold text-center border-none focus:outline-none text-[#2d8d9b]"
+                  />
+                  <span className="text-[10px] font-black text-zinc-400">Sets</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1403,7 +2419,7 @@ export default function WizardStep2({
                     <div className="flex-1">
                       <p className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Department-Wise Quotation Mode</p>
                       <p className="text-[9px] font-bold text-[#2d8d9b] mt-0.5">
-                        {selectedDepts.length} department{selectedDepts.length !== 1 ? 's' : ''} selected · Add product lines for each department below
+                        {selectedDepts.length} department{selectedDepts.length !== 1 ? 's' : ''} selected · Average fabric & trim consumption automatically loaded per class
                       </p>
                     </div>
                     <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest">
@@ -1451,6 +2467,10 @@ export default function WizardStep2({
                                 attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
                                 attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
                                 button_id: '', button_count: '', thread_id: '', thread_count: '',
+                                trims: [
+                                  { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
+                                  { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+                                ],
                                 sam_value: '', design_number: '', quantity: String(totalUnits || 1), price: ''
                               };
                               if (setDepartmentItems) {
@@ -1475,6 +2495,93 @@ export default function WizardStep2({
                               }
                             };
 
+                            const updateDeptItemTrim = (itemIndex: number, trimIndex: number, changes: any) => {
+                              const updated = [...deptItems];
+                              const item = { ...updated[itemIndex] };
+                              const defaultTrims = [
+                                { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+                              ];
+                              const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+                              while (curTrims.length <= trimIndex) {
+                                curTrims.push({
+                                  id: Date.now() + Math.random(),
+                                  trim_id: '',
+                                  category: 'Trim',
+                                  name: '',
+                                  count: '1',
+                                  uom: 'pcs',
+                                  unit_price: 0
+                                });
+                              }
+                              curTrims[trimIndex] = { ...curTrims[trimIndex], ...changes };
+                              item.trims = curTrims;
+
+                              const btn = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('button') || (t.name || '').toLowerCase().includes('button') || String(t.id).startsWith('btn'));
+                              if (btn) {
+                                item.button_id = btn.trim_id || '';
+                                item.button_count = btn.count || '';
+                              }
+                              const thr = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || String(t.id).startsWith('thr'));
+                              if (thr) {
+                                item.thread_id = thr.trim_id || '';
+                                item.thread_count = thr.count || '';
+                              }
+
+                              if (quotationType !== 'READYMADE') {
+                                const costs = getItemCosts(item);
+                                item.price = costs.unitTotal.toFixed(2);
+                              }
+                              updated[itemIndex] = item;
+                              if (setDepartmentItems) {
+                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
+                              }
+                            };
+
+                            const addDeptItemTrim = (itemIndex: number) => {
+                              const updated = [...deptItems];
+                              const item = { ...updated[itemIndex] };
+                              const defaultTrims = [
+                                { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+                              ];
+                              const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+                              curTrims.push({
+                                id: Date.now() + Math.random(),
+                                trim_id: '',
+                                category: 'Trim',
+                                name: '',
+                                count: '1',
+                                uom: 'pcs',
+                                unit_price: 0
+                              });
+                              item.trims = curTrims;
+                              updated[itemIndex] = item;
+                              if (setDepartmentItems) {
+                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
+                              }
+                            };
+
+                            const removeDeptItemTrim = (itemIndex: number, trimIndex: number) => {
+                              const updated = [...deptItems];
+                              const item = { ...updated[itemIndex] };
+                              const defaultTrims = [
+                                { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+                              ];
+                              const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+                              curTrims.splice(trimIndex, 1);
+                              item.trims = curTrims;
+                              if (quotationType !== 'READYMADE') {
+                                const costs = getItemCosts(item);
+                                item.price = costs.unitTotal.toFixed(2);
+                              }
+                              updated[itemIndex] = item;
+                              if (setDepartmentItems) {
+                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
+                              }
+                            };
+
                             const removeDeptItem = (index: number) => {
                               if (setDepartmentItems) {
                                 setDepartmentItems({
@@ -1488,10 +2595,15 @@ export default function WizardStep2({
                               <div key={dept.id} className="pt-6 first:pt-0 space-y-4">
                                 {/* Division Header with Sizing & Persons config */}
                                 <div className="flex items-center justify-between gap-4 flex-wrap bg-zinc-50 p-4 rounded-2xl border border-zinc-150">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider bg-zinc-200/50 px-3 py-1 rounded-lg">
                                       {dept.division ? `Division: ${dept.division}` : 'Main Division'}
                                     </span>
+                                    {dept._memberCount !== undefined && dept._memberCount > 0 && (
+                                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1 font-mono">
+                                        <Users size={12} /> {dept._memberCount} Students ({dept._measuredCount || 0} Measured)
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-4 flex-wrap">
                                     <div className="flex items-center gap-2">
@@ -1584,15 +2696,26 @@ export default function WizardStep2({
 
                                         const deptFilteredProducts = allProducts.filter((p: any) => {
                                           const isCorrectCategory = String(p.product_type_id) === String(item.product_type_id);
+                                          
+                                          // Filter by gender: boys/girls/unisex
+                                          const deptGender = (dept.gender || (dept.name?.toLowerCase().includes('boy') ? 'male' : (dept.name?.toLowerCase().includes('girl') ? 'female' : ''))).toLowerCase();
+                                          const prodGender = (p.gender || '').toLowerCase();
+                                          let matchesGender = true;
+                                          if (deptGender === 'male' || deptGender === 'boy' || deptGender === 'boys') {
+                                            matchesGender = prodGender === 'male' || prodGender === 'boys' || prodGender === 'boy' || prodGender === 'unisex' || prodGender === 'all' || !prodGender;
+                                          } else if (deptGender === 'female' || deptGender === 'girl' || deptGender === 'girls') {
+                                            matchesGender = prodGender === 'female' || prodGender === 'girls' || prodGender === 'girl' || prodGender === 'unisex' || prodGender === 'all' || !prodGender;
+                                          }
+
                                           if (quotationType === 'READYMADE') {
                                             const parsed = parseMaterialsField(p.materials);
-                                            return isCorrectCategory && parsed.type?.toLowerCase() === 'trade_readymade';
+                                            return isCorrectCategory && matchesGender && parsed.type?.toLowerCase() === 'trade_readymade';
                                           }
                                           if (quotationType === 'STANDARD') {
                                             const parsed = parseMaterialsField(p.materials);
-                                            return isCorrectCategory && parsed.type?.toLowerCase() === 'readymade';
+                                            return isCorrectCategory && matchesGender && parsed.type?.toLowerCase() === 'readymade';
                                           }
-                                          return isCorrectCategory;
+                                          return isCorrectCategory && matchesGender;
                                         });
 
                                         return (
@@ -1667,38 +2790,48 @@ export default function WizardStep2({
                                                         if (prod) {
                                                           updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
 
-                                                          const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
-                                                          if (isSetType) {
-                                                            const selectedOrg = organizations?.find((org: any) => String(org.id) === String(selectedOrgId));
-                                                            const isSchool = selectedOrg?.industries?.name === 'School';
-                                                            const lookupName = isSchool ? (dept.name || '') : 'Corporate';
-                                                            const consumption = prod.class_fabric_consumption?.[lookupName];
-
-                                                            if (consumption) {
-                                                              updates.main_fabric_meters = consumption.main_fabric != null && consumption.main_fabric !== '' ? String(consumption.main_fabric) : (prod.main_fabric != null ? String(prod.main_fabric) : '');
-                                                              updates.attachment_fabric1_meters = consumption.attachment_fabric1 != null && consumption.attachment_fabric1 !== '' ? String(consumption.attachment_fabric1) : (prod.attachment_fabric1 != null ? String(prod.attachment_fabric1) : '');
-                                                              updates.attachment_fabric2_meters = consumption.attachment_fabric2 != null && consumption.attachment_fabric2 !== '' ? String(consumption.attachment_fabric2) : (prod.attachment_fabric2 != null ? String(prod.attachment_fabric2) : '');
-                                                              updates.button_count = consumption.button_count != null && consumption.button_count !== '' ? String(consumption.button_count) : (prod.button_count != null ? String(prod.button_count) : '');
-                                                              updates.thread_count = consumption.thread_count != null && consumption.thread_count !== '' ? String(consumption.thread_count) : (prod.thread_count != null ? String(prod.thread_count) : '');
-                                                            } else {
-                                                              if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
-                                                              if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
-                                                              if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
-                                                              if (prod.button_count != null) updates.button_count = String(prod.button_count);
-                                                              if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
-                                                            }
-                                                          } else {
-                                                            if (prod.main_fabric != null) updates.main_fabric_meters = String(prod.main_fabric);
-                                                            if (prod.attachment_fabric1 != null) updates.attachment_fabric1_meters = String(prod.attachment_fabric1);
-                                                            if (prod.attachment_fabric2 != null) updates.attachment_fabric2_meters = String(prod.attachment_fabric2);
-                                                            if (prod.button_count != null) updates.button_count = String(prod.button_count);
-                                                            if (prod.thread_count != null) updates.thread_count = String(prod.thread_count);
+                                                          // Automatically resolve class/grade fabric and trim consumption
+                                                          const autoDefaults = getAutoProductDefaults({
+                                                            prod,
+                                                            isSchool,
+                                                            deptName: dept?.baseDeptName || dept?.name || '',
+                                                            fabricsList,
+                                                            buttonsList,
+                                                            threadsList,
+                                                            trimsList,
+                                                            trimCategories
+                                                          });
+                                                          if (autoDefaults) {
+                                                            updates.main_fabric_meters = autoDefaults.main_fabric_meters;
+                                                            updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+                                                            updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
+                                                            updates.button_count = autoDefaults.button_count;
+                                                            updates.thread_count = autoDefaults.thread_count;
+                                                            if (autoDefaults.fabric_id) updates.fabric_id = autoDefaults.fabric_id;
+                                                            if (autoDefaults.attachment_fabric1_id) updates.attachment_fabric1_id = autoDefaults.attachment_fabric1_id;
+                                                            if (autoDefaults.attachment_fabric2_id) updates.attachment_fabric2_id = autoDefaults.attachment_fabric2_id;
+                                                            if (autoDefaults.button_id) updates.button_id = autoDefaults.button_id;
+                                                            if (autoDefaults.thread_id) updates.thread_id = autoDefaults.thread_id;
+                                                            if (autoDefaults.trims) updates.trims = autoDefaults.trims;
+                                                            updates.main_fabric_sam = autoDefaults.main_fabric_sam;
+                                                            updates.attachment_fabric1_sam = autoDefaults.attachment_fabric1_sam;
+                                                            updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
+                                                            updates.design_number = autoDefaults.design_number;
+                                                            updates.art_number = autoDefaults.art_number;
                                                           }
-
-                                                          updates.main_fabric_sam = '6.777';
-                                                          updates.attachment_fabric1_sam = (updates.attachment_fabric1_meters && updates.attachment_fabric1_meters !== '0' && updates.attachment_fabric1_meters !== '') ? '6.777' : '';
-                                                          updates.attachment_fabric2_sam = (updates.attachment_fabric2_meters && updates.attachment_fabric2_meters !== '0' && updates.attachment_fabric2_meters !== '') ? '6.777' : '';
-                                                          updates.design_number = [prod.art_number, prod.name, prod.materials].filter(Boolean).join(' - ');
+                                                        } else {
+                                                          updates.sam_value = '';
+                                                          updates.main_fabric_meters = '';
+                                                          updates.attachment_fabric1_meters = '';
+                                                          updates.attachment_fabric2_meters = '';
+                                                          updates.button_count = '';
+                                                          updates.thread_count = '';
+                                                          updates.trims = [];
+                                                          updates.main_fabric_sam = '';
+                                                          updates.attachment_fabric1_sam = '';
+                                                          updates.attachment_fabric2_sam = '';
+                                                          updates.design_number = '';
+                                                          updates.art_number = '';
                                                         }
                                                         updateDeptItem(idx, updates);
                                                       }}
@@ -1796,15 +2929,32 @@ export default function WizardStep2({
                                                     <Trash2 size={14} />
                                                   </button>
                                                 </div>
-                                                {/* Design Notes */}
-                                                <div className="mt-3">
-                                                  <input
-                                                    type="text"
-                                                    value={item.design_number || ''}
-                                                    onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
-                                                    className="w-full px-3 py-2 text-xs font-semibold border border-zinc-100 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white placeholder:text-zinc-300 transition-all"
-                                                    placeholder="Design notes, color, fit details..."
-                                                  />
+                                                {/* Pattern / Art Number & Design Number (DNS) Identifiers */}
+                                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/70 p-3 rounded-xl border border-zinc-100">
+                                                  <div>
+                                                    <label className="block text-[9px] font-black uppercase tracking-widest text-sky-700 mb-1">
+                                                      Art # (Pattern / Article Code)
+                                                    </label>
+                                                    <input
+                                                      type="text"
+                                                      value={item.art_number || ''}
+                                                      onChange={(e) => updateDeptItem(idx, { art_number: e.target.value })}
+                                                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-sky-200/70 rounded-lg text-sky-900 focus:outline-none focus:border-sky-500 bg-white placeholder:text-zinc-300 transition-all"
+                                                      placeholder="e.g. 4J-1-012"
+                                                    />
+                                                  </div>
+                                                  <div>
+                                                    <label className="block text-[9px] font-black uppercase tracking-widest text-indigo-700 mb-1">
+                                                      Design # (DNS Code)
+                                                    </label>
+                                                    <input
+                                                      type="text"
+                                                      value={item.design_number || ''}
+                                                      onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
+                                                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-indigo-200/70 rounded-lg text-indigo-900 focus:outline-none focus:border-indigo-500 bg-white placeholder:text-zinc-300 transition-all"
+                                                      placeholder="e.g. DNS-0001 or DNS-STANDARD"
+                                                    />
+                                                  </div>
                                                 </div>
                                               </div>
                                             )}
@@ -1926,7 +3076,7 @@ export default function WizardStep2({
                                                                   updateDeptItem(idx, updates);
                                                                 }}
                                                               >
-                                                                <option value="">Optional...</option>
+                                                                <option value="">Select Att. Fabric 1 (Optional)...</option>
                                                                 {fabricsList.map((f: any) => (
                                                                   <option key={f.id} value={String(f.id)}>
                                                                     {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
@@ -1944,7 +3094,6 @@ export default function WizardStep2({
                                                                 <input
                                                                   type="number" step="0.1" min="0" placeholder="0.0"
                                                                   value={item.attachment_fabric1_meters}
-                                                                  disabled={!item.attachment_fabric1_id}
                                                                   onChange={(e) => updateDeptItem(idx, { attachment_fabric1_meters: e.target.value })}
                                                                   className={`${inputCls} w-20`}
                                                                 />
@@ -2003,7 +3152,7 @@ export default function WizardStep2({
                                                                   updateDeptItem(idx, updates);
                                                                 }}
                                                               >
-                                                                <option value="">Optional...</option>
+                                                                <option value="">Select Att. Fabric 2 (Optional)...</option>
                                                                 {fabricsList.map((f: any) => (
                                                                   <option key={f.id} value={String(f.id)}>
                                                                     {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
@@ -2021,7 +3170,6 @@ export default function WizardStep2({
                                                                 <input
                                                                   type="number" step="0.1" min="0" placeholder="0.0"
                                                                   value={item.attachment_fabric2_meters}
-                                                                  disabled={!item.attachment_fabric2_id}
                                                                   onChange={(e) => updateDeptItem(idx, { attachment_fabric2_meters: e.target.value })}
                                                                   className={`${inputCls} w-20`}
                                                                 />
@@ -2057,93 +3205,153 @@ export default function WizardStep2({
                                                         );
                                                       })()}
 
-                                                      {/* ── Buttons (OPTIONAL) ── */}
-                                                      <tr className="hover:bg-zinc-50/50">
-                                                        <td className="p-3">
-                                                          <div className="flex items-center gap-2">
-                                                            <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
-                                                            <span className="font-semibold text-zinc-500">Buttons</span>
-                                                          </div>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <select
-                                                            className={selectCls}
-                                                            value={item.button_id}
-                                                            onChange={(e) => updateDeptItem(idx, { button_id: e.target.value })}
-                                                          >
-                                                            <option value="">Optional...</option>
-                                                            {buttonsList.map((b: any) => (
-                                                              <option key={b.id} value={String(b.id)}>
-                                                                {b.name}{b.unit_price ? ` — ₹${Number(b.unit_price).toFixed(2)}/pc` : ''}
-                                                              </option>
-                                                            ))}
-                                                          </select>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <div className="flex items-center gap-1.5">
-                                                            <input
-                                                              type="number" step="1" min="0" placeholder="0"
-                                                              value={item.button_count}
-                                                              disabled={!item.button_id}
-                                                              onChange={(e) => updateDeptItem(idx, { button_count: e.target.value })}
-                                                              className={`${inputCls} w-20`}
-                                                            />
-                                                            <span className="text-zinc-400 font-bold text-[10px]">pcs</span>
-                                                          </div>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <span className="text-zinc-300 font-semibold text-[10px]">—</span>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">Included</span>
-                                                        </td>
-                                                        <td className="p-3 text-right">
-                                                          <span className="font-mono font-black text-zinc-300">₹0.00</span>
-                                                        </td>
-                                                      </tr>
+                                                      {/* ── Dynamic Database Trims ── */}
+                                                      {((item.trims && item.trims.length > 0) ? item.trims : [
+                                                        { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
+                                                        { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '0', uom: 'cones' }
+                                                      ]).map((trimItem: any, trimIdx: number) => {
+                                                        const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
+                                                                       threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
+                                                                       buttonsList.find((b: any) => String(b.id) === String(trimItem.trim_id));
+                                                        const isThr = trimIdx === 1 ||
+                                                                      String(trimItem.id).startsWith('thr') ||
+                                                                      (trimItem.category || '').toLowerCase().includes('thread') ||
+                                                                      (trimItem.name || '').toLowerCase().includes('thread') ||
+                                                                      (dbTrim?.category?.name || '').toLowerCase().includes('thread') ||
+                                                                      (dbTrim?.trim_categories?.name || '').toLowerCase().includes('thread') ||
+                                                                      (dbTrim?.name || '').toLowerCase().includes('thread') ||
+                                                                      (dbTrim?.code || '').toUpperCase().startsWith('THR');
+                                                        const trimCat = (trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || (isThr ? 'Thread' : (trimIdx === 0 ? 'Buttons' : 'Trim')));
+                                                        const isBtn = !isThr && (trimIdx === 0 || String(trimItem.id).startsWith('btn') || trimCat.toLowerCase().includes('button'));
+                                                        const isZip = trimCat.toLowerCase().includes('zip');
+                                                        const isElas = trimCat.toLowerCase().includes('elastic');
 
-                                                      {/* ── Thread (OPTIONAL) ── */}
-                                                      <tr className="hover:bg-zinc-50/50">
-                                                        <td className="p-3">
-                                                          <div className="flex items-center gap-2">
-                                                            <span className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0"></span>
-                                                            <span className="font-semibold text-zinc-500">Thread</span>
-                                                          </div>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <select
-                                                            className={selectCls}
-                                                            value={item.thread_id}
-                                                            onChange={(e) => updateDeptItem(idx, { thread_id: e.target.value })}
+                                                        return (
+                                                          <tr key={trimItem.id || trimIdx} className="hover:bg-zinc-50/50">
+                                                            <td className="p-3">
+                                                              <div className="flex items-center gap-2">
+                                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                                                  isBtn ? 'bg-amber-400' :
+                                                                  isThr ? 'bg-purple-400' :
+                                                                  isZip ? 'bg-blue-400' :
+                                                                  isElas ? 'bg-emerald-400' :
+                                                                  'bg-teal-500'
+                                                                }`}></span>
+                                                                <span className="font-semibold text-zinc-500">{trimCat}</span>
+                                                              </div>
+                                                            </td>
+                                                            <td className="p-3">
+                                                              <select
+                                                                className={selectCls}
+                                                                value={trimItem.trim_id || ''}
+                                                                onChange={(e) => {
+                                                                  const selectedTrimId = e.target.value;
+                                                                  const found = trimsList.find((t: any) => String(t.id) === selectedTrimId) ||
+                                                                                buttonsList.find((b: any) => String(b.id) === selectedTrimId) ||
+                                                                                threadsList.find((th: any) => String(th.id) === selectedTrimId);
+                                                                  const itemIsThread = isThr ||
+                                                                    (found?.category?.name || '').toLowerCase().includes('thread') ||
+                                                                    (found?.trim_categories?.name || '').toLowerCase().includes('thread') ||
+                                                                    (found?.name || '').toLowerCase().includes('thread') ||
+                                                                    (found?.code || '').toUpperCase().startsWith('THR');
+                                                                  const resolvedCategory = itemIsThread ? 'Thread' : (found?.category?.name || found?.trim_categories?.name || trimCat);
+                                                                  const resolvedUom = itemIsThread
+                                                                    ? ((found?.uom && found.uom.toLowerCase() !== 'pcs') ? found.uom : (found?.category?.default_uom || 'cones'))
+                                                                    : (found?.uom || found?.category?.default_uom || 'pcs');
+
+                                                                  updateDeptItemTrim(idx, trimIdx, {
+                                                                    trim_id: selectedTrimId,
+                                                                    name: found?.name || '',
+                                                                    category: resolvedCategory,
+                                                                    uom: resolvedUom,
+                                                                    unit_price: parseFloat(found?.unit_price || '0') || 0
+                                                                  });
+                                                                }}
+                                                              >
+                                                                <option value="">Select {trimCat} (Optional)...</option>
+                                                                {Object.entries(trimsByCategory).map(([catName, items]) => (
+                                                                  <optgroup key={catName} label={catName}>
+                                                                    {items.map((t: any) => (
+                                                                      <option key={t.id} value={String(t.id)}>
+                                                                        {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${t.uom || 'pc'}` : ''}
+                                                                      </option>
+                                                                    ))}
+                                                                  </optgroup>
+                                                                ))}
+                                                                {Object.keys(trimsByCategory).length === 0 && (
+                                                                  <>
+                                                                    <optgroup label="Buttons">
+                                                                      {buttonsList.map((b: any) => (
+                                                                        <option key={b.id} value={String(b.id)}>
+                                                                          {b.name}{b.unit_price ? ` — ₹${Number(b.unit_price).toFixed(2)}/pc` : ''}
+                                                                        </option>
+                                                                      ))}
+                                                                    </optgroup>
+                                                                    <optgroup label="Threads">
+                                                                      {threadsList.map((t: any) => (
+                                                                        <option key={t.id} value={String(t.id)}>
+                                                                          {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}` : ''}
+                                                                        </option>
+                                                                      ))}
+                                                                    </optgroup>
+                                                                  </>
+                                                                )}
+                                                              </select>
+                                                            </td>
+                                                            <td className="p-3">
+                                                              <div className="flex items-center gap-1.5">
+                                                                <input
+                                                                  type="number" step="0.5" min="0" placeholder="0"
+                                                                  value={trimItem.count || ''}
+                                                                  onChange={(e) => updateDeptItemTrim(idx, trimIdx, { count: e.target.value })}
+                                                                  className={`${inputCls} w-20`}
+                                                                />
+                                                                <span className="text-zinc-400 font-bold text-[10px]">
+                                                                  {(() => {
+                                                                    if (isThr) {
+                                                                      if (trimItem.uom && trimItem.uom.toLowerCase() !== 'pcs') return trimItem.uom;
+                                                                      if (dbTrim?.uom && dbTrim.uom.toLowerCase() !== 'pcs') return dbTrim.uom;
+                                                                      if (dbTrim?.category?.default_uom) return dbTrim.category.default_uom;
+                                                                      return 'cones';
+                                                                    }
+                                                                    return trimItem.uom || dbTrim?.uom || 'pcs';
+                                                                  })()}
+                                                                </span>
+                                                              </div>
+                                                            </td>
+                                                            <td className="p-3">
+                                                              <span className="text-zinc-300 font-semibold text-[10px]">—</span>
+                                                            </td>
+                                                            <td className="p-3">
+                                                              <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">Included</span>
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                              <div className="flex items-center justify-end gap-2">
+                                                                <span className="font-mono font-black text-zinc-300">₹0.00</span>
+                                                                <button
+                                                                  type="button"
+                                                                  onClick={() => removeDeptItemTrim(idx, trimIdx)}
+                                                                  className="text-zinc-300 hover:text-red-500 transition-colors p-1"
+                                                                  title="Remove trim"
+                                                                >
+                                                                  <Trash2 size={13} />
+                                                                </button>
+                                                              </div>
+                                                            </td>
+                                                          </tr>
+                                                        );
+                                                      })}
+
+                                                      {/* ── Add Trim Button ── */}
+                                                      <tr className="bg-zinc-50/40">
+                                                        <td colSpan={6} className="px-3 py-2 border-t border-zinc-100">
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => addDeptItemTrim(idx)}
+                                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
                                                           >
-                                                            <option value="">Optional...</option>
-                                                            {threadsList.map((t: any) => (
-                                                              <option key={t.id} value={String(t.id)}>
-                                                                {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}` : ''}
-                                                              </option>
-                                                            ))}
-                                                          </select>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <div className="flex items-center gap-1.5">
-                                                            <input
-                                                              type="number" step="1" min="0" placeholder="0"
-                                                              value={item.thread_count}
-                                                              disabled={!item.thread_id}
-                                                              onChange={(e) => updateDeptItem(idx, { thread_count: e.target.value })}
-                                                              className={`${inputCls} w-20`}
-                                                            />
-                                                            <span className="text-zinc-400 font-bold text-[10px]">units</span>
-                                                          </div>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <span className="text-zinc-300 font-semibold text-[10px]">—</span>
-                                                        </td>
-                                                        <td className="p-3">
-                                                          <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">Included</span>
-                                                        </td>
-                                                        <td className="p-3 text-right">
-                                                          <span className="font-mono font-black text-zinc-300">₹0.00</span>
+                                                            <Plus size={13} strokeWidth={2.5} /> Add Trim (Button, Thread, Zipper, Elastic, Label, etc.)
+                                                          </button>
                                                         </td>
                                                       </tr>
 

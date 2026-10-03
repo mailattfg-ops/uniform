@@ -19,7 +19,7 @@ import {
   Layers,
   Camera
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '@/components/ui/toast';
 
 const getFieldIcon = (name: string) => {
   const n = name.toLowerCase();

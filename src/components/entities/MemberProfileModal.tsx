@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Ruler, Clock, Mail, Phone, MapPin, Activity, History, ChevronRight } from 'lucide-react';
+import { X, User, Ruler, Mail, Phone, MapPin, Activity, History, ChevronRight } from 'lucide-react';
 import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
+import { formatDate } from '@/lib/formatters';
 
 interface MemberProfileModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface MemberProfileModalProps {
 }
 
 export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, onClose, member }) => {
+  const router = useRouter();
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'measurements'>('profile');
@@ -208,7 +211,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                     </div>
                                     <div className="flex justify-between items-center py-2">
                                         <span className="text-[10px] font-bold text-slate-400">JOIN DATE</span>
-                                        <span className="text-[10px] font-black text-slate-700 uppercase">{new Date(member.created_at).toLocaleDateString()}</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase">{formatDate(member.created_at)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -221,31 +224,60 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                         <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
                                             <Ruler size={20} />
                                         </div>
-                                        <h4 className="text-xs font-black uppercase tracking-widest">Latest Sizing Insight</h4>
+                                        <h4 className="text-xs font-black uppercase tracking-widest">Active Sizing on File</h4>
                                     </div>
                                     <span className="text-[9px] font-black uppercase px-3 py-1 bg-white/10 rounded-lg">
-                                        Recorded {new Date(latestMeasurement.recorded_at).toLocaleDateString()}
+                                        Recorded {formatDate(latestMeasurement.recorded_at, true)}
                                     </span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-6">
                                     <div className="space-y-1">
-                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">System Suggested</p>
+                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Active Size</p>
                                         <p className="text-2xl font-black italic">{latestMeasurement.suggested_size}</p>
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Review Status</p>
-                                        <p className="text-sm font-black uppercase">{latestMeasurement.status}</p>
+                                        <p className="text-sm font-black uppercase text-emerald-400">{latestMeasurement.status}</p>
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Recorded By</p>
                                         <p className="text-sm font-black uppercase truncate">{latestMeasurement.user_profiles?.full_name || 'System'}</p>
                                     </div>
                                 </div>
+                                <div className="pt-2 flex justify-between items-center border-t border-white/10">
+                                    <span className="text-[9px] text-white/60 font-medium">Reused automatically for subsequent orders</span>
+                                    <Button
+                                        onClick={() => {
+                                            onClose();
+                                            router.push(`/measurements/entry?studentId=${member.id}`);
+                                        }}
+                                        className="h-9 px-4 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase text-[9px] tracking-wider flex items-center gap-2 border-none"
+                                    >
+                                        <Ruler size={13} />
+                                        Update Fitting
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>
                 ) : (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Measurement Audit Trail</h3>
+                                <p className="text-[9px] text-slate-400 font-medium">Active measurements are reused for repeat orders. Add a new fitting if sizing changes.</p>
+                            </div>
+                            <Button
+                                onClick={() => {
+                                    onClose();
+                                    router.push(`/measurements/entry?studentId=${member.id}`);
+                                }}
+                                className="h-10 px-5 rounded-2xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase text-[10px] tracking-widest flex items-center gap-2 border-none shadow-md shadow-[#2d8d9b]/20"
+                            >
+                                <Ruler size={14} />
+                                {history.length > 0 ? 'Update / Log New Fitting' : 'Capture Measurement'}
+                            </Button>
+                        </div>
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
                                 <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
@@ -272,8 +304,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                                 </div>
                                                 <div>
                                                     <h4 className="text-sm font-black text-slate-800 tracking-tight leading-none">Record #{history.length - idx}</h4>
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5">
-                                                        Captured on {new Date(h.recorded_at).toLocaleDateString()} at {new Date(h.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 font-mono">
+                                                        Captured {formatDate(h.recorded_at, true)}
                                                     </p>
                                                 </div>
                                             </div>

@@ -20,6 +20,7 @@ export interface DataTableProps<T> {
   isLoading?: boolean;
   headerAction?: React.ReactNode;
   pageSize?: number;
+  emptyMessage?: string;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
@@ -32,6 +33,7 @@ export function DataTable<T extends { id: string | number }>({
   isLoading,
   headerAction,
   pageSize = 10,
+  emptyMessage,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,47 +125,88 @@ export function DataTable<T extends { id: string | number }>({
       )}
 
       {/* Table Body */}
-      <div className="overflow-x-auto pb-4">
-        <table className="w-full text-left border-collapse min-w-[900px]">
+      <div className="overflow-x-auto pb-2 relative">
+        <table className="w-full text-left border-collapse min-w-full">
           <thead>
-            <tr className="bg-[#fce4d4]/20">
-              {columns.map((col, idx) => (
-                <th key={idx} className={`p-6 text-[11px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] border-b border-[#fce4d4] whitespace-nowrap ${col.className || ''}`}>
-                  {col.header}
-                </th>
-              ))}
+            <tr className="bg-[#fce4d4]/20 border-b border-[#fce4d4]">
+              {columns.map((col, idx) => {
+                const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
+                const isLast = idx === columns.length - 1;
+                const isSticky = isAction || isLast;
+                return (
+                  <th 
+                    key={idx} 
+                    className={`px-3.5 py-3 md:px-4 md:py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap ${
+                      isSticky ? 'sticky right-0 bg-[#fef7f2] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
+                    } ${col.className || ''}`}
+                  >
+                    {col.header}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-50">
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                  {columns.map((_, j) => (
-                    <td key={j} className="p-6">
-                      <div className="h-5 bg-zinc-100 rounded-xl w-3/4" />
-                    </td>
-                  ))}
+                  {columns.map((col, j) => {
+                    const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
+                    const isLast = j === columns.length - 1;
+                    const isSticky = isAction || isLast;
+                    return (
+                      <td 
+                        key={j} 
+                        className={`px-3.5 py-3 md:px-4 md:py-3.5 ${
+                          isSticky ? 'sticky right-0 bg-white z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
+                        }`}
+                      >
+                        <div className="h-5 bg-zinc-100 rounded-xl w-3/4" />
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : paginatedData.length > 0 ? (
               paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
-                  {columns.map((col, idx) => (
-                    <td key={idx} className={`p-6 text-sm font-medium text-foreground whitespace-nowrap ${col.className || ''}`}>
-                      {typeof col.accessor === 'function' 
-                        ? col.accessor(item) 
-                        : (item[col.accessor] as React.ReactNode)
-                      }
-                    </td>
-                  ))}
+                  {columns.map((col, idx) => {
+                    const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
+                    const isLast = idx === columns.length - 1;
+                    const isSticky = isAction || isLast;
+                    return (
+                      <td 
+                        key={idx} 
+                        className={`px-3.5 py-3 md:px-4 md:py-3.5 text-xs md:text-sm font-medium text-foreground ${
+                          isSticky ? 'sticky right-0 bg-white group-hover:bg-[#fef9f6] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] transition-colors' : ''
+                        } ${col.className || ''}`}
+                      >
+                        {typeof col.accessor === 'function' 
+                          ? col.accessor(item) 
+                          : (item[col.accessor] as React.ReactNode)
+                        }
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="p-24 text-center">
-                   <div className="flex flex-col items-center gap-4 opacity-30">
-                     <Search size={40} className="text-[#2d8d9b]" />
-                     <p className="text-lg font-black italic tracking-tight text-[#3a525d]">No records found</p>
+                <td colSpan={columns.length} className="p-12 md:p-16 text-center">
+                   <div className="flex flex-col items-center gap-3">
+                     <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-300">
+                       <Search size={24} />
+                     </div>
+                     <p className="text-base font-black text-[#3a525d]">
+                       {searchTerm 
+                         ? `No records matching "${searchTerm}"` 
+                         : (emptyMessage || (title ? `No ${title.toLowerCase().replace(/directory|table|registry|management|hub/gi, '').trim() || 'data'} available to display` : 'No data available to display'))}
+                     </p>
+                     <p className="text-xs text-zinc-400 font-medium max-w-sm">
+                       {searchTerm 
+                         ? 'Try adjusting your search criteria or clearing filters.' 
+                         : 'There are currently no records available in this table.'}
+                     </p>
                    </div>
                 </td>
               </tr>
