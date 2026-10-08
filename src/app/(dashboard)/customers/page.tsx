@@ -17,7 +17,8 @@ import {
   XCircle,
   Star,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Phone
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
@@ -29,7 +30,14 @@ interface Customer {
   id: number;
   customer_code: string | null;
   name: string;
+  phone?: string | null;
+  email?: string | null;
   address: string;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  pin_code?: string | null;
+  country?: string | null;
   industry_id: number;
   industries?: { name: string };
   relationship_manager_id: number | null;
@@ -39,6 +47,8 @@ interface Customer {
   is_active?: boolean | null;
   is_special?: boolean | null;
   is_risk?: boolean | null;
+  receivables?: number | null;
+  credits?: number | null;
   created_at: string;
 }
 
@@ -181,6 +191,22 @@ export default function CustomersRegistry() {
       defaultValue: editingCustomer?.name
     },
     {
+      name: 'phone',
+      label: 'Primary Phone Number *',
+      type: 'text',
+      placeholder: 'e.g. +91 98765 43210',
+      required: true,
+      defaultValue: editingCustomer?.phone || undefined
+    },
+    {
+      name: 'email',
+      label: 'Email Address (Optional)',
+      type: 'email',
+      placeholder: 'e.g. billing@institution.com',
+      required: false,
+      defaultValue: editingCustomer?.email || undefined
+    },
+    {
       name: 'industry_id',
       label: 'Customer Sector / Type',
       type: 'select',
@@ -190,26 +216,76 @@ export default function CustomersRegistry() {
     },
     {
       name: 'address',
-      label: 'Billing & Operational Address',
+      label: 'Street / Building Address',
       type: 'text',
-      placeholder: 'Campus address, Street, City, Pincode',
+      placeholder: 'Campus address, Street, Building',
       maxLength: 200,
       defaultValue: editingCustomer?.address
     },
     {
-      name: 'relationship_manager_id',
-      label: 'Assign Account Relationship Manager (Staff)',
-      type: 'select',
-      options: [
-        { label: 'Unassigned', value: '' },
-        ...employees.map(e => ({
-          label: `${e.full_name} (${e.employee_id})`,
-          value: String(e.id)
-        }))
-      ],
-      required: false,
-      defaultValue: editingCustomer?.relationship_manager_id ? String(editingCustomer.relationship_manager_id) : undefined
+      name: 'city',
+      label: 'City',
+      type: 'text',
+      placeholder: 'e.g. Mumbai, Bengaluru',
+      maxLength: 100,
+      defaultValue: editingCustomer?.city || undefined
     },
+    {
+      name: 'state',
+      label: 'State',
+      type: 'text',
+      placeholder: 'e.g. Maharashtra, Karnataka',
+      maxLength: 100,
+      defaultValue: editingCustomer?.state || undefined
+    },
+    {
+      name: 'pincode',
+      label: 'Pin Code',
+      type: 'text',
+      placeholder: 'e.g. 560001',
+      maxLength: 20,
+      defaultValue: editingCustomer?.pincode || editingCustomer?.pin_code || undefined
+    },
+    {
+      name: 'country',
+      label: 'Country',
+      type: 'text',
+      placeholder: 'e.g. India',
+      maxLength: 100,
+      defaultValue: editingCustomer?.country || 'India'
+    },
+    {
+      name: 'receivables',
+      label: 'Receivables (₹) - Amount to be paid by customer',
+      type: 'number',
+      placeholder: '0.00',
+      required: false,
+      defaultValue: editingCustomer?.receivables !== undefined && editingCustomer?.receivables !== null ? String(editingCustomer.receivables) : '0'
+    },
+    {
+      name: 'credits',
+      label: 'Credits (₹) - Extra balance / return credit',
+      type: 'number',
+      placeholder: '0.00',
+      required: false,
+      defaultValue: editingCustomer?.credits !== undefined && editingCustomer?.credits !== null ? String(editingCustomer.credits) : '0'
+    },
+    ...(editingCustomer ? [
+      {
+        name: 'relationship_manager_id',
+        label: 'Assign Account Relationship Manager (Staff)',
+        type: 'select' as const,
+        options: [
+          { label: 'Unassigned', value: '' },
+          ...employees.map(e => ({
+            label: `${e.full_name} (${e.employee_id})`,
+            value: String(e.id)
+          }))
+        ],
+        required: false,
+        defaultValue: editingCustomer?.relationship_manager_id ? String(editingCustomer.relationship_manager_id) : undefined
+      }
+    ] : []),
     {
       name: 'is_active',
       label: 'Account Status',
@@ -244,20 +320,44 @@ export default function CustomersRegistry() {
   ];
 
   const handleAddOrUpdate = async (formData: any) => {
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error('Primary phone number is required');
+      return;
+    }
+
     const loadingToast = toast.loading(editingCustomer ? 'Updating customer profile...' : 'Registering new customer...');
 
     const isSpecial = formData.client_tag === 'special';
     const isRisk = formData.client_tag === 'risk';
 
+    // Automatically resolve relationship manager from logged-in user if creating
+    const matchedEmployee = employees.find(e => 
+      (currentUser?.employeeId && e.employee_id === currentUser.employeeId) ||
+      (currentUser?.fullName && e.full_name?.toLowerCase() === currentUser.fullName?.toLowerCase()) ||
+      (currentUser?.id && (e as any).user_id === currentUser.id)
+    );
+    const resolvedRmId = formData.relationship_manager_id 
+      ? parseInt(formData.relationship_manager_id, 10) 
+      : (editingCustomer?.relationship_manager_id || (matchedEmployee ? matchedEmployee.id : null));
+
     const payload = {
       name: formData.name,
+      phone: formData.phone.trim(),
+      email: formData.email?.trim() || null,
       industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
-      address: formData.address || null,
-      relationship_manager_id: formData.relationship_manager_id ? parseInt(formData.relationship_manager_id, 10) : null,
+      address: formData.address?.trim() || null,
+      city: formData.city?.trim() || null,
+      state: formData.state?.trim() || null,
+      pincode: formData.pincode?.trim() || null,
+      pin_code: formData.pincode?.trim() || null,
+      country: formData.country?.trim() || 'India',
+      relationship_manager_id: resolvedRmId,
       is_active: formData.is_active === 'true',
       is_special: isSpecial,
       is_risk: isRisk,
-      client_tag: formData.client_tag || 'standard'
+      client_tag: formData.client_tag || 'standard',
+      receivables: formData.receivables !== undefined && formData.receivables !== '' ? parseFloat(formData.receivables) : 0,
+      credits: formData.credits !== undefined && formData.credits !== '' ? parseFloat(formData.credits) : 0,
     };
 
     try {
@@ -371,9 +471,15 @@ export default function CustomersRegistry() {
         const matchName = c.name?.toLowerCase().includes(t);
         const matchCode = c.customer_code?.toLowerCase().includes(t);
         const matchAddr = c.address?.toLowerCase().includes(t);
+        const matchCity = c.city?.toLowerCase().includes(t);
+        const matchState = c.state?.toLowerCase().includes(t);
+        const matchPincode = (c.pincode || c.pin_code)?.toLowerCase().includes(t);
+        const matchCountry = c.country?.toLowerCase().includes(t);
+        const matchPhone = c.phone?.toLowerCase().includes(t);
+        const matchEmail = c.email?.toLowerCase().includes(t);
         const matchInd = c.industries?.name?.toLowerCase().includes(t);
         const matchRm = c.relationship_manager?.full_name?.toLowerCase().includes(t);
-        return matchName || matchCode || matchAddr || matchInd || matchRm;
+        return matchName || matchCode || matchAddr || matchCity || matchState || matchPincode || matchCountry || matchPhone || matchEmail || matchInd || matchRm;
       }
       return true;
     });
@@ -382,15 +488,33 @@ export default function CustomersRegistry() {
   // Columns definition
   const columns: Column<Customer>[] = [
     {
-      header: 'Customer (Click to View Details)',
+      header: 'Customer ID',
+      className: 'w-[130px] whitespace-nowrap',
+      sortValue: (c) => c.customer_code || String(c.id),
+      accessor: (c) => {
+        const idLabel = c.customer_code || `#${c.id}`;
+        return (
+          <span 
+            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#fce4d4]/40 text-[#8b6b5a] border border-[#fce4d4]"
+            title={idLabel}
+          >
+            {idLabel}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Name',
+      className: 'min-w-[220px]',
+      sortValue: (c) => c.name,
       accessor: (c) => (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div 
             onClick={() => handleViewDetails(c)}
-            className="w-12 h-12 bg-[#3a525d]/5 hover:bg-[#2d8d9b]/15 rounded-2xl flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] border border-[#3a525d]/10 transition-all cursor-pointer shrink-0 group"
+            className="w-9 h-9 bg-[#3a525d]/5 hover:bg-[#2d8d9b]/15 rounded-xl flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] border border-[#3a525d]/10 transition-all cursor-pointer shrink-0 group"
             title="Click to view full customer details"
           >
-            <Building2 size={24} className="group-hover:scale-110 transition-transform" />
+            <Building2 size={18} className="group-hover:scale-110 transition-transform" />
           </div>
           <div>
             {/* USER REQUEST: Click customer name to open existing customer details page */}
@@ -403,21 +527,36 @@ export default function CustomersRegistry() {
               <span>{c.name}</span>
               <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#2d8d9b]" />
             </button>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 text-[9px] font-mono font-bold bg-[#fce4d4]/40 text-[#8b6b5a] rounded-md border border-[#fce4d4]">
-                {c.customer_code ? `CUST: ${c.customer_code}` : `ID: #${c.id}`}
-              </span>
-              <span className="w-1 h-1 rounded-full bg-zinc-300" />
-              <span className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-wider">
-                {c.industries?.name || 'Institutional'}
-              </span>
-            </div>
+            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider mt-0.5">
+              {c.industries?.name || 'Institutional'}
+            </p>
           </div>
         </div>
       ),
     },
     {
+      header: 'Phone Number',
+      className: 'w-[150px] whitespace-nowrap',
+      sortValue: (c) => c.phone || '',
+      accessor: (c) => (
+        c.phone ? (
+          <a
+            href={`tel:${c.phone}`}
+            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+            title={`Call ${c.phone}`}
+          >
+            <Phone size={13} className="text-[#2d8d9b] shrink-0" />
+            <span>{c.phone}</span>
+          </a>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+        )
+      )
+    },
+    {
       header: 'Account Status',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (c) => (c.is_active !== false ? 'Active' : 'Inactive'),
       accessor: (c) => {
         const isActive = c.is_active !== false;
 
@@ -465,6 +604,8 @@ export default function CustomersRegistry() {
     },
     {
       header: 'Client Health / Tag',
+      className: 'w-[150px] whitespace-nowrap',
+      sortValue: (c) => (c.is_special ? 'Special' : c.is_risk ? 'Risk' : 'Standard'),
       accessor: (c) => {
         const isSpecial = !!c.is_special;
         const isRisk = !!c.is_risk;
@@ -513,6 +654,8 @@ export default function CustomersRegistry() {
     },
     {
       header: 'Relationship Manager',
+      className: 'w-[180px] whitespace-nowrap',
+      sortValue: (c) => c.relationship_manager?.full_name || '',
       accessor: (c) => (
         c.relationship_manager ? (
           <div className="flex items-center gap-2.5">
@@ -534,62 +677,42 @@ export default function CustomersRegistry() {
       )
     },
     {
-      header: 'Location / Campus',
-      accessor: (c) => (
-        <div className="flex items-center gap-2 text-zinc-600">
-          <MapPin size={14} className="text-[#2d8d9b] shrink-0" />
-          <span className="text-xs font-semibold truncate max-w-[200px]">
-            {c.address || 'Address pending'}
-          </span>
-        </div>
-      )
+      header: 'Receivables',
+      className: 'w-[150px] whitespace-nowrap',
+      sortValue: (c) => Number(c.receivables ?? 0),
+      accessor: (c) => {
+        const amt = Number(c.receivables ?? 0);
+        const hasDue = amt > 0;
+        return (
+          <div className="flex flex-col" title={String(amt)}>
+            <span className={`text-xs font-black font-mono ${hasDue ? 'text-rose-600' : 'text-zinc-600'}`}>
+              ₹{amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className={`text-[9px] font-bold uppercase tracking-wider ${hasDue ? 'text-rose-500' : 'text-zinc-400'}`}>
+              {hasDue ? 'Amount Due' : 'Zero Due'}
+            </span>
+          </div>
+        );
+      }
     },
     {
-      header: 'Actions',
-      accessor: (c) => (
-        <div className="flex items-center gap-2">
-          {/* USER REQUEST: Eye button removed. Customer name is clickable directly! */}
-          <Button
-            onClick={() => router.push(`/customers/${c.id}?tab=ledger`)}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all shadow-xs p-0 cursor-pointer"
-            title="Account Statement & Financial Ledger"
-          >
-            <ReceiptText size={16} className="shrink-0" />
-          </Button>
-          {!isClientUser && (
-            <>
-              <Button
-                onClick={() => {
-                  setEditingCustomer(c);
-                  setIsAdding(true);
-                }}
-                variant="none"
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-xs p-0 cursor-pointer"
-                title="Edit Customer"
-              >
-                <Edit2 size={16} className="shrink-0" />
-              </Button>
-              <Button
-                onClick={() => handleResetPassword(c)}
-                variant="none"
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-xs p-0 cursor-pointer"
-                title="Reset Portal Password"
-              >
-                <Key size={16} className="shrink-0" />
-              </Button>
-              <Button
-                onClick={() => setDeleteConfirm({ isOpen: true, id: c.id })}
-                variant="none"
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-xs p-0 cursor-pointer"
-                title="Delete Customer Account"
-              >
-                <Trash2 size={16} className="shrink-0" />
-              </Button>
-            </>
-          )}
-        </div>
-      )
+      header: 'Credits',
+      className: 'w-[150px] whitespace-nowrap',
+      sortValue: (c) => Number(c.credits ?? 0),
+      accessor: (c) => {
+        const amt = Number(c.credits ?? 0);
+        const hasCredit = amt > 0;
+        return (
+          <div className="flex flex-col" title={String(amt)}>
+            <span className={`text-xs font-black font-mono ${hasCredit ? 'text-emerald-600' : 'text-zinc-600'}`}>
+              ₹{amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className={`text-[9px] font-bold uppercase tracking-wider ${hasCredit ? 'text-emerald-600' : 'text-zinc-400'}`}>
+              {hasCredit ? 'Extra Balance / Returns' : 'Zero Credit'}
+            </span>
+          </div>
+        );
+      }
     }
   ];
 
@@ -707,7 +830,7 @@ export default function CustomersRegistry() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="h-11 px-3 bg-white border border-[#fce4d4] rounded-2xl text-xs font-black uppercase tracking-wider text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-xs"
+                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-black uppercase tracking-wider text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Statuses & Classifications ({customers.length})</option>
                 <option value="ACTIVE">Active Customers ({stats.activeCount})</option>
@@ -722,7 +845,7 @@ export default function CustomersRegistry() {
               <select
                 value={selectedIndustry}
                 onChange={(e) => setSelectedIndustry(e.target.value)}
-                className="h-11 px-3 bg-white border border-zinc-200 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-xs"
+                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Sectors ({customers.length})</option>
                 {industries.map(ind => {
@@ -742,7 +865,7 @@ export default function CustomersRegistry() {
                   setEditingCustomer(null);
                   setIsAdding(true);
                 }}
-                className="h-11 px-5 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 shadow-md shadow-[#3a525d]/20 transition-all cursor-pointer whitespace-nowrap"
+                className="h-10 px-4 rounded-xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 shadow-md shadow-[#3a525d]/20 transition-all cursor-pointer whitespace-nowrap"
               >
                 <Plus size={16} strokeWidth={3} />
                 Register Customer

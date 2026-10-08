@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, UserCheck, Eye, Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus } from 'lucide-react';
-import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
+import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, UserCheck, Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus, CheckCircle2, PauseCircle, Sparkles, User, Building2, Tag } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -20,6 +19,11 @@ interface Lead {
   industry_id: number | null;
   industries?: { id: number; name: string } | null;
   address: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  pin_code?: string | null;
+  country?: string | null;
   assigned_staff_id: number | null;
   employees?: { id: number; full_name: string; employee_id: string } | null;
   status: string;
@@ -62,6 +66,25 @@ export default function LeadsRegistryPage() {
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [remarkingLead, setRemarkingLead] = useState<Lead | null>(null);
   const [newRemarkText, setNewRemarkText] = useState('');
+  const [contactLead, setContactLead] = useState<Lead | null>(null);
+  const [contactNoteText, setContactNoteText] = useState('');
+  const [contactResponseType, setContactResponseType] = useState<'hold' | 'positive'>('hold');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to parse current user from localStorage:', e);
+    }
+  }, []);
+
+  const authorName = currentUser?.fullName || currentUser?.full_name || currentUser?.username || 'Muhammed Hafiz';
+  const authorDesignation = currentUser?.designation || currentUser?.role || 'Relationship Manager';
+  const authorDepartment = currentUser?.department || 'Corporate Sales';
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -102,16 +125,36 @@ export default function LeadsRegistryPage() {
   }, []);
 
   const handleAddOrUpdate = async (formData: any) => {
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error('Primary phone number is required');
+      return;
+    }
+
     const loadingToast = toast.loading(editingLead ? 'Updating lead details...' : 'Creating new lead...');
+
+    // Automatically resolve assigned staff from logged-in user if creating
+    const matchedEmployee = employees.find(e => 
+      (currentUser?.employeeId && e.employee_id === currentUser.employeeId) ||
+      (currentUser?.fullName && e.full_name?.toLowerCase() === currentUser.fullName?.toLowerCase()) ||
+      (currentUser?.id && (e as any).user_id === currentUser.id)
+    );
+    const resolvedAssignedStaffId = editingLead 
+      ? editingLead.assigned_staff_id 
+      : (matchedEmployee ? matchedEmployee.id : null);
 
     // Normalize fields
     const payload = {
-      name: formData.name,
-      phone: formData.phone || null,
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
       email: formData.email?.trim() || null,
       industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
-      address: formData.address || null,
-      assigned_staff_id: formData.assigned_staff_id ? parseInt(formData.assigned_staff_id, 10) : null,
+      address: formData.address?.trim() || null,
+      city: formData.city?.trim() || null,
+      state: formData.state?.trim() || null,
+      pincode: formData.pincode?.trim() || null,
+      pin_code: formData.pincode?.trim() || null,
+      country: formData.country?.trim() || 'India',
+      assigned_staff_id: resolvedAssignedStaffId,
       status: formData.status || 'New',
       remarks: formData.remarks || null
     };
@@ -169,126 +212,140 @@ export default function LeadsRegistryPage() {
     }
   };
 
-  const leadFields: FormField[] = [
-    {
-      name: 'name',
-      label: 'Lead / Company Name',
-      type: 'text',
-      placeholder: 'e.g. Acme Corporation',
-      required: true,
-      defaultValue: editingLead?.name
-    },
-    {
-      name: 'phone',
-      label: 'Phone Number',
-      type: 'text',
-      placeholder: 'e.g. +91 98765 43210',
-      required: false,
-      defaultValue: editingLead?.phone || undefined
-    },
-    {
-      name: 'email',
-      label: 'Email Address',
-      type: 'email',
-      placeholder: 'e.g. contact@acme.com',
-      required: false,
-      defaultValue: editingLead?.email || undefined
-    },
-    {
-      name: 'industry_id',
-      label: 'Industry Sector',
-      type: 'select',
-      options: [
-        { label: 'Select Industry Sector', value: '' },
-        ...industries.map(i => ({ label: i.name, value: String(i.id) }))
-      ],
-      required: false,
-      defaultValue: editingLead?.industry_id ? String(editingLead.industry_id) : undefined
-    },
-    {
-      name: 'address',
-      label: 'Full Address',
-      type: 'text',
-      placeholder: 'e.g. Suite 500, Tech Park, City',
-      maxLength: 200,
-      defaultValue: editingLead?.address || undefined
-    },
-    {
-      name: 'assigned_staff_id',
-      label: 'Assign Marketing Operator (Staff)',
-      type: 'select',
-      options: [
-        { label: 'Unassigned', value: '' },
-        ...employees.map(e => ({
-          label: `${e.full_name} (${e.employee_id})`,
-          value: String(e.id)
-        }))
-      ],
-      required: false,
-      defaultValue: editingLead?.assigned_staff_id ? String(editingLead.assigned_staff_id) : undefined
-    },
-    {
-      name: 'status',
-      label: 'Lead Status',
-      type: 'select',
-      options: [
-        { label: 'New', value: 'New' },
-        { label: 'Contacted', value: 'Contacted' },
-        { label: 'Qualified', value: 'Qualified' },
-        { label: 'Proposal Sent', value: 'Proposal Sent' },
-        { label: 'Converted', value: 'Converted' },
-        { label: 'Lost', value: 'Lost' }
-      ],
-      required: true,
-      defaultValue: editingLead?.status || 'New'
-    },
-    {
-      name: 'remarks',
-      label: 'Remarks / Notes',
-      type: 'textarea',
-      placeholder: 'e.g. Needs pricing details, contacted via email...',
-      required: false,
-      defaultValue: editingLead?.remarks || undefined
+  const handleSaveContactOutcome = async () => {
+    if (!contactLead) return;
+    if (!contactNoteText.trim()) {
+      toast.error('Please enter communication notes');
+      return;
     }
-  ];
+
+    const isPositive = contactResponseType === 'positive';
+    const loadingToast = toast.loading(
+      isPositive ? 'Validating requirements & converting lead to customer...' : 'Saving contact note...'
+    );
+
+    try {
+      const response = await api.post(`/leads/${contactLead.id}/contact-log`, {
+        text: contactNoteText.trim(),
+        response_type: contactResponseType,
+        author: {
+          name: authorName,
+          designation: authorDesignation,
+          department: authorDepartment
+        }
+      });
+
+      toast.success(response.data.message || 'Contact outcome recorded successfully!', { id: loadingToast });
+
+      const updatedLead = response.data.lead;
+      const targetLeadId = contactLead.id;
+
+      // Reset modal inputs
+      setContactLead(null);
+      setContactNoteText('');
+      setContactResponseType('hold');
+
+      // If positive outcome, open credentials modal with generated login details
+      if (response.data.credentials && response.data.organization) {
+        setCredsModal({
+          isOpen: true,
+          data: {
+            full_name: response.data.organization.name,
+            username: response.data.credentials.username,
+            email: response.data.credentials.email,
+            password: response.data.credentials.password
+          }
+        });
+      }
+
+      // Update viewing modal state if currently viewing this lead
+      if (viewingLead && viewingLead.id === targetLeadId && updatedLead) {
+        setViewingLead(updatedLead);
+      }
+
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to save contact outcome', { id: loadingToast });
+    }
+  };
+
+
 
   const columns: Column<Lead>[] = [
     {
-      header: 'Lead Details',
+      header: 'Lead ID',
+      className: 'w-[130px] whitespace-nowrap',
+      sortValue: (l) => l.lead_code || String(l.id),
+      accessor: (l) => {
+        const idLabel = l.lead_code || `#${l.id}`;
+        return (
+          <button
+            type="button"
+            onClick={() => setViewingLead(l)}
+            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#fce4d4]/40 text-[#8b6b5a] border border-[#fce4d4] hover:bg-[#fce4d4]/70 transition-all cursor-pointer"
+            title="Click to view details"
+          >
+            {idLabel}
+          </button>
+        );
+      }
+    },
+    {
+      header: 'Name',
+      className: 'min-w-[200px]',
+      sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm flex-shrink-0">
-            <Target size={20} />
+        <div className="flex items-center gap-3">
+          <div 
+            onClick={() => setViewingLead(l)}
+            className="w-9 h-9 bg-[#3a525d]/5 hover:bg-[#2d8d9b]/15 rounded-xl flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] border border-[#3a525d]/10 transition-all cursor-pointer shrink-0 group"
+            title="Click to view details"
+          >
+            <Target size={18} className="group-hover:scale-110 transition-transform" />
           </div>
           <div>
-            <p className="font-black text-sm tracking-tight text-[#3a525d]">{l.name}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{l.lead_code || `Lead ID: #${l.id}`}</p>
-              {l.phone && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-zinc-300" />
-                  <p className="text-[9px] font-bold text-zinc-500">{l.phone}</p>
-                </>
-              )}
-              {l.email && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-zinc-300" />
-                  <p className="text-[9px] font-medium text-zinc-500 lowercase">{l.email}</p>
-                </>
-              )}
-              <span className="w-1 h-1 rounded-full bg-zinc-300" />
-              <p className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">{l.industries?.name || 'Unknown Sector'}</p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setViewingLead(l)}
+              className="text-left font-black text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none block"
+              title="Click to view details"
+            >
+              {l.name}
+            </button>
+            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider mt-0.5">
+              {l.industries?.name || 'Institutional'}
+            </p>
           </div>
         </div>
       )
     },
     {
-      header: 'Assigned Operator',
+      header: 'Phone',
+      className: 'w-[150px] whitespace-nowrap',
+      sortValue: (l) => l.phone || '',
+      accessor: (l) => (
+        l.phone ? (
+          <a
+            href={`tel:${l.phone}`}
+            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+            title={`Call ${l.phone}`}
+          >
+            <Phone size={13} className="text-[#2d8d9b] shrink-0" />
+            <span>{l.phone}</span>
+          </a>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+        )
+      )
+    },
+    {
+      header: 'Sales Person',
+      className: 'w-[180px] whitespace-nowrap',
+      sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
               <ShieldCheck size={16} />
             </div>
             <div>
@@ -297,135 +354,34 @@ export default function LeadsRegistryPage() {
             </div>
           </div>
         ) : (
-          <span className="px-2 py-0.5 bg-zinc-50 border border-zinc-150 rounded-lg text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Unassigned</span>
+          <span className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Unassigned</span>
         )
       )
     },
     {
       header: 'Status',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (l) => l.status,
       accessor: (l) => {
         const colors: Record<string, string> = {
-          'New': 'bg-blue-50 text-blue-750 border-blue-150',
-          'Contacted': 'bg-amber-50 text-amber-700 border-amber-150',
-          'Qualified': 'bg-indigo-50 text-indigo-700 border-indigo-150',
-          'Proposal Sent': 'bg-purple-50 text-purple-750 border-purple-150',
-          'Converted': 'bg-green-50 text-green-700 border-green-150',
-          'Lost': 'bg-red-50 text-red-650 border-red-150'
+          'New': 'bg-blue-50 text-blue-700 border-blue-200',
+          'Contacted': 'bg-amber-50 text-amber-700 border-amber-200',
+          'Qualified': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+          'Proposal Sent': 'bg-purple-50 text-purple-700 border-purple-200',
+          'Converted': 'bg-green-50 text-green-700 border-green-200',
+          'Lost': 'bg-red-50 text-red-650 border-red-200'
         };
         const cls = colors[l.status] || 'bg-zinc-50 text-zinc-500 border-zinc-200';
         return (
-          <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${cls}`}>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${cls}`}>
             {l.status}
           </span>
         );
       }
-    },
-    {
-      header: 'Address / Location',
-      accessor: (l) => (
-        <div className="flex items-center gap-2 text-zinc-500">
-          <MapPin size={14} className="text-[#2d8d9b] flex-shrink-0" />
-          <span className="text-xs font-semibold truncate max-w-[200px]">{l.address || 'No Address Listed'}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Remarks',
-      accessor: (l) => {
-        const remarksList = Array.isArray(l.remarks) ? l.remarks : [];
-        const latest = remarksList[remarksList.length - 1];
-        const displayVal = latest ? latest.text : (typeof l.remarks === 'string' ? l.remarks : '—');
-        return (
-          <span className="text-xs font-semibold text-zinc-500 truncate max-w-[150px] inline-block" title={displayVal !== '—' ? displayVal : undefined}>
-            {displayVal}
-          </span>
-        );
-      }
-    },
-    {
-      header: 'Registered Date',
-      accessor: (l) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-black text-[#3a525d] flex items-center gap-1.5">
-            <Calendar size={12} className="text-zinc-400" />
-            {formatDate(l.created_at)}
-          </span>
-          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter mt-0.5 pl-4.5">Registry Log</span>
-        </div>
-      )
-    },
-    {
-      header: 'Actions',
-      accessor: (l) => (
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setViewingLead(l)}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 text-zinc-650 border border-zinc-200 hover:bg-zinc-200 transition-all shadow-sm p-0"
-            title="View Details"
-          >
-            <Eye size={16} className="text-zinc-650 shrink-0" />
-          </Button>
-          <Button
-            onClick={() => setRemarkingLead(l)}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-all shadow-sm p-0"
-            title="Add Remark"
-          >
-            <MessageSquarePlus size={16} className="text-indigo-600 shrink-0" />
-          </Button>
-          <Button
-            onClick={() => {
-              setEditingLead(l);
-              setIsAdding(true);
-            }}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0"
-            title="Edit Lead"
-          >
-            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
-          </Button>
-          <Button
-            onClick={() => setDeleteConfirm({ isOpen: true, id: l.id })}
-            variant="none"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-sm p-0"
-            title="Delete Lead"
-          >
-            <Trash2 size={16} className="text-red-500 shrink-0" />
-          </Button>
-          {l.status !== 'Converted' && (
-            <Button
-              onClick={() => setConvertConfirm({ isOpen: true, lead: l })}
-              variant="none"
-              className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-50 text-green-600 border border-green-200 hover:bg-green-600 hover:text-white transition-all shadow-sm p-0"
-              title="Convert to Customer"
-            >
-              <UserCheck size={16} className="text-green-600 shrink-0" />
-            </Button>
-          )}
-        </div>
-      )
     }
   ];
 
-  if (isAdding) {
-    return (
-      <div className="max-w-4xl mx-auto py-10">
-        <DynamicForm
-          title={editingLead ? "Edit Lead Profile" : "Register New Lead"}
-          subtitle={editingLead ? `Update details for ${editingLead.name}` : "Configure a new sales prospect profile"}
-          fields={leadFields.filter(f => f.name !== 'remarks' || !editingLead)}
-          onSubmit={handleAddOrUpdate}
-          onCancel={() => {
-            setIsAdding(false);
-            setEditingLead(null);
-          }}
-          submitLabel={editingLead ? "Save Changes" : "Register Lead"}
-          columns={1}
-        />
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -494,58 +450,574 @@ export default function LeadsRegistryPage() {
           setConvertConfirm({ isOpen: true, lead: viewingLead });
           setViewingLead(null);
         }}
-        onAddRemark={() => setRemarkingLead(viewingLead)}
+        onDelete={() => {
+          if (viewingLead) {
+            setDeleteConfirm({ isOpen: true, id: viewingLead.id });
+            setViewingLead(null);
+          }
+        }}
+        onAddRemark={() => {
+          if (viewingLead) {
+            setContactLead(viewingLead);
+            setContactResponseType('hold');
+            setContactNoteText('');
+          }
+        }}
+        onOpenContactNote={(l: Lead) => {
+          setContactLead(l);
+          setContactResponseType('hold');
+          setContactNoteText('');
+        }}
       />
 
-      {remarkingLead && (
+      {contactLead && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => { setRemarkingLead(null); setNewRemarkText(''); }} />
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col p-8 space-y-4">
-            <div>
-              <h3 className="text-lg font-black text-[#3a525d] italic">Add Lead Remark</h3>
-              <p className="text-xs text-zinc-400 font-bold mt-0.5">Recording update for {remarkingLead.name}</p>
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            onClick={() => {
+              setContactLead(null);
+              setContactNoteText('');
+              setContactResponseType('hold');
+            }}
+          />
+          <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.35)] border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col p-8 space-y-5">
+            {/* Header */}
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#2d8d9b]/10 text-[#2d8d9b] text-[10px] font-black uppercase tracking-wider">
+                    {contactLead.lead_code}
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-wider">
+                    Stage: {contactLead.status}
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-[#3a525d] italic mt-1.5">
+                  Contacted Stage Note & Outcome
+                </h3>
+                <p className="text-xs text-zinc-400 font-bold mt-0.5">
+                  Recording communication log for <span className="text-[#3a525d] font-black">{contactLead.name}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setContactLead(null);
+                  setContactNoteText('');
+                  setContactResponseType('hold');
+                }}
+                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-400 hover:text-zinc-600 flex items-center justify-center transition-colors"
+              >
+                <X size={16} />
+              </button>
             </div>
-            
-            <textarea
-              className="w-full min-h-[110px] p-4 text-xs border border-zinc-200 focus:border-[#2d8d9b] rounded-2xl focus:outline-none focus:ring-1 focus:ring-[#2d8d9b] resize-none font-semibold text-zinc-650"
-              placeholder="Type new follow-up remark or update notes..."
-              value={newRemarkText}
-              onChange={(e) => setNewRemarkText(e.target.value)}
-            />
 
+            {/* Auto-Fetched Logged-In User Details */}
+            <div className="bg-gradient-to-r from-teal-50/70 to-cyan-50/40 border border-teal-100/80 rounded-2xl p-4">
+              <div className="flex justify-between items-center mb-2.5">
+                <span className="text-[9px] font-black uppercase tracking-widest text-teal-700 flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="text-[#2d8d9b]" />
+                  Updating Staff Details (Auto-Fetched)
+                </span>
+                <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 uppercase tracking-wider">
+                  Active Session
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white/80 rounded-xl p-2.5 border border-teal-100/60">
+                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-wider">Staff Name</p>
+                  <p className="text-xs font-black text-[#3a525d] truncate mt-0.5">{authorName}</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-2.5 border border-teal-100/60">
+                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-wider">Designation</p>
+                  <p className="text-xs font-black text-[#2d8d9b] truncate mt-0.5">{authorDesignation}</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-2.5 border border-teal-100/60">
+                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-wider">Department</p>
+                  <p className="text-xs font-black text-zinc-700 truncate mt-0.5">{authorDepartment}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Radio Button for Response Outcome */}
+            <div className="space-y-2">
+              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">
+                Pipeline Response Outcome *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Hold Option */}
+                <label
+                  onClick={() => setContactResponseType('hold')}
+                  className={`relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    contactResponseType === 'hold'
+                      ? 'border-amber-400 bg-amber-50/50 shadow-sm shadow-amber-100'
+                      : 'border-zinc-200 bg-white hover:border-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        contactResponseType === 'hold' ? 'border-amber-500 bg-amber-500' : 'border-zinc-300'
+                      }`}>
+                        {contactResponseType === 'hold' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className="text-xs font-black text-[#3a525d] flex items-center gap-1.5">
+                        <PauseCircle size={14} className="text-amber-500" />
+                        Hold
+                      </span>
+                    </div>
+                    <span className="text-[8px] font-black px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded uppercase">
+                      Stays Contacted
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-medium leading-relaxed pl-6">
+                    Awaiting decision or client follow-up pending. Lead maintains Contacted status.
+                  </p>
+                </label>
+
+                {/* Positive Option */}
+                <label
+                  onClick={() => setContactResponseType('positive')}
+                  className={`relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    contactResponseType === 'positive'
+                      ? 'border-emerald-500 bg-emerald-50/50 shadow-sm shadow-emerald-100'
+                      : 'border-zinc-200 bg-white hover:border-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        contactResponseType === 'positive' ? 'border-emerald-600 bg-emerald-600' : 'border-zinc-300'
+                      }`}>
+                        {contactResponseType === 'positive' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className="text-xs font-black text-[#3a525d] flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-emerald-600" />
+                        Positive
+                      </span>
+                    </div>
+                    <span className="text-[8px] font-black px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded uppercase">
+                      Advances & Converts
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-medium leading-relaxed pl-6">
+                    Requirements validated! Moves to <span className="font-bold text-emerald-700">Qualified</span> and auto-converts to a <span className="font-bold text-emerald-700">Customer Organization</span>.
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            {/* Note text area */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">
+                Discussion Note & Requirements *
+              </label>
+              <textarea
+                className="w-full min-h-[100px] p-4 text-xs border border-zinc-200 focus:border-[#2d8d9b] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 resize-none font-semibold text-zinc-650"
+                placeholder="Document client interaction, garment styles requested, quantity targets, budget expectations..."
+                value={contactNoteText}
+                onChange={(e) => setContactNoteText(e.target.value)}
+              />
+            </div>
+
+            {/* Dynamic Banner */}
+            {contactResponseType === 'positive' ? (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-2.5">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] font-semibold text-emerald-800 leading-snug">
+                  <span className="font-black">Auto-Conversion Notice:</span> Submitting with Positive will automatically create a Customer Organization profile and generate login credentials for this client.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-start gap-2.5">
+                <PauseCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] font-semibold text-amber-800 leading-snug">
+                  <span className="font-black">Hold Status:</span> Lead remains at Contacted stage. You can add further notes or qualify at any time.
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
             <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"
-                onClick={() => { setRemarkingLead(null); setNewRemarkText(''); }}
+                onClick={() => {
+                  setContactLead(null);
+                  setContactNoteText('');
+                  setContactResponseType('hold');
+                }}
                 className="flex-1 py-3 text-[10px] font-black uppercase tracking-wider rounded-xl text-zinc-400 border border-zinc-200 hover:bg-zinc-50"
               >
                 Cancel
               </Button>
               <Button
-                onClick={async () => {
-                  if (!newRemarkText.trim()) return;
-                  const loadingToast = toast.loading('Saving remark...');
-                  try {
-                    await api.post(`/leads/${remarkingLead.id}/remarks`, { text: newRemarkText.trim() });
-                    toast.success('Remark added successfully!', { id: loadingToast });
-                    setNewRemarkText('');
-                    setRemarkingLead(null);
-                    fetchData();
-                  } catch (e: any) {
-                    toast.error(e.response?.data?.error || 'Failed to save remark', { id: loadingToast });
-                  }
-                }}
-                className="flex-1 py-3 text-[10px] font-black uppercase tracking-wider rounded-xl bg-[#2d8d9b] hover:bg-[#257a87] text-white border-none shadow-sm shadow-[#2d8d9b]/15"
+                onClick={handleSaveContactOutcome}
+                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-wider rounded-xl text-white border-none shadow-sm transition-all ${
+                  contactResponseType === 'positive'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                    : 'bg-[#2d8d9b] hover:bg-[#257a87] shadow-[#2d8d9b]/20'
+                }`}
               >
-                Add Entry
+                {contactResponseType === 'positive' ? 'Qualify & Convert to Customer' : 'Save Note (Keep on Hold)'}
               </Button>
             </div>
           </div>
         </div>
       )}
+      <LeadFormModal
+        isOpen={isAdding}
+        onClose={() => {
+          setIsAdding(false);
+          setEditingLead(null);
+        }}
+        onSubmit={handleAddOrUpdate}
+        editingLead={editingLead}
+        industries={industries}
+        authorName={authorName}
+        authorDesignation={authorDesignation}
+        authorDepartment={authorDepartment}
+      />
     </div>
   );
 }
+
+interface LeadFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: any) => Promise<void>;
+  editingLead: Lead | null;
+  industries: Industry[];
+  authorName: string;
+  authorDesignation: string;
+  authorDepartment: string;
+}
+
+const LeadFormModal: React.FC<LeadFormModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  editingLead,
+  industries,
+  authorName,
+  authorDesignation,
+  authorDepartment
+}) => {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [industryId, setIndustryId] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [country, setCountry] = useState('India');
+  const [status, setStatus] = useState('New');
+  const [remarks, setRemarks] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (editingLead) {
+      setName(editingLead.name || '');
+      setPhone(editingLead.phone || '');
+      setEmail(editingLead.email || '');
+      setIndustryId(editingLead.industry_id ? String(editingLead.industry_id) : '');
+      setAddress(editingLead.address || '');
+      setCity(editingLead.city || '');
+      setState(editingLead.state || '');
+      setPincode(editingLead.pincode || editingLead.pin_code || '');
+      setCountry(editingLead.country || 'India');
+      setStatus(editingLead.status || 'New');
+      setRemarks('');
+    } else {
+      setName('');
+      setPhone('');
+      setEmail('');
+      setIndustryId('');
+      setAddress('');
+      setCity('');
+      setState('');
+      setPincode('');
+      setCountry('India');
+      setStatus('New');
+      setRemarks('');
+    }
+  }, [editingLead, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error('Lead / Company name is required');
+      return;
+    }
+    if (!phone.trim()) {
+      toast.error('Primary phone number is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || null,
+        industry_id: industryId || null,
+        address: address.trim() || null,
+        city: city.trim() || null,
+        state: state.trim() || null,
+        pincode: pincode.trim() || null,
+        pin_code: pincode.trim() || null,
+        country: country.trim() || null,
+        status: status || 'New',
+        remarks: remarks.trim() || null
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
+      
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.35)] border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col my-8 z-10 max-h-[92vh]">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#3a525d] to-[#24343b] px-8 py-6 text-white relative flex justify-between items-start shrink-0">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-3 py-0.5 rounded-full bg-[#2d8d9b]/30 text-teal-200 border border-[#2d8d9b]/40 text-[9px] font-black uppercase tracking-wider">
+                {editingLead ? (editingLead.lead_code || `Lead #${editingLead.id}`) : 'Lead Pipeline'}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-white/90 text-[9px] font-black uppercase tracking-wider">
+                {editingLead ? 'Edit Profile' : 'New Prospect'}
+              </span>
+            </div>
+            <h3 className="text-2xl font-black italic tracking-tight">
+              {editingLead ? 'Edit Lead Profile' : 'Register New Lead'}
+            </h3>
+            <p className="text-xs text-white/70 font-semibold mt-0.5">
+              {editingLead ? `Update details for ${editingLead.name}` : 'Configure prospect profile to initiate the commercial sales pipeline'}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            type="button"
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto flex-1">
+          {/* Company / Prospect Name */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <Building2 size={13} className="text-[#2d8d9b]" />
+              Lead / Company Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Acme Corporation, St. Mary Academy"
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+            />
+          </div>
+
+          {/* Phone & Email in 2 columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Phone size={13} className="text-[#2d8d9b]" />
+                Primary Phone Number *
+              </label>
+              <input
+                type="text"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. +91 98765 43210"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Mail size={13} className="text-[#2d8d9b]" />
+                Email Address (Optional)
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. contact@acme.com"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+          </div>
+
+          {/* Industry & Status in 2 columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#2d8d9b]" />
+                Industry Sector
+              </label>
+              <select
+                value={industryId}
+                onChange={(e) => setIndustryId(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+              >
+                <option value="">Select Industry Sector</option>
+                {industries.map((i) => (
+                  <option key={i.id} value={String(i.id)}>{i.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Tag size={13} className="text-[#2d8d9b]" />
+                Pipeline Stage *
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+              >
+                <option value="New">New</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Qualified">Qualified</option>
+                <option value="Proposal Sent">Proposal Sent</option>
+                <option value="Converted">Converted</option>
+                <option value="Lost">Lost</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Address Breakdown: Street, City, State, Pin code, Country */}
+          <div className="space-y-3 pt-1 border-t border-zinc-100">
+            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              <MapPin size={13} className="text-[#2d8d9b]" />
+              Address Details
+            </div>
+
+            {/* Street / Building Address */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                Street / Building Address
+              </label>
+              <input
+                type="text"
+                maxLength={200}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. Suite 500, Tech Park, MG Road"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+
+            {/* City & State in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  City
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Mumbai, Bengaluru"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  State
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="e.g. Maharashtra, Karnataka"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+
+            {/* Pin Code & Country in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  Pin Code
+                </label>
+                <input
+                  type="text"
+                  maxLength={20}
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="e.g. 560001"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  Country
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="e.g. India"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Remarks (Only when registering new lead) */}
+          {!editingLead && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <FileText size={13} className="text-[#2d8d9b]" />
+                Initial Notes & Remarks
+              </label>
+              <textarea
+                rows={3}
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="e.g. Initial client discussion on custom uniform specifications, order quantity range..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-semibold text-zinc-800 transition-all placeholder:text-zinc-400 resize-none"
+              />
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#3a525d] hover:bg-[#2d8d9b] transition-all shadow-lg shadow-[#3a525d]/20 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSubmitting ? 'Saving...' : editingLead ? 'Save Changes' : 'Register Lead'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 interface LeadViewModalProps {
   isOpen: boolean;
@@ -553,7 +1025,9 @@ interface LeadViewModalProps {
   lead: Lead | null;
   onEdit: () => void;
   onConvert: () => void;
+  onDelete?: () => void;
   onAddRemark: () => void;
+  onOpenContactNote: (lead: Lead) => void;
 }
 
 const LeadViewModal: React.FC<LeadViewModalProps> = ({
@@ -562,7 +1036,9 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
   lead,
   onEdit,
   onConvert,
-  onAddRemark
+  onDelete,
+  onAddRemark,
+  onOpenContactNote
 }) => {
   if (!isOpen || !lead) return null;
 
@@ -677,7 +1153,17 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     <div className="absolute top-10 left-5 bottom-[-24px] w-0.5 bg-zinc-200 md:hidden z-0 last:hidden" />
 
                     {/* Node Circle */}
-                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs shadow-sm transition-all duration-300 ${circleCls} z-10 bg-white`}>
+                    <div
+                      onClick={() => {
+                        if (stage.key === 'Contacted') {
+                          onOpenContactNote(lead);
+                        }
+                      }}
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs shadow-sm transition-all duration-300 ${circleCls} z-10 bg-white ${
+                        stage.key === 'Contacted' ? 'cursor-pointer hover:scale-110 active:scale-95 hover:ring-4 hover:ring-[#2d8d9b]/25' : ''
+                      }`}
+                      title={stage.key === 'Contacted' ? 'Click to record contact note & outcome' : undefined}
+                    >
                       {isSpecialLost ? (
                         <X size={14} strokeWidth={3} />
                       ) : (isCompleted && !isActive) || (isActive && stage.key === 'Converted') ? (
@@ -699,6 +1185,20 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
                         <span className="px-1.5 py-0.5 bg-white text-[#3a525d] rounded-md text-[9px] font-black border border-zinc-200 shadow-sm mt-1.5 inline-block w-fit">
                           {dateText}
                         </span>
+                      )}
+                      {/* Action button specifically for Contacted stage */}
+                      {stage.key === 'Contacted' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenContactNote(lead);
+                          }}
+                          className="mt-2 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#257a87] text-white rounded-lg shadow-sm hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileText size={10} />
+                          <span>{lead.status === 'Contacted' ? 'Log Outcome' : 'Add Note'}</span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -755,35 +1255,89 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
             {/* Location */}
             <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 col-span-1 md:col-span-2">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Address / Location</label>
-              <div className="flex items-start gap-2 mt-1">
+              <div className="flex items-start gap-2.5 mt-1">
                 <MapPin size={16} className="text-[#2d8d9b] mt-0.5 flex-shrink-0" />
-                <p className="text-sm font-bold text-[#3a525d]">{lead.address || 'No Address Listed'}</p>
+                <div className="space-y-1.5 flex-1">
+                  <p className="text-sm font-bold text-[#3a525d]">
+                    {lead.address || (lead.city || lead.state || lead.pincode || lead.pin_code || lead.country ? '' : 'No Address Listed')}
+                  </p>
+                  {(lead.city || lead.state || lead.pincode || lead.pin_code || lead.country) && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                      {lead.city && (
+                        <span className="bg-white px-2.5 py-1 rounded-lg border border-zinc-200/80 shadow-2xs">
+                          {lead.city}
+                        </span>
+                      )}
+                      {lead.state && (
+                        <span className="bg-white px-2.5 py-1 rounded-lg border border-zinc-200/80 shadow-2xs">
+                          {lead.state}
+                        </span>
+                      )}
+                      {(lead.pincode || lead.pin_code) && (
+                        <span className="bg-white px-2.5 py-1 rounded-lg border border-zinc-200/80 shadow-2xs text-[#2d8d9b]">
+                          PIN: {lead.pincode || lead.pin_code}
+                        </span>
+                      )}
+                      {lead.country && (
+                        <span className="bg-white px-2.5 py-1 rounded-lg border border-zinc-200/80 shadow-2xs text-zinc-500">
+                          {lead.country}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Remarks History */}
             <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 col-span-1 md:col-span-2 flex flex-col">
               <div className="flex justify-between items-center mb-3">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Remarks History</label>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Remarks & Communication History</label>
                 <Button
-                  onClick={() => {
-                    onAddRemark();
-                    onClose();
-                  }}
-                  className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#257a87] text-white rounded-lg h-auto border-none shadow-sm"
+                  onClick={() => onOpenContactNote(lead)}
+                  className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#257a87] text-white rounded-lg h-auto border-none shadow-sm flex items-center gap-1.5"
                 >
-                  + Add Remark
+                  <MessageSquarePlus size={11} />
+                  + Add Contact Note
                 </Button>
               </div>
-              <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
                 {Array.isArray(lead.remarks) && lead.remarks.length > 0 ? (
                   lead.remarks.map((r: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-white border border-zinc-150 rounded-xl space-y-1 shadow-sm">
-                      <div className="flex justify-between items-center text-[9px] font-black text-[#2d8d9b] uppercase tracking-wider">
-                        <span>Entry #{idx + 1}</span>
-                        <span>{r.date} {r.time && `@ ${r.time}`}</span>
+                    <div key={idx} className="p-3.5 bg-white border border-zinc-150 rounded-2xl space-y-2 shadow-sm transition-all hover:border-[#2d8d9b]/30">
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[#2d8d9b]">Entry #{idx + 1}</span>
+                          {r.response_type === 'positive' ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-black flex items-center gap-1">
+                              <CheckCircle2 size={10} /> Positive • Qualified
+                            </span>
+                          ) : r.response_type === 'hold' ? (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[8px] font-black flex items-center gap-1">
+                              <PauseCircle size={10} /> Hold • Contacted
+                            </span>
+                          ) : null}
+                          {r.stage && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-600 text-[8px] font-bold">
+                              {r.stage}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-zinc-400 font-semibold">{r.date} {r.time && `@ ${r.time}`}</span>
                       </div>
                       <p className="text-xs text-zinc-650 font-medium whitespace-pre-wrap leading-relaxed">{r.text}</p>
+                      {r.author && (
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-100 text-[10px] text-zinc-500 font-semibold">
+                          <span className="text-[#3a525d] font-bold flex items-center gap-1">
+                            <User size={12} className="text-[#2d8d9b]" />
+                            {r.author.name}
+                          </span>
+                          <span className="text-zinc-300">•</span>
+                          <span className="px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded text-[9px] font-bold">{r.author.designation}</span>
+                          <span className="text-zinc-300">•</span>
+                          <span className="text-zinc-400 font-medium">{r.author.department}</span>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : typeof lead.remarks === 'string' && lead.remarks.trim() !== '' ? (
@@ -802,32 +1356,47 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 bg-zinc-50/50 border-t border-zinc-100 flex flex-col sm:flex-row gap-3">
-          <Button 
-            onClick={onClose} 
-            variant="outline" 
-            className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest text-zinc-400 flex-1 order-3 sm:order-1"
-          >
-            Close
-          </Button>
-          
-          <Button 
-            onClick={onEdit} 
-            className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest bg-[#2d8d9b] text-white flex-1 gap-2 order-1 sm:order-2 hover:bg-[#257a87]"
-          >
-            <Edit2 size={14} />
-            Edit Profile
-          </Button>
+        <div className="p-6 bg-zinc-50/50 border-t border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div>
+            {onDelete && (
+              <Button 
+                onClick={onDelete} 
+                variant="outline" 
+                className="h-12 w-full sm:w-auto px-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 gap-1.5"
+              >
+                <Trash2 size={14} className="text-red-500" />
+                Delete Lead
+              </Button>
+            )}
+          </div>
 
-          {lead.status !== 'Converted' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <Button 
-              onClick={onConvert} 
-              className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest bg-green-600 text-white flex-1 gap-2 order-2 sm:order-3 hover:bg-green-700"
+              onClick={onClose} 
+              variant="outline" 
+              className="h-12 px-5 rounded-xl font-black uppercase text-[10px] tracking-widest text-zinc-400"
             >
-              <UserCheck size={14} />
-              Convert Lead
+              Close
             </Button>
-          )}
+            
+            <Button 
+              onClick={onEdit} 
+              className="h-12 px-5 rounded-xl font-black uppercase text-[10px] tracking-widest bg-[#2d8d9b] text-white gap-2 hover:bg-[#257a87]"
+            >
+              <Edit2 size={14} />
+              Edit Profile
+            </Button>
+
+            {lead.status !== 'Converted' && (
+              <Button 
+                onClick={onConvert} 
+                className="h-12 px-5 rounded-xl font-black uppercase text-[10px] tracking-widest bg-green-600 text-white gap-2 hover:bg-green-700"
+              >
+                <UserCheck size={14} />
+                Convert Lead
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -15,7 +15,8 @@ import {
   Clock,
   ShieldCheck,
   AlertTriangle,
-  FileCheck
+  FileCheck,
+  Trash2
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
@@ -31,6 +32,7 @@ interface QuotationDetailsProps {
   onSubmitToBm?: (q: Quotation) => void;
   onBmApprove?: (q: Quotation) => void;
   onBmReject?: (q: Quotation) => void;
+  onDeleteCandidate?: (q: Quotation) => void;
   currentUser?: any;
 }
 
@@ -56,6 +58,7 @@ export default function QuotationDetails({
   onSubmitToBm,
   onBmApprove,
   onBmReject,
+  onDeleteCandidate,
   currentUser
 }: QuotationDetailsProps) {
 
@@ -676,6 +679,19 @@ export default function QuotationDetails({
               >
                 <Edit size={14} />
                 Edit
+              </Button>
+            )}
+
+            {/* Delete button */}
+            {onDeleteCandidate && (
+              <Button
+                variant="outline"
+                onClick={() => onDeleteCandidate(selectedQuotation)}
+                className="flex items-center gap-1.5 border border-red-200 hover:bg-red-50 text-red-600 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest bg-white h-9 shadow-xs"
+                title="Remove Quotation"
+              >
+                <Trash2 size={14} />
+                Delete
               </Button>
             )}
 

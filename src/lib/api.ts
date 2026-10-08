@@ -2,12 +2,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const getBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-    return base.endsWith('/api') ? base : `${base}/api`;
-  }
-  return 'http://localhost:5005/api';
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5005/api';
+  const trimmed = rawUrl.trim().replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 };
 
 const api = axios.create({

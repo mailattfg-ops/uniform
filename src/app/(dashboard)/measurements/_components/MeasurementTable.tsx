@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Eye, Clock, ShieldCheck, Download } from 'lucide-react';
+import { Clock, ShieldCheck, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -217,13 +217,24 @@ export const MeasurementTable: React.FC = () => {
     {
       header: 'Member Details',
       accessor: (r) => (
-        <div className="flex items-center gap-4 py-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] shadow-inner font-black italic">
-            {r.registry_members?.full_name.charAt(0)}
+        <div className="flex items-center gap-3 py-1">
+          <div 
+            onClick={() => setSelectedRecord(r)}
+            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/25 flex items-center justify-center text-[#2d8d9b] shadow-inner font-black italic cursor-pointer transition-all"
+            title="Click to view measurement details"
+          >
+            {r.registry_members?.full_name?.charAt(0) || 'M'}
           </div>
           <div>
-            <p className="font-black text-[13px] tracking-tighter text-[#3a525d] leading-none uppercase">{r.registry_members?.full_name}</p>
-            <p className="text-[9px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-2 opacity-70">RID-{r.registry_members?.admission_no}</p>
+            <button
+              type="button"
+              onClick={() => setSelectedRecord(r)}
+              className="font-black text-[13px] tracking-tighter text-[#3a525d] hover:text-[#2d8d9b] hover:underline leading-none uppercase text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
+              title="Click to view measurement details"
+            >
+              {r.registry_members?.full_name}
+            </button>
+            <p className="text-[9px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-1.5 opacity-70">RID-{r.registry_members?.admission_no}</p>
           </div>
         </div>
       ),
@@ -278,21 +289,7 @@ export const MeasurementTable: React.FC = () => {
           </div>
         );
       },
-    },
-    {
-      header: 'Actions',
-      accessor: (r) => (
-        <div className="flex gap-1 justify-end">
-          <Button
-            onClick={() => setSelectedRecord(r)}
-            variant="secondary"
-            className="p-3 bg-zinc-50 hover:bg-[#2d8d9b] hover:text-white transition-all rounded-xl text-zinc-400 group border-none shadow-none"
-          >
-            <Eye size={16} />
-          </Button>
-        </div>
-      ),
-    },
+    }
   ];
 
   return (

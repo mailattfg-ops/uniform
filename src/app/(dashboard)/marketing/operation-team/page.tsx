@@ -11,7 +11,6 @@ import { formatDate } from '@/lib/formatters';
 import {
   Layers,
   Trash2,
-  Eye,
   Check,
   Building2,
   Scale,
@@ -210,9 +209,14 @@ export default function OperationTeamPage() {
       header: 'Quote No',
       className: 'whitespace-nowrap',
       accessor: (q) => (
-        <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest font-mono whitespace-nowrap inline-block">
+        <button
+          type="button"
+          onClick={() => handleViewDetails(q)}
+          className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/5 hover:bg-[#2d8d9b]/15 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest font-mono whitespace-nowrap inline-block cursor-pointer transition-all"
+          title="Click to review quotation"
+        >
           {q.quotation_no}
-        </span>
+        </button>
       )
     },
     {
@@ -220,7 +224,14 @@ export default function OperationTeamPage() {
       className: 'min-w-[170px] max-w-[230px]',
       accessor: (q) => (
         <div className="flex flex-col min-w-0">
-          <span className="font-black text-[#3a525d] text-xs md:text-sm leading-tight truncate" title={q.title}>{q.title}</span>
+          <button
+            type="button"
+            onClick={() => handleViewDetails(q)}
+            className="font-black text-[#3a525d] hover:text-[#2d8d9b] hover:underline text-xs md:text-sm leading-tight truncate text-left border-none bg-transparent p-0 outline-none block max-w-full cursor-pointer"
+            title={q.title}
+          >
+            {q.title}
+          </button>
           <span className="text-[9px] text-zinc-400 font-semibold mt-0.5">
             {formatDate(q.created_at)}
           </span>
@@ -285,15 +296,6 @@ export default function OperationTeamPage() {
       className: 'whitespace-nowrap text-right',
       accessor: (q) => (
         <div className="flex items-center justify-end gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleViewDetails(q)}
-            className="flex items-center gap-1 rounded-lg border border-zinc-200 text-[#3a525d] font-black hover:bg-zinc-50 py-0.5 px-2 text-[10px] shadow-sm h-7"
-          >
-            <Eye size={11} />
-            Review
-          </Button>
 
           {q.status !== 'Approved' && (
             <Button

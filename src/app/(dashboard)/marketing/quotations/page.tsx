@@ -367,6 +367,10 @@ export default function QuotationsPage() {
       await api.delete(`/quotations/${deleteCandidate.id}`);
       toast.success('Quotation removed successfully!');
       fetchQuotations();
+      if (selectedQuotation?.id === deleteCandidate.id) {
+        setSelectedQuotation(null);
+        setActiveTab('list');
+      }
     } catch (err) {
       toast.error('Failed to remove quotation');
     } finally {
@@ -577,6 +581,7 @@ export default function QuotationsPage() {
           onSubmitToBm={setSubmitToBmCandidate}
           onBmApprove={setBmApproveCandidate}
           onBmReject={setBmRejectCandidate}
+          onDeleteCandidate={setDeleteCandidate}
           currentUser={currentUser}
         />
       )}

@@ -141,6 +141,54 @@ export const getClassWiseAverage = (prod: any) => {
   };
 };
 
+export const DEFAULT_TRIM_CATEGORIES = [
+  'Buttons',
+  'Thread',
+  'Zipper',
+  'Elastic',
+  'Brand Label / Tag',
+  'Care / Size Label',
+  'Interlining / Fusing',
+  'Velcro / Fastener',
+  'Drawcord / Cord',
+  'Eyelet / Rivet',
+  'Badge / School Crest',
+  'Other Trim'
+];
+
+export const getTrimCategoryMeta = (categoryName: string, trimCode?: string) => {
+  const c = (categoryName || '').toLowerCase();
+  const code = (trimCode || '').toUpperCase();
+  if (c.includes('thread') || code.startsWith('THR')) {
+    return { isThr: true, isBtn: false, color: 'bg-purple-400', defaultUom: 'spools' };
+  }
+  if (c.includes('button') || code.startsWith('BTN')) {
+    return { isThr: false, isBtn: true, color: 'bg-amber-400', defaultUom: 'pcs' };
+  }
+  if (c.includes('zip') || code.startsWith('ZIP')) {
+    return { isThr: false, isBtn: false, color: 'bg-blue-400', defaultUom: 'pcs' };
+  }
+  if (c.includes('elastic') || code.startsWith('ELA')) {
+    return { isThr: false, isBtn: false, color: 'bg-emerald-400', defaultUom: 'meters' };
+  }
+  if (c.includes('label') || c.includes('tag') || code.startsWith('LBL')) {
+    return { isThr: false, isBtn: false, color: 'bg-indigo-400', defaultUom: 'pcs' };
+  }
+  if (c.includes('interlining') || c.includes('fusing') || code.startsWith('INT')) {
+    return { isThr: false, isBtn: false, color: 'bg-orange-400', defaultUom: 'meters' };
+  }
+  if (c.includes('velcro') || c.includes('fastener')) {
+    return { isThr: false, isBtn: false, color: 'bg-violet-400', defaultUom: 'meters' };
+  }
+  if (c.includes('cord')) {
+    return { isThr: false, isBtn: false, color: 'bg-cyan-400', defaultUom: 'meters' };
+  }
+  if (c.includes('badge') || c.includes('crest')) {
+    return { isThr: false, isBtn: false, color: 'bg-rose-400', defaultUom: 'pcs' };
+  }
+  return { isThr: false, isBtn: false, color: 'bg-teal-500', defaultUom: 'pcs' };
+};
+
 export const getAutoProductDefaults = ({
   prod,
   isSchool,
@@ -179,6 +227,7 @@ export const getAutoProductDefaults = ({
   );
   const thrTrim = baseTrims.find((t: any) =>
     (t.uom || '').toLowerCase() === 'cones' ||
+    (t.uom || '').toLowerCase() === 'spools' ||
     (t.name || '').toLowerCase().includes('thread') ||
     (t.category || '').toLowerCase().includes('thread') ||
     String(t.trim_id).includes('thr')
@@ -325,7 +374,9 @@ export const getAutoProductDefaults = ({
   } else if (btnTrim?.trim_id && !String(btnTrim.trim_id).startsWith('btn_default')) {
     buttonId = String(btnTrim.trim_id);
   }
-  if (buttonsList.length > 0 && buttonId && !buttonsList.some(b => String(b.id) === buttonId)) {
+  const btnExists = (buttonsList.length > 0 && buttonsList.some(b => String(b.id) === buttonId)) ||
+                    (trimsList.length > 0 && trimsList.some(t => String(t.id) === buttonId));
+  if (buttonId && !btnExists && (buttonsList.length > 0 || trimsList.length > 0)) {
     buttonId = '';
   }
 
@@ -335,8 +386,20 @@ export const getAutoProductDefaults = ({
   } else if (thrTrim?.trim_id && !String(thrTrim.trim_id).startsWith('thr_default')) {
     threadId = String(thrTrim.trim_id);
   }
-  if (threadsList.length > 0 && threadId && !threadsList.some(t => String(t.id) === threadId)) {
+  const threadExists = (threadsList.length > 0 && threadsList.some(t => String(t.id) === threadId)) ||
+                       (trimsList.length > 0 && trimsList.some(t => String(t.id) === threadId));
+  if (threadId && !threadExists && (threadsList.length > 0 || trimsList.length > 0)) {
     threadId = '';
+  }
+  if (!threadId) {
+    const defaultThr = trimsList.find((t: any) =>
+      (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
+      (t.name || '').toLowerCase().includes('thread') ||
+      (t.code || '').toUpperCase().startsWith('THR')
+    ) || (threadsList.length > 0 ? threadsList[0] : null);
+    if (defaultThr) {
+      threadId = String(defaultThr.id);
+    }
   }
 
   // Preload and map dynamic trims from database
@@ -356,23 +419,72 @@ export const getAutoProductDefaults = ({
         String(dbTrim.id) === String(t.trim_id) ||
         (dbTrim.name && t.name && dbTrim.name.toLowerCase() === t.name.toLowerCase()) ||
         (dbTrim.code && t.code && dbTrim.code.toLowerCase() === t.code.toLowerCase())
-      );
+      ) || threadsList.find((th: any) => String(th.id) === String(t.trim_id))
+        || buttonsList.find((b: any) => String(b.id) === String(t.trim_id));
       const catName = t.category || matched?.category?.name || matched?.trim_categories?.name || 'Trim';
-      const isThread = (catName || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || (matched?.name || '').toLowerCase().includes('thread');
+      const meta = getTrimCategoryMeta(catName, matched?.code || t.code);
+      const isThread = meta.isThr;
+      const isButton = meta.isBtn;
       const uom = isThread 
-        ? (matched?.uom && matched.uom.toLowerCase() !== 'pcs' ? matched.uom : (matched?.category?.default_uom || 'cones'))
-        : (matched?.uom || t.uom || 'pcs');
+        ? 'spools'
+        : (matched?.uom || t.uom || meta.defaultUom || 'pcs');
+      const countVal = isThread
+        ? (resolvedThr || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : ''))
+        : isButton
+        ? (resolvedBtn || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '10'))
+        : (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1');
       const unitPrice = parseFloat(matched?.unit_price || t.unit_price || '0') || 0;
       return {
-        id: t.id || `trim-${Date.now()}-${idx}`,
+        id: t.id || `trim-${idx}`,
         trim_id: matched ? String(matched.id) : (t.trim_id ? String(t.trim_id) : ''),
-        category: catName,
-        name: matched?.name || t.name || 'Trim',
-        count: t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1',
+        category: isThread ? 'Thread' : (isButton ? 'Buttons' : catName),
+        name: matched?.name || t.name || (isThread ? 'Thread' : (isButton ? 'Buttons' : catName)),
+        count: countVal,
         uom: uom,
         unit_price: unitPrice
       };
     });
+
+    // If product has button configured in master but not in baseTrims, include it
+    const hasBtn = resolvedTrims.some(t => (t.category || '').toLowerCase().includes('button') || (t.name || '').toLowerCase().includes('button'));
+    if (!hasBtn && (buttonId || resolvedBtn)) {
+      const dbBtn = trimsList.find((t: any) =>
+        (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('button') ||
+        (t.name || '').toLowerCase().includes('button')
+      ) || (buttonsList.length > 0 ? buttonsList[0] : null);
+
+      resolvedTrims.unshift({
+        id: 'btn-0',
+        trim_id: buttonId || (dbBtn ? String(dbBtn.id) : ''),
+        category: 'Buttons',
+        name: dbBtn?.name || 'Buttons',
+        count: resolvedBtn || '10',
+        uom: dbBtn?.uom || 'pcs',
+        unit_price: parseFloat(dbBtn?.unit_price || '0') || 0
+      });
+      if (!buttonId && dbBtn) buttonId = String(dbBtn.id);
+    }
+
+    // If product has thread configured in master but not in baseTrims, include it
+    const hasThr = resolvedTrims.some(t => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread'));
+    if (!hasThr && (threadId || resolvedThr)) {
+      const dbThr = trimsList.find((t: any) =>
+        (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
+        (t.name || '').toLowerCase().includes('thread') ||
+        (t.code || '').toUpperCase().startsWith('THR')
+      ) || (threadsList.length > 0 ? threadsList[0] : null);
+
+      resolvedTrims.push({
+        id: 'thr-1',
+        trim_id: threadId || (dbThr ? String(dbThr.id) : ''),
+        category: 'Thread',
+        name: dbThr?.name || 'Thread',
+        count: resolvedThr || '',
+        uom: 'spools',
+        unit_price: parseFloat(dbThr?.unit_price || '0') || 0
+      });
+      if (!threadId && dbThr) threadId = String(dbThr.id);
+    }
   } else {
     // If no trims configured on the product, search database for a Button and a Thread
     const dbBtn = trimsList.find((t: any) =>
@@ -382,12 +494,13 @@ export const getAutoProductDefaults = ({
 
     const dbThr = trimsList.find((t: any) =>
       (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
-      (t.name || '').toLowerCase().includes('thread')
+      (t.name || '').toLowerCase().includes('thread') ||
+      (t.code || '').toUpperCase().startsWith('THR')
     ) || (threadsList.length > 0 ? threadsList[0] : null);
 
     if (dbBtn || resolvedBtn || buttonId) {
       resolvedTrims.push({
-        id: `btn-${Date.now()}-0`,
+        id: 'btn-0',
         trim_id: dbBtn ? String(dbBtn.id) : (buttonId || ''),
         category: 'Buttons',
         name: dbBtn?.name || 'Buttons',
@@ -398,29 +511,28 @@ export const getAutoProductDefaults = ({
       if (!buttonId && dbBtn) buttonId = String(dbBtn.id);
     }
 
-    if (dbThr || resolvedThr || threadId) {
+    if (threadId || resolvedThr) {
       resolvedTrims.push({
-        id: `thr-${Date.now()}-1`,
+        id: 'thr-1',
         trim_id: dbThr ? String(dbThr.id) : (threadId || ''),
         category: 'Thread',
         name: dbThr?.name || 'Thread',
-        count: resolvedThr || '1',
-        uom: dbThr?.uom || dbThr?.category?.default_uom || 'cones',
+        count: resolvedThr || '',
+        uom: 'spools',
         unit_price: parseFloat(dbThr?.unit_price || '0') || 0
       });
       if (!threadId && dbThr) threadId = String(dbThr.id);
     }
   }
-
   const buttonUom = btnTrim?.uom || 'pcs';
-  const threadUom = thrTrim?.uom || 'cones';
+  const threadUom = 'spools';
 
   return {
     main_fabric_meters: resolvedMain,
     attachment_fabric1_meters: resolvedAtt1,
     attachment_fabric2_meters: resolvedAtt2,
     button_count: resolvedBtn,
-    thread_count: resolvedThr,
+    thread_count: resolvedThr || '',
     button_uom: buttonUom,
     thread_uom: threadUom,
     fabric_id: mainFabricId,
@@ -538,13 +650,30 @@ export default function WizardStep2({
         if (!groups[targetCat].some((existing: any) => String(existing.id) === String(th.id))) {
           groups[targetCat].push({
             ...th,
-            uom: th.uom || 'cones'
+            uom: th.uom || 'spools'
           });
         }
       });
     }
     return groups;
   }, [trimsList, buttonsList, threadsList]);
+
+  // Unified list of all trim categories across presets, database categories, and inventory items
+  const allTrimCategories = React.useMemo(() => {
+    const set = new Set<string>(DEFAULT_TRIM_CATEGORIES);
+    if (Array.isArray(trimCategories)) {
+      trimCategories.forEach((c: any) => {
+        if (c.name) set.add(c.name);
+      });
+    }
+    if (Array.isArray(trimsList)) {
+      trimsList.forEach((t: any) => {
+        const cat = t.category?.name || t.trim_categories?.name || t.category;
+        if (cat) set.add(cat);
+      });
+    }
+    return Array.from(set);
+  }, [trimCategories, trimsList]);
 
   const [isLoadingEntities, setIsLoadingEntities] = useState(false);
   const [globalSets, setGlobalSets] = useState('2');
@@ -938,7 +1067,7 @@ export default function WizardStep2({
     const item = { ...updated[itemIndex] };
     const defaultTrims = [
       { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
     ];
     const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
     while (curTrims.length <= trimIndex) {
@@ -972,21 +1101,22 @@ export default function WizardStep2({
     setManualItems(updated);
   };
 
-  const addItemTrim = (itemIndex: number) => {
+  const addItemTrim = (itemIndex: number, category = 'Trim') => {
     const updated = [...manualItems];
     const item = { ...updated[itemIndex] };
     const defaultTrims = [
       { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
     ];
     const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    const meta = getTrimCategoryMeta(category);
     curTrims.push({
       id: Date.now() + Math.random(),
       trim_id: '',
-      category: 'Trim',
+      category: category,
       name: '',
-      count: '1',
-      uom: 'pcs',
+      count: meta.isThr ? (item.thread_count || '') : '1',
+      uom: meta.defaultUom,
       unit_price: 0
     });
     item.trims = curTrims;
@@ -999,7 +1129,7 @@ export default function WizardStep2({
     const item = { ...updated[itemIndex] };
     const defaultTrims = [
       { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
     ];
     const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
     curTrims.splice(trimIndex, 1);
@@ -1021,7 +1151,7 @@ export default function WizardStep2({
         button_id: '', button_count: '', thread_id: '', thread_count: '',
         trims: [
           { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-          { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+          { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'spools', unit_price: 0 }
         ],
         sam_value: '', design_number: '', quantity: '1', price: ''
       }
@@ -1581,36 +1711,36 @@ export default function WizardStep2({
                 {/* ── Dynamic Database Trims ── */}
                 {((item.trims && item.trims.length > 0) ? item.trims : [
                   { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
-                  { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '0', uom: 'cones' }
+                  { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '', uom: 'spools' }
                 ]).map((trimItem: any, trimIdx: number) => {
                   const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
                                  threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
                                  buttonsList.find((b: any) => String(b.id) === String(trimItem.trim_id));
-                  const isThr = trimIdx === 1 ||
-                                String(trimItem.id).startsWith('thr') ||
-                                (trimItem.category || '').toLowerCase().includes('thread') ||
-                                (trimItem.name || '').toLowerCase().includes('thread') ||
-                                (dbTrim?.category?.name || '').toLowerCase().includes('thread') ||
-                                (dbTrim?.trim_categories?.name || '').toLowerCase().includes('thread') ||
-                                (dbTrim?.name || '').toLowerCase().includes('thread') ||
-                                (dbTrim?.code || '').toUpperCase().startsWith('THR');
-                  const trimCat = (trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || (isThr ? 'Thread' : (trimIdx === 0 ? 'Buttons' : 'Trim')));
-                  const isBtn = !isThr && (trimIdx === 0 || String(trimItem.id).startsWith('btn') || trimCat.toLowerCase().includes('button'));
-                  const isZip = trimCat.toLowerCase().includes('zip');
-                  const isElas = trimCat.toLowerCase().includes('elastic');
+                  const trimCat = trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || 'Trim';
+                  const catMeta = getTrimCategoryMeta(trimCat, dbTrim?.code);
+                  const isThr = catMeta.isThr;
 
                   return (
                     <tr key={trimItem.id || trimIdx} className="hover:bg-zinc-50/50">
                       <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            isBtn ? 'bg-amber-400' :
-                            isThr ? 'bg-purple-400' :
-                            isZip ? 'bg-blue-400' :
-                            isElas ? 'bg-emerald-400' :
-                            'bg-teal-500'
-                          }`}></span>
-                          <span className="font-semibold text-zinc-500">{trimCat}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
+                          <select
+                            className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#2d8d9b] py-0.5 pr-2 cursor-pointer max-w-[110px]"
+                            value={trimCat}
+                            onChange={(e) => {
+                              const newCat = e.target.value;
+                              const newMeta = getTrimCategoryMeta(newCat);
+                              updateItemTrim(index, trimIdx, {
+                                category: newCat,
+                                uom: newMeta.defaultUom
+                              });
+                            }}
+                          >
+                            {allTrimCategories.map((c: string) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
                         </div>
                       </td>
                       <td className="p-3">
@@ -1622,21 +1752,21 @@ export default function WizardStep2({
                             const found = trimsList.find((t: any) => String(t.id) === selectedTrimId) ||
                                           buttonsList.find((b: any) => String(b.id) === selectedTrimId) ||
                                           threadsList.find((th: any) => String(th.id) === selectedTrimId);
-                            const itemIsThread = isThr ||
-                              (found?.category?.name || '').toLowerCase().includes('thread') ||
-                              (found?.trim_categories?.name || '').toLowerCase().includes('thread') ||
-                              (found?.name || '').toLowerCase().includes('thread') ||
-                              (found?.code || '').toUpperCase().startsWith('THR');
-                            const resolvedCategory = itemIsThread ? 'Thread' : (found?.category?.name || found?.trim_categories?.name || trimCat);
-                            const resolvedUom = itemIsThread
-                              ? ((found?.uom && found.uom.toLowerCase() !== 'pcs') ? found.uom : (found?.category?.default_uom || 'cones'))
-                              : (found?.uom || found?.category?.default_uom || 'pcs');
+                            const itemMeta = getTrimCategoryMeta(found?.category?.name || found?.trim_categories?.name || trimCat, found?.code);
+                            const resolvedCategory = found?.category?.name || found?.trim_categories?.name || (itemMeta.isThr ? 'Thread' : trimCat);
+                            const resolvedUom = itemMeta.isThr ? 'spools' : (found?.uom || found?.category?.default_uom || itemMeta.defaultUom);
+
+                            let newCount = trimItem.count;
+                            if (itemMeta.isThr && (!newCount || newCount === '0' || newCount === '')) {
+                              newCount = item.thread_count || '';
+                            }
 
                             updateItemTrim(index, trimIdx, {
                               trim_id: selectedTrimId,
                               name: found?.name || '',
                               category: resolvedCategory,
                               uom: resolvedUom,
+                              count: newCount,
                               unit_price: parseFloat(found?.unit_price || '0') || 0
                             });
                           }}
@@ -1644,11 +1774,14 @@ export default function WizardStep2({
                           <option value="">Select {trimCat} (Optional)...</option>
                           {Object.entries(trimsByCategory).map(([catName, items]) => (
                             <optgroup key={catName} label={catName}>
-                              {items.map((t: any) => (
-                                <option key={t.id} value={String(t.id)}>
-                                  {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${t.uom || (isThr ? 'cones' : 'pc')}` : ''}
-                                </option>
-                              ))}
+                              {items.map((t: any) => {
+                                const itemUom = t.uom || (catName.toLowerCase().includes('thread') ? 'spool' : 'pc');
+                                return (
+                                  <option key={t.id} value={String(t.id)}>
+                                    {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${itemUom}` : ''}
+                                  </option>
+                                );
+                              })}
                             </optgroup>
                           ))}
                           {Object.keys(trimsByCategory).length === 0 && (
@@ -1663,7 +1796,7 @@ export default function WizardStep2({
                               <optgroup label="Threads">
                                 {threadsList.map((t: any) => (
                                   <option key={t.id} value={String(t.id)}>
-                                    {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}` : ''}
+                                    {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/spool` : ''}
                                   </option>
                                 ))}
                               </optgroup>
@@ -1680,15 +1813,7 @@ export default function WizardStep2({
                             className={`${inputCls} w-20`}
                           />
                           <span className="text-zinc-400 font-bold text-[10px]">
-                            {(() => {
-                              if (isThr) {
-                                if (trimItem.uom && trimItem.uom.toLowerCase() !== 'pcs') return trimItem.uom;
-                                if (dbTrim?.uom && dbTrim.uom.toLowerCase() !== 'pcs') return dbTrim.uom;
-                                if (dbTrim?.category?.default_uom) return dbTrim.category.default_uom;
-                                return 'cones';
-                              }
-                              return trimItem.uom || dbTrim?.uom || 'pcs';
-                            })()}
+                            {isThr ? 'spools' : (trimItem.uom || dbTrim?.uom || catMeta.defaultUom)}
                           </span>
                         </div>
                       </td>
@@ -1719,16 +1844,31 @@ export default function WizardStep2({
                   );
                 })}
 
-                {/* ── Add Trim Button ── */}
+                {/* ── Add Trim Button & Quick Presets ── */}
                 <tr className="bg-zinc-50/40">
                   <td colSpan={6} className="px-3 py-2 border-t border-zinc-100">
-                    <button
-                      type="button"
-                      onClick={() => addItemTrim(index)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
-                    >
-                      <Plus size={13} strokeWidth={2.5} /> Add Trim (Button, Thread, Zipper, Elastic, Label, etc.)
-                    </button>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addItemTrim(index, 'Trim')}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
+                      >
+                        <Plus size={13} strokeWidth={2.5} /> Add Trim
+                      </button>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Quick:</span>
+                        {['Zipper', 'Elastic', 'Label', 'Interlining', 'Velcro'].map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => addItemTrim(index, cat)}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white hover:bg-zinc-100 text-zinc-600 border border-zinc-200 transition-colors"
+                          >
+                            + {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </td>
                 </tr>
 
@@ -2469,7 +2609,7 @@ export default function WizardStep2({
                                 button_id: '', button_count: '', thread_id: '', thread_count: '',
                                 trims: [
                                   { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-                                  { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+                                  { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'spools', unit_price: 0 }
                                 ],
                                 sam_value: '', design_number: '', quantity: String(totalUnits || 1), price: ''
                               };
@@ -2500,7 +2640,7 @@ export default function WizardStep2({
                               const item = { ...updated[itemIndex] };
                               const defaultTrims = [
                                 { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
                               ];
                               const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
                               while (curTrims.length <= trimIndex) {
@@ -2538,21 +2678,22 @@ export default function WizardStep2({
                               }
                             };
 
-                            const addDeptItemTrim = (itemIndex: number) => {
+                            const addDeptItemTrim = (itemIndex: number, category = 'Trim') => {
                               const updated = [...deptItems];
                               const item = { ...updated[itemIndex] };
                               const defaultTrims = [
                                 { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
                               ];
                               const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+                              const meta = getTrimCategoryMeta(category);
                               curTrims.push({
                                 id: Date.now() + Math.random(),
                                 trim_id: '',
-                                category: 'Trim',
+                                category: category,
                                 name: '',
-                                count: '1',
-                                uom: 'pcs',
+                                count: meta.isThr ? (item.thread_count || '') : '1',
+                                uom: meta.defaultUom,
                                 unit_price: 0
                               });
                               item.trims = curTrims;
@@ -2567,7 +2708,7 @@ export default function WizardStep2({
                               const item = { ...updated[itemIndex] };
                               const defaultTrims = [
                                 { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'cones', unit_price: 0 }
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
                               ];
                               const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
                               curTrims.splice(trimIndex, 1);
@@ -3208,36 +3349,36 @@ export default function WizardStep2({
                                                       {/* ── Dynamic Database Trims ── */}
                                                       {((item.trims && item.trims.length > 0) ? item.trims : [
                                                         { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
-                                                        { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '0', uom: 'cones' }
+                                                        { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '', uom: 'spools' }
                                                       ]).map((trimItem: any, trimIdx: number) => {
                                                         const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
                                                                        threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
                                                                        buttonsList.find((b: any) => String(b.id) === String(trimItem.trim_id));
-                                                        const isThr = trimIdx === 1 ||
-                                                                      String(trimItem.id).startsWith('thr') ||
-                                                                      (trimItem.category || '').toLowerCase().includes('thread') ||
-                                                                      (trimItem.name || '').toLowerCase().includes('thread') ||
-                                                                      (dbTrim?.category?.name || '').toLowerCase().includes('thread') ||
-                                                                      (dbTrim?.trim_categories?.name || '').toLowerCase().includes('thread') ||
-                                                                      (dbTrim?.name || '').toLowerCase().includes('thread') ||
-                                                                      (dbTrim?.code || '').toUpperCase().startsWith('THR');
-                                                        const trimCat = (trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || (isThr ? 'Thread' : (trimIdx === 0 ? 'Buttons' : 'Trim')));
-                                                        const isBtn = !isThr && (trimIdx === 0 || String(trimItem.id).startsWith('btn') || trimCat.toLowerCase().includes('button'));
-                                                        const isZip = trimCat.toLowerCase().includes('zip');
-                                                        const isElas = trimCat.toLowerCase().includes('elastic');
+                                                        const trimCat = trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || 'Trim';
+                                                        const catMeta = getTrimCategoryMeta(trimCat, dbTrim?.code);
+                                                        const isThr = catMeta.isThr;
 
                                                         return (
                                                           <tr key={trimItem.id || trimIdx} className="hover:bg-zinc-50/50">
                                                             <td className="p-3">
-                                                              <div className="flex items-center gap-2">
-                                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                                                  isBtn ? 'bg-amber-400' :
-                                                                  isThr ? 'bg-purple-400' :
-                                                                  isZip ? 'bg-blue-400' :
-                                                                  isElas ? 'bg-emerald-400' :
-                                                                  'bg-teal-500'
-                                                                }`}></span>
-                                                                <span className="font-semibold text-zinc-500">{trimCat}</span>
+                                                              <div className="flex items-center gap-1.5">
+                                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
+                                                                <select
+                                                                  className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#2d8d9b] py-0.5 pr-2 cursor-pointer max-w-[110px]"
+                                                                  value={trimCat}
+                                                                  onChange={(e) => {
+                                                                    const newCat = e.target.value;
+                                                                    const newMeta = getTrimCategoryMeta(newCat);
+                                                                    updateDeptItemTrim(idx, trimIdx, {
+                                                                      category: newCat,
+                                                                      uom: newMeta.defaultUom
+                                                                    });
+                                                                  }}
+                                                                >
+                                                                  {allTrimCategories.map((c: string) => (
+                                                                    <option key={c} value={c}>{c}</option>
+                                                                  ))}
+                                                                </select>
                                                               </div>
                                                             </td>
                                                             <td className="p-3">
@@ -3249,21 +3390,21 @@ export default function WizardStep2({
                                                                   const found = trimsList.find((t: any) => String(t.id) === selectedTrimId) ||
                                                                                 buttonsList.find((b: any) => String(b.id) === selectedTrimId) ||
                                                                                 threadsList.find((th: any) => String(th.id) === selectedTrimId);
-                                                                  const itemIsThread = isThr ||
-                                                                    (found?.category?.name || '').toLowerCase().includes('thread') ||
-                                                                    (found?.trim_categories?.name || '').toLowerCase().includes('thread') ||
-                                                                    (found?.name || '').toLowerCase().includes('thread') ||
-                                                                    (found?.code || '').toUpperCase().startsWith('THR');
-                                                                  const resolvedCategory = itemIsThread ? 'Thread' : (found?.category?.name || found?.trim_categories?.name || trimCat);
-                                                                  const resolvedUom = itemIsThread
-                                                                    ? ((found?.uom && found.uom.toLowerCase() !== 'pcs') ? found.uom : (found?.category?.default_uom || 'cones'))
-                                                                    : (found?.uom || found?.category?.default_uom || 'pcs');
+                                                                  const itemMeta = getTrimCategoryMeta(found?.category?.name || found?.trim_categories?.name || trimCat, found?.code);
+                                                                  const resolvedCategory = found?.category?.name || found?.trim_categories?.name || (itemMeta.isThr ? 'Thread' : trimCat);
+                                                                  const resolvedUom = itemMeta.isThr ? 'spools' : (found?.uom || found?.category?.default_uom || itemMeta.defaultUom);
+
+                                                                  let newCount = trimItem.count;
+                                                                  if (itemMeta.isThr && (!newCount || newCount === '0' || newCount === '')) {
+                                                                    newCount = item.thread_count || '';
+                                                                  }
 
                                                                   updateDeptItemTrim(idx, trimIdx, {
                                                                     trim_id: selectedTrimId,
                                                                     name: found?.name || '',
                                                                     category: resolvedCategory,
                                                                     uom: resolvedUom,
+                                                                    count: newCount,
                                                                     unit_price: parseFloat(found?.unit_price || '0') || 0
                                                                   });
                                                                 }}
@@ -3271,11 +3412,14 @@ export default function WizardStep2({
                                                                 <option value="">Select {trimCat} (Optional)...</option>
                                                                 {Object.entries(trimsByCategory).map(([catName, items]) => (
                                                                   <optgroup key={catName} label={catName}>
-                                                                    {items.map((t: any) => (
-                                                                      <option key={t.id} value={String(t.id)}>
-                                                                        {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${t.uom || 'pc'}` : ''}
-                                                                      </option>
-                                                                    ))}
+                                                                    {items.map((t: any) => {
+                                                                      const itemUom = t.uom || (catName.toLowerCase().includes('thread') ? 'spool' : 'pc');
+                                                                      return (
+                                                                        <option key={t.id} value={String(t.id)}>
+                                                                          {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${itemUom}` : ''}
+                                                                        </option>
+                                                                      );
+                                                                    })}
                                                                   </optgroup>
                                                                 ))}
                                                                 {Object.keys(trimsByCategory).length === 0 && (
@@ -3290,7 +3434,7 @@ export default function WizardStep2({
                                                                     <optgroup label="Threads">
                                                                       {threadsList.map((t: any) => (
                                                                         <option key={t.id} value={String(t.id)}>
-                                                                          {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}` : ''}
+                                                                          {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/spool` : ''}
                                                                         </option>
                                                                       ))}
                                                                     </optgroup>
@@ -3307,15 +3451,7 @@ export default function WizardStep2({
                                                                   className={`${inputCls} w-20`}
                                                                 />
                                                                 <span className="text-zinc-400 font-bold text-[10px]">
-                                                                  {(() => {
-                                                                    if (isThr) {
-                                                                      if (trimItem.uom && trimItem.uom.toLowerCase() !== 'pcs') return trimItem.uom;
-                                                                      if (dbTrim?.uom && dbTrim.uom.toLowerCase() !== 'pcs') return dbTrim.uom;
-                                                                      if (dbTrim?.category?.default_uom) return dbTrim.category.default_uom;
-                                                                      return 'cones';
-                                                                    }
-                                                                    return trimItem.uom || dbTrim?.uom || 'pcs';
-                                                                  })()}
+                                                                  {isThr ? 'spools' : (trimItem.uom || dbTrim?.uom || catMeta.defaultUom)}
                                                                 </span>
                                                               </div>
                                                             </td>
@@ -3342,16 +3478,31 @@ export default function WizardStep2({
                                                         );
                                                       })}
 
-                                                      {/* ── Add Trim Button ── */}
+                                                      {/* ── Add Trim Button & Quick Presets ── */}
                                                       <tr className="bg-zinc-50/40">
                                                         <td colSpan={6} className="px-3 py-2 border-t border-zinc-100">
-                                                          <button
-                                                            type="button"
-                                                            onClick={() => addDeptItemTrim(idx)}
-                                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
-                                                          >
-                                                            <Plus size={13} strokeWidth={2.5} /> Add Trim (Button, Thread, Zipper, Elastic, Label, etc.)
-                                                          </button>
+                                                          <div className="flex items-center justify-between flex-wrap gap-2">
+                                                            <button
+                                                              type="button"
+                                                              onClick={() => addDeptItemTrim(idx, 'Trim')}
+                                                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
+                                                            >
+                                                              <Plus size={13} strokeWidth={2.5} /> Add Trim
+                                                            </button>
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Quick:</span>
+                                                              {['Zipper', 'Elastic', 'Label', 'Interlining', 'Velcro'].map(cat => (
+                                                                <button
+                                                                  key={cat}
+                                                                  type="button"
+                                                                  onClick={() => addDeptItemTrim(idx, cat)}
+                                                                  className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white hover:bg-zinc-100 text-zinc-600 border border-zinc-200 transition-colors"
+                                                                >
+                                                                  + {cat}
+                                                                </button>
+                                                              ))}
+                                                            </div>
+                                                          </div>
                                                         </td>
                                                       </tr>
 

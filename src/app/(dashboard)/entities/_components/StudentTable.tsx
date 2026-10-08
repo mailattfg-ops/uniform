@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Edit2, Trash2, UserPlus, FileUp, Key, Download, Filter, User } from 'lucide-react';
+import { Edit2, Trash2, UserPlus, FileUp, Key, Download, Filter } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -177,12 +177,23 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
     {
       header: 'Entity / Member Name',
       accessor: (e) => (
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#3a525d]/5 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px] shadow-sm">
+        <div className="flex items-center gap-3">
+          <div 
+            onClick={() => setProfileModal({ isOpen: true, member: e })}
+            className="w-10 h-10 rounded-xl bg-[#3a525d]/5 hover:bg-[#3a525d]/15 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px] shadow-sm cursor-pointer transition-all"
+            title="Click to view profile"
+          >
             {e.full_name.charAt(0)}
           </div>
           <div>
-            <p className="font-bold text-[13px] tracking-tight text-[#3a525d] leading-none">{e.full_name}</p>
+            <button
+              type="button"
+              onClick={() => setProfileModal({ isOpen: true, member: e })}
+              className="font-bold text-[13px] tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline leading-none text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
+              title="Click to view profile"
+            >
+              {e.full_name}
+            </button>
             <p className="text-[9px] text-[#2d8d9b] font-bold uppercase tracking-[0.1em] mt-1.5 opacity-80">Ref: #{e.admission_no}</p>
           </div>
         </div>
@@ -229,14 +240,6 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
       header: 'Actions',
       accessor: (e) => (
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setProfileModal({ isOpen: true, member: e })}
-            variant="none"
-            className="p-2 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm border border-[#3a525d]/20"
-            title="View Profile"
-          >
-            <User size={16} className="text-[#3a525d] shrink-0" />
-          </Button>
           <Button
             onClick={() => setResetConfirm({ isOpen: true, entity: e })}
             variant="none"

@@ -101,7 +101,7 @@ export default function QuotationWizard({
       button_id: '', button_count: '', thread_id: '', thread_count: '',
       trims: [
         { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '', uom: 'spools', unit_price: 0 }
       ],
       sam_value: '', design_number: '', quantity: '1', price: ''
     }
@@ -169,7 +169,7 @@ export default function QuotationWizard({
       button_id: '', button_count: '', thread_id: '', thread_count: '',
       trims: [
         { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'cones', unit_price: 0 }
+        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '', uom: 'spools', unit_price: 0 }
       ],
       sam_value: '', design_number: '', quantity: '1', price: '',
       size_breakdown: {}
@@ -365,7 +365,7 @@ export default function QuotationWizard({
               thread_count: String(item.size_breakdown?.thread_count || ''),
               trims: item.size_breakdown?.trims || [
                 { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
-                { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || '1'), uom: 'cones', unit_price: 0 }
+                { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || ''), uom: 'spools', unit_price: 0 }
               ],
               sam_value: String(item.size_breakdown?.sam_value || ''),
               design_number: String(item.size_breakdown?.design_number || ''),
@@ -489,10 +489,10 @@ export default function QuotationWizard({
         button_id: String(prod.button_id || buttonsList[0]?.id || ''),
         button_count: String(prod.button_count || '0'),
         thread_id: String(prod.thread_id || threadsList[0]?.id || ''),
-        thread_count: String(prod.thread_count || '0'),
+        thread_count: String(prod.thread_count || ''),
         trims: [
           { id: 'btn', trim_id: String(prod.button_id || buttonsList[0]?.id || ''), category: 'Buttons', name: 'Buttons', count: String(prod.button_count || '10'), uom: 'pcs', unit_price: 0 },
-          { id: 'thr', trim_id: String(prod.thread_id || threadsList[0]?.id || ''), category: 'Thread', name: 'Thread', count: String(prod.thread_count || '1'), uom: 'cones', unit_price: 0 }
+          { id: 'thr', trim_id: String(prod.thread_id || threadsList[0]?.id || ''), category: 'Thread', name: 'Thread', count: String(prod.thread_count || ''), uom: 'spools', unit_price: 0 }
         ],
         sam_value: String(prod.sam_value || ''),
         design_number: String(prod.design_number || 'DNS-STANDARD'),
@@ -544,7 +544,7 @@ export default function QuotationWizard({
         thread_count: String(item.size_breakdown?.thread_count || ''),
         trims: item.size_breakdown?.trims || [
           { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
-          { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || '1'), uom: 'cones', unit_price: 0 }
+          { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || ''), uom: 'spools', unit_price: 0 }
         ],
         sam_value: String(item.size_breakdown?.sam_value || ''),
         design_number: String(item.size_breakdown?.design_number || ''),

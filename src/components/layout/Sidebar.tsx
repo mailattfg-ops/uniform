@@ -44,11 +44,10 @@ const modules: ModuleItem[] = [
     subsections: []
   },
   {
-    icon: Users, label: 'CRM', href: '/customers',
+    icon: Users, label: 'CRM', href: '/customers/leads',
     subsections: [
-      { label: 'Customer Directory', href: '/customers' },
-      { label: 'Customer Departments', href: '/customers/departments' },
       { label: 'Leads', href: '/customers/leads' },
+      { label: 'Customers', href: '/customers' },
       { label: 'Quotations', href: '/marketing/quotations' },
     ]
   },
@@ -177,6 +176,7 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Customer Portal': ['view_schools', 'manage_schools', 'view_organizations'],
   'Organizations CRM': ['view_schools', 'manage_schools', 'view_organizations'],
   'Customer Directory': ['view_schools', 'manage_schools', 'view_organizations'],
+  'Customers': ['view_schools', 'manage_schools', 'view_organizations'],
   'Customer Departments': ['view_schools', 'manage_schools', 'view_organizations', 'manage_departments'],
   'Leads': ['view_leads', 'manage_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales', 'manage_system'],
   'Leads Registry': ['view_leads', 'manage_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales'],

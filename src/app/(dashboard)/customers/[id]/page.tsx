@@ -28,7 +28,6 @@ import {
   Clipboard,
   UserCheck,
   LogIn,
-  Eye,
   ArrowRight,
   Ruler,
   ReceiptText,
@@ -54,13 +53,26 @@ interface Organization {
   id: number;
   customer_code: string | null;
   name: string;
+  phone?: string | null;
+  email?: string | null;
   address: string;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  pin_code?: string | null;
+  country?: string | null;
   industry_id: number;
   industries?: { name: string };
   relationship_manager_id: number | null;
   relationship_manager?: { id: number; full_name: string; employee_id: string } | null;
   assigned_operator_id: number | null;
   assigned_operator?: { id: number; full_name: string; employee_id: string } | null;
+  is_active?: boolean | null;
+  is_special?: boolean | null;
+  is_risk?: boolean | null;
+  client_tag?: string | null;
+  receivables?: number | null;
+  credits?: number | null;
   created_at: string;
   category?: string;
   type?: string;
@@ -193,6 +205,11 @@ function OrganizationDetailsPageContent() {
   const [isAssigningStaff, setIsAssigningStaff] = useState(false);
   const [isLoadingOrg, setIsLoadingOrg] = useState(true);
   const [quotations, setQuotations] = useState<any[]>([]);
+  const [industries, setIndustries] = useState<any[]>([]);
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState<{ isOpen: boolean }>({
+    isOpen: false
+  });
 
   // Modals & Order Details
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -285,12 +302,13 @@ function OrganizationDetailsPageContent() {
   const fetchOrgData = async () => {
     setIsLoadingOrg(true);
     try {
-      const [orgsRes, detailsRes, staffRes, empRes, quotesRes] = await Promise.all([
+      const [orgsRes, detailsRes, staffRes, empRes, quotesRes, indRes] = await Promise.all([
         api.get('/organizations').catch(() => ({ data: [] })),
         api.get(`/organizations/${orgId}/details`),
         api.get(`/organizations/${orgId}/staff`).catch(() => ({ data: { data: [] } })),
         api.get('/employees').catch(() => ({ data: [] })),
-        api.get('/quotations').catch(() => ({ data: [] }))
+        api.get('/quotations').catch(() => ({ data: [] })),
+        api.get('/industries').catch(() => ({ data: [] }))
       ]);
 
       const orgList = orgsRes.data || [];
@@ -302,6 +320,7 @@ function OrganizationDetailsPageContent() {
       setAssignedStaff(Array.isArray(assigned) ? assigned : []);
       setSelectedStaffIds((Array.isArray(assigned) ? assigned : []).map((s: any) => s.employee_id));
       setEmployees((empRes.data || []).filter((e: any) => e.status === 'active'));
+      setIndustries(indRes.data || []);
 
       const allQuotes = quotesRes.data || [];
       const orgQuotes = allQuotes.filter((q: any) => q.organization_id === orgId);
@@ -384,6 +403,204 @@ function OrganizationDetailsPageContent() {
       toast.error('Failed to load order details', { id: loadingToast });
     }
   };
+
+  // Customer Management Handlers
+  const handleUpdateCustomer = async (formData: any) => {
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error('Primary phone number is required');
+      return;
+    }
+
+    const loadingToast = toast.loading('Updating customer profile...');
+    const isSpecial = formData.client_tag === 'special';
+    const isRisk = formData.client_tag === 'risk';
+
+    const payload = {
+      name: formData.name,
+      phone: formData.phone.trim(),
+      email: formData.email?.trim() || null,
+      industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
+      address: formData.address?.trim() || null,
+      city: formData.city?.trim() || null,
+      state: formData.state?.trim() || null,
+      pincode: formData.pincode?.trim() || null,
+      pin_code: formData.pincode?.trim() || null,
+      country: formData.country?.trim() || 'India',
+      relationship_manager_id: formData.relationship_manager_id ? parseInt(formData.relationship_manager_id, 10) : null,
+      is_active: formData.is_active === 'true',
+      is_special: isSpecial,
+      is_risk: isRisk,
+      client_tag: formData.client_tag || 'standard',
+      receivables: formData.receivables !== undefined && formData.receivables !== '' ? parseFloat(formData.receivables) : 0,
+      credits: formData.credits !== undefined && formData.credits !== '' ? parseFloat(formData.credits) : 0,
+    };
+
+    try {
+      await api.put(`/customers/${orgId}`, payload).catch(() => api.put(`/organizations/${orgId}`, payload));
+      toast.success('Customer profile updated successfully!', { id: loadingToast });
+      setIsEditingCustomer(false);
+      fetchOrgData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update customer profile', { id: loadingToast });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const loadingToast = toast.loading('Generating secure portal access key...');
+    try {
+      const response = await api.post(`/customers/${orgId}/reset-password`).catch(() => api.post(`/organizations/${orgId}/reset-password`));
+      const { newPassword, username } = response.data;
+      toast.success('Portal Credentials Reset Successfully!', { id: loadingToast });
+      setCredsModal({
+        isOpen: true,
+        data: {
+          full_name: org?.name,
+          username: username,
+          password: newPassword
+        }
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reset credentials', { id: loadingToast });
+    }
+  };
+
+  const handleConfirmedDeleteCustomer = async () => {
+    const loadingToast = toast.loading('Purging customer account...');
+    setDeleteCustomerConfirm({ isOpen: false });
+    try {
+      await api.delete(`/customers/${orgId}`).catch(() => api.delete(`/organizations/${orgId}`));
+      toast.success('Customer account and linked data removed', { id: loadingToast });
+      router.push('/customers');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete customer', { id: loadingToast });
+    }
+  };
+
+  const customerEditFields: FormField[] = [
+    {
+      name: 'name',
+      label: 'Customer / Institution Name',
+      type: 'text',
+      placeholder: 'e.g. St. Xavier International, Apollo Healthcare, Infosys Ltd.',
+      required: true,
+      defaultValue: org?.name
+    },
+    {
+      name: 'phone',
+      label: 'Primary Phone Number *',
+      type: 'text',
+      placeholder: 'e.g. +91 98765 43210',
+      required: true,
+      defaultValue: org?.phone || undefined
+    },
+    {
+      name: 'email',
+      label: 'Email Address (Optional)',
+      type: 'email',
+      placeholder: 'e.g. billing@institution.com',
+      required: false,
+      defaultValue: org?.email || undefined
+    },
+    {
+      name: 'industry_id',
+      label: 'Customer Sector / Type',
+      type: 'select',
+      options: industries.map((i: any) => ({ label: i.name, value: String(i.id) })),
+      required: true,
+      defaultValue: org?.industry_id ? String(org.industry_id) : undefined
+    },
+    {
+      name: 'address',
+      label: 'Street / Building Address',
+      type: 'text',
+      placeholder: 'Campus address, Street, Building',
+      maxLength: 200,
+      defaultValue: org?.address || undefined
+    },
+    {
+      name: 'city',
+      label: 'City',
+      type: 'text',
+      placeholder: 'e.g. Mumbai, Bengaluru',
+      maxLength: 100,
+      defaultValue: org?.city || undefined
+    },
+    {
+      name: 'state',
+      label: 'State',
+      type: 'text',
+      placeholder: 'e.g. Maharashtra, Karnataka',
+      maxLength: 100,
+      defaultValue: org?.state || undefined
+    },
+    {
+      name: 'pincode',
+      label: 'Pin Code',
+      type: 'text',
+      placeholder: 'e.g. 560001',
+      maxLength: 20,
+      defaultValue: org?.pincode || org?.pin_code || undefined
+    },
+    {
+      name: 'country',
+      label: 'Country',
+      type: 'text',
+      placeholder: 'e.g. India',
+      maxLength: 100,
+      defaultValue: org?.country || 'India'
+    },
+    {
+      name: 'relationship_manager_id',
+      label: 'Assign Account Relationship Manager (Staff)',
+      type: 'select',
+      options: [
+        { label: 'Unassigned', value: '' },
+        ...employees.map((e: any) => ({
+          label: `${e.full_name} (${e.employee_id})`,
+          value: String(e.id)
+        }))
+      ],
+      required: false,
+      defaultValue: org?.relationship_manager_id ? String(org.relationship_manager_id) : undefined
+    },
+    {
+      name: 'is_active',
+      label: 'Account Status',
+      type: 'select',
+      options: [
+        { label: 'Active', value: 'true' },
+        { label: 'Inactive', value: 'false' }
+      ],
+      defaultValue: org?.is_active === false ? 'false' : 'true'
+    },
+    {
+      name: 'client_tag',
+      label: 'Client Classification',
+      type: 'select',
+      options: [
+        { label: 'Standard Customer', value: 'standard' },
+        { label: '★ Special Customer (High Priority)', value: 'special' },
+        { label: '⚠ Risk Customer (Payment/Credit Alert)', value: 'risk' }
+      ],
+      defaultValue: org?.is_special ? 'special' : org?.is_risk ? 'risk' : 'standard'
+    },
+    {
+      name: 'receivables',
+      label: 'Receivables (₹) - Amount to be paid by customer',
+      type: 'number',
+      placeholder: '0.00',
+      required: false,
+      defaultValue: org?.receivables !== undefined && org?.receivables !== null ? String(org.receivables) : '0'
+    },
+    {
+      name: 'credits',
+      label: 'Credits (₹) - Extra balance / return credit in wallet',
+      type: 'number',
+      placeholder: '0.00',
+      required: false,
+      defaultValue: org?.credits !== undefined && org?.credits !== null ? String(org.credits) : '0'
+    }
+  ];
 
   const deptFields: FormField[] = [
     {
@@ -786,34 +1003,84 @@ function OrganizationDetailsPageContent() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header section with Premium Back button */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-zinc-100">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
-            variant="secondary"
-            className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
-          >
-            <ArrowLeft size={16} />
-          </Button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#3a525d]">
-              {org.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider">
-                {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
-              <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest">
-                {org.industries?.name || 'School Sector'}
-              </span>
+      {/* Header section with Premium Back button & Action Toolbar */}
+      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-zinc-100 space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
+              variant="secondary"
+              className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0 shrink-0 cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#3a525d]">
+                {org.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider">
+                  {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
+                <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest">
+                  {org.industries?.name || 'School Sector'}
+                </span>
+                {org.is_special && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300">
+                    ★ Special VIP
+                  </span>
+                )}
+                {org.is_risk && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300">
+                    ⚠ Risk Client
+                  </span>
+                )}
+                {org.is_active === false && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">
+                    Inactive
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Customer Management Actions (For Staff) */}
+          {!isClientUser && (
+            <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+              <Button
+                onClick={() => setIsEditingCustomer(true)}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/25 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Edit Customer Profile"
+              >
+                <Edit2 size={15} />
+                <span>Edit Profile</span>
+              </Button>
+              <Button
+                onClick={handleResetPassword}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Reset Portal Password"
+              >
+                <Key size={15} />
+                <span>Reset Password</span>
+              </Button>
+              <Button
+                onClick={() => setDeleteCustomerConfirm({ isOpen: true })}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Delete Customer Account"
+              >
+                <Trash2 size={15} />
+                <span>Delete</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Tab Switcher with Sleek Pill Design */}
-        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 self-start md:self-auto flex-wrap gap-1">
+        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
           {(isClientUser 
             ? (['overview', 'departments', 'entities', 'ledger'] as const)
             : (['overview', 'departments', 'entities', 'quotations', 'ledger'] as const)
@@ -892,7 +1159,35 @@ function OrganizationDetailsPageContent() {
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
                     <MapPin size={12} /> Address Location
                   </span>
-                  <p className="text-sm font-bold text-[#3a525d]">{org.address || 'Not registered'}</p>
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-bold text-[#3a525d]">
+                      {org.address || (org.city || org.state || org.pincode || org.pin_code || org.country ? '' : 'Not registered')}
+                    </p>
+                    {(org.city || org.state || org.pincode || org.pin_code || org.country) && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                        {org.city && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.city}
+                          </span>
+                        )}
+                        {org.state && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.state}
+                          </span>
+                        )}
+                        {(org.pincode || org.pin_code) && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#2d8d9b]">
+                            PIN: {org.pincode || org.pin_code}
+                          </span>
+                        )}
+                        {org.country && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
+                            {org.country}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
@@ -1436,12 +1731,23 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Entity / Member Name',
                     accessor: (e) => (
-                      <div className="flex items-center gap-4">
-                        <div className="w-9 h-9 rounded-lg bg-[#3a525d]/5 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px]">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          onClick={() => setProfileModal({ isOpen: true, member: e })}
+                          className="w-9 h-9 rounded-lg bg-[#3a525d]/5 hover:bg-[#3a525d]/15 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px] cursor-pointer transition-all"
+                          title="Click to view profile"
+                        >
                           {e.full_name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-xs text-[#3a525d] leading-none">{e.full_name}</p>
+                          <button
+                            type="button"
+                            onClick={() => setProfileModal({ isOpen: true, member: e })}
+                            className="font-bold text-xs text-[#3a525d] hover:text-[#2d8d9b] hover:underline leading-none text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
+                            title="Click to view profile"
+                          >
+                            {e.full_name}
+                          </button>
                           <p className="text-[8px] text-[#2d8d9b] font-bold uppercase tracking-[0.1em] mt-1 opacity-85">Ref: #{e.admission_no}</p>
                         </div>
                       </div>
@@ -1482,14 +1788,6 @@ function OrganizationDetailsPageContent() {
                     header: 'Actions',
                     accessor: (e) => (
                       <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => setProfileModal({ isOpen: true, member: e })}
-                          variant="secondary"
-                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm border-none"
-                          title="View Profile"
-                        >
-                          <User size={14} />
-                        </Button>
                         {!isClientUser && (
                           <>
                             <Button
@@ -1558,13 +1856,27 @@ function OrganizationDetailsPageContent() {
                 {
                   header: 'Quotation No',
                   accessor: (q) => (
-                    <span className="font-mono font-black text-[#2d8d9b]">{q.quotation_no}</span>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                      className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left"
+                      title="Click to view quotation"
+                    >
+                      {q.quotation_no}
+                    </button>
                   )
                 },
                 {
                   header: 'Title',
                   accessor: (q) => (
-                    <span className="font-bold text-[#3a525d]">{q.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                      className="font-bold text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
+                      title="Click to view quotation"
+                    >
+                      {q.title}
+                    </button>
                   )
                 },
                 {
@@ -1609,29 +1921,6 @@ function OrganizationDetailsPageContent() {
                     <span className="text-zinc-500 font-bold">
                       {formatDate(q.created_at)}
                     </span>
-                  )
-                },
-                {
-                  header: 'Actions',
-                  accessor: (q) => (
-                    <div className="flex items-center gap-3">
-                      <Button
-                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
-                        variant="secondary"
-                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 text-zinc-650 border border-zinc-200 hover:bg-zinc-200 transition-all shadow-sm !p-0"
-                        title="View Details"
-                      >
-                        <Eye size={14} />
-                      </Button>
-                      <Button
-                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=edit`)}
-                        variant="secondary"
-                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
-                        title="Edit Quotation"
-                      >
-                        <Edit2 size={14} />
-                      </Button>
-                    </div>
                   )
                 }
               ]}
@@ -2088,6 +2377,34 @@ function OrganizationDetailsPageContent() {
         isOpen={profileModal.isOpen}
         onClose={() => setProfileModal({ isOpen: false, member: null })}
         member={profileModal.member}
+      />
+
+      {/* Edit Customer Profile Modal */}
+      {isEditingCustomer && (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsEditingCustomer(false)} />
+          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative z-10 my-8">
+            <DynamicForm
+              title={`Edit Customer: ${org.name}`}
+              subtitle="Update client account details, address, and assignments"
+              fields={customerEditFields}
+              onSubmit={handleUpdateCustomer}
+              onCancel={() => setIsEditingCustomer(false)}
+              submitLabel="Save Changes"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Customer Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteCustomerConfirm.isOpen}
+        title="Delete Customer Account?"
+        message={`Are you sure you want to permanently delete "${org.name}"? All associated account logs, departments, and linked records will be removed. This action cannot be undone.`}
+        onConfirm={handleConfirmedDeleteCustomer}
+        onCancel={() => setDeleteCustomerConfirm({ isOpen: false })}
+        confirmLabel="Yes, Delete Customer"
+        variant="danger"
       />
 
       {/* Selected Order Details Modal */}

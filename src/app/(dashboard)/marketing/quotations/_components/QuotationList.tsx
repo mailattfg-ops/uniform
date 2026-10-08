@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/Card';
 import {
   TrendingUp,
   Trash2,
-  Eye,
   CheckCircle2,
   Scale,
   Clock,
@@ -91,42 +90,38 @@ export default function QuotationList({
 
   const columns: Column<Quotation>[] = [
     {
-      header: 'Quote & Title',
-      className: 'min-w-[200px] max-w-[260px]',
+      header: 'QT No.',
+      className: 'w-[150px] whitespace-nowrap',
+      sortValue: (q) => q.quotation_no,
       accessor: (q) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 shrink-0 bg-[#2d8d9b]/5 rounded-xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-sm">
+          <div 
+            onClick={() => onViewDetails(q)}
+            className="w-8 h-8 shrink-0 bg-[#2d8d9b]/5 hover:bg-[#2d8d9b]/20 rounded-xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-xs cursor-pointer transition-all"
+            title="Click to view details"
+          >
             <TrendingUp size={15} />
           </div>
           <div className="min-w-0">
-            <p className="font-black text-xs md:text-sm tracking-tight text-[#3a525d] truncate" title={q.title}>{q.title}</p>
-            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-              <span className="text-[9px] font-bold text-zinc-400 font-mono tracking-wider">{q.quotation_no}</span>
-              {q.metrics_summary?.quotation_type && (
-                <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider ${
-                  q.metrics_summary.quotation_type === 'FABRIC_SET'
-                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                    : q.metrics_summary.quotation_type === 'FABRIC'
-                    ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                    : q.metrics_summary.quotation_type === 'STANDARD'
-                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                    : 'bg-[#3a525d]/10 text-[#3a525d] border border-[#3a525d]/20'
-                }`}>
-                  {q.metrics_summary.quotation_type === 'FABRIC_SET' && 'Fabric Set'}
-                  {q.metrics_summary.quotation_type === 'READYMADE_SET' && 'Readymade Set'}
-                  {q.metrics_summary.quotation_type === 'FABRIC' && 'Fabric Normal'}
-                  {q.metrics_summary.quotation_type === 'STANDARD' && 'Readymade Normal'}
-                  {q.metrics_summary.quotation_type === 'MANUAL' && 'Manual'}
-                </span>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => onViewDetails(q)}
+              className="font-mono font-black text-xs md:text-sm text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
+              title="Click to view details"
+            >
+              {q.quotation_no}
+            </button>
+            <p className="text-[10px] text-zinc-500 font-bold truncate max-w-[140px]" title={q.title}>
+              {q.title}
+            </p>
           </div>
         </div>
       )
     },
     {
       header: 'Customer',
-      className: 'max-w-[140px]',
+      className: 'min-w-[160px]',
+      sortValue: (q) => q.organizations?.name || '',
       accessor: (q) => (
         <p className="text-xs font-black text-zinc-700 truncate" title={q.organizations?.name || 'Customer'}>
           {q.organizations?.name || 'Customer'}
@@ -135,7 +130,8 @@ export default function QuotationList({
     },
     {
       header: 'Design Code',
-      className: 'whitespace-nowrap',
+      className: 'w-[120px] whitespace-nowrap',
+      sortValue: (q) => q.group_design_number?.code || '',
       accessor: (q) => (
         <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
           {q.group_design_number?.code || '—'}
@@ -143,8 +139,26 @@ export default function QuotationList({
       )
     },
     {
-      header: 'Quote Value',
-      className: 'whitespace-nowrap',
+      header: 'Delivery Date',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (q) => q.expected_delivery_date || '',
+      accessor: (q) => (
+        <div>
+          <p className="text-xs font-bold text-zinc-700">
+            {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
+          </p>
+          {q.production_days_estimate ? (
+            <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
+              {q.production_days_estimate}d production
+            </p>
+          ) : null}
+        </div>
+      )
+    },
+    {
+      header: 'Value',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (q) => Number(q.final_quote_value || 0),
       accessor: (q) => (
         <div>
           <p className="text-xs md:text-sm font-black text-[#2d8d9b] font-mono">
@@ -157,42 +171,15 @@ export default function QuotationList({
       )
     },
     {
-      header: 'Sizing',
-      className: 'whitespace-nowrap',
-      accessor: (q) => (
-        <div className="flex items-center gap-1.5">
-          <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-green-50 text-green-600 border border-green-100">
-            {q.metrics_summary?.measured || 0} Meas
-          </span>
-          {q.metrics_summary?.missing && q.metrics_summary.missing > 0 ? (
-            <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1">
-              <AlertTriangle size={9} /> {q.metrics_summary.missing}
-            </span>
-          ) : null}
-        </div>
-      )
-    },
-    {
-      header: 'Delivery',
-      className: 'whitespace-nowrap',
-      accessor: (q) => (
-        <div>
-          <p className="text-xs font-bold text-zinc-600">{q.production_days_estimate}d Prod</p>
-          <p className="text-[9px] font-black text-[#3a525d] mt-0.5">
-            🚚 {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
-          </p>
-        </div>
-      )
-    },
-    {
       header: 'Status',
-      className: 'whitespace-nowrap',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (q) => q.status,
       accessor: (q) => {
         if (q.status === 'Pending Branch Approval') {
           return (
             <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 flex items-center gap-1.5 w-fit">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-              Awaiting BM Review
+              Awaiting BM
             </span>
           );
         }
@@ -229,94 +216,6 @@ export default function QuotationList({
           <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-600 border-zinc-200">
             Draft
           </span>
-        );
-      }
-    },
-    {
-      header: 'Actions',
-      className: 'whitespace-nowrap text-right',
-      accessor: (q) => {
-        return (
-          <div className="flex items-center justify-end gap-1.5">
-            {/* 1. Branch Manager Review Actions for quotations awaiting BM approval */}
-            {q.status === 'Pending Branch Approval' && canSubmitToOps && (
-              <>
-                {onBmApprove && (
-                  <button
-                    onClick={() => onBmApprove(q)}
-                    className="h-8 px-2.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1.5 border border-emerald-200 shadow-sm text-[10px] font-black uppercase tracking-wider whitespace-nowrap"
-                    title="Approve quotation & submit to Operations Team"
-                  >
-                    <Check size={12} strokeWidth={3} />
-                    <span>Approve & Ops</span>
-                  </button>
-                )}
-                {onBmReject && (
-                  <button
-                    onClick={() => onBmReject(q)}
-                    className="h-8 px-2 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-white transition-all flex items-center gap-1 border border-amber-200 shadow-sm text-[10px] font-black uppercase tracking-wider whitespace-nowrap"
-                    title="Request changes / Send back to Draft"
-                  >
-                    <RotateCcw size={12} strokeWidth={2.5} />
-                    <span>Revision</span>
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* 2. Marketing Author Actions: Submit to Branch Manager */}
-            {q.status === 'Draft' && canSubmitToBm && onSubmitToBm && (
-              <button
-                onClick={() => onSubmitToBm(q)}
-                className="h-8 px-2.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white transition-all flex items-center gap-1.5 border border-sky-200 shadow-sm text-[10px] font-black uppercase tracking-wider whitespace-nowrap"
-                title="Submit Quotation to Branch Manager for Review"
-              >
-                <Send size={12} strokeWidth={2.5} />
-                <span>Submit to BM</span>
-              </button>
-            )}
-
-            {/* 3. Branch Manager / Admin Actions on Draft: Direct Submit to Ops */}
-            {q.status === 'Draft' && canSubmitToOps && onSubmitToOps && (
-              <button
-                onClick={() => onSubmitToOps(q)}
-                className="h-8 px-2.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1.5 border border-emerald-200 shadow-sm text-[10px] font-black uppercase tracking-wider whitespace-nowrap"
-                title="Submit Quotation directly to Operations Team"
-              >
-                <Send size={12} strokeWidth={2.5} />
-                <span>Submit to Ops</span>
-              </button>
-            )}
-
-            {/* Standard inspection button */}
-            <button
-              onClick={() => onViewDetails(q)}
-              className="w-8 h-8 rounded-lg bg-[#2d8d9b]/5 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/10 shadow-sm"
-              title="View Quotation Details"
-            >
-              <Eye size={14} />
-            </button>
-
-            {/* Edit button (disabled once approved) */}
-            {q.status !== 'Approved' && (
-              <button
-                onClick={() => onStartEdit(q)}
-                className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center border border-amber-200 shadow-sm"
-                title="Edit Quotation"
-              >
-                <Edit size={14} />
-              </button>
-            )}
-
-            {/* Delete button */}
-            <button
-              onClick={() => onDeleteCandidate(q)}
-              className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 shadow-sm"
-              title="Remove Quotation"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
         );
       }
     }

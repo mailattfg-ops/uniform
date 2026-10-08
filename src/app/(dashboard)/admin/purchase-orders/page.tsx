@@ -10,7 +10,6 @@ import {
   CheckCircle2, 
   Plus, 
   Search, 
-  Eye, 
   Truck, 
   Calendar, 
   XCircle, 
@@ -440,7 +439,6 @@ export default function PurchaseOrdersPage() {
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Origin Type</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Date Created</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Status</th>
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -458,11 +456,22 @@ export default function PurchaseOrdersPage() {
                       {/* PO Number & notes */}
                       <td className="p-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-zinc-50 group-hover:bg-[#2d8d9b]/5 border border-zinc-100 flex items-center justify-center text-[#3a525d] transition-all">
+                          <div 
+                            onClick={() => handleOpenDetails(po.id)}
+                            className="w-10 h-10 rounded-xl bg-zinc-50 hover:bg-[#2d8d9b]/15 border border-zinc-100 flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] transition-all cursor-pointer"
+                            title="Click to view details"
+                          >
                             <FileText size={18} />
                           </div>
                           <div>
-                            <p className="font-black text-sm text-[#3a525d] tracking-tight">{po.po_number}</p>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetails(po.id)}
+                              className="font-black text-sm text-[#3a525d] hover:text-[#2d8d9b] hover:underline tracking-tight text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
+                              title="Click to view details"
+                            >
+                              {po.po_number}
+                            </button>
                             {po.notes ? (
                               <p className="text-[10px] text-zinc-400 font-bold truncate max-w-xs mt-0.5">{po.notes}</p>
                             ) : (
@@ -505,18 +514,6 @@ export default function PurchaseOrdersPage() {
                           {po.status}
                         </span>
                       </td>
-
-                      {/* Action buttons */}
-                      <td className="p-6 text-right">
-                        <button
-                          onClick={() => handleOpenDetails(po.id)}
-                          className="px-4 py-2 bg-zinc-50 hover:bg-[#2d8d9b]/5 border border-zinc-200/50 text-[#3a525d] hover:text-[#2d8d9b] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all inline-flex items-center gap-1.5"
-                        >
-                          <Eye size={12} />
-                          Details
-                        </button>
-                      </td>
-
                     </tr>
                   );
                 })}
