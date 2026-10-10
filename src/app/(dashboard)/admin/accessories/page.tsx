@@ -234,6 +234,7 @@ export default function AccessoriesAndTradeCatalogPage() {
   const [isTradeSubmitting, setIsTradeSubmitting] = useState(false);
   const [tradeFormData, setTradeFormData] = useState({
     name: '',
+    art_number: '',
     product_type_id: '',
     dress_prefix: '',
     gender_code: '',
@@ -642,6 +643,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 
     setTradeFormData({
       name: '',
+      art_number: '',
       product_type_id: defaultPt,
       dress_prefix: defaultDress,
       gender_code: defaultGender,
@@ -671,6 +673,7 @@ export default function AccessoriesAndTradeCatalogPage() {
     
     setTradeFormData({
       name: item.name || '',
+      art_number: item.art_number || '',
       product_type_id: (item as any).product_type_id?.toString() || (item as any).product_types?.id?.toString() || '',
       dress_prefix: parsed.dressCode || dresses[0]?.code || '4J',
       gender_code: parsed.genderCode || genders[0]?.code || '1',
@@ -698,7 +701,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       toast.error('Product name is required');
       return;
     }
-    const finalArtNumber = computeTradeArtNumber || tradeFormData.art_number;
+    const finalArtNumber = computeTradeArtNumber || tradeFormData.art_number || editingTradeItem?.art_number || '';
     if (!finalArtNumber) {
       toast.error('Dress prefix and gender code are required to compute Art Number');
       return;
