@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { 
-  FileSpreadsheet, 
   History, 
   Layers, 
   TrendingUp, 
   Coins, 
   Percent, 
-  Clock, 
+  Clock,
+  FileSpreadsheet,
   Filter
 } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -292,23 +292,23 @@ export default function SAMReports() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter text-[#3a525d]">SAM Intelligence</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">SAM Intelligence</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
-            Reports & performance analysis cockpit
+            Reports &amp; performance analysis cockpit
           </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap border-b border-zinc-100 gap-1 bg-white p-1 rounded-2xl w-fit shadow-sm">
+      {/* Tabs with Sleek Pill Design */}
+      <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
         <button
           onClick={() => setActiveTab('history')}
-          className={`h-11 px-5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
             activeTab === 'history'
               ? 'bg-[#3a525d] text-white shadow-md'
-              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
           <History size={14} />
@@ -316,10 +316,10 @@ export default function SAMReports() {
         </button>
         <button
           onClick={() => setActiveTab('product-wise')}
-          className={`h-11 px-5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
             activeTab === 'product-wise'
               ? 'bg-[#3a525d] text-white shadow-md'
-              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
           <FileSpreadsheet size={14} />
@@ -327,10 +327,10 @@ export default function SAMReports() {
         </button>
         <button
           onClick={() => setActiveTab('slab-analysis')}
-          className={`h-11 px-5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
             activeTab === 'slab-analysis'
               ? 'bg-[#3a525d] text-white shadow-md'
-              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
           <Percent size={14} />
@@ -338,10 +338,10 @@ export default function SAMReports() {
         </button>
         <button
           onClick={() => setActiveTab('comparison')}
-          className={`h-11 px-5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
             activeTab === 'comparison'
               ? 'bg-[#3a525d] text-white shadow-md'
-              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
           <TrendingUp size={14} />

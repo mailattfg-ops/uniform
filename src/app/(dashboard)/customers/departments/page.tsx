@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, BookOpen, Trash2, Filter, Edit2 } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
+import { Plus, BookOpen, Trash2, Edit2, Filter } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { Select } from '@/components/ui/Select';
 import { formatDate } from '@/lib/formatters';
 
 interface DepartmentRecord {
@@ -307,31 +307,42 @@ export default function DepartmentManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="p-3 bg-[#3a525d]/5 rounded-2xl">
-                  <Filter size={20} className="text-[#3a525d]" />
-              </div>
-              <div className="min-w-[240px]">
-                <Select 
-                  placeholder="All Organizations"
-                  value={selectedOrg}
-                  options={[
-                    { label: 'All Organizations', value: '' },
-                    ...organizations.map(o => ({ label: o.name, value: o.id.toString() }))
-                  ]}
-                  onChange={(val: string) => setSelectedOrg(val)}
-                />
-              </div>
-          </div>
+      {/* Top Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Departments</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            Organize functional units &amp; divisions per organization
+          </p>
+        </div>
 
-          <Button 
-            onClick={() => setIsAdding(true)}
-            className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3 w-full md:w-auto"
-          >
-            <Plus size={16} strokeWidth={3} />
-            Setup Department
-          </Button>
+        <Button 
+          onClick={() => setIsAdding(true)}
+          className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+        >
+          <Plus size={20} strokeWidth={3} />
+          Setup Department
+        </Button>
+      </div>
+
+      {/* Organization Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="p-3 bg-[#3a525d]/5 rounded-2xl">
+            <Filter size={20} className="text-[#3a525d]" />
+          </div>
+          <div className="min-w-[260px]">
+            <Select 
+              placeholder="All Organizations"
+              value={selectedOrg}
+              options={[
+                { label: 'All Organizations', value: '' },
+                ...organizations.map(o => ({ label: o.name, value: o.id.toString() }))
+              ]}
+              onChange={(val: string) => setSelectedOrg(val)}
+            />
+          </div>
+        </div>
       </div>
 
       <DataTable 

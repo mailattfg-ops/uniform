@@ -59,7 +59,24 @@ export interface Quotation {
   quotation_no: string;
   title: string;
   organization_id: number;
-  organizations?: { name: string; address?: string };
+  organizations?: {
+    name: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    gst_number?: string;
+    pan_number?: string;
+    legal_name?: string;
+    delivery_address?: string;
+    delivery_city?: string;
+    delivery_state?: string;
+    delivery_pincode?: string;
+    delivery_country?: string;
+    is_b2b?: boolean;
+    phone?: string;
+    email?: string;
+  };
   group_design_number?: { code: string };
   group_design_number_id?: number | null;
   estimated_expenses: number;
@@ -104,8 +121,12 @@ export interface Quotation {
 // Helper to extract pricing totals
 export const getSelectedQuotePricing = (quote: Quotation) => {
   const finalValue = Number(quote.final_quote_value) || 0;
-  const gstRate = Number(quote.metrics_summary?.gst_percent ?? 18);
-  const subtotal = Number(quote.metrics_summary?.pre_tax_subtotal ?? (finalValue / (1 + gstRate / 100)));
+  const gstRate = quote.metrics_summary?.gst_percent != null
+    ? Number(quote.metrics_summary.gst_percent)
+    : 0;
+  const subtotal = quote.metrics_summary?.pre_tax_subtotal != null
+    ? Number(quote.metrics_summary.pre_tax_subtotal)
+    : (gstRate > 0 ? (finalValue / (1 + gstRate / 100)) : finalValue);
   const gstValue = finalValue - subtotal;
   return {
     finalValue,
@@ -248,6 +269,20 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
     }
   }
 
+  const customerGstin = quote.metrics_summary?.customer_gstin || quote.organizations?.gst_number || '';
+  const customerPan = quote.metrics_summary?.customer_pan || quote.organizations?.pan_number || '';
+  const customerLegalName = quote.metrics_summary?.customer_legal_name || quote.organizations?.legal_name || '';
+  const isB2B = Boolean(customerGstin || quote.metrics_summary?.is_b2b || quote.organizations?.is_b2b || quote.metrics_summary?.sales_type === 'B2B');
+
+  const deliveryAddress = quote.metrics_summary?.delivery_address || quote.organizations?.delivery_address || quote.organizations?.address || '';
+  const deliveryCity = quote.metrics_summary?.delivery_city || quote.organizations?.delivery_city || quote.organizations?.city || '';
+  const deliveryState = quote.metrics_summary?.delivery_state || quote.organizations?.delivery_state || quote.organizations?.state || '';
+  const deliveryPincode = quote.metrics_summary?.delivery_pincode || quote.organizations?.delivery_pincode || quote.organizations?.pincode || '';
+  const fullDeliveryAddress = [deliveryAddress, deliveryCity, deliveryState, deliveryPincode].filter(Boolean).join(', ');
+
+  const halfGstRate = (pricing.gstRate / 2);
+  const halfGstVal = (pricing.gstValue / 2);
+
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -348,7 +383,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
 
           <div class="text-right">
             <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
-              ${quote.status} Proposal
+              ${quote.status} ${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
             </span>
             <h1 class="text-xl font-black text-gray-800 mt-2 font-outfit">${quote.quotation_no}</h1>
             <p class="text-xs text-gray-500 font-bold mt-1">Date: ${dateStr}</p>
@@ -358,14 +393,49 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         <!-- CLIENT & TARGET INFO -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-gray-100 text-xs">
           <div>
-            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prepared For</p>
-            <p class="text-sm font-black text-gray-800 mt-1">${orgName}</p>
-            <p class="text-gray-500 mt-0.5 font-medium">Associated Uniform Contract Client</p>
+            <div class="flex items-center gap-2 mb-1">
+              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prepared For</p>
+              ${isB2B ? `
+                <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  B2B Commercial Tax Invoice
+                </span>
+              ` : ''}
+            </div>
+            <p class="text-sm font-black text-gray-800">${orgName}</p>
+            ${customerLegalName && customerLegalName !== orgName ? `
+              <p class="text-[11px] font-bold text-gray-700 mt-0.5">Legal: ${customerLegalName}</p>
+            ` : ''}
+            ${customerGstin ? `
+              <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                <span class="font-mono text-[10px] font-black text-emerald-900 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                  GSTIN: ${customerGstin}
+                </span>
+                ${customerPan ? `
+                  <span class="font-mono text-[10px] font-bold text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                    PAN: ${customerPan}
+                  </span>
+                ` : ''}
+              </div>
+            ` : ''}
+            ${quote.organizations?.address ? `
+              <p class="text-gray-500 mt-1.5 font-medium leading-relaxed">
+                Billing Address: ${quote.organizations.address}${quote.organizations.city ? `, ${quote.organizations.city}` : ''}${quote.organizations.pincode ? ` - ${quote.organizations.pincode}` : ''}
+              </p>
+            ` : ''}
           </div>
-          <div class="md:text-right">
-            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
-            <p class="text-sm font-black text-[#2d8d9b] mt-1">${deliveryDateStr}</p>
-            <p class="text-gray-500 mt-0.5 font-medium">Est. Days: ${quote.production_days_estimate} Production Days</p>
+
+          <div class="md:text-right space-y-3">
+            <div>
+              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
+              <p class="text-sm font-black text-[#2d8d9b] mt-0.5">${deliveryDateStr}</p>
+              <p class="text-gray-500 text-[10px] font-medium">Est. Days: ${quote.production_days_estimate} Production Days</p>
+            </div>
+            ${fullDeliveryAddress ? `
+              <div class="pt-2 border-t border-gray-50">
+                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Delivery / Dispatch Destination</p>
+                <p class="text-gray-700 font-bold text-xs mt-0.5 leading-snug">${fullDeliveryAddress}</p>
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -401,18 +471,35 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
 
         <!-- PRICING & GST COMPILATION -->
         <div class="flex justify-end py-6 border-t border-gray-100">
-          <div class="w-80 space-y-3.5 text-xs font-bold text-gray-500">
+          <div class="w-80 space-y-2.5 text-xs font-bold text-gray-500">
             <div class="flex justify-between">
-              <span>Subtotal (Pre-Tax):</span>
+              <span>Taxable Value (Pre-Tax):</span>
               <span class="font-mono text-gray-800 font-black">₹ ${pricing.subtotal.toFixed(2)}</span>
             </div>
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-              <span>GST Tax (${pricing.gstRate}%):</span>
-              <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
-            </div>
+            ${isB2B && pricing.gstRate > 0 ? `
+              <div class="flex justify-between text-[11px] text-gray-600">
+                <span>CGST (${halfGstRate}%):</span>
+                <span class="font-mono font-bold">₹ ${halfGstVal.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between text-[11px] text-gray-600">
+                <span>SGST (${halfGstRate}%):</span>
+                <span class="font-mono font-bold">₹ ${halfGstVal.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between border-b border-gray-100 pb-2">
+                <span>Total GST Tax (${pricing.gstRate}%):</span>
+                <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
+              </div>
+            ` : `
+              <div class="flex justify-between border-b border-gray-100 pb-2">
+                <span>GST Tax (${pricing.gstRate}%):</span>
+                <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
+              </div>
+            `}
             <div class="flex justify-between items-end pt-2 text-[#2d8d9b]">
               <div>
-                <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">Total Contract Value</p>
+                <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
+                  ${isB2B ? 'Total Commercial Contract Value' : 'Total Contract Value'}
+                </p>
                 <p class="text-2xl font-black font-outfit mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
               </div>
             </div>

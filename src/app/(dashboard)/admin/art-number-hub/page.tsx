@@ -477,17 +477,13 @@ export default function ArtNumberHubPage() {
   const registryColumns: Column<ArtNumber>[] = [
     {
       header: 'Generated Art Number',
+      className: 'whitespace-nowrap',
       accessor: (an) => (
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-teal-400 border border-zinc-800 shadow-lg">
-            <Hash size={20} />
-          </div>
-          <div>
-            <span className="px-3 py-1 bg-zinc-900 text-teal-400 rounded-full font-black text-sm tracking-widest border border-zinc-800">
-              {an.code}
-            </span>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1.5 ml-1">UID: ART-{an.id}</p>
-          </div>
+        <div className="flex flex-col whitespace-nowrap">
+          <span className="px-3 py-1 bg-zinc-900 text-teal-400 rounded-full font-black text-sm tracking-widest border border-zinc-800 whitespace-nowrap w-fit">
+            {an.code}
+          </span>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 ml-1 whitespace-nowrap">UID: ART-{an.id}</p>
         </div>
       )
     },

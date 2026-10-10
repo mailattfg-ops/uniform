@@ -98,7 +98,7 @@ export const QuotationDetailsView: React.FC<QuotationDetailsViewProps> = ({
     setEditedFinalValue(selectedQuotation.final_quote_value || 0);
     setEditedItems(JSON.parse(JSON.stringify(selectedQuotation.items || [])));
     setEditedCoverLetter(selectedQuotation.metrics_summary?.cover_letter || '');
-    setEditedGstPercent(selectedQuotation.metrics_summary?.gst_percent ? String(selectedQuotation.metrics_summary.gst_percent) : '18');
+    setEditedGstPercent(selectedQuotation.metrics_summary?.gst_percent != null ? String(selectedQuotation.metrics_summary.gst_percent) : '0');
     setEditMode(true);
   };
 

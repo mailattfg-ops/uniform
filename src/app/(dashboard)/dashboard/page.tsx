@@ -811,23 +811,23 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* MIDDLE ROW: Product Registry, Global Metrics, and Deployment Status (3 Columns) */}
+      {/* MIDDLE ROW: Products, Global Metrics, and Deployment Status (3 Columns) */}
       <div className="grid grid-cols-12 gap-6">
         
-        {/* 1. Product Registry Card */}
+        {/* 1. Products Card */}
         <div className="col-span-12 md:col-span-4 bg-white border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <Link 
               href="/admin/products"
               className="text-lg font-bold text-[#030303] tracking-tight hover:text-[#CC9448] transition-colors"
-              title="Open Product Registry"
+              title="Open Products"
             >
-              Product Registry
+              Products
             </Link>
             <Link 
               href="/admin/products" 
               className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
-              title="Manage product registry"
+              title="Manage products"
             >
               <span>Manage</span>
               <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
@@ -838,7 +838,7 @@ export default function DashboardPage() {
             <Link 
               href="/admin/products" 
               className="flex items-center justify-between gap-4 bg-[#F5F4F2]/50 hover:bg-[#F5F4F2] p-4 rounded-2xl border border-zinc-100/55 hover:border-teal-300 transition-all group"
-              title="View uniform articles in product registry"
+              title="View uniform articles in products"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-teal-500/20 shrink-0 group-hover:scale-105 transition-transform">
@@ -1213,7 +1213,7 @@ export default function DashboardPage() {
                         <span className="font-black">+{selectedQuoteDetail.profit_margin_percent}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>GST Tax ({selectedQuoteDetail.metrics_summary?.gst_percent || 18}%):</span>
+                        <span>GST Tax ({selectedQuoteDetail.metrics_summary?.gst_percent != null ? selectedQuoteDetail.metrics_summary.gst_percent : 0}%):</span>
                         <span className="font-mono text-red-500 font-black">
                           ₹{Number(Number(selectedQuoteDetail.final_quote_value) - Number(selectedQuoteDetail.metrics_summary?.pre_tax_subtotal || 0)).toFixed(2)}
                         </span>

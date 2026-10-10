@@ -23,12 +23,10 @@ import {
   UserPlus,
   X,
   Grid,
-  School,
   User,
   Clipboard,
   UserCheck,
   LogIn,
-  Eye,
   ArrowRight,
   Ruler,
   ReceiptText,
@@ -38,13 +36,19 @@ import {
   ArrowUpRight,
   CheckCircle2,
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Phone,
+  Mail,
+  Truck,
+  Clock,
+  FileText
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
+import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
 import { Select } from '@/components/ui/Select';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 import * as XLSX from 'xlsx';
@@ -54,16 +58,43 @@ interface Organization {
   id: number;
   customer_code: string | null;
   name: string;
+  contact_person?: string | null;
+  phone?: string | null;
+  contact_number?: string | null;
+  email?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
   address: string;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  pin_code?: string | null;
+  country?: string | null;
   industry_id: number;
   industries?: { name: string };
   relationship_manager_id: number | null;
   relationship_manager?: { id: number; full_name: string; employee_id: string } | null;
   assigned_operator_id: number | null;
   assigned_operator?: { id: number; full_name: string; employee_id: string } | null;
+  is_active?: boolean | null;
+  is_special?: boolean | null;
+  is_risk?: boolean | null;
+  client_tag?: string | null;
+  receivables?: number | null;
+  credits?: number | null;
   created_at: string;
   category?: string;
   type?: string;
+  gst_number?: string | null;
+  pan_number?: string | null;
+  legal_name?: string | null;
+  delivery_address?: string | null;
+  delivery_city?: string | null;
+  delivery_state?: string | null;
+  delivery_pincode?: string | null;
+  delivery_country?: string | null;
+  is_b2b?: boolean | null;
+  credit_period_days?: number | null;
 }
 
 interface LedgerTransaction {
@@ -77,6 +108,13 @@ interface LedgerTransaction {
   credit: number;
   running_balance: number;
   status: string;
+  sale_type?: string;
+  credit_period_days?: number;
+  due_date?: string;
+  due_status?: string;
+  due_label?: string;
+  is_due_today?: boolean;
+  is_overdue?: boolean;
 }
 
 const MultiEntryInput: React.FC<{
@@ -186,13 +224,25 @@ function OrganizationDetailsPageContent() {
   // Organization Basic & Details State
   const [org, setOrg] = useState<Organization | null>(null);
   const [orgDetails, setOrgDetails] = useState<any>(null);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [assignedStaff, setAssignedStaff] = useState<any[]>([]);
-  const [selectedStaffIds, setSelectedStaffIds] = useState<number[]>([]);
-  const [isStaffDropdownOpen, setIsStaffDropdownOpen] = useState(false);
-  const [isAssigningStaff, setIsAssigningStaff] = useState(false);
   const [isLoadingOrg, setIsLoadingOrg] = useState(true);
   const [quotations, setQuotations] = useState<any[]>([]);
+  const [industries, setIndustries] = useState<any[]>([]);
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [isGstDeliveryModalOpen, setIsGstDeliveryModalOpen] = useState(false);
+  const [isSavingGstDelivery, setIsSavingGstDelivery] = useState(false);
+  const [gstDeliveryForm, setGstDeliveryForm] = useState({
+    gst_number: '',
+    pan_number: '',
+    legal_name: '',
+    delivery_address: '',
+    delivery_city: '',
+    delivery_state: '',
+    delivery_pincode: '',
+    delivery_country: 'India'
+  });
+  const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState<{ isOpen: boolean }>({
+    isOpen: false
+  });
 
   // Modals & Order Details
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -200,6 +250,18 @@ function OrganizationDetailsPageContent() {
     isOpen: false,
     data: null
   });
+
+  // Invoice Creation Modal States (Manual Retail vs Sales Order Bulk)
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceType, setInvoiceType] = useState<'bulk' | 'retail'>('bulk');
+  const [isSubmittingInvoice, setIsSubmittingInvoice] = useState(false);
+  const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
+  const [invoiceCreditPeriod, setInvoiceCreditPeriod] = useState<number>(30);
+  const [invoiceDate, setInvoiceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [invoiceNotes, setInvoiceNotes] = useState<string>('');
+  const [retailItems, setRetailItems] = useState<Array<{ description: string; quantity: number; unit_price: number; total: number }>>([
+    { description: 'School / Corporate Uniform Item', quantity: 1, unit_price: 1500, total: 1500 }
+  ]);
 
   // Client User Detection
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -285,23 +347,22 @@ function OrganizationDetailsPageContent() {
   const fetchOrgData = async () => {
     setIsLoadingOrg(true);
     try {
-      const [orgsRes, detailsRes, staffRes, empRes, quotesRes] = await Promise.all([
+      const [orgsRes, detailsRes, quotesRes, indRes] = await Promise.all([
         api.get('/organizations').catch(() => ({ data: [] })),
         api.get(`/organizations/${orgId}/details`),
-        api.get(`/organizations/${orgId}/staff`).catch(() => ({ data: { data: [] } })),
-        api.get('/employees').catch(() => ({ data: [] })),
-        api.get('/quotations').catch(() => ({ data: [] }))
+        api.get('/quotations').catch(() => ({ data: [] })),
+        api.get('/industries').catch(() => ({ data: [] }))
       ]);
 
       const orgList = orgsRes.data || [];
-      const foundOrg = orgList.find((o: any) => o.id === orgId) || (detailsRes.data ? { id: orgId, name: detailsRes.data.name || 'Organization', address: detailsRes.data.address } : null);
-      setOrg(foundOrg);
+      const foundOrg = orgList.find((o: any) => o.id === orgId) || (detailsRes.data?.organization || (detailsRes.data ? { id: orgId, name: detailsRes.data.name || 'Organization', address: detailsRes.data.address } : null));
+      const combinedOrg = detailsRes.data?.organization
+        ? { ...foundOrg, ...detailsRes.data.organization }
+        : foundOrg;
+      setOrg(combinedOrg);
       setOrgDetails(detailsRes.data);
       setDepartments(detailsRes.data.departments || []);
-      const assigned = staffRes.data?.data || staffRes.data || [];
-      setAssignedStaff(Array.isArray(assigned) ? assigned : []);
-      setSelectedStaffIds((Array.isArray(assigned) ? assigned : []).map((s: any) => s.employee_id));
-      setEmployees((empRes.data || []).filter((e: any) => e.status === 'active'));
+      setIndustries(indRes.data || []);
 
       const allQuotes = quotesRes.data || [];
       const orgQuotes = allQuotes.filter((q: any) => q.organization_id === orgId);
@@ -338,6 +399,81 @@ function OrganizationDetailsPageContent() {
     }
   }, [orgId, activeTab]);
 
+  useEffect(() => {
+    if (org?.credit_period_days !== undefined && org?.credit_period_days !== null) {
+      setInvoiceCreditPeriod(org.credit_period_days);
+    }
+  }, [org]);
+
+  const getCalculatedDueDate = (invDateStr: string, creditDays: number) => {
+    const d = new Date(invDateStr || new Date());
+    d.setDate(d.getDate() + (parseInt(String(creditDays), 10) || 30));
+    return d.toISOString().split('T')[0];
+  };
+
+  const handleCreateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!org) return;
+
+    if (invoiceType === 'bulk') {
+      if (!selectedOrderIdForInvoice) {
+        toast.error('Please select a confirmed sales order');
+        return;
+      }
+      setIsSubmittingInvoice(true);
+      const loadingToast = toast.loading('Generating bulk order invoice...');
+      try {
+        await api.post('/invoices/from-order', {
+          order_id: selectedOrderIdForInvoice,
+          credit_period_days: invoiceCreditPeriod,
+          invoice_date: invoiceDate,
+          notes: invoiceNotes
+        });
+        toast.success('Bulk order invoice created successfully!', { id: loadingToast });
+        setIsInvoiceModalOpen(false);
+        fetchLedgerData();
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to create bulk invoice', { id: loadingToast });
+      } finally {
+        setIsSubmittingInvoice(false);
+      }
+    } else {
+      const validItems = retailItems.filter(i => i.description.trim() && Number(i.quantity) > 0);
+      if (validItems.length === 0) {
+        toast.error('Please add at least one line item with description and quantity');
+        return;
+      }
+      const subtotal = validItems.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.unit_price || 0)), 0);
+      const dueDate = getCalculatedDueDate(invoiceDate, invoiceCreditPeriod);
+
+      setIsSubmittingInvoice(true);
+      const loadingToast = toast.loading('Creating manual retail invoice...');
+      try {
+        await api.post('/invoices', {
+          organization_id: org.id,
+          customer_name: org.name,
+          sale_type: 'retail',
+          invoice_date: invoiceDate,
+          credit_period_days: invoiceCreditPeriod,
+          due_date: dueDate,
+          items: validItems,
+          subtotal: subtotal,
+          tax_amount: 0,
+          total_amount: subtotal,
+          notes: invoiceNotes,
+          payment_status: 'Unpaid'
+        });
+        toast.success('Retail invoice created successfully!', { id: loadingToast });
+        setIsInvoiceModalOpen(false);
+        fetchLedgerData();
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to create retail invoice', { id: loadingToast });
+      } finally {
+        setIsSubmittingInvoice(false);
+      }
+    }
+  };
+
   const exportLedgerCSV = () => {
     if (!ledgerData || !ledgerData.transactions || ledgerData.transactions.length === 0) {
       toast.error('No ledger entries available to export');
@@ -370,10 +506,6 @@ function OrganizationDetailsPageContent() {
     toast.success('Account Ledger Exported');
   };
 
-  const toggleStaffSelection = (id: number) => {
-    setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
-
   const handleViewOrder = async (orderId: number) => {
     const loadingToast = toast.loading('Loading order details...');
     try {
@@ -384,6 +516,119 @@ function OrganizationDetailsPageContent() {
       toast.error('Failed to load order details', { id: loadingToast });
     }
   };
+
+  // Customer Management Handlers
+  const handleUpdateCustomer = async (formData: any) => {
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error('Primary phone number is required');
+      return;
+    }
+
+    const loadingToast = toast.loading('Updating customer profile...');
+    const isSpecial = formData.client_tag === 'special';
+    const isRisk = formData.client_tag === 'risk';
+
+    const payload = {
+      name: formData.name,
+      contact_person: formData.contact_person?.trim() || null,
+      phone: formData.phone.trim(),
+      contact_number: formData.phone.trim(),
+      contact_phone: formData.phone.trim(),
+      email: formData.email?.trim() || null,
+      contact_email: formData.email?.trim() || null,
+      industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
+      address: formData.address?.trim() || null,
+      city: formData.city?.trim() || null,
+      state: formData.state?.trim() || null,
+      pincode: formData.pincode?.trim() || null,
+      country: formData.country?.trim() || 'India',
+      relationship_manager_id: org?.relationship_manager_id || null,
+      is_active: formData.is_active === 'true',
+      is_special: isSpecial,
+      is_risk: isRisk,
+      client_tag: formData.client_tag || 'standard',
+      receivables: formData.receivables !== undefined && formData.receivables !== '' ? parseFloat(formData.receivables) : 0,
+      credits: formData.credits !== undefined && formData.credits !== '' ? parseFloat(formData.credits) : 0,
+      credit_period_days: formData.credit_period_days !== undefined && formData.credit_period_days !== '' ? parseInt(formData.credit_period_days, 10) : 30,
+    };
+
+    try {
+      await api.put(`/customers/${orgId}`, payload).catch(() => api.put(`/organizations/${orgId}`, payload));
+      toast.success('Customer profile updated successfully!', { id: loadingToast });
+      setIsEditingCustomer(false);
+      fetchOrgData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update customer profile', { id: loadingToast });
+    }
+  };
+
+  const handleSaveGstDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingGstDelivery(true);
+    const loadingToast = toast.loading('Saving GST & Delivery details...');
+    try {
+      const cleanGst = gstDeliveryForm.gst_number ? gstDeliveryForm.gst_number.trim().toUpperCase() : null;
+      let cleanPan = gstDeliveryForm.pan_number ? gstDeliveryForm.pan_number.trim().toUpperCase() : null;
+      if (!cleanPan && cleanGst && cleanGst.length >= 12) {
+        cleanPan = cleanGst.substring(2, 12);
+      }
+      const isB2B = Boolean(cleanGst && cleanGst !== '');
+
+      const payload = {
+        gst_number: cleanGst,
+        pan_number: cleanPan,
+        legal_name: gstDeliveryForm.legal_name ? gstDeliveryForm.legal_name.trim() : null,
+        delivery_address: gstDeliveryForm.delivery_address ? gstDeliveryForm.delivery_address.trim() : null,
+        delivery_city: gstDeliveryForm.delivery_city ? gstDeliveryForm.delivery_city.trim() : null,
+        delivery_state: gstDeliveryForm.delivery_state ? gstDeliveryForm.delivery_state.trim() : null,
+        delivery_pincode: gstDeliveryForm.delivery_pincode ? gstDeliveryForm.delivery_pincode.trim() : null,
+        delivery_country: gstDeliveryForm.delivery_country ? gstDeliveryForm.delivery_country.trim() : 'India',
+        is_b2b: isB2B
+      };
+
+      await api.put(`/organizations/${orgId}`, payload).catch(() => api.put(`/customers/${orgId}`, payload));
+      toast.success(isB2B ? 'GST details saved! Customer updated to B2B Commercial.' : 'Delivery details saved successfully!', { id: loadingToast });
+      setIsGstDeliveryModalOpen(false);
+      fetchOrgData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update GST and delivery details', { id: loadingToast });
+    } finally {
+      setIsSavingGstDelivery(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const loadingToast = toast.loading('Generating secure portal access key...');
+    try {
+      const response = await api.post(`/customers/${orgId}/reset-password`).catch(() => api.post(`/organizations/${orgId}/reset-password`));
+      const { newPassword, username } = response.data;
+      toast.success('Portal Credentials Reset Successfully!', { id: loadingToast });
+      setCredsModal({
+        isOpen: true,
+        data: {
+          full_name: org?.name,
+          username: username,
+          password: newPassword
+        }
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reset credentials', { id: loadingToast });
+    }
+  };
+
+  const handleConfirmedDeleteCustomer = async () => {
+    const loadingToast = toast.loading('Purging customer account...');
+    setDeleteCustomerConfirm({ isOpen: false });
+    try {
+      await api.delete(`/customers/${orgId}`).catch(() => api.delete(`/organizations/${orgId}`));
+      toast.success('Customer account and linked data removed', { id: loadingToast });
+      router.push('/customers');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete customer', { id: loadingToast });
+    }
+  };
+
+
 
   const deptFields: FormField[] = [
     {
@@ -513,24 +758,6 @@ function OrganizationDetailsPageContent() {
     }
   }, [activeTab, selectedDeptFilter, entitySearchQuery, entityView]);
 
-  // Save Staff Assignment
-  const handleSaveStaff = async () => {
-    setIsAssigningStaff(true);
-    const loadingToast = toast.loading('Updating staff assignments...');
-    try {
-      await api.post(`/organizations/${orgId}/staff`, { employee_ids: selectedStaffIds });
-      toast.success('Staff assignments updated successfully!', { id: loadingToast });
-      setIsStaffDropdownOpen(false);
-
-      // Refresh staff list
-      const staffRes = await api.get(`/organizations/${orgId}/staff`);
-      setAssignedStaff(staffRes.data.data || []);
-    } catch (err) {
-      toast.error('Failed to update staff assignments', { id: loadingToast });
-    } finally {
-      setIsAssigningStaff(false);
-    }
-  };
 
   // --- Entity Directory Logic ---
   const entityFields: FormField[] = [
@@ -786,34 +1013,110 @@ function OrganizationDetailsPageContent() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header section with Premium Back button */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-zinc-100">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
-            variant="secondary"
-            className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
-          >
-            <ArrowLeft size={16} />
-          </Button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#3a525d]">
-              {org.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider">
-                {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
-              <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest">
-                {org.industries?.name || 'School Sector'}
-              </span>
+      {/* Header section with Premium Back button & Action Toolbar */}
+      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-zinc-100 space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
+              variant="secondary"
+              className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0 shrink-0 cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#3a525d]">
+                {org.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider">
+                  {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
+                <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest">
+                  {org.industries?.name || 'School Sector'}
+                </span>
+                {Boolean(org.is_b2b || org.gst_number) && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-300">
+                    B2B Commercial (GST)
+                  </span>
+                )}
+                {org.is_special && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300">
+                    ★ Favourite
+                  </span>
+                )}
+                {org.is_risk && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300">
+                    ⚠ Risk Client
+                  </span>
+                )}
+                {org.is_active === false && (
+                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">
+                    Inactive
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Customer Management Actions (For Staff) */}
+          {!isClientUser && (
+            <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+              <Button
+                onClick={() => {
+                  setGstDeliveryForm({
+                    gst_number: org?.gst_number || '',
+                    pan_number: org?.pan_number || '',
+                    legal_name: org?.legal_name || '',
+                    delivery_address: org?.delivery_address || '',
+                    delivery_city: org?.delivery_city || '',
+                    delivery_state: org?.delivery_state || '',
+                    delivery_pincode: org?.delivery_pincode || '',
+                    delivery_country: org?.delivery_country || 'India'
+                  });
+                  setIsGstDeliveryModalOpen(true);
+                }}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Configure GST and Delivery Address"
+              >
+                <Truck size={15} />
+                <span>GST & Delivery Details</span>
+              </Button>
+              <Button
+                onClick={() => setIsEditingCustomer(true)}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/25 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Edit Customer Profile"
+              >
+                <Edit2 size={15} />
+                <span>Edit Profile</span>
+              </Button>
+              <Button
+                onClick={handleResetPassword}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Reset Portal Password"
+              >
+                <Key size={15} />
+                <span>Reset Password</span>
+              </Button>
+              <Button
+                onClick={() => setDeleteCustomerConfirm({ isOpen: true })}
+                variant="none"
+                className="h-10 px-4 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                title="Delete Customer Account"
+              >
+                <Trash2 size={15} />
+                <span>Delete</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Tab Switcher with Sleek Pill Design */}
-        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 self-start md:self-auto flex-wrap gap-1">
+        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
           {(isClientUser 
             ? (['overview', 'departments', 'entities', 'ledger'] as const)
             : (['overview', 'departments', 'entities', 'quotations', 'ledger'] as const)
@@ -874,8 +1177,7 @@ function OrganizationDetailsPageContent() {
           </div>
 
           {/* Org details metadata card */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className={`${isClientUser ? 'lg:col-span-3' : 'lg:col-span-2'} bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-6`}>
+          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-6">
               {isClientUser && (
                 <div className="p-4 bg-[#2d8d9b]/10 rounded-2xl border border-[#2d8d9b]/20 flex items-center gap-3">
                   <Building2 className="text-[#2d8d9b] shrink-0" size={20} />
@@ -892,7 +1194,67 @@ function OrganizationDetailsPageContent() {
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
                     <MapPin size={12} /> Address Location
                   </span>
-                  <p className="text-sm font-bold text-[#3a525d]">{org.address || 'Not registered'}</p>
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-bold text-[#3a525d]">
+                      {org.address || (org.city || org.state || org.pincode || org.pin_code || org.country ? '' : 'Not registered')}
+                    </p>
+                    {(org.city || org.state || org.pincode || org.pin_code || org.country) && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                        {org.city && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.city}
+                          </span>
+                        )}
+                        {org.state && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.state}
+                          </span>
+                        )}
+                        {(org.pincode || org.pin_code) && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#2d8d9b]">
+                            PIN: {org.pincode || org.pin_code}
+                          </span>
+                        )}
+                        {org.country && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
+                            {org.country}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact Person & Contact Info */}
+                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <User size={12} /> Contact Person & Details
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-[#3a525d]">
+                      {org.contact_person || 'No Contact Person Listed'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
+                      {(org.contact_number || org.phone || org.contact_phone) && (
+                        <a
+                          href={`tel:${org.contact_number || org.phone || org.contact_phone}`}
+                          className="inline-flex items-center gap-1.5 font-mono text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+                        >
+                          <Phone size={12} className="text-[#2d8d9b]" />
+                          <span>{org.contact_number || org.phone || org.contact_phone}</span>
+                        </a>
+                      )}
+                      {(org.email || org.contact_email) && (
+                        <a
+                          href={`mailto:${org.email || org.contact_email}`}
+                          className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#2d8d9b] transition-colors"
+                        >
+                          <Mail size={12} className="text-[#2d8d9b]" />
+                          <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
@@ -917,6 +1279,154 @@ function OrganizationDetailsPageContent() {
                   </div>
                 )}
 
+                {/* GST & B2B Tax Profile Card */}
+                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                      <ReceiptText size={12} /> GST & B2B Tax Profile
+                    </span>
+                    {org.gst_number ? (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        B2B Registered
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-zinc-200/70 text-zinc-600">
+                        B2C / No GST
+                      </span>
+                    )}
+                  </div>
+                  {org.gst_number ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-black font-mono text-[#3a525d] tracking-wide">
+                        {org.gst_number}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600 pt-0.5">
+                        {org.legal_name && (
+                          <span className="text-zinc-600 truncate max-w-[220px]" title={org.legal_name}>
+                            Legal: <span className="font-bold text-[#3a525d]">{org.legal_name}</span>
+                          </span>
+                        )}
+                        {org.pan_number && (
+                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs font-mono font-bold text-zinc-700">
+                            PAN: {org.pan_number}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-zinc-400">
+                        No GST number on file. Quotations default to standard retail pricing.
+                      </p>
+                      {!isClientUser && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGstDeliveryForm({
+                              gst_number: '',
+                              pan_number: '',
+                              legal_name: '',
+                              delivery_address: '',
+                              delivery_city: '',
+                              delivery_state: '',
+                              delivery_pincode: '',
+                              delivery_country: 'India'
+                            });
+                            setIsGstDeliveryModalOpen(true);
+                          }}
+                          className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          + Add GSTIN for B2B Pricing
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivery & Dispatch Destination Card */}
+                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                      <Truck size={12} /> Delivery Destination
+                    </span>
+                    {(org.delivery_address || org.delivery_city) && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                        Custom Dispatch
+                      </span>
+                    )}
+                  </div>
+                  {(org.delivery_address || org.delivery_city || org.delivery_state || org.delivery_pincode) ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-[#3a525d]">
+                        {org.delivery_address || 'Address registered'}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                        {org.delivery_city && (
+                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_city}</span>
+                        )}
+                        {org.delivery_state && (
+                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_state}</span>
+                        )}
+                        {org.delivery_pincode && (
+                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-[#2d8d9b] font-mono">
+                            PIN: {org.delivery_pincode}
+                          </span>
+                        )}
+                        {org.delivery_country && (
+                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-zinc-500">
+                            {org.delivery_country}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-zinc-500">
+                        Same as billing location: {org.address ? `${org.address}, ${org.city || ''}` : (org.city || 'Not specified')}
+                      </p>
+                      {!isClientUser && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGstDeliveryForm({
+                              gst_number: org?.gst_number || '',
+                              pan_number: org?.pan_number || '',
+                              legal_name: org?.legal_name || '',
+                              delivery_address: org?.delivery_address || '',
+                              delivery_city: org?.delivery_city || '',
+                              delivery_state: org?.delivery_state || '',
+                              delivery_pincode: org?.delivery_pincode || '',
+                              delivery_country: org?.delivery_country || 'India'
+                            });
+                            setIsGstDeliveryModalOpen(true);
+                          }}
+                          className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          + Set Separate Delivery Address
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Credit Period & Commercial Terms Card */}
+                <div className="p-5 bg-teal-50/50 rounded-2xl border border-teal-150/60">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">
+                      <CreditCard size={12} /> Credit Period Terms
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#2d8d9b] text-white shadow-xs">
+                      {org.credit_period_days || 30} Days
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-[#3a525d]">
+                    {org.credit_period_days || 30} Days Payment Window
+                  </p>
+                  <p className="text-xs text-zinc-500 font-medium mt-1">
+                    Invoices are marked as <span className="font-bold text-amber-600">Due</span> on the last day, and <span className="font-bold text-rose-600">Overdue</span> next day onwards.
+                  </p>
+                </div>
+
                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
                     <Calendar size={12} /> Onboarding Timestamp
@@ -927,65 +1437,6 @@ function OrganizationDetailsPageContent() {
                 </div>
               </div>
             </div>
-
-            {/* Staff Assignment Card - Hidden for Client Users */}
-            {!isClientUser && (
-              <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-black text-[#3a525d] tracking-tight flex items-center gap-2">
-                    <School size={18} /> Measurement Staff
-                  </h3>
-                  <p className="text-xs font-semibold text-zinc-400 leading-relaxed">Assign field operators responsible for coordinating size entries for this partner.</p>
-
-                  <div className="relative">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsStaffDropdownOpen(!isStaffDropdownOpen)}
-                      className="w-full h-12 rounded-2xl border border-zinc-200 px-4 text-xs font-bold text-[#3a525d] bg-white flex items-center justify-between hover:border-[#2d8d9b] transition-colors shadow-none"
-                    >
-                      <span className="truncate">
-                        {selectedStaffIds.length === 0
-                          ? 'Select Staff Members...'
-                          : `${selectedStaffIds.length} staff member(s) selected`}
-                      </span>
-                      <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isStaffDropdownOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-
-                    {isStaffDropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-zinc-150 p-2 z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                        {employees.map(emp => {
-                          const isSelected = selectedStaffIds.includes(emp.id);
-                          return (
-                            <div
-                              key={emp.id}
-                              onClick={() => toggleStaffSelection(emp.id)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-50 cursor-pointer transition-colors"
-                            >
-                              <div className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'}`}>
-                                {isSelected && <Check size={10} strokeWidth={4} />}
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-[#3a525d]">{emp.full_name}</p>
-                                <p className="text-[9px] font-black text-muted-foreground uppercase">{emp.employee_id} • {emp.department}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleSaveStaff}
-                  disabled={isAssigningStaff}
-                  className="w-full h-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-wider text-[10px] shadow-md mt-6"
-                >
-                  {isAssigningStaff ? 'Saving...' : 'Save Assignments'}
-                </Button>
-              </div>
-            )}
-          </div>
 
           {/* Orders registry list */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-4">
@@ -1436,12 +1887,23 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Entity / Member Name',
                     accessor: (e) => (
-                      <div className="flex items-center gap-4">
-                        <div className="w-9 h-9 rounded-lg bg-[#3a525d]/5 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px]">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          onClick={() => setProfileModal({ isOpen: true, member: e })}
+                          className="w-9 h-9 rounded-lg bg-[#3a525d]/5 hover:bg-[#3a525d]/15 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px] cursor-pointer transition-all"
+                          title="Click to view profile"
+                        >
                           {e.full_name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-xs text-[#3a525d] leading-none">{e.full_name}</p>
+                          <button
+                            type="button"
+                            onClick={() => setProfileModal({ isOpen: true, member: e })}
+                            className="font-bold text-xs text-[#3a525d] hover:text-[#2d8d9b] hover:underline leading-none text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
+                            title="Click to view profile"
+                          >
+                            {e.full_name}
+                          </button>
                           <p className="text-[8px] text-[#2d8d9b] font-bold uppercase tracking-[0.1em] mt-1 opacity-85">Ref: #{e.admission_no}</p>
                         </div>
                       </div>
@@ -1482,14 +1944,6 @@ function OrganizationDetailsPageContent() {
                     header: 'Actions',
                     accessor: (e) => (
                       <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => setProfileModal({ isOpen: true, member: e })}
-                          variant="secondary"
-                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#3a525d]/5 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm border-none"
-                          title="View Profile"
-                        >
-                          <User size={14} />
-                        </Button>
                         {!isClientUser && (
                           <>
                             <Button
@@ -1558,13 +2012,27 @@ function OrganizationDetailsPageContent() {
                 {
                   header: 'Quotation No',
                   accessor: (q) => (
-                    <span className="font-mono font-black text-[#2d8d9b]">{q.quotation_no}</span>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                      className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left"
+                      title="Click to view quotation"
+                    >
+                      {q.quotation_no}
+                    </button>
                   )
                 },
                 {
                   header: 'Title',
                   accessor: (q) => (
-                    <span className="font-bold text-[#3a525d]">{q.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                      className="font-bold text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
+                      title="Click to view quotation"
+                    >
+                      {q.title}
+                    </button>
                   )
                 },
                 {
@@ -1610,29 +2078,6 @@ function OrganizationDetailsPageContent() {
                       {formatDate(q.created_at)}
                     </span>
                   )
-                },
-                {
-                  header: 'Actions',
-                  accessor: (q) => (
-                    <div className="flex items-center gap-3">
-                      <Button
-                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
-                        variant="secondary"
-                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 text-zinc-650 border border-zinc-200 hover:bg-zinc-200 transition-all shadow-sm !p-0"
-                        title="View Details"
-                      >
-                        <Eye size={14} />
-                      </Button>
-                      <Button
-                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=edit`)}
-                        variant="secondary"
-                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0"
-                        title="Edit Quotation"
-                      >
-                        <Edit2 size={14} />
-                      </Button>
-                    </div>
-                  )
                 }
               ]}
               data={quotations}
@@ -1665,6 +2110,19 @@ function OrganizationDetailsPageContent() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              {!isClientUser && (
+                <Button
+                  onClick={() => {
+                    setInvoiceCreditPeriod(org.credit_period_days || 30);
+                    setSelectedOrderIdForInvoice(null);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all"
+                >
+                  <Plus size={16} />
+                  Create Invoice
+                </Button>
+              )}
               <Button
                 onClick={fetchLedgerData}
                 variant="secondary"
@@ -1729,10 +2187,12 @@ function OrganizationDetailsPageContent() {
               </div>
             </div>
 
-            {/* 3. Outstanding Balance */}
+            {/* 3. Outstanding Balance / Credit Balance */}
             <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Net Outstanding Balance</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                  {(ledgerData?.summary?.outstanding_balance || 0) < 0 ? 'Customer Credit Balance' : 'Net Outstanding Balance'}
+                </span>
                 <div className="w-9 h-9 rounded-xl bg-[#CC9448]/15 text-[#CC9448] flex items-center justify-center">
                   <CreditCard size={18} />
                 </div>
@@ -1741,10 +2201,14 @@ function OrganizationDetailsPageContent() {
                 <h4 className={`text-2xl font-black italic tracking-tight ${
                   (ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'
                 }`}>
-                  ₹{parseFloat(ledgerData?.summary?.outstanding_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{Math.abs(parseFloat(ledgerData?.summary?.outstanding_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
                 <p className="text-[10px] font-bold text-zinc-400 mt-1">
-                  {(ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'Pending Amount Due from Client' : 'Zero Outstanding / Fully Cleared'}
+                  {(ledgerData?.summary?.outstanding_balance || 0) > 0 
+                    ? 'Pending Amount Due from Client' 
+                    : (ledgerData?.summary?.outstanding_balance || 0) < 0 
+                    ? 'Credit Available (Amount Paid - Invoices)' 
+                    : 'Zero Outstanding / Fully Cleared'}
                 </p>
               </div>
             </div>
@@ -1754,14 +2218,14 @@ function OrganizationDetailsPageContent() {
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Settlement Status</span>
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  ledgerData?.summary?.settlement_status === 'Settled' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                  ledgerData?.summary?.settlement_status === 'Settled' || ledgerData?.summary?.settlement_status === 'Credit Balance' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                 }`}>
-                  {ledgerData?.summary?.settlement_status === 'Settled' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                  {ledgerData?.summary?.settlement_status === 'Settled' || ledgerData?.summary?.settlement_status === 'Credit Balance' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                 </div>
               </div>
               <div>
                 <span className={`inline-block px-3 py-1 text-xs font-black uppercase tracking-wider rounded-xl ${
-                  ledgerData?.summary?.settlement_status === 'Settled'
+                  ledgerData?.summary?.settlement_status === 'Settled' || ledgerData?.summary?.settlement_status === 'Credit Balance'
                     ? 'bg-emerald-100 text-emerald-800'
                     : ledgerData?.summary?.settlement_status === 'Partially Paid'
                     ? 'bg-amber-100 text-amber-800'
@@ -1821,7 +2285,7 @@ function OrganizationDetailsPageContent() {
                 {
                   header: 'Type & Reference',
                   accessor: (tx: LedgerTransaction) => (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
                         tx.type === 'INVOICE'
                           ? 'bg-blue-50 text-blue-700 border-blue-200'
@@ -1831,16 +2295,35 @@ function OrganizationDetailsPageContent() {
                       }`}>
                         {tx.type}
                       </span>
+                      {tx.sale_type && (
+                        <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-md border ${
+                          tx.sale_type === 'retail'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-teal-50 text-teal-800 border-teal-200'
+                        }`}>
+                          {tx.sale_type === 'retail' ? 'Retail' : 'Bulk'}
+                        </span>
+                      )}
                       <span className="font-mono text-xs font-bold text-zinc-900">{tx.reference_no}</span>
                     </div>
                   )
                 },
                 {
-                  header: 'Description',
+                  header: 'Description & Terms',
                   accessor: (tx: LedgerTransaction) => (
                     <div className="flex flex-col max-w-[280px]">
                       <span className="text-xs font-semibold text-zinc-700 truncate">{tx.description}</span>
-                      <span className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider">{tx.order_ref}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider">{tx.order_ref}</span>
+                        {tx.type === 'INVOICE' && (
+                          <span className="text-[10px] text-zinc-500 font-medium">
+                            • Credit: <strong className="text-zinc-700">{tx.credit_period_days || 30}d</strong>
+                            {tx.due_date && (
+                              <> • Due: <strong className="text-zinc-700">{formatDate(tx.due_date)}</strong></>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )
                 },
@@ -1877,18 +2360,48 @@ function OrganizationDetailsPageContent() {
                   )
                 },
                 {
-                  header: 'Status',
-                  accessor: (tx: LedgerTransaction) => (
-                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
-                      tx.status === 'Fully Paid' || tx.status === 'Received' || tx.status === 'Settled'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : tx.status === 'Partially Paid'
-                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                        : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}>
-                      {tx.status}
-                    </span>
-                  )
+                  header: 'Status & Due Aging',
+                  accessor: (tx: LedgerTransaction) => {
+                    if (tx.type === 'INVOICE') {
+                      if (tx.status === 'Fully Paid' || tx.status === 'Paid' || tx.due_status === 'Paid') {
+                        return (
+                          <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">
+                            ✓ Paid
+                          </span>
+                        );
+                      }
+                      if (tx.due_status === 'Due' || tx.is_due_today) {
+                        return (
+                          <span className="px-2.5 py-1 text-[9px] font-black uppercase rounded-lg border bg-amber-100 text-amber-900 border-amber-300 animate-pulse flex items-center gap-1">
+                            <span>⚠️</span> Due Today (Last Day)
+                          </span>
+                        );
+                      }
+                      if (tx.due_status === 'Overdue' || tx.is_overdue) {
+                        return (
+                          <span className="px-2.5 py-1 text-[9px] font-black uppercase rounded-lg border bg-rose-100 text-rose-900 border-rose-300 flex items-center gap-1 font-mono">
+                            <span>🚨</span> {tx.due_label || 'Overdue'}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
+                          {tx.due_label || 'Active Credit'}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
+                        tx.status === 'Fully Paid' || tx.status === 'Received' || tx.status === 'Settled'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : tx.status === 'Partially Paid'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    );
+                  }
                 }
               ]}
               data={(ledgerData?.transactions || []).filter((tx: any) => {
@@ -1962,7 +2475,7 @@ function OrganizationDetailsPageContent() {
                   <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Statement For (Client)</h4>
                   <p className="text-base font-black text-zinc-900">{org.name}</p>
                   <p className="text-xs text-zinc-600 font-medium mt-0.5">{org.address || 'Address not registered'}</p>
-                  <p className="text-xs text-zinc-500 font-mono mt-1">Customer Code: {org.customer_code || `#${org.id}`}</p>
+                  <p className="text-xs text-zinc-500 font-mono mt-1">Customer Code: {org.customer_code || `#${org.id}`} · Credit Terms: <strong>{org.credit_period_days || 30} Days</strong></p>
                 </div>
                 <div className="text-right flex flex-col justify-between">
                   <div>
@@ -1997,7 +2510,14 @@ function OrganizationDetailsPageContent() {
                           {formatDate(tx.date)}
                         </td>
                         <td className="py-2 px-2 font-mono font-bold whitespace-nowrap">{tx.reference_no}</td>
-                        <td className="py-2 px-2 font-medium">{tx.description}</td>
+                        <td className="py-2 px-2 font-medium">
+                          <div>{tx.description}</div>
+                          {tx.type === 'INVOICE' && (
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              Credit: {tx.credit_period_days || 30}d {tx.due_date ? `| Due: ${formatDate(tx.due_date)}` : ''} {tx.due_status && tx.due_status !== 'Paid' ? `(${tx.due_status})` : ''}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-2 px-2 text-right font-mono">
                           {tx.debit > 0 ? `₹${Number(tx.debit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </td>
@@ -2089,6 +2609,541 @@ function OrganizationDetailsPageContent() {
         onClose={() => setProfileModal({ isOpen: false, member: null })}
         member={profileModal.member}
       />
+
+      {/* Edit Customer Profile Modal */}
+      <CustomerFormModal
+        isOpen={isEditingCustomer}
+        onClose={() => setIsEditingCustomer(false)}
+        onSubmit={handleUpdateCustomer}
+        editingCustomer={org}
+        industries={industries}
+      />
+
+      {/* Dedicated GST & Delivery Address Modal */}
+      {isGstDeliveryModalOpen && (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsGstDeliveryModalOpen(false)} />
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative z-10 my-8">
+            <div className="bg-gradient-to-r from-[#2d8d9b] to-[#3a525d] p-6 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Truck size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">GST & Delivery Address Provisions</h3>
+                  <p className="text-[11px] text-white/80 font-medium">
+                    {org?.name} • {org?.customer_code ? `Code: ${org.customer_code}` : `#${org?.id}`}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => setIsGstDeliveryModalOpen(false)}
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors bg-transparent border-none shadow-none text-white cursor-pointer"
+              >
+                <X size={20} />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSaveGstDelivery} className="p-6 md:p-8 space-y-6">
+              {/* B2B Explanatory Notice */}
+              <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
+                gstDeliveryForm.gst_number
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-zinc-50 border-zinc-200 text-zinc-600'
+              }`}>
+                <CheckCircle2 size={18} className={gstDeliveryForm.gst_number ? 'text-emerald-600 mt-0.5 shrink-0' : 'text-zinc-400 mt-0.5 shrink-0'} />
+                <div className="text-xs leading-relaxed">
+                  <span className="font-bold">Automatic B2B Commercial Sales:</span>{' '}
+                  {gstDeliveryForm.gst_number ? (
+                    <span>With a GSTIN on file, sales and quotations for this customer automatically become <strong>B2B</strong> with itemized GST tax breakdown and delivery destination on quotation invoices.</span>
+                  ) : (
+                    <span>Enter customer GST details below to automatically classify their quotations as <strong>B2B</strong>. Leaving GST blank keeps standard / B2C pricing.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 1: GST Identification */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
+                  <ReceiptText size={16} className="text-[#2d8d9b]" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    1. GST & Commercial Tax Identification
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      GSTIN (15 Digits)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={15}
+                      value={gstDeliveryForm.gst_number}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().trim();
+                        let updatedPan = gstDeliveryForm.pan_number;
+                        if (val.length >= 12 && (!updatedPan || updatedPan.length < 10)) {
+                          updatedPan = val.substring(2, 12);
+                        }
+                        setGstDeliveryForm(prev => ({
+                          ...prev,
+                          gst_number: val,
+                          pan_number: updatedPan
+                        }));
+                      }}
+                      placeholder="e.g. 27AAPFU0939F1ZV"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] uppercase"
+                    />
+                    <p className="text-[10px] text-zinc-400 font-medium">
+                      Entering GSTIN automatically sets this client to B2B and extracts the PAN.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      Legal Business / Trade Name
+                    </label>
+                    <input
+                      type="text"
+                      value={gstDeliveryForm.legal_name}
+                      onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, legal_name: e.target.value }))}
+                      placeholder={org?.name || 'Legal Company Name'}
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      PAN Number (10 Digits)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={10}
+                      value={gstDeliveryForm.pan_number}
+                      onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, pan_number: e.target.value.toUpperCase().trim() }))}
+                      placeholder="e.g. AAPFU0939F"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Delivery Address */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Truck size={16} className="text-[#2d8d9b]" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                      2. Delivery / Dispatch Destination
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGstDeliveryForm(prev => ({
+                        ...prev,
+                        delivery_address: org?.address || '',
+                        delivery_city: org?.city || '',
+                        delivery_state: org?.state || '',
+                        delivery_pincode: org?.pincode || org?.pin_code || '',
+                        delivery_country: org?.country || 'India'
+                      }));
+                      toast.success('Billing address copied to delivery fields');
+                    }}
+                    className="text-[10px] font-black uppercase text-[#2d8d9b] hover:underline bg-[#2d8d9b]/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Copy Billing Address
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      Street / Campus / Warehouse Delivery Address
+                    </label>
+                    <input
+                      type="text"
+                      value={gstDeliveryForm.delivery_address}
+                      onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_address: e.target.value }))}
+                      placeholder="e.g. Building 4B, Goods Delivery Gate 2"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                        Delivery City
+                      </label>
+                      <input
+                        type="text"
+                        value={gstDeliveryForm.delivery_city}
+                        onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_city: e.target.value }))}
+                        placeholder="e.g. Mumbai, Bengaluru"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                        Delivery State
+                      </label>
+                      <input
+                        type="text"
+                        value={gstDeliveryForm.delivery_state}
+                        onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_state: e.target.value }))}
+                        placeholder="e.g. Maharashtra, Karnataka"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                        Delivery PIN Code
+                      </label>
+                      <input
+                        type="text"
+                        value={gstDeliveryForm.delivery_pincode}
+                        onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_pincode: e.target.value }))}
+                        placeholder="e.g. 400001"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                        Delivery Country
+                      </label>
+                      <input
+                        type="text"
+                        value={gstDeliveryForm.delivery_country}
+                        onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_country: e.target.value }))}
+                        placeholder="India"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsGstDeliveryModalOpen(false)}
+                  disabled={isSavingGstDelivery}
+                  className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-zinc-500"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSavingGstDelivery}
+                  className="px-6 py-2.5 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-xs font-black uppercase tracking-wider shadow-md"
+                >
+                  {isSavingGstDelivery ? 'Saving...' : 'Save GST & Delivery Details'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Customer Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteCustomerConfirm.isOpen}
+        title="Delete Customer Account?"
+        message={`Are you sure you want to permanently delete "${org.name}"? All associated account logs, departments, and linked records will be removed. This action cannot be undone.`}
+        onConfirm={handleConfirmedDeleteCustomer}
+        onCancel={() => setDeleteCustomerConfirm({ isOpen: false })}
+        confirmLabel="Yes, Delete Customer"
+        variant="danger"
+      />
+
+      {/* Create Invoice Modal (Bulk Against Sales Order vs Manual Retail Sale) */}
+      {isInvoiceModalOpen && org && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-300">
+          <div className="relative w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl p-6 md:p-8 my-8 border border-zinc-100 max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-5 border-b border-zinc-150">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center">
+                  <ReceiptText size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-zinc-900 italic tracking-tight">Generate Commercial Invoice</h3>
+                  <p className="text-xs text-zinc-500 font-medium">
+                    {org.name} ({org.customer_code || `#${org.id}`}) · Default Credit Period: <strong className="text-[#2d8d9b]">{org.credit_period_days || 30} Days</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsInvoiceModalOpen(false)}
+                className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 flex items-center justify-center transition-all cursor-pointer border-none"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Sale Type Selector (Bulk Order vs Retail Sale) */}
+            <div className="mt-5 p-1.5 bg-zinc-100 rounded-2xl flex gap-1">
+              <button
+                type="button"
+                onClick={() => setInvoiceType('bulk')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                  invoiceType === 'bulk'
+                    ? 'bg-white text-[#3a525d] shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
+                }`}
+              >
+                <Package size={16} className={invoiceType === 'bulk' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                Bulk Order (From Sales Order)
+              </button>
+              <button
+                type="button"
+                onClick={() => setInvoiceType('retail')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                  invoiceType === 'retail'
+                    ? 'bg-white text-[#3a525d] shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
+                }`}
+              >
+                <ReceiptText size={16} className={invoiceType === 'retail' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                Retail Sale (Manual Invoicing)
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateInvoice} className="space-y-5 mt-5">
+              {/* Credit Terms & Dates Configuration */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-teal-50/40 border border-teal-100">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-1">
+                    Invoice Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#2d8d9b]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-[#2d8d9b] block mb-1">
+                    Credit Period (Days)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    required
+                    value={invoiceCreditPeriod}
+                    onChange={(e) => setInvoiceCreditPeriod(parseInt(e.target.value, 10) || 0)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-teal-300 bg-white text-xs font-black text-zinc-800 focus:outline-none focus:border-[#2d8d9b]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-1">
+                    Calculated Due Date
+                  </label>
+                  <div className="px-3 py-2.5 rounded-xl bg-white border border-zinc-200 text-xs font-mono font-black text-[#2d8d9b] flex items-center gap-1.5">
+                    <Clock size={13} />
+                    {formatDate(getCalculatedDueDate(invoiceDate, invoiceCreditPeriod))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 font-medium -mt-2 px-1">
+                * Rule: The credit period extends {invoiceCreditPeriod} days from invoice date. On the last day ({formatDate(getCalculatedDueDate(invoiceDate, invoiceCreditPeriod))}), the invoice is marked as <strong className="text-amber-600">Due</strong>. The next day onwards, it becomes <strong className="text-rose-600">Overdue</strong>.
+              </p>
+
+              {/* Bulk Order Selection Mode */}
+              {invoiceType === 'bulk' && (
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block">
+                    Select Confirmed Sales Order *
+                  </label>
+                  {(orgDetails?.orders || []).length > 0 ? (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {(orgDetails?.orders || []).map((order: any) => {
+                        const isSelected = selectedOrderIdForInvoice === order.id;
+                        const quote = order.quotations;
+                        return (
+                          <div
+                            key={order.id}
+                            onClick={() => setSelectedOrderIdForInvoice(order.id)}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                              isSelected
+                                ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] shadow-sm'
+                                : 'bg-white border-zinc-200 hover:border-zinc-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                                isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'
+                              }`}>
+                                {isSelected && <Check size={12} strokeWidth={4} />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-black text-zinc-900 font-mono">{order.order_no}</p>
+                                <p className="text-[11px] font-semibold text-zinc-500">
+                                  {quote?.title || quote?.quotation_no || 'Standard Order'} · Status: <span className="text-[#2d8d9b] font-bold">{order.status}</span>
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-mono text-xs font-black text-zinc-900">
+                                ₹{parseFloat(quote?.final_quote_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                              <p className="text-[9px] text-zinc-400 font-medium">{formatDate(order.created_at)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
+                      <p className="text-xs font-bold text-zinc-500">No sales orders found for this customer.</p>
+                      <p className="text-[11px] text-zinc-400 mt-1">Switch to "Retail Sale (Manual Invoicing)" above to generate a direct manual invoice.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Retail Manual Items Mode */}
+              {invoiceType === 'retail' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                      Line Items (Retail Sale)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setRetailItems([...retailItems, { description: '', quantity: 1, unit_price: 500, total: 500 }])}
+                      className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent"
+                    >
+                      <Plus size={13} /> Add Item
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {retailItems.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Item Description / Uniform Item"
+                          value={item.description}
+                          onChange={(e) => {
+                            const updated = [...retailItems];
+                            updated[idx].description = e.target.value;
+                            setRetailItems(updated);
+                          }}
+                          className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs font-bold text-zinc-800"
+                        />
+                        <div className="w-20">
+                          <input
+                            type="number"
+                            min="1"
+                            required
+                            placeholder="Qty"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const qty = parseInt(e.target.value, 10) || 0;
+                              const updated = [...retailItems];
+                              updated[idx].quantity = qty;
+                              updated[idx].total = qty * updated[idx].unit_price;
+                              setRetailItems(updated);
+                            }}
+                            className="w-full px-2 py-2 rounded-lg border border-zinc-200 bg-white text-xs font-bold text-center"
+                          />
+                        </div>
+                        <div className="w-28">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                            placeholder="Rate (₹)"
+                            value={item.unit_price}
+                            onChange={(e) => {
+                              const rate = parseFloat(e.target.value) || 0;
+                              const updated = [...retailItems];
+                              updated[idx].unit_price = rate;
+                              updated[idx].total = updated[idx].quantity * rate;
+                              setRetailItems(updated);
+                            }}
+                            className="w-full px-2 py-2 rounded-lg border border-zinc-200 bg-white text-xs font-bold text-right"
+                          />
+                        </div>
+                        <div className="w-28 text-right font-mono text-xs font-black text-zinc-900 pr-2">
+                          ₹{Number(item.quantity * item.unit_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                        {retailItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setRetailItems(retailItems.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 cursor-pointer border-none bg-transparent"
+                            title="Remove Item"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <div className="text-right">
+                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Total Invoice Value: </span>
+                      <span className="text-base font-black text-zinc-900 font-mono ml-2">
+                        ₹{retailItems.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.unit_price || 0)), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block mb-1">
+                  Notes / Payment Terms (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={invoiceNotes}
+                  onChange={(e) => setInvoiceNotes(e.target.value)}
+                  placeholder="e.g. Terms of payment, PO reference, dispatch notes..."
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-800 focus:outline-none focus:border-[#2d8d9b]"
+                />
+              </div>
+
+              {/* Footer Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-150">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsInvoiceModalOpen(false)}
+                  disabled={isSubmittingInvoice}
+                  className="h-11 px-5 rounded-xl border border-zinc-200 text-xs font-black uppercase text-zinc-600"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingInvoice || (invoiceType === 'bulk' && !selectedOrderIdForInvoice)}
+                  className="h-11 px-6 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#2d8d9b]/25"
+                >
+                  {isSubmittingInvoice ? 'Generating...' : invoiceType === 'bulk' ? 'Generate Bulk Invoice' : 'Generate Retail Invoice'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Selected Order Details Modal */}
       {selectedOrder && (

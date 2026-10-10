@@ -127,19 +127,24 @@ button {
     display: none !important;
   }
 
-  /* Show whichever print area is present — DC or Job Card */
+  /* Show whichever print area is present — DC, Job Card, or Customer Directory */
   .dc-print-area,
   .dc-print-area *,
   .jc-print-area,
-  .jc-print-area * {
+  .jc-print-area *,
+  .customer-print-area,
+  .customer-print-area * {
     display: revert !important;
     visibility: visible !important;
   }
 
   .dc-print-area,
-  .jc-print-area {
-    position: fixed !important;
-    inset: 0 !important;
+  .jc-print-area,
+  .customer-print-area {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
     margin: 0 !important;
     padding: 24px !important;
     background: #fff !important;
@@ -152,13 +157,16 @@ button {
   .dc-print-area .shadow-sm,
   .dc-print-area .shadow-xl,
   .jc-print-area .shadow-sm,
-  .jc-print-area .shadow-xl {
+  .jc-print-area .shadow-xl,
+  .customer-print-area .shadow-sm,
+  .customer-print-area .shadow-xl {
     box-shadow: none !important;
   }
 
   /* Hide on-screen-only elements */
   .dc-no-print,
-  .jc-no-print {
+  .jc-no-print,
+  .customer-no-print {
     display: none !important;
   }
 

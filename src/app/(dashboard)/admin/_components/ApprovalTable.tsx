@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Check, X, Eye, ShieldAlert, History } from 'lucide-react';
+import { Check, X, ShieldAlert, History } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface ApprovalItem {
@@ -68,9 +68,6 @@ export const ApprovalTable: React.FC = () => {
            </Button>
            <Button variant="secondary" className="w-9 h-9 flex items-center justify-center rounded-xl bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none">
              <X size={18} />
-           </Button>
-           <Button variant="secondary" className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-100 transition-all text-muted-foreground bg-transparent shadow-none p-0 border-none">
-             <Eye size={18} />
            </Button>
          </div>
        ),

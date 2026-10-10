@@ -11,7 +11,7 @@ import {
   Box, 
   Shirt, 
   ChevronDown, 
-  ChevronUp, 
+  ChevronUp,
   Search
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -480,24 +480,17 @@ function DesignNumbersContent() {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-700">
       
       {/* Page Title & Subtitle */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#3a525d] text-white flex items-center justify-center shadow-md shadow-[#3a525d]/20">
-              <Tag size={20} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black italic tracking-tight text-[#3a525d]">
-                Design Number Catalog
-              </h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#2d8d9b]">
-                DNS (Single Product Combinations) & DNG (Group Product Sets)
-              </p>
-            </div>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">
+            Design Number Catalog
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            DNS (Single Product Combinations) &amp; DNG (Group Product Sets)
+          </p>
         </div>
       </div>
 

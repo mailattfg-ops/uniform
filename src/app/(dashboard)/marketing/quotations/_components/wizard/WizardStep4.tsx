@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import api from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Clock, Calendar, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, X, Scale, Building2 } from 'lucide-react';
-import api from '@/lib/api';
+import { Clock, ArrowRight, X, ChevronLeft, Calendar, CheckCircle2, Scale, Building2, ChevronRight } from 'lucide-react';
 import { formatDate } from '@/lib/formatters';
 
 interface ExtraCharge {
@@ -853,7 +853,7 @@ export default function WizardStep4({
                         <span className="font-black">+{selectedQuoteDetail.profit_margin_percent}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>GST Tax ({selectedQuoteDetail.metrics_summary?.gst_percent || 18}%):</span>
+                        <span>GST Tax ({selectedQuoteDetail.metrics_summary?.gst_percent != null ? selectedQuoteDetail.metrics_summary.gst_percent : 0}%):</span>
                         <span className="font-mono text-red-500 font-black">
                           ₹{Number(Number(selectedQuoteDetail.final_quote_value) - Number(selectedQuoteDetail.metrics_summary?.pre_tax_subtotal || 0)).toFixed(2)}
                         </span>
