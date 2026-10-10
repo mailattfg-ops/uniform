@@ -740,7 +740,6 @@ export default function ProductManagement() {
   const [baseSize, setBaseSize] = useState('');
   const [fit, setFit] = useState('');
   const [allowance, setAllowance] = useState('');
-  const [nextDesignNumber, setNextDesignNumber] = useState('');
   const [nextPatternCode, setNextPatternCode] = useState('');
   const [productType, setProductType] = useState('');
 
@@ -758,7 +757,7 @@ export default function ProductManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fabricRes, nextDnRes, gdRes, buttonsRes, threadsRes, trimsRes, fitsRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fabricRes, gdRes, buttonsRes, threadsRes, trimsRes, fitsRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
         api.get('/size-charts'),
@@ -768,14 +767,31 @@ export default function ProductManagement() {
         api.get('/art-number-hub/patterns').catch(() => ({ data: [] })),
         api.get('/art-number-hub/patterns/next').catch(() => ({ data: { nextCode: '001' } })),
         api.get('/inventory/fabrics').catch(() => ({ data: [] })),
-        api.get('/products/next-design-number').catch(() => ({ data: { nextDesignNumber: 'DNS-0001' } })),
         api.get('/quotations/group-designs').catch(() => ({ data: [] })),
         api.get('/inventory/buttons').catch(() => ({ data: [] })),
         api.get('/inventory/threads').catch(() => ({ data: [] })),
         api.get('/inventory/trims').catch(() => ({ data: [] })),
         api.get('/art-number-hub/fits').catch(() => ({ data: [] }))
       ]);
-      setProducts(prodRes.data || []);
+      const allProds: Product[] = prodRes.data || [];
+      // Accessories and Readymade (Trade) are managed exclusively in the Accessories & Trade Hub
+      const isAccessoryOrTrade = (p: Product) => {
+        const cat = (p.category || '').toLowerCase();
+        const pType = (p.product_type_id || (p as any).product_type || (p as any).productType || '').toString().toLowerCase();
+        const mat = (p.materials || '').toLowerCase();
+        return (
+          cat === 'accessories' ||
+          cat === 'trade_readymade' ||
+          cat === 'readymade_trade' ||
+          pType === 'accessories' ||
+          pType === 'trade_readymade' ||
+          pType === 'readymade_trade' ||
+          mat.includes('[producttype: accessories]') ||
+          mat.includes('[producttype: trade_readymade]') ||
+          mat.includes('[producttype: readymade_trade]')
+        );
+      };
+      setProducts(allProds.filter(p => !isAccessoryOrTrade(p)));
       setMeasureConfig(configRes.data || []);
       setSizeCharts(chartRes.data || []);
       setProductTypes(typeRes.data || []);
@@ -785,7 +801,6 @@ export default function ProductManagement() {
       setFitsList(fitsRes.data || []);
       setNextPatternCode(nextPatternRes.data?.nextCode || '001');
       setFabrics(fabricRes.data || []);
-      setNextDesignNumber(nextDnRes.data?.nextDesignNumber || 'DNS-0001');
       setGroupDesigns(gdRes.data || []);
       setButtonsList(buttonsRes.data || []);
       setThreadsList(threadsRes.data || []);
@@ -944,18 +959,6 @@ export default function ProductManagement() {
     }
   }, [editingProduct, isAdding, dresses, genders, patterns]);
 
-  useEffect(() => {
-    if (isAdding && !editingProduct) {
-      api.get('/products/next-design-number')
-        .then(res => {
-          setNextDesignNumber(res.data.nextDesignNumber || 'DNS-0001');
-        })
-        .catch(() => {
-          setNextDesignNumber('DNS-0001');
-        });
-    }
-  }, [isAdding, editingProduct]);
-
   const availableProductTypes = productTypes;
   const availableDresses = dresses;
   const availableGenders = genders;
@@ -968,9 +971,8 @@ export default function ProductManagement() {
       type: 'select',
       options: [
         { label: 'Select Manufacturing Type', value: '' },
-        { label: 'Readymade (Manufactured)', value: 'readymade' },
-        { label: 'Readymade (Trade)', value: 'trade_readymade' },
-        { label: 'Accessories', value: 'accessories' },
+        { label: 'Manufactured In-House (Readymade Stock)', value: 'readymade' },
+        { label: 'Manufactured In-House (Custom / Made to Order)', value: 'custom_manufactured' },
       ],
       value: productType,
       onChange: (val) => setProductType(val),
@@ -1047,14 +1049,6 @@ export default function ProductManagement() {
       readOnly: true,
       placeholder: 'Will generate automatically from Prefix, Gender, Pattern, Fit & Allowance (e.g. 4J-1012-R2)...',
       required: true
-    },
-    {
-      name: 'design_number',
-      label: 'Design Number (Auto-assigned)',
-      type: 'text',
-      value: editingProduct ? editingProduct.design_number : nextDesignNumber,
-      readOnly: true,
-      placeholder: 'DNS-0001'
     },
     {
       name: 'name',
@@ -1595,7 +1589,7 @@ export default function ProductManagement() {
     // Set base size and fit
     data.base_size = baseSize.trim() || null;
     data.fit = productType === 'accessories' ? null : (fit || null);
-    data.design_number = data.design_number || (editingProduct ? editingProduct.design_number : nextDesignNumber) || null;
+    data.design_number = null;
 
     // Serialize product_type into materials
     const pType = data.product_type || '';
@@ -1651,7 +1645,7 @@ export default function ProductManagement() {
           <div>
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{p.name}</p>
             <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-1">
-              {p.design_number ? `DN: ${p.design_number} | ` : ''}SN: {p.art_number}
+              ART #: {p.art_number || '—'}
             </p>
             {(p.base_size || p.fit || p.allowance) && (
               <div className="grid items-center gap-1.5 mt-1 text-[9px] font-bold text-zinc-400 uppercase">
@@ -1835,20 +1829,34 @@ export default function ProductManagement() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Product Registry</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Products</h1>
+            <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] rounded-full text-[10px] font-black uppercase tracking-wider">
+              In-House Manufactured Only
+            </span>
+          </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Inventory & Specification Hub</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingProduct(null);
-            setIsAdding(true);
-            fetchData();
-          }}
-          className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
-        >
-          <Plus size={20} strokeWidth={3} />
-          Add New
-        </Button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/admin/accessories"
+            className="h-16 px-6 bg-white hover:bg-zinc-50 border-2 border-[#2d8d9b]/20 hover:border-[#2d8d9b] text-[#2d8d9b] rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] shadow-sm flex items-center gap-2 transition-all"
+          >
+            <Tag size={16} />
+            Accessories & Trade Hub &rarr;
+          </a>
+          <Button
+            onClick={() => {
+              setEditingProduct(null);
+              setIsAdding(true);
+              fetchData();
+            }}
+            className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+          >
+            <Plus size={20} strokeWidth={3} />
+            Add New
+          </Button>
+        </div>
       </div>
 
       <DataTable

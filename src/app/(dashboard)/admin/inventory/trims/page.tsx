@@ -10,9 +10,9 @@ import {
   Plus, 
   Edit2, 
   Trash2, 
-  ArrowLeft, 
   FolderPlus,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -652,16 +652,47 @@ export default function TrimsCatalogPage() {
   // View: Main List View matching Fabric CatalogManager
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-8 animate-in fade-in duration-700">
+        {/* Top Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+          <div className="relative">
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Trim Catalog</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+              Thread, Buttons, Zippers, Labels &amp; Finishing Accessories
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setIsCategoryModalOpen(true)}
+              variant="secondary"
+              className="h-16 px-8 rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[11px] bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200 shadow-sm"
+            >
+              <FolderPlus size={18} className="text-[#2d8d9b]" />
+              Manage Categories
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingItem(null);
+                setView('add');
+              }}
+              className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+            >
+              <Plus size={20} strokeWidth={3} />
+              Add Trim Article
+            </Button>
+          </div>
+        </div>
+
         {/* Category Pill Filters Bar */}
         {categories.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+          <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
             <button
               onClick={() => setSelectedCategoryId('ALL')}
-              className={`h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                 selectedCategoryId === 'ALL'
-                  ? 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20'
-                  : 'bg-white text-zinc-500 hover:bg-zinc-50 border border-zinc-200'
+                  ? 'bg-[#3a525d] text-white shadow-md'
+                  : 'text-zinc-500 hover:text-zinc-800'
               }`}
             >
               All Trims ({trims.length})
@@ -673,14 +704,14 @@ export default function TrimsCatalogPage() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  className={`h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20'
-                      : 'bg-white text-zinc-500 hover:bg-zinc-50 border border-zinc-200'
+                      ? 'bg-[#3a525d] text-white shadow-md'
+                      : 'text-zinc-500 hover:text-zinc-800'
                   }`}
                 >
                   <span>{cat.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'}`}>
                     {count}
                   </span>
                 </button>
@@ -714,26 +745,6 @@ export default function TrimsCatalogPage() {
                   );
                 })}
               </select>
-
-              <Button
-                onClick={() => setIsCategoryModalOpen(true)}
-                variant="secondary"
-                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.15em] px-4 bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200 shadow-sm cursor-pointer whitespace-nowrap"
-              >
-                <FolderPlus size={14} className="text-[#2d8d9b]" />
-                + Category
-              </Button>
-
-              <Button
-                onClick={() => {
-                  setEditingItem(null);
-                  setView('add');
-                }}
-                className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20 cursor-pointer whitespace-nowrap"
-              >
-                <Plus size={14} strokeWidth={3} />
-                Add Trim Article
-              </Button>
             </div>
           }
         />

@@ -7,9 +7,9 @@ import {
   Trash2, 
   Save,
   Clock,
-  Database,
   PlusCircle,
-  RefreshCw
+  RefreshCw,
+  Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -316,24 +316,34 @@ export default function SAMConfigurations() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Tab Selector */}
-      <div className="flex border-b border-zinc-100 gap-1 bg-white p-1 rounded-2xl w-fit shadow-sm">
+      {/* Top Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">SAM Configurations</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            Standard Allowed Minutes (SAM) Cost Heads, Slabs &amp; Audit Trail
+          </p>
+        </div>
+      </div>
+
+      {/* Tab Selector with Sleek Pill Design */}
+      <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
         <button
           onClick={() => setActiveTab('configure')}
-          className={`h-11 px-5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
             activeTab === 'configure'
               ? 'bg-[#3a525d] text-white shadow-md'
-              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
-          Configure Cost Heads & Slabs
+          Configure Cost Heads &amp; Slabs
         </button>
         <button
           onClick={() => setActiveTab('audit')}
-          className={`h-11 px-5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
             activeTab === 'audit'
               ? 'bg-[#3a525d] text-white shadow-md'
-              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
           Configuration Audit Log

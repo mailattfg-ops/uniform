@@ -54,7 +54,7 @@ const modules: ModuleItem[] = [
   {
     icon: Tag, label: 'Items', href: '/admin/products',
     subsections: [
-      { label: 'Product Registry', href: '/admin/products' },
+      { label: 'Products', href: '/admin/products' },
       { label: 'Product Types', href: '/admin/product-types' },
       { label: 'ART Number Hub', href: '/admin/art-number-hub' },
       { label: 'Design Numbers (DNS/DNG)', href: '/admin/design-numbers' },
@@ -184,7 +184,7 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Organization': ['view_schools', 'manage_schools', 'view_organizations'],
 
   // Items
-  'Product Registry': ['manage_products', 'view_products'],
+  'Products': ['manage_products', 'view_products'],
   'Product Types': ['manage_products', 'view_products'],
   'Group Designs': ['manage_products', 'view_products', 'manage_group_designs'],
   'Group Design Catalog': ['manage_products', 'view_products', 'manage_group_designs'],

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown, Printer } from 'lucide-react';
 import { Button } from './Button';
 
 export interface Column<T> {
@@ -10,6 +10,13 @@ export interface Column<T> {
   className?: string;
   sortable?: boolean;
   sortValue?: (item: T) => string | number | Date | null | undefined;
+}
+
+export interface SortInfo<T> {
+  columnIndex: number | null;
+  column: Column<T> | null;
+  direction: 'asc' | 'desc';
+  headerLabel: string;
 }
 
 export interface DataTableProps<T> {
@@ -25,6 +32,7 @@ export interface DataTableProps<T> {
   emptyMessage?: string;
   defaultSortIndex?: number | null;
   defaultSortDirection?: 'asc' | 'desc';
+  onPrint?: (sortedData: T[], sortInfo: SortInfo<T>) => void;
 }
 
 function extractTextFromReactNode(node: React.ReactNode): string {
@@ -126,6 +134,7 @@ export function DataTable<T extends { id: string | number }>({
   emptyMessage,
   defaultSortIndex = null,
   defaultSortDirection = 'asc',
+  onPrint,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -201,6 +210,24 @@ export function DataTable<T extends { id: string | number }>({
     });
   }, [filteredData, sortColumnIndex, sortDirection, columns]);
 
+  const currentSortInfo: SortInfo<T> = React.useMemo(() => {
+    const col = sortColumnIndex !== null && sortColumnIndex >= 0 && sortColumnIndex < columns.length ? columns[sortColumnIndex] : null;
+    let label = 'Default';
+    if (col) {
+      if (typeof col.header === 'string') {
+        label = col.header;
+      } else {
+        label = extractTextFromReactNode(col.header) || 'Selected Column';
+      }
+    }
+    return {
+      columnIndex: sortColumnIndex,
+      column: col,
+      direction: sortDirection,
+      headerLabel: label,
+    };
+  }, [sortColumnIndex, sortDirection, columns]);
+
   const totalPages = Math.ceil(sortedData.length / pageSize);
   const paginatedData = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -236,7 +263,7 @@ export function DataTable<T extends { id: string | number }>({
           
           <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
             {headerAction && <div className="flex justify-start">{headerAction}</div>}
-            <div className="flex gap-2 flex-1 sm:flex-initial">
+            <div className="flex gap-2 flex-1 sm:flex-initial items-center">
               <div className="relative group flex-1 sm:flex-initial">
                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={15} />
                  <input 
@@ -255,6 +282,17 @@ export function DataTable<T extends { id: string | number }>({
                    </button>
                  )}
               </div>
+              {onPrint && (
+                <button
+                  type="button"
+                  onClick={() => onPrint(sortedData, currentSortInfo)}
+                  className="h-10 px-3.5 bg-white border border-[#fce4d4] hover:bg-[#fce4d4]/30 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-2xs shrink-0 cursor-pointer"
+                  title="Print table data (as per current sort applied)"
+                >
+                  <Printer size={15} className="text-[#2d8d9b]" />
+                  <span className="hidden sm:inline">Print</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

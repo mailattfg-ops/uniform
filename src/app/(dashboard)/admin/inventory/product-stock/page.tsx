@@ -533,7 +533,7 @@ export default function ProductStockPage() {
             <p className="text-xl font-black italic text-[#3a525d]">No Readymade (Trade) Stock Records</p>
             <p className="text-xs font-bold max-w-md text-zinc-500 leading-relaxed">
               Custom manufactured uniforms are produced on-demand via Job Cards and do not sit in warehouse finished stock.
-              To manage trade finished stock here, register articles with <span className="text-[#2d8d9b] font-black">"Readymade (Trade)"</span> in the Product Registry.
+              To manage trade finished stock here, register articles with <span className="text-[#2d8d9b] font-black">"Readymade (Trade)"</span> in the Products.
             </p>
           </div>
         </div>

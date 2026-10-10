@@ -65,7 +65,8 @@ export default function WizardStep3({
   allProducts = [],
 }: WizardStep3Props) {
   const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET';
+  const isAccessory = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
+  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET' || quotationType === 'ACCESSORIES_SET';
   const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
   const hasDepartments = selectedDepts.length > 0;
   return (
@@ -82,7 +83,7 @@ export default function WizardStep3({
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product Type</label>
             <Select
-              options={productTypes.map((pt) => ({ label: pt.name, value: String(pt.id) }))}
+              options={productTypes.filter(pt => !/accessor/i.test(pt.name || '')).map((pt) => ({ label: pt.name, value: String(pt.id) }))}
               value={selectedProductTypeId}
               onChange={setSelectedProductTypeId}
               placeholder="Select Product..."
@@ -107,11 +108,20 @@ export default function WizardStep3({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">Product Type / Set</th>
-                      <th className="p-3">{isFabric ? 'Fabric Option' : 'Garment Product Line'}</th>
-                      <th className="p-3 text-right">Fabric Cost (Unit)</th>
-                      {!isFabric && <th className="p-3 text-right">Labor Cost (Unit)</th>}
-                      <th className="p-3 text-right">Unit Expense</th>
+                      <th className="p-3">{isAccessory ? 'Category / Department' : 'Product Type / Set'}</th>
+                      <th className="p-3">{isAccessory ? 'Accessory (Art #)' : 'Product & Fabric Details'}</th>
+                      {isAccessory ? (
+                        <>
+                          <th className="p-3">Size</th>
+                          <th className="p-3 text-right">Unit Price</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="p-3 text-right">Fabric Cost (Unit)</th>
+                          {!isFabric && <th className="p-3 text-right">Labor Cost (Unit)</th>}
+                          <th className="p-3 text-right">Unit Expense</th>
+                        </>
+                      )}
                       <th className="p-3 text-right">Quantity</th>
                       <th className="p-3 text-right">Total Expense</th>
                     </tr>
@@ -132,33 +142,77 @@ export default function WizardStep3({
                           const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
                           const itemFabricCost = mainCost + att1Cost + att2Cost;
                           const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
-                          const unitExpense = itemFabricCost + itemLaborCost;
+                          const unitPrice = parseFloat(item.price) || 0;
+                          const unitExpense = isAccessory ? unitPrice : (itemFabricCost + itemLaborCost);
 
                           const isFabricType = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-                          const displayName = isFabricType ? (fabric?.garment_category || 'Garment') : pTypeName;
+                          const displayName = isFabricType ? (fabric?.garment_category || pTypeName || 'Garment') : pTypeName;
 
-                          const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
-                          const prodName = product?.name || '';
-                          const garmentName = isFabricType ? '' : (prodName || item.design_number || pTypeName || '');
-                          const garmentLineDisplay = garmentName ? `${garmentName} – ${fabricDisplayName}` : fabricDisplayName;
+                          const product = (allProducts || []).find((p) => String(p.id) === String(item.product_id)) ||
+                                          (allProducts || []).find((p) => p.art_number && item.art_number && String(p.art_number).trim().toLowerCase() === String(item.art_number).trim().toLowerCase());
+                          const resolvedProdName = item.product_name || product?.name || item.name || (item.size_breakdown && item.size_breakdown.product_name) || pTypeName || 'Uniform Item';
+                          const artNum = item.art_number || product?.art_number || '';
+                          const att1Fabric = item.attachment_fabric1_id ? fabricsList.find((f) => String(f.id) === String(item.attachment_fabric1_id)) : null;
+                          const att2Fabric = item.attachment_fabric2_id ? fabricsList.find((f) => String(f.id) === String(item.attachment_fabric2_id)) : null;
 
                           return (
                             <tr key={`${dept.id}-${item.id || index}`} className="hover:bg-zinc-50/50 bg-white">
                               <td className="p-3 font-black text-[#3a525d]">
                                 {displayName} <span className="text-[10px] text-zinc-400 font-bold">({dept.name})</span>
                               </td>
-                              <td className="p-3 text-zinc-450">{garmentLineDisplay}</td>
-                              <td className="p-3 text-right font-mono">
-                                ₹{itemFabricCost.toFixed(2)}
-                                <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
+                              <td className="p-3 text-zinc-450">
+                                {isAccessory ? (
+                                  <div>
+                                    <span className="font-bold text-[#3a525d]">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
+                                    {artNum && <span className="block text-[9px] font-mono text-zinc-400">ART: {artNum}</span>}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-bold text-[#3a525d] text-xs">{resolvedProdName}</span>
+                                      {artNum && (
+                                        <span className="text-[9px] font-mono font-bold text-[#2d8d9b] bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded">
+                                          {artNum}
+                                        </span>
+                                      )}
+                                      {item.design_number && !item.design_number.startsWith('Auto') && (
+                                        <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.2 rounded">
+                                          {item.design_number}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                      <span><strong className="text-zinc-600 font-medium">Fabric:</strong> {fabricDisplayName}</span>
+                                      {att1Fabric && (
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 1:</strong> {att1Fabric.brand_name || att1Fabric.name}</span>
+                                      )}
+                                      {att2Fabric && (
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 2:</strong> {att2Fabric.brand_name || att2Fabric.name}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </td>
-                              {!isFabric && (
-                                <td className="p-3 text-right font-mono">
-                                  ₹{itemLaborCost.toFixed(2)}
-                                  <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
-                                </td>
+                              {isAccessory ? (
+                                <>
+                                  <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
+                                  <td className="p-3 text-right font-mono font-bold text-[#2d8d9b]">₹{unitPrice.toFixed(2)}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="p-3 text-right font-mono">
+                                    ₹{itemFabricCost.toFixed(2)}
+                                    <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
+                                  </td>
+                                  {!isFabric && (
+                                    <td className="p-3 text-right font-mono">
+                                      ₹{itemLaborCost.toFixed(2)}
+                                      <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
+                                    </td>
+                                  )}
+                                  <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
+                                </>
                               )}
-                              <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
                               <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
                               <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
                                 ₹{(unitExpense * qty).toFixed(2)}
@@ -181,35 +235,79 @@ export default function WizardStep3({
                           const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
                           const itemFabricCost = mainCost + att1Cost + att2Cost;
                           const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
-                          const unitExpense = itemFabricCost + itemLaborCost;
+                          const unitPrice = parseFloat(item.price) || 0;
+                          const unitExpense = isAccessory ? unitPrice : (itemFabricCost + itemLaborCost);
 
                           const className = item.size_breakdown?.class_name;
                           const classPrefix = className ? `[${className}] ` : '';
                           const isFabricType = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-                          const displayName = isFabricType ? (fabric?.garment_category || 'Garment') : pTypeName;
+                          const displayName = isFabricType ? (fabric?.garment_category || pTypeName || 'Garment') : pTypeName;
 
-                          const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
-                          const prodName = product?.name || '';
-                          const garmentName = isFabricType ? '' : (prodName || item.design_number || pTypeName || '');
-                          const garmentLineDisplay = garmentName ? `${garmentName} – ${fabricDisplayName}` : fabricDisplayName;
+                          const product = (allProducts || []).find((p) => String(p.id) === String(item.product_id)) ||
+                                          (allProducts || []).find((p) => p.art_number && item.art_number && String(p.art_number).trim().toLowerCase() === String(item.art_number).trim().toLowerCase());
+                          const resolvedProdName = item.product_name || product?.name || item.name || (item.size_breakdown && item.size_breakdown.product_name) || pTypeName || 'Uniform Item';
+                          const artNum = item.art_number || product?.art_number || '';
+                          const att1Fabric = item.attachment_fabric1_id ? fabricsList.find((f) => String(f.id) === String(item.attachment_fabric1_id)) : null;
+                          const att2Fabric = item.attachment_fabric2_id ? fabricsList.find((f) => String(f.id) === String(item.attachment_fabric2_id)) : null;
 
                           return (
                             <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
                               <td className="p-3 font-black text-[#3a525d]">
                                 {classPrefix}{displayName}
                               </td>
-                              <td className="p-3 text-zinc-450">{garmentLineDisplay}</td>
-                              <td className="p-3 text-right font-mono">
-                                ₹{itemFabricCost.toFixed(2)}
-                                <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
+                              <td className="p-3 text-zinc-450">
+                                {isAccessory ? (
+                                  <div>
+                                    <span className="font-bold text-[#3a525d]">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
+                                    {artNum && <span className="block text-[9px] font-mono text-zinc-400">ART: {artNum}</span>}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-bold text-[#3a525d] text-xs">{resolvedProdName}</span>
+                                      {artNum && (
+                                        <span className="text-[9px] font-mono font-bold text-[#2d8d9b] bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded">
+                                          {artNum}
+                                        </span>
+                                      )}
+                                      {item.design_number && !item.design_number.startsWith('Auto') && (
+                                        <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.2 rounded">
+                                          {item.design_number}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                      <span><strong className="text-zinc-600 font-medium">Fabric:</strong> {fabricDisplayName}</span>
+                                      {att1Fabric && (
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 1:</strong> {att1Fabric.brand_name || att1Fabric.name}</span>
+                                      )}
+                                      {att2Fabric && (
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 2:</strong> {att2Fabric.brand_name || att2Fabric.name}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </td>
-                              {!isFabric && (
-                                <td className="p-3 text-right font-mono">
-                                  ₹{itemLaborCost.toFixed(2)}
-                                  <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
-                                </td>
+                              {isAccessory ? (
+                                <>
+                                  <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
+                                  <td className="p-3 text-right font-mono font-bold text-[#2d8d9b]">₹{unitPrice.toFixed(2)}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="p-3 text-right font-mono">
+                                    ₹{itemFabricCost.toFixed(2)}
+                                    <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
+                                  </td>
+                                  {!isFabric && (
+                                    <td className="p-3 text-right font-mono">
+                                      ₹{itemLaborCost.toFixed(2)}
+                                      <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
+                                    </td>
+                                  )}
+                                  <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
+                                </>
                               )}
-                              <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
                               <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
                               <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
                                 ₹{(unitExpense * qty).toFixed(2)}
@@ -225,7 +323,7 @@ export default function WizardStep3({
           )}
 
           {/* Separate Fabrics Table */}
-          {separateFabrics && separateFabrics.length > 0 && (
+          {separateFabrics && separateFabrics.length > 0 && !isAccessory && (
             <div className="space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
                 Separate Fabric Materials Supplied
@@ -274,7 +372,7 @@ export default function WizardStep3({
           let totalLabor = 0;
           let totalReadymade = 0;
           let totalQty = 0;
-          const isReadymade = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
+          const isReadymade = quotationType === 'READYMADE' || quotationType === 'READYMADE_SET' || quotationType === 'MANUAL' || isAccessory;
 
           if (hasDepartments) {
             selectedDepts.forEach((dept) => {
@@ -331,7 +429,18 @@ export default function WizardStep3({
                   <h4 className="text-xs font-black uppercase tracking-widest">Compiler Outputs</h4>
                 </div>
 
-                {isReadymade ? (
+                {isAccessory ? (
+                  <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
+                    <div className="flex justify-between py-2 text-zinc-500">
+                      <span>Total Accessories Cost:</span>
+                      <span className="font-mono text-[#2d8d9b] font-black">₹{tableTotals.readymade.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 text-zinc-500">
+                      <span>Total Items Quantity:</span>
+                      <span className="font-mono text-zinc-800 font-black">{tableTotals.quantity} pcs</span>
+                    </div>
+                  </div>
+                ) : isReadymade ? (
                   <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
                     <div className="flex justify-between py-2 text-zinc-500">
                       <span>Total Items Price:</span>

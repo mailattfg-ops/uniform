@@ -38,6 +38,7 @@ interface WizardStep5Props {
   orgDepartments?: any[];
   departmentItems?: Record<string, ManualItem[]>;
   quotationType?: string;
+  allProducts?: any[];
 }
 
 export default function WizardStep5({
@@ -62,9 +63,11 @@ export default function WizardStep5({
   orgDepartments = [],
   departmentItems = {},
   quotationType = 'STANDARD',
+  allProducts = [],
 }: WizardStep5Props) {
   const customerName = organizations.find((o) => String(o.id) === String(selectedOrgId))?.name || 'Customer';
   const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
+  const isAccessory = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
 
   const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
   const hasDepartments = selectedDepts.length > 0;
@@ -116,6 +119,8 @@ export default function WizardStep5({
                 <p className="text-sm font-black text-[#3a525d] mt-1">
                   {hasMeasurements
                     ? productTypes.find((p) => String(p.id) === String(selectedProductTypeId))?.name || 'Uniform Item'
+                    : isAccessory
+                    ? 'Accessories Product Lines'
                     : 'Multiple Manual Garment Lines'}
                 </p>
               </div>
@@ -179,10 +184,19 @@ export default function WizardStep5({
                                 <table className="w-full text-left border-collapse">
                                   <thead>
                                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                                      <th className="p-3">Product Type</th>
-                                      <th className="p-3">Fabric Option</th>
-                                      {!isFabric && <th className="p-3">SAM Cost</th>}
-                                      <th className="p-3">Design Number</th>
+                                      <th className="p-3">{isAccessory ? 'Category' : 'Product Type'}</th>
+                                      <th className="p-3">{isAccessory ? 'Accessory' : isFabric ? 'Fabric Option' : 'Product Line'}</th>
+                                      {isAccessory ? (
+                                        <>
+                                          <th className="p-3">ART #</th>
+                                          <th className="p-3">Size</th>
+                                        </>
+                                      ) : (
+                                        <>
+                                          {!isFabric && <th className="p-3">SAM Cost</th>}
+                                          <th className="p-3">Design Number</th>
+                                        </>
+                                      )}
                                       <th className="p-3 text-right">Quantity</th>
                                       <th className="p-3 text-right">Unit Price</th>
                                       <th className="p-3 text-right">Total Price</th>
@@ -194,18 +208,32 @@ export default function WizardStep5({
                                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
                                       const fabricName = fabric ? (fabric.name ? `${fabric.name}${fabric.brand_name ? ` (${fabric.brand_name})` : ''}` : fabric.brand_name || 'Custom Fabric') : 'Custom Fabric';
                                       const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
+                                      const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
                                       return (
                                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
                                           <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
                                           <td className="p-3 text-zinc-600 text-xs font-semibold">
-                                            {item.fabric_id ? fabricName : '—'}
+                                            {isAccessory ? (
+                                              product?.name || item.design_number || 'Accessory Item'
+                                            ) : (
+                                              item.fabric_id ? fabricName : '—'
+                                            )}
                                           </td>
-                                          {!isFabric && (
-                                            <td className="p-3 font-mono">
-                                              {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
-                                            </td>
+                                          {isAccessory ? (
+                                            <>
+                                              <td className="p-3 font-mono font-bold text-sky-900">{item.art_number || '—'}</td>
+                                              <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
+                                            </>
+                                          ) : (
+                                            <>
+                                              {!isFabric && (
+                                                <td className="p-3 font-mono">
+                                                  {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                                                </td>
+                                              )}
+                                              <td className="p-3">{item.design_number || 'N/A'}</td>
+                                            </>
                                           )}
-                                          <td className="p-3">{item.design_number || 'N/A'}</td>
                                           <td className="p-3 text-right font-black">{item.quantity}</td>
                                           <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
                                           <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
@@ -235,10 +263,19 @@ export default function WizardStep5({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">Product Type</th>
-                      <th className="p-3">{isFabric ? 'Fabric Option' : 'Product Name'}</th>
-                      {!isFabric && <th className="p-3">SAM Cost</th>}
-                      <th className="p-3">Design Number</th>
+                      <th className="p-3">{isAccessory ? 'Category' : 'Product Type'}</th>
+                      <th className="p-3">{isAccessory ? 'Accessory' : isFabric ? 'Fabric Option' : 'Product Name'}</th>
+                      {isAccessory ? (
+                        <>
+                          <th className="p-3">ART #</th>
+                          <th className="p-3">Size</th>
+                        </>
+                      ) : (
+                        <>
+                          {!isFabric && <th className="p-3">SAM Cost</th>}
+                          <th className="p-3">Design Number</th>
+                        </>
+                      )}
                       <th className="p-3 text-right">Quantity</th>
                       <th className="p-3 text-right">Unit Price</th>
                       <th className="p-3 text-right">Total Price</th>
@@ -281,18 +318,34 @@ export default function WizardStep5({
                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
                       const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
                       const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
+                      const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
                       return (
                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
-                          <td className="p-3 text-zinc-500">
-                            {isFabric ? fabricName : 'Ready-made Product'}
+                          <td className="p-3 text-zinc-600 text-xs font-semibold">
+                            {isAccessory ? (
+                              product?.name || item.design_number || 'Accessory Item'
+                            ) : isFabric ? (
+                              fabricName
+                            ) : (
+                              'Ready-made Product'
+                            )}
                           </td>
-                          {!isFabric && (
-                            <td className="p-3 font-mono">
-                              {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
-                            </td>
+                          {isAccessory ? (
+                            <>
+                              <td className="p-3 font-mono font-bold text-sky-900">{item.art_number || '—'}</td>
+                              <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
+                            </>
+                          ) : (
+                            <>
+                              {!isFabric && (
+                                <td className="p-3 font-mono">
+                                  {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
+                                </td>
+                              )}
+                              <td className="p-3">{item.design_number || 'N/A'}</td>
+                            </>
                           )}
-                          <td className="p-3">{item.design_number || 'N/A'}</td>
                           <td className="p-3 text-right font-black">{item.quantity}</td>
                           <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
                           <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
@@ -307,7 +360,7 @@ export default function WizardStep5({
             </Card>
           )}
 
-          {separateFabrics.length > 0 && (
+          {separateFabrics.length > 0 && !isAccessory && (
             <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4 mt-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
                 Separate Fabric Materials Supplied

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, UserCheck, Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus, CheckCircle2, PauseCircle, Sparkles, User, Building2, Tag } from 'lucide-react';
+import { Plus, Users, MapPin, Edit2, Trash2, Calendar, Target, ShieldCheck, Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus, CheckCircle2, PauseCircle, Building2, FileSpreadsheet, Sparkles, User, Compass, Tag, UserCheck, ExternalLink } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -14,8 +15,11 @@ interface Lead {
   id: number;
   lead_code: string;
   name: string;
+  contact_person?: string | null;
   phone: string | null;
   email?: string | null;
+  source?: string | null;
+  requirements?: string | null;
   industry_id: number | null;
   industries?: { id: number; name: string } | null;
   address: string | null;
@@ -45,6 +49,7 @@ interface Employee {
 }
 
 export default function LeadsRegistryPage() {
+  const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -82,6 +87,19 @@ export default function LeadsRegistryPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (searchParams && leads.length > 0) {
+      const idParam = searchParams.get('id');
+      if (idParam) {
+        const id = parseInt(idParam, 10);
+        const match = leads.find(l => l.id === id);
+        if (match) {
+          setViewingLead(match);
+        }
+      }
+    }
+  }, [searchParams, leads]);
+
   const authorName = currentUser?.fullName || currentUser?.full_name || currentUser?.username || 'Muhammed Hafiz';
   const authorDesignation = currentUser?.designation || currentUser?.role || 'Relationship Manager';
   const authorDepartment = currentUser?.department || 'Corporate Sales';
@@ -99,7 +117,7 @@ export default function LeadsRegistryPage() {
         setLeads(leadsRes.value.data || []);
       } else {
         console.error('Failed to load leads:', leadsRes.reason);
-        toast.error('Failed to load leads registry details');
+        toast.error('Failed to load leads details');
       }
 
       if (indRes.status === 'fulfilled') {
@@ -114,7 +132,8 @@ export default function LeadsRegistryPage() {
         console.error('Failed to load employees:', empRes.reason);
       }
     } catch (err) {
-      toast.error('Failed to load leads registry details');
+      toast.error('Failed to load leads details');
+      console.log(err);
     } finally {
       setIsLoading(false);
     }
@@ -145,14 +164,17 @@ export default function LeadsRegistryPage() {
     // Normalize fields
     const payload = {
       name: formData.name.trim(),
+      contact_person: formData.contact_person?.trim() || null,
       phone: formData.phone.trim(),
+      contact_number: formData.phone.trim(),
       email: formData.email?.trim() || null,
+      source: formData.source?.trim() || null,
+      requirements: formData.requirements?.trim() || null,
       industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
       address: formData.address?.trim() || null,
       city: formData.city?.trim() || null,
       state: formData.state?.trim() || null,
       pincode: formData.pincode?.trim() || null,
-      pin_code: formData.pincode?.trim() || null,
       country: formData.country?.trim() || 'India',
       assigned_staff_id: resolvedAssignedStaffId,
       status: formData.status || 'New',
@@ -274,19 +296,32 @@ export default function LeadsRegistryPage() {
   const columns: Column<Lead>[] = [
     {
       header: 'Lead ID',
-      className: 'w-[130px] whitespace-nowrap',
+      className: 'w-[140px] whitespace-nowrap',
       sortValue: (l) => l.lead_code || String(l.id),
       accessor: (l) => {
         const idLabel = l.lead_code || `#${l.id}`;
         return (
-          <button
-            type="button"
-            onClick={() => setViewingLead(l)}
-            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#fce4d4]/40 text-[#8b6b5a] border border-[#fce4d4] hover:bg-[#fce4d4]/70 transition-all cursor-pointer"
-            title="Click to view details"
-          >
-            {idLabel}
-          </button>
+          <div className="group inline-flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setViewingLead(l)}
+              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#fce4d4]/40 text-[#8b6b5a] border border-[#fce4d4] hover:bg-[#fce4d4]/70 hover:text-[#3a525d] transition-all cursor-pointer"
+              title="Click to view details"
+            >
+              {idLabel}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/customers/leads?id=${l.id}`, '_blank');
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
+              title="Open lead in new tab"
+            >
+              <ExternalLink size={12} />
+            </button>
+          </div>
         );
       }
     },
@@ -295,23 +330,36 @@ export default function LeadsRegistryPage() {
       className: 'min-w-[200px]',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 group">
           <div 
             onClick={() => setViewingLead(l)}
-            className="w-9 h-9 bg-[#3a525d]/5 hover:bg-[#2d8d9b]/15 rounded-xl flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] border border-[#3a525d]/10 transition-all cursor-pointer shrink-0 group"
+            className="w-9 h-9 bg-[#3a525d]/5 hover:bg-[#2d8d9b]/15 rounded-xl flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] border border-[#3a525d]/10 transition-all cursor-pointer shrink-0"
             title="Click to view details"
           >
-            <Target size={18} className="group-hover:scale-110 transition-transform" />
+            <Target size={18} className="group-hover:scale-105 transition-transform" />
           </div>
           <div>
-            <button
-              type="button"
-              onClick={() => setViewingLead(l)}
-              className="text-left font-black text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none block"
-              title="Click to view details"
-            >
-              {l.name}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setViewingLead(l)}
+                className="text-left font-black text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none block"
+                title="Click to view details"
+              >
+                {l.name}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/customers/leads?id=${l.id}`, '_blank');
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
+                title="Open lead in new tab"
+              >
+                <ExternalLink size={12} />
+              </button>
+            </div>
             <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider mt-0.5">
               {l.industries?.name || 'Institutional'}
             </p>
@@ -387,7 +435,7 @@ export default function LeadsRegistryPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Leads Registry</h1>
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Leads</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             Prospecting Directory & Staff Assignments
           </p>
@@ -398,7 +446,7 @@ export default function LeadsRegistryPage() {
           className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
         >
           <Plus size={20} strokeWidth={3} />
-          Register Lead
+          New Lead
         </Button>
       </div>
 
@@ -702,8 +750,11 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
   authorDepartment
 }) => {
   const [name, setName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [source, setSource] = useState('Direct');
+  const [requirements, setRequirements] = useState('');
   const [industryId, setIndustryId] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -717,8 +768,11 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
   useEffect(() => {
     if (editingLead) {
       setName(editingLead.name || '');
+      setContactPerson(editingLead.contact_person || '');
       setPhone(editingLead.phone || '');
       setEmail(editingLead.email || '');
+      setSource(editingLead.source || 'Direct');
+      setRequirements(editingLead.requirements || '');
       setIndustryId(editingLead.industry_id ? String(editingLead.industry_id) : '');
       setAddress(editingLead.address || '');
       setCity(editingLead.city || '');
@@ -729,8 +783,11 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setRemarks('');
     } else {
       setName('');
+      setContactPerson('');
       setPhone('');
       setEmail('');
+      setSource('Direct');
+      setRequirements('');
       setIndustryId('');
       setAddress('');
       setCity('');
@@ -759,8 +816,11 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
     try {
       await onSubmit({
         name: name.trim(),
+        contact_person: contactPerson.trim() || null,
         phone: phone.trim(),
         email: email.trim() || null,
+        source: source.trim() || null,
+        requirements: requirements.trim() || null,
         industry_id: industryId || null,
         address: address.trim() || null,
         city: city.trim() || null,
@@ -793,10 +853,10 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
               </span>
             </div>
             <h3 className="text-2xl font-black italic tracking-tight">
-              {editingLead ? 'Edit Lead Profile' : 'Register New Lead'}
+              {editingLead ? 'Edit Lead Profile' : 'Add New Lead'}
             </h3>
             <p className="text-xs text-white/70 font-semibold mt-0.5">
-              {editingLead ? `Update details for ${editingLead.name}` : 'Configure prospect profile to initiate the commercial sales pipeline'}
+              {editingLead ? `Update details for ${editingLead.name}` : 'Add lead profile to initiate the commercial sales pipeline'}
             </p>
           </div>
           <button
@@ -810,20 +870,35 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto flex-1">
-          {/* Company / Prospect Name */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Building2 size={13} className="text-[#2d8d9b]" />
-              Lead / Company Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Acme Corporation, St. Mary Academy"
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-            />
+          {/* Company / Prospect Name & Contact Person in 2 columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Building2 size={13} className="text-[#2d8d9b]" />
+                Lead / Company Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Acme Corporation, St. Mary Academy"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <User size={13} className="text-[#2d8d9b]" />
+                Contact Person (Optional)
+              </label>
+              <input
+                type="text"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                placeholder="e.g. Dr. Rajesh Sharma (Principal)"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
           </div>
 
           {/* Phone & Email in 2 columns */}
@@ -857,8 +932,8 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
-          {/* Industry & Status in 2 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Industry, Lead Source, Status in 3 columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Briefcase size={13} className="text-[#2d8d9b]" />
@@ -869,10 +944,29 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 onChange={(e) => setIndustryId(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
               >
-                <option value="">Select Industry Sector</option>
+                <option value="">Select Sector</option>
                 {industries.map((i) => (
                   <option key={i.id} value={String(i.id)}>{i.name}</option>
                 ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Compass size={13} className="text-[#2d8d9b]" />
+                Lead Source
+              </label>
+              <select
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+              >
+                <option value="Direct">Direct / Walk-in</option>
+                <option value="Referral">Client Referral</option>
+                <option value="Website">Website / Online</option>
+                <option value="Cold Call">Cold Outreach</option>
+                <option value="Exhibition">Exhibition / Expo</option>
+                <option value="Social Media">Social Media</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             <div className="space-y-1.5">
@@ -893,6 +987,21 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 <option value="Lost">Lost</option>
               </select>
             </div>
+          </div>
+
+          {/* Requirements & Specifications */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <FileSpreadsheet size={13} className="text-[#2d8d9b]" />
+              Client Requirements & Specifications (Optional)
+            </label>
+            <input
+              type="text"
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="e.g. 500 Blazers with embroidery, 1000 Cotton Shirts, 500 Trousers"
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+            />
           </div>
 
           {/* Address Breakdown: Street, City, State, Pin code, Country */}
@@ -1206,7 +1315,30 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
               })}
             </div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Contact Person */}
+            {lead.contact_person && (
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Contact Person</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <User size={14} className="text-[#2d8d9b]" />
+                  <p className="text-sm font-bold text-[#3a525d]">{lead.contact_person}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Lead Source */}
+            {lead.source && (
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Lead Source</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Compass size={14} className="text-[#2d8d9b]" />
+                  <p className="text-sm font-bold text-[#3a525d]">{lead.source}</p>
+                </div>
+              </div>
+            )}
+
             {/* Phone */}
             <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Phone Number</label>
@@ -1224,6 +1356,17 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 <p className="text-sm font-bold text-[#3a525d] truncate">{lead.email || 'No Email Provided'}</p>
               </div>
             </div>
+
+            {/* Requirements */}
+            {lead.requirements && (
+              <div className="p-5 bg-teal-50/50 rounded-2xl border border-teal-100/80 col-span-1 md:col-span-2">
+                <label className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest block mb-1">Client Inquired Requirements</label>
+                <div className="flex items-start gap-2 mt-1">
+                  <FileSpreadsheet size={15} className="text-[#2d8d9b] mt-0.5 shrink-0" />
+                  <p className="text-xs font-semibold text-zinc-800 leading-relaxed">{lead.requirements}</p>
+                </div>
+              </div>
+            )}
 
             {/* Industry */}
             <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 col-span-1 md:col-span-2">

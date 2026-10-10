@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
-import { Check, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { Check, ChevronRight } from 'lucide-react';
 import { Organization, ProductType, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
 
 // Steps imports
@@ -64,12 +64,13 @@ export default function QuotationWizard({
   const [groupDesignCombinations, setGroupDesignCombinations] = useState<any[]>([]);
   const [selectedGroupDesignId, setSelectedGroupDesignId] = useState<string>('');
   const [coverLetter, setCoverLetter] = useState('');
-  const [gstPercent, setGstPercent] = useState('18');
+  const [gstPercent, setGstPercent] = useState('5');
   const [salesType, setSalesType] = useState<string>('WHOLESALE');
   const [customerType, setCustomerType] = useState<string>('DIRECT');
   const [quotationType, setQuotationType] = useState<string>('STANDARD');
   const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET' || quotationType === 'MANUAL';
+  const isAccessory = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
+  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET' || quotationType === 'ACCESSORIES_SET' || quotationType === 'MANUAL';
   const [orgDepartments, setOrgDepartments] = useState<any[]>([]);
   const [orgClasses, setOrgClasses] = useState<any[]>([
     { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
@@ -144,7 +145,7 @@ export default function QuotationWizard({
 
   // Profit variables
   const [profitMargin, setProfitMargin] = useState('0');
-  const [status, setStatus] = useState<string>('Pending');
+  const [status, setStatus] = useState<string>('Pending Branch Approval');
   const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
     { label: '', quantity: '1', rate: '0' }
   ]);
@@ -194,6 +195,9 @@ export default function QuotationWizard({
         setQuoteTitle(fullQuote.title);
         setQuoteNo(fullQuote.quotation_no || '');
         setSelectedOrgId(String(fullQuote.organization_id));
+        if (fullQuote.status) {
+          setStatus(fullQuote.status);
+        }
 
         // Fetch organization departments
         try {
@@ -281,7 +285,7 @@ export default function QuotationWizard({
         setProjectStartDate(fullQuote.metrics_summary?.project_start_date || new Date().toISOString().split('T')[0]);
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
-        setGstPercent(String(fullQuote.metrics_summary?.gst_percent ?? '18'));
+        setGstPercent(fullQuote.metrics_summary?.gst_percent != null ? String(fullQuote.metrics_summary.gst_percent) : '0');
         setIsTaxInclusive(Boolean(fullQuote.metrics_summary?.is_tax_inclusive));
         setStatus(fullQuote.status || 'Pending');
 
@@ -594,8 +598,21 @@ export default function QuotationWizard({
     }
 
     setHasMeasurements(false);
-    const orgName = organizations.find(o => String(o.id) === String(orgId))?.name || 'Customer';
+    const org = organizations.find(o => String(o.id) === String(orgId));
+    const orgName = org?.name || 'Customer';
     setQuoteTitle(`Uniform Contract for ${orgName}`);
+
+    // Automatic B2B & GST Provisioning:
+    // When GST details are registered for a customer, sales to them automatically becomes B2B
+    const isB2bCustomer = Boolean(org?.is_b2b || (org?.gst_number && String(org.gst_number).trim() !== ''));
+    if (isB2bCustomer) {
+      setSalesType('B2B');
+      setIsTaxInclusive(false); // B2B quotations use Tax Exclusive pricing with distinct GST breakdown
+      if (!gstPercent || gstPercent === '0') {
+        setGstPercent('5'); // Default standard textile/apparel GST slab
+      }
+      toast.info(`B2B Customer detected (${org?.gst_number}). Sales mode set to B2B with GST quotation.`);
+    }
 
     try {
       const res = await api.get(`/departments?orgId=${orgId}`);
@@ -658,6 +675,31 @@ export default function QuotationWizard({
   };
 
   const isManualItemsValid = () => {
+    // ACCESSORIES and ACCESSORIES_SET: accessories with product_id + price + quantity
+    if (quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORY') {
+      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
+      const hasDepts = selectedDepts.length > 0 && quotationType === 'ACCESSORIES_SET';
+      if (hasDepts) {
+        return selectedDepts.every(dept => {
+          const items = departmentItems[String(dept.id)] || [];
+          if (items.length === 0) return false;
+          return items.every(item =>
+            item.product_id !== '' &&
+            item.price !== '' &&
+            parseFloat(item.price) >= 0 &&
+            parseInt(item.quantity) > 0
+          );
+        });
+      }
+      if (manualItems.length === 0) return false;
+      return manualItems.every(item =>
+        item.product_id !== '' &&
+        item.price !== '' &&
+        parseFloat(item.price) >= 0 &&
+        parseInt(item.quantity) > 0
+      );
+    }
+
     // READYMADE_SET and MANUAL: department items with product + manually entered price
     if (quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') {
       const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
@@ -907,6 +949,26 @@ export default function QuotationWizard({
 
   // Run dynamic expense calculations based on active sizes
   const getCalculatedExpenses = () => {
+    // For Accessories: sum price * qty directly under accessories expense
+    if (quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORY') {
+      let totalCost = 0;
+      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
+      const hasDepts = selectedDepts.length > 0 && quotationType === 'ACCESSORIES_SET';
+      if (hasDepts) {
+        selectedDepts.forEach((dept: any) => {
+          const items = departmentItems[String(dept.id)] || [];
+          items.forEach((item: any) => {
+            totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
+          });
+        });
+      } else {
+        manualItems.forEach(item => {
+          totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
+        });
+      }
+      return { fabric: 0, accessories: Math.round(totalCost * 100) / 100, labor: 0, total: Math.round(totalCost * 100) / 100 };
+    }
+
     // For department price-entry types (READYMADE_SET, MANUAL): sum price * qty directly
     if (quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') {
       let totalCost = 0;
@@ -1116,11 +1178,20 @@ export default function QuotationWizard({
             unit_price: price,
             total_price: qty * price,
             is_manual: true,
+            product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
+            art_number: item.art_number || actualProduct?.art_number || null,
+            fabric_id: item.fabric_id || null,
+            attachment_fabric1_id: item.attachment_fabric1_id || null,
+            attachment_fabric2_id: item.attachment_fabric2_id || null,
+            button_id: item.button_id || null,
+            thread_id: item.thread_id || null,
+            trims: item.trims || [],
+            design_number: item.design_number || null,
             size_breakdown: {
               is_manual: true,
               department_id: dept.id,
               department_name: dept.name,
-              product_id: item.product_id || null,
+              product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
               product_name: resolvedProductName,
               fabric_id: item.fabric_id || null,
               main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
@@ -1143,13 +1214,14 @@ export default function QuotationWizard({
               design_number: item.design_number || null,
               art_number: item.art_number || actualProduct?.art_number || null,
               computed_unit_cost: price,
-              selected_size: item.size_breakdown?.selected_size || null
+              selected_size: item.size_breakdown?.selected_size || null,
+              is_accessory: isAccessory
             },
-            fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
+            fabric_cost_per_item: isAccessory ? 0 : (calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
                                   calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
-                                  calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id),
-            accessories_cost_per_item: 0,
-            labor_cost_per_item: calculateProductSAMCost(item.sam_value, item.quantity)
+                                  calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id)),
+            accessories_cost_per_item: isAccessory ? price : 0,
+            labor_cost_per_item: isAccessory ? 0 : calculateProductSAMCost(item.sam_value, item.quantity)
           });
         });
       });
@@ -1174,7 +1246,7 @@ export default function QuotationWizard({
         .map(item => {
           const qty = parseInt(item.quantity) || 0;
           // Price-based types use entered price; all others use computeItemUnitCost
-          const isPriceBased = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL';
+          const isPriceBased = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL' || isAccessory;
           const unitCost = isPriceBased ? (parseFloat(item.price) || 0) : computeItemUnitCost(item);
           const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
           const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
@@ -1184,7 +1256,7 @@ export default function QuotationWizard({
           if (isPriceBased) {
             return {
               product_type_id: parseInt(item.product_type_id) || null,
-              product_type_name: selectedProduct?.name || 'Item',
+              product_type_name: selectedProduct?.name || (isAccessory ? 'Accessory' : 'Item'),
               product_name: resolvedProductName,
               name: resolvedProductName,
               quantity: qty,
@@ -1199,10 +1271,11 @@ export default function QuotationWizard({
                 art_number: item.art_number || actualProduct?.art_number || null,
                 computed_unit_cost: unitCost,
                 is_readymade: true,
+                is_accessory: isAccessory,
                 selected_size: item.size_breakdown?.selected_size || null
               },
               fabric_cost_per_item: 0,
-              accessories_cost_per_item: 0,
+              accessories_cost_per_item: isAccessory ? unitCost : 0,
               labor_cost_per_item: 0
             };
           }
@@ -1216,9 +1289,18 @@ export default function QuotationWizard({
             unit_price: unitCost,
             total_price: qty * unitCost,
             is_manual: true,
+            product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
+            art_number: item.art_number || actualProduct?.art_number || null,
+            fabric_id: item.fabric_id || null,
+            attachment_fabric1_id: item.attachment_fabric1_id || null,
+            attachment_fabric2_id: item.attachment_fabric2_id || null,
+            button_id: item.button_id || null,
+            thread_id: item.thread_id || null,
+            trims: item.trims || [],
+            design_number: item.design_number || null,
             size_breakdown: {
               is_manual: true,
-              product_id: item.product_id || null,
+              product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
               product_name: resolvedProductName,
               fabric_id: item.fabric_id || null,
               main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
@@ -1280,50 +1362,62 @@ export default function QuotationWizard({
       });
     });
 
-    const payload = {
-      quotation_no: quoteNo.trim() || undefined,
-      title: quoteTitle.trim(),
-      organization_id: parseInt(selectedOrgId),
-      estimated_expenses: totals.expenses,
-      total_estimated_time: `${timeMetrics.totalHours} Hours`,
-      production_days_estimate: timeMetrics.workingDays,
-      expected_delivery_date: deliveryDate,
-      profit_margin_percent: parseFloat(profitMargin),
-      final_quote_value: totals.finalValue,
-      metrics_summary: {
-        total_entities: hasMeasurements ? orgAnalysis.total_entities : totalQty,
-        measured: hasMeasurements ? orgAnalysis.measured_count : 0,
-        pending: hasMeasurements ? orgAnalysis.pending_count : 0,
-        missing: hasMeasurements ? orgAnalysis.missing_count : 0,
-        sizes: hasMeasurements ? orgAnalysis.size_distribution : {},
-        cover_letter: coverLetter,
-        gst_percent: parseFloat(gstPercent) || 0,
-        is_tax_inclusive: isTaxInclusive,
-        tax_amount: totals.gstValue,
-        pre_tax_subtotal: totals.subtotal,
-        tax_breakdown: {
-          rate: parseFloat(gstPercent) || 0,
-          cgst: totals.cgst,
-          sgst: totals.sgst,
-          total_tax: totals.gstValue
+      const selectedOrg = organizations.find(o => String(o.id) === String(selectedOrgId));
+      const isB2bOrder = salesType === 'B2B' || Boolean(selectedOrg?.is_b2b || selectedOrg?.gst_number);
+
+      const payload = {
+        quotation_no: quoteNo.trim() || undefined,
+        title: quoteTitle.trim(),
+        organization_id: parseInt(selectedOrgId),
+        estimated_expenses: totals.expenses,
+        total_estimated_time: `${timeMetrics.totalHours} Hours`,
+        production_days_estimate: timeMetrics.workingDays,
+        expected_delivery_date: deliveryDate,
+        profit_margin_percent: parseFloat(profitMargin),
+        final_quote_value: totals.finalValue,
+        metrics_summary: {
+          total_entities: hasMeasurements ? orgAnalysis.total_entities : totalQty,
+          measured: hasMeasurements ? orgAnalysis.measured_count : 0,
+          pending: hasMeasurements ? orgAnalysis.pending_count : 0,
+          missing: hasMeasurements ? orgAnalysis.missing_count : 0,
+          sizes: hasMeasurements ? orgAnalysis.size_distribution : {},
+          cover_letter: coverLetter,
+          gst_percent: parseFloat(gstPercent) || 0,
+          is_tax_inclusive: isTaxInclusive,
+          tax_amount: totals.gstValue,
+          pre_tax_subtotal: totals.subtotal,
+          tax_breakdown: {
+            rate: parseFloat(gstPercent) || 0,
+            cgst: totals.cgst,
+            sgst: totals.sgst,
+            total_tax: totals.gstValue
+          },
+          sales_type: salesType,
+          customer_type: customerType,
+          quotation_type: quotationType,
+          is_b2b: isB2bOrder,
+          customer_gstin: selectedOrg?.gst_number || null,
+          customer_pan: selectedOrg?.pan_number || null,
+          customer_legal_name: selectedOrg?.legal_name || selectedOrg?.name || null,
+          delivery_address: selectedOrg?.delivery_address || selectedOrg?.address || null,
+          delivery_city: selectedOrg?.delivery_city || selectedOrg?.city || null,
+          delivery_state: selectedOrg?.delivery_state || selectedOrg?.state || null,
+          delivery_pincode: selectedOrg?.delivery_pincode || selectedOrg?.pincode || selectedOrg?.pin_code || null,
+          delivery_country: selectedOrg?.delivery_country || selectedOrg?.country || 'India',
+          extra_charges: extraCharges,
+          separate_fabrics: separateFabrics,
+          project_start_date: projectStartDate,
+          departments: selectedDepts.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            division: d.division,
+            persons: parseInt(d.persons, 10) || 0,
+            sets: parseInt(d.sets, 10) || 0
+          })),
+          classes: []
         },
-        sales_type: salesType,
-        customer_type: customerType,
-        quotation_type: quotationType,
-        extra_charges: extraCharges,
-        separate_fabrics: separateFabrics,
-        project_start_date: projectStartDate,
-        departments: selectedDepts.map((d: any) => ({
-          id: d.id,
-          name: d.name,
-          division: d.division,
-          persons: parseInt(d.persons, 10) || 0,
-          sets: parseInt(d.sets, 10) || 0
-        })),
-        classes: []
-      },
-      items: payloadItems
-    };
+        items: payloadItems
+      };
 
     const loadingToast = toast.loading(editingQuotationId ? 'Updating Formal Quotation...' : 'Compiling and saving Formal Quotation...');
     try {
@@ -1331,13 +1425,13 @@ export default function QuotationWizard({
       if (editingQuotationId) {
         response = await api.put(`/quotations/${editingQuotationId}`, {
           ...payload,
-          status: status
+          status: status || 'Pending Branch Approval'
         });
         toast.success('Formal Quotation updated successfully!', { id: loadingToast });
       } else {
         response = await api.post('/quotations', {
           ...payload,
-          status: status
+          status: 'Pending Branch Approval'
         });
         toast.success('Formal Quotation compiled and saved to registry!', { id: loadingToast });
       }
@@ -1441,6 +1535,7 @@ Forma Apparels Co.`;
       }
     ]);
     setSeparateFabrics([]);
+    setStatus('Pending Branch Approval');
   };
 
   if (isInitializingEdit) {
@@ -1640,6 +1735,7 @@ Forma Apparels Co.`;
             orgDepartments={orgDepartments}
             departmentItems={departmentItems}
             quotationType={quotationType}
+            allProducts={allProducts}
           />
         )}
       </Card>

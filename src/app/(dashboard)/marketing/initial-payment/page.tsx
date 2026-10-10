@@ -10,18 +10,17 @@ import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
 import {
-  TrendingUp,
   CreditCard,
   History,
   Plus,
-
   CheckCircle2,
   AlertTriangle,
   Clock,
-  Calendar,
   X,
   FileText,
   Trash2,
+  TrendingUp,
+  Calendar,
   IndianRupee
 } from 'lucide-react';
 
@@ -371,12 +370,14 @@ export default function InitialPaymentPage() {
   ];
 
   return (
-    <div className="p-4 md:p-8 space-y-8 bg-zinc-50/50 min-h-screen">
+    <div className="space-y-8 animate-in fade-in duration-700">
       {/* Top Title Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black italic tracking-tight text-[#3a525d]">Initial Payment Collection</h1>
-          <p className="text-xs text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">
+            Initial Payment Collection
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             Fulfillment Pipeline &gt; Payment Registries
           </p>
         </div>
@@ -384,7 +385,7 @@ export default function InitialPaymentPage() {
 
       {/* Stats Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-[#fce4d4]/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
             <IndianRupee size={24} />
           </div>
@@ -396,7 +397,7 @@ export default function InitialPaymentPage() {
           </div>
         </Card>
 
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-emerald-50/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-emerald-100/50 flex items-center justify-center text-emerald-600">
             <CheckCircle2 size={24} />
           </div>
@@ -408,7 +409,7 @@ export default function InitialPaymentPage() {
           </div>
         </Card>
 
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-amber-50/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-amber-100/50 flex items-center justify-center text-amber-600">
             <Clock size={24} />
           </div>
@@ -420,7 +421,7 @@ export default function InitialPaymentPage() {
           </div>
         </Card>
 
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-blue-50/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] shrink-0">
             <TrendingUp size={24} />
           </div>
@@ -458,47 +459,65 @@ export default function InitialPaymentPage() {
         </Card>
       </div>
 
-      {/* Tab Selectors */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 pb-px">
-        <div className="flex gap-2 overflow-x-auto">
-          <button
-            onClick={() => setActiveSubTab('awaiting')}
-            className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors flex items-center gap-2 ${activeSubTab === 'awaiting'
-                ? 'border-[#2d8d9b] text-[#2d8d9b]'
-                : 'border-transparent text-zinc-400 hover:text-zinc-600'
-              }`}
-          >
-            <span>Awaiting Payment ({awaitingCount})</span>
-            {partiallyPaidCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[9px] font-black">
-                {partiallyPaidCount} Partial
-              </span>
-            )}
-            {pendingCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[9px] font-black">
-                {pendingCount} Pending
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveSubTab('completed')}
-            className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'completed'
-                ? 'border-[#2d8d9b] text-[#2d8d9b]'
-                : 'border-transparent text-zinc-400 hover:text-zinc-600'
-              }`}
-          >
-            Paid & Completed ({completedCount})
-          </button>
-          <button
-            onClick={() => setActiveSubTab('cancelled')}
-            className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors ${activeSubTab === 'cancelled'
-                ? 'border-[#2d8d9b] text-[#2d8d9b]'
-                : 'border-transparent text-zinc-400 hover:text-zinc-600'
-              }`}
-          >
-            Cancelled ({cancelledCount})
-          </button>
-        </div>
+      {/* Tab Selectors with Sleek Pill Design */}
+      <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
+        <button
+          onClick={() => setActiveSubTab('awaiting')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+            activeSubTab === 'awaiting'
+              ? 'bg-[#3a525d] text-white shadow-md'
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
+          <span>Awaiting Payment</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeSubTab === 'awaiting' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {awaitingCount}
+          </span>
+          {partiallyPaidCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[9px] font-black">
+              {partiallyPaidCount} Partial
+            </span>
+          )}
+          {pendingCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[9px] font-black">
+              {pendingCount} Pending
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('completed')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+            activeSubTab === 'completed'
+              ? 'bg-[#3a525d] text-white shadow-md'
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
+          <span>Paid &amp; Completed</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeSubTab === 'completed' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {completedCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('cancelled')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+            activeSubTab === 'cancelled'
+              ? 'bg-[#3a525d] text-white shadow-md'
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
+          <span>Cancelled</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeSubTab === 'cancelled' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {cancelledCount}
+          </span>
+        </button>
       </div>
 
       {/* Main Table with Status Filter Actions */}

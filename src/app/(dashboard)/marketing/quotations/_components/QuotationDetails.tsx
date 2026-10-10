@@ -4,19 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
-  Building2,
   Edit,
   Scale,
-  ArrowLeft,
   Send,
   Check,
   RotateCcw,
-  CheckCircle2,
+  Trash2,
+  ArrowLeft,
   Clock,
-  ShieldCheck,
   AlertTriangle,
-  FileCheck,
-  Trash2
+  CheckCircle2,
+  ShieldCheck,
+  Building2,
+  FileCheck
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
@@ -92,8 +92,12 @@ export default function QuotationDetails({
 
   const getSelectedQuotePricing = (quote: Quotation) => {
     const finalValue = Number(quote.final_quote_value) || 0;
-    const gstRate = Number(quote.metrics_summary?.gst_percent ?? 18);
-    const subtotal = Number(quote.metrics_summary?.pre_tax_subtotal ?? (finalValue / (1 + gstRate / 100)));
+    const gstRate = quote.metrics_summary?.gst_percent != null
+      ? Number(quote.metrics_summary.gst_percent)
+      : 0;
+    const subtotal = quote.metrics_summary?.pre_tax_subtotal != null
+      ? Number(quote.metrics_summary.pre_tax_subtotal)
+      : (gstRate > 0 ? (finalValue / (1 + gstRate / 100)) : finalValue);
     const gstValue = finalValue - subtotal;
     return {
       finalValue,
@@ -110,6 +114,20 @@ export default function QuotationDetails({
     const deliveryDateStr = quote.expected_delivery_date
       ? formatDate(quote.expected_delivery_date)
       : 'N/A';
+
+    const customerGstin = quote.metrics_summary?.customer_gstin || (quote.organizations as any)?.gst_number || '';
+    const customerPan = quote.metrics_summary?.customer_pan || (quote.organizations as any)?.pan_number || '';
+    const customerLegalName = quote.metrics_summary?.customer_legal_name || (quote.organizations as any)?.legal_name || '';
+    const isB2B = Boolean(customerGstin || quote.metrics_summary?.is_b2b || (quote.organizations as any)?.is_b2b || quote.metrics_summary?.sales_type === 'B2B');
+
+    const deliveryAddress = quote.metrics_summary?.delivery_address || (quote.organizations as any)?.delivery_address || (quote.organizations as any)?.address || '';
+    const deliveryCity = quote.metrics_summary?.delivery_city || (quote.organizations as any)?.delivery_city || '';
+    const deliveryState = quote.metrics_summary?.delivery_state || (quote.organizations as any)?.delivery_state || '';
+    const deliveryPincode = quote.metrics_summary?.delivery_pincode || (quote.organizations as any)?.delivery_pincode || '';
+    const fullDeliveryAddress = [deliveryAddress, deliveryCity, deliveryState, deliveryPincode].filter(Boolean).join(', ');
+
+    const halfGstRate = (pricing.gstRate / 2);
+    const halfGstVal = (pricing.gstValue / 2);
 
     // Construct items HTML
     let itemsHtml = '';
@@ -375,7 +393,7 @@ export default function QuotationDetails({
 
             <div class="text-right">
               <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
-                ${quote.status} Proposal
+                ${quote.status} ${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
               </span>
               <h1 class="text-xl font-black text-gray-800 mt-2 font-outfit">${quote.quotation_no}</h1>
               <p class="text-xs text-gray-500 font-bold mt-1">Date: ${dateStr}</p>
@@ -385,19 +403,53 @@ export default function QuotationDetails({
           <!-- CLIENT & TARGET INFO -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-gray-100 text-xs">
             <div>
-              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prepared For</p>
-              <p class="text-sm font-black text-gray-800 mt-1">${orgName}</p>
-              <p class="text-gray-500 mt-0.5 font-medium">Associated Uniform Contract Client</p>
+              <div class="flex items-center gap-2 mb-1">
+                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prepared For</p>
+                ${isB2B ? `
+                  <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    B2B Tax Invoice
+                  </span>
+                ` : ''}
+              </div>
+              <p class="text-sm font-black text-gray-800">${orgName}</p>
+              ${customerLegalName && customerLegalName !== orgName ? `
+                <p class="text-[11px] font-bold text-gray-700 mt-0.5">Legal: ${customerLegalName}</p>
+              ` : ''}
+              ${customerGstin ? `
+                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span class="font-mono text-[10px] font-black text-emerald-900 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                    GSTIN: ${customerGstin}
+                  </span>
+                  ${customerPan ? `
+                    <span class="font-mono text-[10px] font-bold text-gray-700 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
+                      PAN: ${customerPan}
+                    </span>
+                  ` : ''}
+                </div>
+              ` : ''}
+              ${quote.organizations?.address ? `
+                <p class="text-gray-500 mt-1 font-medium leading-relaxed">
+                  Billing: ${quote.organizations.address}${quote.organizations.city ? `, ${quote.organizations.city}` : ''}
+                </p>
+              ` : ''}
             </div>
             <div class="md:text-center">
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Group Design Number</p>
               <p class="text-sm font-black text-[#2d8d9b] mt-1">${quote.group_design_number?.code || '—'}</p>
               <p class="text-gray-500 mt-0.5 font-medium">Auto-generated Design Collection</p>
             </div>
-            <div class="md:text-right">
-              <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
-              <p class="text-sm font-black text-[#2d8d9b] mt-1">${deliveryDateStr}</p>
-              <p class="text-gray-500 mt-0.5 font-medium">Est. Days: ${quote.production_days_estimate} Production Days</p>
+            <div class="md:text-right space-y-2">
+              <div>
+                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
+                <p class="text-sm font-black text-[#2d8d9b] mt-0.5">${deliveryDateStr}</p>
+                <p class="text-gray-500 text-[10px] font-medium">Est. Days: ${quote.production_days_estimate} Production Days</p>
+              </div>
+              ${fullDeliveryAddress ? `
+                <div class="pt-1.5 border-t border-gray-50">
+                  <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Dispatch Destination</p>
+                  <p class="text-gray-700 font-bold text-xs mt-0.5 leading-snug">${fullDeliveryAddress}</p>
+                </div>
+              ` : ''}
             </div>
           </div>
 
@@ -504,18 +556,35 @@ export default function QuotationDetails({
 
           <!-- PRICING & GST COMPILATION -->
           <div class="flex justify-end py-6 border-t border-gray-100">
-            <div class="w-80 space-y-3.5 text-xs font-bold text-gray-500">
+            <div class="w-80 space-y-2.5 text-xs font-bold text-gray-500">
               <div class="flex justify-between">
-                <span>Subtotal (Pre-Tax):</span>
+                <span>Taxable Value (Pre-Tax):</span>
                 <span class="font-mono text-gray-800 font-black">₹ ${pricing.subtotal.toFixed(2)}</span>
               </div>
-              <div class="flex justify-between border-b border-gray-100 pb-2">
-                <span>GST Tax (${pricing.gstRate}%):</span>
-                <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
-              </div>
+              ${isB2B && pricing.gstRate > 0 ? `
+                <div class="flex justify-between text-[11px] text-gray-600">
+                  <span>CGST (${halfGstRate}%):</span>
+                  <span class="font-mono font-bold">₹ ${halfGstVal.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between text-[11px] text-gray-600">
+                  <span>SGST (${halfGstRate}%):</span>
+                  <span class="font-mono font-bold">₹ ${halfGstVal.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between border-b border-gray-100 pb-2">
+                  <span>Total GST Tax (${pricing.gstRate}%):</span>
+                  <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
+                </div>
+              ` : `
+                <div class="flex justify-between border-b border-gray-100 pb-2">
+                  <span>GST Tax (${pricing.gstRate}%):</span>
+                  <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
+                </div>
+              `}
               <div class="flex justify-between items-end pt-2 text-[#2d8d9b]">
                 <div>
-                  <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">Total Contract Value</p>
+                  <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
+                    ${isB2B ? 'Total Commercial Contract Value' : 'Total Contract Value'}
+                  </p>
                   <p class="text-2xl font-black italic font-outfit mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
                 </div>
               </div>
@@ -584,8 +653,8 @@ export default function QuotationDetails({
 
   // Determine stage states for 4-step lifecycle stepper
   const isBmApproved = Boolean(selectedQuotation.metrics_summary?.bm_approved);
-  const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval';
   const isBmRevision = Boolean(selectedQuotation.metrics_summary?.needs_revision);
+  const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision && !isBmApproved);
   const isUnderOps = selectedQuotation.status === 'Pending';
   const isOpsApproved = selectedQuotation.status === 'Approved';
 
@@ -615,7 +684,7 @@ export default function QuotationDetails({
             </Button>
 
             {/* Branch Manager Review Actions */}
-            {selectedQuotation.status === 'Pending Branch Approval' && canSubmitToOps && (
+            {(selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision)) && canSubmitToOps && (
               <>
                 {onBmApprove && (
                   <Button
@@ -638,19 +707,19 @@ export default function QuotationDetails({
               </>
             )}
 
-            {/* Marketing Submit to Branch Manager */}
-            {selectedQuotation.status === 'Draft' && canSubmitToBm && onSubmitToBm && (
+            {/* Marketing Resubmit to Branch Manager (after revision) */}
+            {selectedQuotation.status === 'Draft' && isBmRevision && canSubmitToBm && onSubmitToBm && (
               <Button
                 onClick={() => onSubmitToBm(selectedQuotation)}
                 className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-600/10 border-none h-9"
               >
                 <Send size={14} strokeWidth={2.5} />
-                Submit to BM
+                Resubmit to BM
               </Button>
             )}
 
             {/* Direct Branch Manager / Admin Submit to Ops */}
-            {selectedQuotation.status === 'Draft' && canSubmitToOps && onSubmitToOps && (
+            {selectedQuotation.status === 'Draft' && isBmRevision && canSubmitToOps && onSubmitToOps && (
               <Button
                 onClick={() => onSubmitToOps(selectedQuotation)}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-9"
@@ -792,7 +861,7 @@ export default function QuotationDetails({
                   {isBmApproved
                     ? `Endorsed ${selectedQuotation.metrics_summary?.bm_approved_by_name ? `(${selectedQuotation.metrics_summary.bm_approved_by_name})` : ''}`
                     : isAwaitingBm
-                    ? 'Awaiting Sign-off'
+                    ? 'Awaiting Approval'
                     : isBmRevision
                     ? 'Revision Requested'
                     : 'Pending Submission'}
@@ -869,9 +938,42 @@ export default function QuotationDetails({
             {/* CORE SPECS CARD */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Customer Client</p>
-                <p className="text-base font-black text-[#3a525d] mt-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Customer Client</p>
+                  {(selectedQuotation.metrics_summary?.is_b2b || (selectedQuotation.organizations as any)?.is_b2b || selectedQuotation.metrics_summary?.customer_gstin || (selectedQuotation.organizations as any)?.gst_number) && (
+                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      B2B Commercial
+                    </span>
+                  )}
+                </div>
+                <p className="text-base font-black text-[#3a525d]">
                   {selectedQuotation.organizations?.name || 'Customer'}
+                </p>
+                {(selectedQuotation.metrics_summary?.customer_gstin || (selectedQuotation.organizations as any)?.gst_number) && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-mono font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-zinc-200">
+                      GSTIN: {selectedQuotation.metrics_summary?.customer_gstin || (selectedQuotation.organizations as any)?.gst_number}
+                    </span>
+                    {(selectedQuotation.metrics_summary?.customer_pan || (selectedQuotation.organizations as any)?.pan_number) && (
+                      <span className="text-[10px] font-mono font-semibold text-zinc-500">
+                        PAN: {selectedQuotation.metrics_summary?.customer_pan || (selectedQuotation.organizations as any)?.pan_number}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Delivery Destination</p>
+                <p className="text-sm font-black text-[#3a525d] mt-1">
+                  {selectedQuotation.metrics_summary?.delivery_city
+                    ? `${selectedQuotation.metrics_summary.delivery_city}${selectedQuotation.metrics_summary.delivery_state ? `, ${selectedQuotation.metrics_summary.delivery_state}` : ''} ${selectedQuotation.metrics_summary.delivery_pincode ? `(${selectedQuotation.metrics_summary.delivery_pincode})` : ''}`
+                    : ((selectedQuotation.organizations as any)?.delivery_city
+                      ? `${(selectedQuotation.organizations as any).delivery_city}`
+                      : 'Billing Location')}
+                </p>
+                <p className="text-[10px] text-zinc-500 font-medium mt-0.5 truncate" title={selectedQuotation.metrics_summary?.delivery_address || (selectedQuotation.organizations as any)?.delivery_address || (selectedQuotation.organizations as any)?.address || ''}>
+                  {selectedQuotation.metrics_summary?.delivery_address || (selectedQuotation.organizations as any)?.delivery_address || (selectedQuotation.organizations as any)?.address || 'Registered Address'}
                 </p>
               </Card>
 
@@ -1252,10 +1354,27 @@ export default function QuotationDetails({
                   <span>Subtotal (Pre-Tax):</span>
                   <span className="font-mono text-[#3a525d] font-black">₹{pricing.subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between py-2 text-zinc-500 text-red-500">
-                  <span>GST Tax ({pricing.gstRate}%):</span>
-                  <span className="font-mono font-black">₹{pricing.gstValue.toFixed(2)}</span>
-                </div>
+                {pricing.gstRate > 0 && (selectedQuotation.metrics_summary?.is_b2b || (selectedQuotation.organizations as any)?.is_b2b || selectedQuotation.metrics_summary?.customer_gstin) ? (
+                  <>
+                    <div className="flex justify-between py-1 text-zinc-500 text-xs pl-2">
+                      <span>CGST ({(pricing.gstRate / 2)}%):</span>
+                      <span className="font-mono text-zinc-600">₹{(pricing.gstValue / 2).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between py-1 text-zinc-500 text-xs pl-2">
+                      <span>SGST ({(pricing.gstRate / 2)}%):</span>
+                      <span className="font-mono text-zinc-600">₹{(pricing.gstValue / 2).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 text-zinc-500 text-red-500 font-bold">
+                      <span>Total GST Tax ({pricing.gstRate}%):</span>
+                      <span className="font-mono font-black">₹{pricing.gstValue.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between py-2 text-zinc-500 text-red-500">
+                    <span>GST Tax ({pricing.gstRate}%):</span>
+                    <span className="font-mono font-black">₹{pricing.gstValue.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-2 text-zinc-500">
                   <span>Suggested Retail/Item (Pre-Tax):</span>
                   <span className="font-mono text-[#2d8d9b] font-black">

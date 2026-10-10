@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw } from 'lucide-react';
+import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw, Hash } from 'lucide-react';
 import { ProductType, TemplateLineItem, ManualItem, SeparateFabricItem } from '../../page';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
@@ -261,7 +261,7 @@ export const getAutoProductDefaults = ({
     : (btnTrim?.count ? String(btnTrim.count) : '');
   const baseThrCount = (prod.thread_count !== null && prod.thread_count !== undefined && prod.thread_count !== '')
     ? String(prod.thread_count)
-    : (thrTrim?.count ? String(thrTrim.count) : '');
+    : (thrTrim?.count ? String(thrTrim.count) : '1');
 
   let resolvedMain = '';
   let resolvedAtt1 = '';
@@ -317,7 +317,7 @@ export const getAutoProductDefaults = ({
     resolvedAtt1 = baseAtt1Meters || (prod.class_fabric_consumption?.Corporate?.attachment_fabric1 ? String(prod.class_fabric_consumption.Corporate.attachment_fabric1) : '');
     resolvedAtt2 = baseAtt2Meters || (prod.class_fabric_consumption?.Corporate?.attachment_fabric2 ? String(prod.class_fabric_consumption.Corporate.attachment_fabric2) : '');
     resolvedBtn = baseBtnCount || (prod.class_fabric_consumption?.Corporate?.button_count ? String(prod.class_fabric_consumption.Corporate.button_count) : '');
-    resolvedThr = baseThrCount || (prod.class_fabric_consumption?.Corporate?.thread_count ? String(prod.class_fabric_consumption.Corporate.thread_count) : '');
+    resolvedThr = baseThrCount || (prod.class_fabric_consumption?.Corporate?.thread_count ? String(prod.class_fabric_consumption.Corporate.thread_count) : '1');
   }
 
   // Universal fallbacks if still empty
@@ -429,7 +429,7 @@ export const getAutoProductDefaults = ({
         ? 'spools'
         : (matched?.uom || t.uom || meta.defaultUom || 'pcs');
       const countVal = isThread
-        ? (resolvedThr || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : ''))
+        ? (resolvedThr || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1'))
         : isButton
         ? (resolvedBtn || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '10'))
         : (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1');
@@ -479,7 +479,7 @@ export const getAutoProductDefaults = ({
         trim_id: threadId || (dbThr ? String(dbThr.id) : ''),
         category: 'Thread',
         name: dbThr?.name || 'Thread',
-        count: resolvedThr || '',
+        count: resolvedThr || '1',
         uom: 'spools',
         unit_price: parseFloat(dbThr?.unit_price || '0') || 0
       });
@@ -517,7 +517,7 @@ export const getAutoProductDefaults = ({
         trim_id: dbThr ? String(dbThr.id) : (threadId || ''),
         category: 'Thread',
         name: dbThr?.name || 'Thread',
-        count: resolvedThr || '',
+        count: resolvedThr || '1',
         uom: 'spools',
         unit_price: parseFloat(dbThr?.unit_price || '0') || 0
       });
@@ -532,7 +532,7 @@ export const getAutoProductDefaults = ({
     attachment_fabric1_meters: resolvedAtt1,
     attachment_fabric2_meters: resolvedAtt2,
     button_count: resolvedBtn,
-    thread_count: resolvedThr || '',
+    thread_count: resolvedThr || '1',
     button_uom: buttonUom,
     thread_uom: threadUom,
     fabric_id: mainFabricId,
@@ -545,7 +545,7 @@ export const getAutoProductDefaults = ({
     main_fabric_sam: '6.777',
     attachment_fabric1_sam: (resolvedAtt1 && resolvedAtt1 !== '0') ? '6.777' : '',
     attachment_fabric2_sam: (resolvedAtt2 && resolvedAtt2 !== '0') ? '6.777' : '',
-    design_number: prod.design_number || 'DNS-STANDARD',
+    design_number: '',
     art_number: prod.art_number || ''
   };
 };
@@ -556,13 +556,13 @@ interface WizardStep2Props {
   templateLineItems: TemplateLineItem[];
   setTemplateLineItems: (items: TemplateLineItem[]) => void;
   manualItems: ManualItem[];
-  setManualItems: (items: ManualItem[]) => void;
+  setManualItems: any;
   separateFabrics: SeparateFabricItem[];
   setSeparateFabrics: (items: SeparateFabricItem[]) => void;
   orgDepartments?: any[];
   setOrgDepartments?: (depts: any[]) => void;
   departmentItems?: Record<string, ManualItem[]>;
-  setDepartmentItems?: (items: Record<string, ManualItem[]>) => void;
+  setDepartmentItems?: any;
   productTypes: ProductType[];
   allProducts: any[];
   fabricsList: any[];
@@ -694,6 +694,97 @@ export default function WizardStep2({
     customerType?.toLowerCase().includes('school') ||
     orgDepartments?.some((d: any) => /class|grade|std|standard|lkg|ukg|nursery|kg/i.test(d.name || d.baseDeptName || ''))
   );
+
+  const isAccessoryType = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
+
+  const isAccessoryProductType = React.useCallback((pt: any): boolean => {
+    if (!pt) return false;
+    const name = (pt.name || '').toLowerCase().trim();
+    return name === 'accessories' || name === 'accessory' || name.includes('accessor');
+  }, []);
+
+  const displayProductTypes = React.useMemo(() => {
+    return (productTypes || []).filter((pt: any) => {
+      const isAcc = isAccessoryProductType(pt);
+      if (isAccessoryType) {
+        return isAcc;
+      }
+      return !isAcc;
+    });
+  }, [productTypes, isAccessoryType, isAccessoryProductType]);
+
+  const isAccessoryProduct = React.useCallback((p: any): boolean => {
+    if (!p) return false;
+    const mat = (p.materials || '').toLowerCase();
+    const cat = (p.category || '').toLowerCase();
+    const pType = (p.product_type || '').toLowerCase();
+    const pTypeName = (p.product_types?.name || '').toLowerCase();
+    const art = (p.art_number || '').toUpperCase();
+
+    // Check linked product type from productTypes list
+    const linkedPt = (productTypes || []).find((t: any) => String(t.id) === String(p.product_type_id));
+    if (linkedPt && isAccessoryProductType(linkedPt)) {
+      return true;
+    }
+
+    if (
+      cat === 'accessories' || cat === 'accessory' ||
+      pType === 'accessories' || pType === 'accessory' ||
+      mat.includes('[producttype: accessories]') ||
+      (mat.includes('[category:') && mat.includes('accessory')) ||
+      pTypeName.includes('accessor')
+    ) {
+      return true;
+    }
+    const accPrefixes = ['TIE-', 'BLT-', 'SCK-', 'BDG-', 'CAP-', 'SCF-', 'EPL-', 'LNY-', 'BOW-', 'PKS-', 'CRST-', 'ACC-'];
+    return accPrefixes.some(pref => art.startsWith(pref));
+  }, [productTypes, isAccessoryProductType]);
+
+  // Auto-split departments into gender divisions (Boys & Girls or Men & Women)
+  const autoSplitDepartments = React.useCallback((depts: any[]) => {
+    const maleSuffix = isSchool ? 'Boys' : 'Men';
+    const femaleSuffix = isSchool ? 'Girls' : 'Women';
+    const result: any[] = [];
+
+    depts.forEach((d) => {
+      const idStr = String(d.id);
+      const isAlreadySplit = idStr.endsWith('_boys') || idStr.endsWith('_girls') || (d.gender && d.gender !== 'unisex');
+      if (isAlreadySplit) {
+        result.push(d);
+      } else {
+        const rawId = idStr;
+        result.push({
+          ...d,
+          id: `${rawId}_boys`,
+          name: d.name,
+          baseDeptName: d.baseDeptName || d.name,
+          gender: 'male',
+          division: d.division ? `${d.division} - ${maleSuffix}` : maleSuffix,
+          selected: d.selected !== undefined ? d.selected : true,
+          persons: d.persons || '0',
+          sets: d.sets || '2',
+          qty_mode: d.qty_mode || 'members_sets',
+          direct_qty: d.direct_qty || ''
+        });
+        result.push({
+          ...d,
+          id: `${rawId}_girls`,
+          name: d.name,
+          baseDeptName: d.baseDeptName || d.name,
+          gender: 'female',
+          division: d.division ? `${d.division} - ${femaleSuffix}` : femaleSuffix,
+          selected: d.selected !== undefined ? d.selected : true,
+          persons: d.persons || '0',
+          sets: d.sets || '2',
+          qty_mode: d.qty_mode || 'members_sets',
+          direct_qty: d.direct_qty || ''
+        });
+      }
+    });
+    return result;
+  }, [isSchool]);
+
+
 
   const handleAutoLoadEntitiesAndMeasurements = async () => {
     if (!selectedOrgId) {
@@ -974,22 +1065,251 @@ export default function WizardStep2({
   });
   const mergedItems = Array.from(mergedMap.values());
 
-  const getQty = (item: TemplateLineItem) => orgAnalysis.entities.filter((ent: any) => {
+  // Database Genders from Art Number Hub (art_genders)
+  const [dbGenders, setDbGenders] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    api.get('/art-number-hub/genders')
+      .then(res => {
+        if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
+          setDbGenders(res.data);
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to load genders from art-number-hub:', err);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  const availableGenders = React.useMemo(() => {
+    if (dbGenders && dbGenders.length > 0) {
+      return dbGenders.map((g: any) => ({
+        id: g.id,
+        code: g.code,
+        name: g.name,
+        value: (g.name || g.code || '').toLowerCase(),
+        label: g.name ? `${g.name}${g.code ? ` (${g.code})` : ''}` : g.code,
+      }));
+    }
+    return [];
+  }, [dbGenders]);
+
+  const getQty = (item: TemplateLineItem) => (orgAnalysis?.entities || []).filter((ent: any) => {
     if (ent.measurement_status !== 'Completed') return false;
-    const eg = (ent.gender || '').toLowerCase();
-    const ig = (item.gender || '').toLowerCase();
-    if (ig === 'unisex' || ig === 'all') return true;
-    if (ig === 'male' || ig === 'm') return eg === 'male' || eg === 'm';
-    if (ig === 'female' || ig === 'f') return eg === 'female' || eg === 'f';
-    return false;
+    const eg = (ent.gender || '').toLowerCase().trim();
+    const ig = (item.gender || '').toLowerCase().trim();
+    if (!ig) return true;
+
+    const matchedDbGender = dbGenders.find((dg: any) =>
+      (dg.name || '').toLowerCase().trim() === ig ||
+      (dg.code || '').toLowerCase().trim() === ig
+    );
+
+    if (matchedDbGender) {
+      const dbName = (matchedDbGender.name || '').toLowerCase().trim();
+      const dbCode = (matchedDbGender.code || '').toLowerCase().trim();
+      if (dbName === 'unisex' || dbName === 'all' || dbCode === '3') return true;
+      if (eg === dbName || eg === dbCode) return true;
+      if ((dbName.includes('male') || dbName.includes('boy') || dbCode === '1') &&
+          (eg === 'male' || eg === 'boy' || eg === 'boys' || eg === 'm' || eg === 'men' || eg === '1')) return true;
+      if ((dbName.includes('female') || dbName.includes('girl') || dbCode === '2') &&
+          (eg === 'female' || eg === 'girl' || eg === 'girls' || eg === 'f' || eg === 'women' || eg === '2')) return true;
+      return eg === dbName || eg === dbCode;
+    }
+
+    if (ig === 'unisex' || ig === 'all' || ig === '3') return true;
+    if (ig === 'male' || ig === 'm' || ig === 'boy' || ig === 'boys' || ig === '1' || ig === 'men') {
+      return eg === 'male' || eg === 'm' || eg === 'boy' || eg === 'boys' || eg === '1' || eg === 'men';
+    }
+    if (ig === 'female' || ig === 'f' || ig === 'girl' || ig === 'girls' || ig === '2' || ig === 'women') {
+      return eg === 'female' || eg === 'f' || eg === 'girl' || eg === 'girls' || eg === '2' || eg === 'women';
+    }
+    return eg === ig;
   }).length;
 
-  const totalQty = mergedItems.reduce((s, item) => s + getQty(item), 0);
-  const totalSAMMin = mergedItems.reduce((s, item) => s + (item.sam_value ? item.sam_value * getQty(item) : 0), 0);
-  const totalPrice = mergedItems.reduce((s, item) => {
+  const totalQty = mergedItems.reduce((s: number, item: any) => s + getQty(item), 0);
+  const totalSAMMin = mergedItems.reduce((s: number, item: any) => s + (item.sam_value ? item.sam_value * getQty(item) : 0), 0);
+  const totalPrice = mergedItems.reduce((s: number, item: any) => {
     const p = parseFloat(item.price_override || '0');
     return s + (p > 0 ? p * getQty(item) : 0);
   }, 0);
+
+  // Department-wise Sizing & Measurement Audits setup
+  const [deptAuditItems, setDeptAuditItems] = React.useState<Record<string, any[]>>({});
+
+  const auditDepartments = React.useMemo<any[]>(() => {
+    const selected = (orgDepartments || []).filter((d: any) => d.selected);
+    if (selected.length > 0) return selected;
+    if (orgDepartments && orgDepartments.length > 0) return orgDepartments;
+    if (orgAnalysis?.departments && Array.isArray(orgAnalysis.departments) && orgAnalysis.departments.length > 0) {
+      return orgAnalysis.departments.map((d: any) => ({
+        id: String(d.id),
+        name: d.name,
+        division: d.division || d.section || '',
+        selected: true,
+        persons: String(d.persons || '0'),
+        sets: String(d.sets || '2')
+      }));
+    }
+    return [];
+  }, [orgDepartments, orgAnalysis]);
+
+  const uniqueTemplateProducts = React.useMemo<any[]>(() => {
+    const map = new Map<string, any>();
+    (templateLineItems || []).forEach((item: any) => {
+      const pKey = String(item.product_id);
+      if (!map.has(pKey)) {
+        map.set(pKey, {
+          ...item,
+          gender: '', // Do NOT auto-assign gender! Let user select manually
+          price_override: item.price_override || '',
+          design_number_override: item.design_number_override || item.design_code || '',
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [templateLineItems]);
+
+  const getDeptAuditRowQty = React.useCallback((deptId: string, deptName: string, itemGender: string, fallbackCount: number) => {
+    const cleanId = deptId.replace(/_.*$/, '');
+    const deptEntities = (orgAnalysis?.entities || []).filter((e: any) => {
+      const eid = String(e.department_id || '');
+      return eid === deptId || eid === cleanId || (deptName && e.department_name === deptName);
+    });
+
+    const completed = deptEntities.filter((e: any) => e.measurement_status === 'Completed');
+    const g = (itemGender || '').toLowerCase().trim();
+
+    if (completed.length === 0) {
+      return fallbackCount || 0;
+    }
+    if (!g) {
+      return completed.length;
+    }
+
+    // Match against database genders
+    const matchedDbGender = dbGenders.find((dg: any) =>
+      (dg.name || '').toLowerCase().trim() === g ||
+      (dg.code || '').toLowerCase().trim() === g
+    );
+
+    if (matchedDbGender) {
+      const dbName = (matchedDbGender.name || '').toLowerCase().trim();
+      const dbCode = (matchedDbGender.code || '').toLowerCase().trim();
+      if (dbName === 'unisex' || dbName === 'all' || dbCode === '3') {
+        return completed.length;
+      }
+      return completed.filter((e: any) => {
+        const eg = (e.gender || '').toLowerCase().trim();
+        if (eg === dbName || eg === dbCode) return true;
+        if ((dbName.includes('male') || dbName.includes('boy') || dbCode === '1') &&
+            (eg === 'male' || eg === 'boy' || eg === 'boys' || eg === 'm' || eg === 'men' || eg === '1')) return true;
+        if ((dbName.includes('female') || dbName.includes('girl') || dbCode === '2') &&
+            (eg === 'female' || eg === 'girl' || eg === 'girls' || eg === 'f' || eg === 'women' || eg === '2')) return true;
+        return eg === dbName || eg === dbCode;
+      }).length;
+    }
+
+    if (g === 'unisex' || g === 'all' || g === '3') {
+      return completed.length;
+    }
+    if (g === 'male' || g === 'boy' || g === 'boys' || g === 'men' || g === '1' || g === 'm') {
+      return completed.filter((e: any) => {
+        const eg = (e.gender || '').toLowerCase().trim();
+        return eg === 'male' || eg === 'boy' || eg === 'boys' || eg === 'm' || eg === 'men' || eg === '1';
+      }).length;
+    }
+    if (g === 'female' || g === 'girl' || g === 'girls' || g === 'women' || g === '2' || g === 'f') {
+      return completed.filter((e: any) => {
+        const eg = (e.gender || '').toLowerCase().trim();
+        return eg === 'female' || eg === 'girl' || eg === 'girls' || eg === 'f' || eg === 'women' || eg === '2';
+      }).length;
+    }
+    return completed.filter((e: any) => {
+      const eg = (e.gender || '').toLowerCase().trim();
+      return eg === g;
+    }).length;
+  }, [orgAnalysis, dbGenders]);
+
+  const updateDeptAuditRow = React.useCallback((deptId: string, rowIdx: number, updates: any) => {
+    const base = deptAuditItems[deptId] || uniqueTemplateProducts.map((p: any, idx: number) => ({
+      ...p,
+      id: `${deptId}_${p.product_id}_${idx}`,
+      department_id: deptId,
+      department_name: auditDepartments.find((d: any) => String(d.id) === deptId)?.name || '',
+      gender: '',
+    }));
+    const updatedRows = [...base];
+    updatedRows[rowIdx] = { ...updatedRows[rowIdx], ...updates };
+    const newMap = { ...deptAuditItems, [deptId]: updatedRows };
+    setDeptAuditItems(newMap);
+
+    const flat: any[] = [];
+    Object.values(newMap).forEach((rows: any) => {
+      if (Array.isArray(rows)) {
+        rows.forEach((r: any) => flat.push(r));
+      }
+    });
+    setTemplateLineItems(flat);
+  }, [deptAuditItems, uniqueTemplateProducts, auditDepartments, setTemplateLineItems]);
+
+  const addDeptAuditRow = React.useCallback((deptId: string, deptName: string) => {
+    const base = deptAuditItems[deptId] || uniqueTemplateProducts.map((p: any, idx: number) => ({
+      ...p,
+      id: `${deptId}_${p.product_id}_${idx}`,
+      department_id: deptId,
+      department_name: deptName,
+      gender: '',
+    }));
+    const first = uniqueTemplateProducts[0] || (allProducts && allProducts[0]) || {};
+    const newRow = {
+      ...first,
+      id: `${deptId}_custom_${Date.now()}`,
+      product_id: first.product_id || first.id || 0,
+      product_name: first.product_name || first.name || 'Uniform Item',
+      art_number: first.art_number || '',
+      gender: '',
+      sam_value: first.sam_value ?? null,
+      materials: first.materials || '',
+      design_number_override: '',
+      price_override: '',
+      department_id: deptId,
+      department_name: deptName,
+    };
+    const updatedRows = [...base, newRow];
+    const newMap = { ...deptAuditItems, [deptId]: updatedRows };
+    setDeptAuditItems(newMap);
+
+    const flat: any[] = [];
+    Object.values(newMap).forEach((rows: any) => {
+      if (Array.isArray(rows)) {
+        rows.forEach((r: any) => flat.push(r));
+      }
+    });
+    setTemplateLineItems(flat);
+  }, [deptAuditItems, uniqueTemplateProducts, allProducts, setTemplateLineItems]);
+
+  const removeDeptAuditRow = React.useCallback((deptId: string, rowIdx: number) => {
+    const base = deptAuditItems[deptId] || uniqueTemplateProducts.map((p: any, idx: number) => ({
+      ...p,
+      id: `${deptId}_${p.product_id}_${idx}`,
+      department_id: deptId,
+      department_name: auditDepartments.find((d: any) => String(d.id) === deptId)?.name || '',
+      gender: '',
+    }));
+    const updatedRows = base.filter((_: any, i: number) => i !== rowIdx);
+    const newMap = { ...deptAuditItems, [deptId]: updatedRows };
+    setDeptAuditItems(newMap);
+
+    const flat: any[] = [];
+    Object.values(newMap).forEach((rows: any) => {
+      if (Array.isArray(rows)) {
+        rows.forEach((r: any) => flat.push(r));
+      }
+    });
+    setTemplateLineItems(flat);
+  }, [deptAuditItems, uniqueTemplateProducts, auditDepartments, setTemplateLineItems]);
 
   // Helper: get inward rate for a fabric based on its category and width
   const getRateForFabric = (fabricId: string): string => {
@@ -1052,6 +1372,30 @@ export default function WizardStep2({
     return { mainFabricCost, att1Cost, att2Cost, buttonCost, threadCost, samCost, unitTotal, btnPrice, thrPrice };
   };
 
+  // Check backend for existing DNS match based on (ART # + Fabrics + Trims)
+  const resolveCandidateDns = React.useCallback(async (candidate: ManualItem): Promise<string> => {
+    if (!candidate.art_number && !candidate.product_id) return '';
+    try {
+      const res = await api.post('/quotations/resolve-design-number', {
+        art_number: candidate.art_number,
+        product_id: candidate.product_id,
+        fabric_id: candidate.fabric_id,
+        attachment_fabric1_id: candidate.attachment_fabric1_id,
+        attachment_fabric2_id: candidate.attachment_fabric2_id,
+        button_id: candidate.button_id,
+        thread_id: candidate.thread_id,
+        trims: candidate.trims,
+        dryRun: true
+      });
+      if (res.data?.success && res.data?.design_number) {
+        return res.data.design_number;
+      }
+    } catch {
+      // fallback
+    }
+    return '';
+  }, []);
+
   // Update an item and auto-recompute price
   const updateItem = (index: number, changes: Partial<ManualItem>) => {
     const updated = [...manualItems];
@@ -1060,14 +1404,155 @@ export default function WizardStep2({
     newItem.price = costs.unitTotal.toFixed(2);
     updated[index] = newItem;
     setManualItems(updated);
+
+    if (
+      'art_number' in changes ||
+      'product_id' in changes ||
+      'fabric_id' in changes ||
+      'attachment_fabric1_id' in changes ||
+      'attachment_fabric2_id' in changes ||
+      'button_id' in changes ||
+      'thread_id' in changes ||
+      'trims' in changes
+    ) {
+      resolveCandidateDns(newItem).then((matched) => {
+        setManualItems((curr: any) => {
+          const fresh = [...(curr || [])];
+          if (fresh[index] && fresh[index].id === newItem.id) {
+            fresh[index] = { ...fresh[index], design_number: matched || '' };
+          }
+          return fresh;
+        });
+      });
+    }
   };
+
+  // Pre-index available ART Numbers from allProducts for quick auto-loading & autocomplete
+  const availableArtNumbers = React.useMemo(() => {
+    const list: { art_number: string; product_name: string; product_id: number; product_type_id: number }[] = [];
+    const seen = new Set<string>();
+    (allProducts || []).forEach((p: any) => {
+      const isAcc = isAccessoryProduct(p);
+      if (isAccessoryType && !isAcc) return;
+      if (!isAccessoryType && isAcc) return;
+
+      if (p.art_number && String(p.art_number).trim()) {
+        const art = String(p.art_number).trim();
+        const lower = art.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          list.push({
+            art_number: art,
+            product_name: p.name || 'Unnamed Product',
+            product_id: p.id,
+            product_type_id: p.product_type_id
+          });
+        }
+      }
+    });
+    return list;
+  }, [allProducts, isAccessoryType, isAccessoryProduct]);
+
+  const handleApplyArtNumber = React.useCallback((artVal: string, currentItem: ManualItem, deptName?: string): Partial<ManualItem> => {
+    const clean = (artVal || '').trim();
+    if (!clean) {
+      return { art_number: '' };
+    }
+
+    const cleanLower = clean.toLowerCase();
+    const cleanNoDash = cleanLower.replace(/[-\s]/g, '');
+
+    // Try finding matching product in allProducts: exact match first, then normalized (ignoring hyphens/spaces)
+    const matchedProd = (allProducts || []).find((p: any) => {
+      if (!p.art_number) return false;
+      const isAcc = isAccessoryProduct(p);
+      if (isAccessoryType && !isAcc) return false;
+      if (!isAccessoryType && isAcc) return false;
+
+      const pArt = String(p.art_number).trim().toLowerCase();
+      if (pArt === cleanLower) return true;
+      const pArtNoDash = pArt.replace(/[-\s]/g, '');
+      return cleanNoDash.length >= 3 && pArtNoDash === cleanNoDash;
+    });
+
+    if (matchedProd) {
+      if (isAccessoryProduct(matchedProd)) {
+        const basePrice = parseFloat(matchedProd.base_price || matchedProd.retail_sam_value || '0') || 0;
+        return {
+          art_number: matchedProd.art_number || clean,
+          product_id: String(matchedProd.id),
+          product_type_id: String(matchedProd.product_type_id || currentItem.product_type_id || ''),
+          design_number: matchedProd.design_number || 'ACC-STANDARD',
+          gender: matchedProd.gender || 'Unisex',
+          price: basePrice > 0 ? basePrice.toFixed(2) : (currentItem.price || '0.00'),
+          size_breakdown: {
+            ...(currentItem.size_breakdown || {}),
+            selected_size: matchedProd.base_size || 'Free Size',
+            is_accessory: true
+          }
+        };
+      }
+
+      const autoDefaults = getAutoProductDefaults({
+        prod: matchedProd,
+        isSchool,
+        deptName: deptName || '',
+        fabricsList,
+        buttonsList,
+        threadsList,
+        trimsList,
+        trimCategories
+      });
+
+      const updates: Partial<ManualItem> = {
+        art_number: matchedProd.art_number || clean,
+        product_id: String(matchedProd.id),
+        product_type_id: String(matchedProd.product_type_id || currentItem.product_type_id || ''),
+        product_name: matchedProd.name || '',
+        name: matchedProd.name || '',
+        design_number: '',
+      };
+
+      if (matchedProd.gender) {
+        updates.gender = matchedProd.gender;
+      }
+
+      if (autoDefaults) {
+        updates.sam_value = autoDefaults.sam_value;
+        updates.main_fabric_meters = autoDefaults.main_fabric_meters;
+        updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+        updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
+        updates.button_count = autoDefaults.button_count;
+        updates.thread_count = autoDefaults.thread_count;
+        if (autoDefaults.fabric_id) updates.fabric_id = autoDefaults.fabric_id;
+        if (autoDefaults.attachment_fabric1_id) updates.attachment_fabric1_id = autoDefaults.attachment_fabric1_id;
+        if (autoDefaults.attachment_fabric2_id) updates.attachment_fabric2_id = autoDefaults.attachment_fabric2_id;
+        if (autoDefaults.button_id) updates.button_id = autoDefaults.button_id;
+        if (autoDefaults.thread_id) updates.thread_id = autoDefaults.thread_id;
+        if (autoDefaults.trims) updates.trims = autoDefaults.trims;
+        updates.main_fabric_sam = autoDefaults.main_fabric_sam;
+        updates.attachment_fabric1_sam = autoDefaults.attachment_fabric1_sam;
+        updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
+      }
+
+      if (quotationType !== 'READYMADE') {
+        const costs = getItemCosts({ ...currentItem, ...updates });
+        updates.price = costs.unitTotal.toFixed(2);
+      }
+
+      return updates;
+    }
+
+    // No matching product in database yet - update art_number so user can keep typing freely
+    return { art_number: artVal };
+  }, [allProducts, isSchool, fabricsList, buttonsList, threadsList, trimsList, trimCategories, quotationType]);
 
   const updateItemTrim = (itemIndex: number, trimIndex: number, changes: any) => {
     const updated = [...manualItems];
     const item = { ...updated[itemIndex] };
     const defaultTrims = [
       { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
     ];
     const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
     while (curTrims.length <= trimIndex) {
@@ -1092,13 +1577,23 @@ export default function WizardStep2({
     const thr = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || String(t.id).startsWith('thr'));
     if (thr) {
       item.thread_id = thr.trim_id || '';
-      item.thread_count = thr.count || '';
+      item.thread_count = thr.count || '1';
     }
 
     const costs = getItemCosts(item);
     item.price = costs.unitTotal.toFixed(2);
     updated[itemIndex] = item;
     setManualItems(updated);
+
+    resolveCandidateDns(item).then((matched) => {
+      setManualItems((curr: any) => {
+        const fresh = [...(curr || [])];
+        if (fresh[itemIndex] && fresh[itemIndex].id === item.id) {
+          fresh[itemIndex] = { ...fresh[itemIndex], design_number: matched || '' };
+        }
+        return fresh;
+      });
+    });
   };
 
   const addItemTrim = (itemIndex: number, category = 'Trim') => {
@@ -1106,7 +1601,7 @@ export default function WizardStep2({
     const item = { ...updated[itemIndex] };
     const defaultTrims = [
       { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
+      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
     ];
     const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
     const meta = getTrimCategoryMeta(category);
@@ -1115,7 +1610,7 @@ export default function WizardStep2({
       trim_id: '',
       category: category,
       name: '',
-      count: meta.isThr ? (item.thread_count || '') : '1',
+      count: meta.isThr ? (item.thread_count || '1') : '1',
       uom: meta.defaultUom,
       unit_price: 0
     });
@@ -1153,7 +1648,11 @@ export default function WizardStep2({
           { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
           { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'spools', unit_price: 0 }
         ],
-        sam_value: '', design_number: '', quantity: '1', price: ''
+        sam_value: '', design_number: '', quantity: '2', price: '',
+        qty_mode: 'members_sets',
+        no_of_members: '1',
+        no_of_sets: '2',
+        gender: ''
       }
     ]);
   };
@@ -1194,19 +1693,50 @@ export default function WizardStep2({
 
   const renderManualItemCard = (item: ManualItem, index: number) => {
     const { mainFabricCost, att1Cost, att2Cost, buttonCost, threadCost, samCost, unitTotal: calculatedUnitTotal, btnPrice, thrPrice } = getItemCosts(item);
-    const unitTotal = quotationType === 'READYMADE' ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
+    const unitTotal = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
 
-    const filteredProducts = allProducts.filter(p => {
+    const matchedProduct = (allProducts || []).find((p: any) => {
+      if (item.product_id && String(p.id) === String(item.product_id)) return true;
+      if (!item.art_number) return false;
+      const clean = item.art_number.trim().toLowerCase();
+      const cleanNoDash = clean.replace(/[-\s]/g, '');
+      const pArt = (p.art_number || '').trim().toLowerCase();
+      const pArtNoDash = pArt.replace(/[-\s]/g, '');
+      return pArt === clean || (cleanNoDash.length >= 3 && pArtNoDash === cleanNoDash);
+    });
+
+    const filteredProducts = (allProducts || []).filter(p => {
+      const isAcc = isAccessoryProduct(p);
+      if (isAccessoryType) {
+        if (!isAcc) return false;
+        if (item.product_type_id && String(p.product_type_id) !== String(item.product_type_id)) {
+          return false;
+        }
+        return true;
+      }
+      if (isAcc) return false;
+
       const isCorrectCategory = String(p.product_type_id) === String(item.product_type_id);
       if (quotationType === 'READYMADE') {
         const parsed = parseMaterialsField(p.materials);
-        return isCorrectCategory && parsed.type?.toLowerCase() === 'trade_readymade';
+        if (parsed.type?.toLowerCase() !== 'trade_readymade') return false;
       }
       if (quotationType === 'STANDARD') {
         const parsed = parseMaterialsField(p.materials);
-        return isCorrectCategory && parsed.type?.toLowerCase() === 'readymade';
+        if (parsed.type?.toLowerCase() !== 'readymade') return false;
       }
-      return isCorrectCategory;
+      if (!isCorrectCategory) return false;
+
+      // Filter by gender if specified
+      const itemGen = (item.gender || 'unisex').toLowerCase();
+      const prodGen = (p.gender || '').toLowerCase();
+      if (itemGen === 'male' || itemGen === 'boy' || itemGen === 'boys' || itemGen === 'men') {
+        return prodGen === 'male' || prodGen === 'boys' || prodGen === 'boy' || prodGen === 'men' || prodGen === 'unisex' || prodGen === 'all' || !prodGen;
+      }
+      if (itemGen === 'female' || itemGen === 'girl' || itemGen === 'girls' || itemGen === 'women') {
+        return prodGen === 'female' || prodGen === 'girls' || prodGen === 'girl' || prodGen === 'women' || prodGen === 'unisex' || prodGen === 'all' || !prodGen;
+      }
+      return true;
     });
 
     const totalItemCost = unitTotal * (parseInt(item.quantity) || 0);
@@ -1222,15 +1752,134 @@ export default function WizardStep2({
         {quotationType === 'FABRIC' ? (
           <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Quantity */}
-              <div className="w-24">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
-                <input
-                  type="number" min="1" placeholder="50"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, { quantity: e.target.value })}
-                  className={inputCls}
-                />
+              {/* Department Dropdown if available */}
+              {orgDepartments && orgDepartments.length > 0 && (
+                <div className="min-w-[150px]">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Department</p>
+                  <select
+                    className={selectCls}
+                    value={item.department_id || ''}
+                    onChange={(e) => {
+                      const deptId = e.target.value;
+                      const selectedD = orgDepartments.find((d: any) => String(d.id) === deptId);
+                      updateItem(index, {
+                        department_id: deptId,
+                        department_name: selectedD ? (selectedD.division ? `${selectedD.name} (${selectedD.division})` : selectedD.name) : ''
+                      });
+                    }}
+                  >
+                    <option value="">General / None</option>
+                    {orgDepartments.map((d: any) => (
+                      <option key={d.id} value={String(d.id)}>
+                        {d.name}{d.division ? ` (${d.division})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Quantity Selection Mode (Radio) */}
+              <div className="min-w-[270px] bg-zinc-50 p-2.5 rounded-2xl border border-zinc-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Qty Selection</span>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`qty_mode_manual_fabric_${item.id || index}`}
+                        checked={item.qty_mode !== 'direct_products'}
+                        onChange={() => {
+                          const m = parseInt(item.no_of_members || '') || 1;
+                          const s = parseInt(item.no_of_sets || '2') || 2;
+                          updateItem(index, {
+                            qty_mode: 'members_sets',
+                            no_of_members: String(m),
+                            no_of_sets: String(s),
+                            quantity: String(m * s)
+                          });
+                        }}
+                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                      />
+                      <span>Members &amp; Sets</span>
+                    </label>
+                    <span className="text-zinc-300 font-bold">|</span>
+                    <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`qty_mode_manual_fabric_${item.id || index}`}
+                        checked={item.qty_mode === 'direct_products'}
+                        onChange={() => {
+                          updateItem(index, {
+                            qty_mode: 'direct_products',
+                            quantity: item.quantity || '1'
+                          });
+                        }}
+                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                      />
+                      <span>No. of Products</span>
+                    </label>
+                  </div>
+                </div>
+
+                {item.qty_mode !== 'direct_products' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">Members</p>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 50"
+                        value={item.no_of_members || ''}
+                        onChange={(e) => {
+                          const m = e.target.value;
+                          const s = item.no_of_sets || '2';
+                          const total = (parseInt(m) || 0) * (parseInt(s) || 0);
+                          updateItem(index, {
+                            no_of_members: m,
+                            quantity: String(total || 1)
+                          });
+                        }}
+                        className={inputCls}
+                      />
+                    </div>
+                    <span className="text-zinc-400 font-black text-xs pt-3">×</span>
+                    <div className="w-16">
+                      <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">Sets</p>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="2"
+                        value={item.no_of_sets || '2'}
+                        onChange={(e) => {
+                          const s = e.target.value;
+                          const m = item.no_of_members || '1';
+                          const total = (parseInt(m) || 0) * (parseInt(s) || 0);
+                          updateItem(index, {
+                            no_of_sets: s,
+                            quantity: String(total || 1)
+                          });
+                        }}
+                        className={inputCls}
+                      />
+                    </div>
+                    <span className="text-zinc-400 font-black text-xs pt-3">=</span>
+                    <div className="text-right pl-1 pt-3 min-w-[55px]">
+                      <span className="text-xs font-mono font-black text-[#2d8d9b]">{item.quantity || 0} Units</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">No. of Products</p>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Total units"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-6 ml-auto">
@@ -1260,7 +1909,118 @@ export default function WizardStep2({
           </div>
         ) : (
           <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
+            {/* ── TOP SECTION: ART NUMBER & QUICK SPEC IDENTIFIER ── */}
+            <div className="mb-4 pb-3 border-b border-zinc-150 bg-sky-50/40 -mx-5 -mt-5 p-4 rounded-t-3xl flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap flex-1">
+                <div className="min-w-[240px] max-w-[340px] flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
+                      <Hash size={13} className="text-sky-600" />
+                      ART Number
+                    </label>
+                    {matchedProduct && (
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 size={10} className="text-emerald-600" /> Auto-loaded: {matchedProduct.name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      list={`art-list-manual-${index}`}
+                      value={item.art_number || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const updates = handleApplyArtNumber(val, item);
+                        updateItem(index, updates);
+                      }}
+                      placeholder="Enter ART # to auto-load product..."
+                      className="w-full px-3 py-2 text-xs font-mono font-black border border-sky-300 rounded-xl text-sky-950 bg-white placeholder:text-zinc-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-2xs"
+                    />
+                    <datalist id={`art-list-manual-${index}`}>
+                      {availableArtNumbers.map(a => (
+                        <option key={a.art_number} value={a.art_number}>
+                          {a.product_name}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+
+                <div className="min-w-[170px]">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-indigo-700 mb-1">
+                    Design # (DNS Code)
+                  </label>
+                  <div className="h-[38px] px-3 py-1.5 border border-indigo-200 rounded-xl bg-indigo-50/70 flex items-center justify-between gap-2 shadow-inner">
+                    <span className="text-xs font-mono font-black text-indigo-950 truncate">
+                      {item.design_number && !item.design_number.startsWith('Auto') ? item.design_number : 'Auto (BOM Mint)'}
+                    </span>
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0 ${
+                      item.design_number && !item.design_number.startsWith('Auto')
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                    }`}>
+                      {item.design_number && !item.design_number.startsWith('Auto') ? 'Matched' : 'Auto on Save'}
+                    </span>
+                  </div>
+                </div>
+
+                
+              </div>
+            </div>
+
             <div className="flex items-start gap-4 flex-wrap">
+              {/* Department Dropdown */}
+              {orgDepartments && orgDepartments.length > 0 && (
+                <div className="min-w-[150px]">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Department</p>
+                  <select
+                    className={selectCls}
+                    value={item.department_id || ''}
+                    onChange={(e) => {
+                      const deptId = e.target.value;
+                      const selectedD = orgDepartments.find((d: any) => String(d.id) === deptId);
+                      updateItem(index, {
+                        department_id: deptId,
+                        department_name: selectedD ? (selectedD.division ? `${selectedD.name} (${selectedD.division})` : selectedD.name) : ''
+                      });
+                    }}
+                  >
+                    <option value="">General / None</option>
+                    {orgDepartments.map((d: any) => (
+                      <option key={d.id} value={String(d.id)}>
+                        {d.name}{d.division ? ` (${d.division})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Gender Dropdown */}
+              <div className="min-w-[130px]">
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
+                <select
+                  className={selectCls}
+                  value={item.gender || ''}
+                  onChange={(e) => updateItem(index, { gender: e.target.value })}
+                >
+                  <option value="">Select Gender...</option>
+                  {availableGenders.length > 0 ? (
+                    availableGenders.map((g: any) => (
+                      <option key={g.id || g.code || g.value} value={g.value}>
+                        {g.label}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="male">{isSchool ? 'Boys / Male' : 'Men / Male'}</option>
+                      <option value="female">{isSchool ? 'Girls / Female' : 'Women / Female'}</option>
+                      <option value="unisex">Unisex / All</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
               {/* Product Type */}
               <div className="min-w-[150px]">
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
@@ -1273,7 +2033,7 @@ export default function WizardStep2({
                   })}
                 >
                   <option value="">Select type...</option>
-                  {productTypes.map(pt => (
+                  {displayProductTypes.map(pt => (
                     <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
                   ))}
                 </select>
@@ -1289,7 +2049,32 @@ export default function WizardStep2({
                   onChange={(e) => {
                     const val = e.target.value;
                     const prod = allProducts.find(p => String(p.id) === val);
-                    const updates: Partial<ManualItem> = { product_id: val };
+                    const updates: Partial<ManualItem> = {
+                      product_id: val,
+                      product_type_id: String(prod?.product_type_id || item.product_type_id || ''),
+                      product_name: prod?.name || '',
+                      name: prod?.name || ''
+                    };
+                    if (isAccessoryType) {
+                      if (prod) {
+                        const basePrice = parseFloat(prod.base_price || prod.retail_sam_value || '0') || 0;
+                        updateItem(index, {
+                          product_id: val,
+                          product_type_id: String(prod.product_type_id || item.product_type_id || ''),
+                          art_number: prod.art_number || item.art_number || '',
+                          gender: prod.gender || 'Unisex',
+                          price: basePrice > 0 ? basePrice.toFixed(2) : (item.price || '0.00'),
+                          size_breakdown: {
+                            ...(item.size_breakdown || {}),
+                            selected_size: prod.base_size || 'Free Size',
+                            is_accessory: true
+                          }
+                        });
+                      } else {
+                        updateItem(index, { product_id: '', art_number: '', price: '' });
+                      }
+                      return;
+                    }
                     if (prod) {
                       const autoDefaults = getAutoProductDefaults({
                         prod,
@@ -1316,8 +2101,13 @@ export default function WizardStep2({
                         updates.main_fabric_sam = autoDefaults.main_fabric_sam;
                         updates.attachment_fabric1_sam = autoDefaults.attachment_fabric1_sam;
                         updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
-                        updates.design_number = autoDefaults.design_number;
-                        updates.art_number = autoDefaults.art_number;
+                        updates.design_number = '';
+                        updates.art_number = prod.art_number || autoDefaults.art_number || item.art_number || '';
+                      } else {
+                        updates.art_number = prod.art_number || item.art_number || '';
+                      }
+                      if (prod.gender) {
+                        updates.gender = prod.gender;
                       }
                     } else {
                       updates.sam_value = '';
@@ -1336,44 +2126,56 @@ export default function WizardStep2({
                     updateItem(index, updates);
                   }}
                 >
-                  <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
+                  <option value="">{isAccessoryType ? 'Select accessory...' : (item.product_type_id ? 'Select product...' : 'Select type first')}</option>
                   {filteredProducts.map(p => (
                     <option key={p.id} value={String(p.id)}>
-                      {p.name}{p.art_number ? ` (${p.art_number})` : ''}
+                      {p.name}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Selected Size (for MANUAL type) */}
-              {quotationType === 'MANUAL' && (
+              {/* Selected Size (for MANUAL and ACCESSORIES types) */}
+              {(quotationType === 'MANUAL' || isAccessoryType) && (
                 <div className="w-32">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">
                     Size
                   </p>
-                  <select
-                    className={selectCls}
-                    value={item.size_breakdown?.selected_size || ''}
-                    onChange={(e) => updateItem(index, {
-                      size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value }
-                    })}
-                  >
-                    <option value="">Select size...</option>
-                    {(() => {
-                      const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
-                      const sizes = prod?.other_sizes
-                        ? prod.other_sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
-                        : [];
-                      return sizes.map((sz: string) => (
-                        <option key={sz} value={sz}>{sz}</option>
-                      ));
-                    })()}
-                  </select>
+                  {isAccessoryType ? (
+                    <input
+                      type="text"
+                      placeholder="Free Size"
+                      value={item.size_breakdown?.selected_size || ''}
+                      onChange={(e) => updateItem(index, {
+                        size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value, is_accessory: true }
+                      })}
+                      className={inputCls}
+                    />
+                  ) : (
+                    <select
+                      className={selectCls}
+                      value={item.size_breakdown?.selected_size || ''}
+                      onChange={(e) => updateItem(index, {
+                        size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value }
+                      })}
+                    >
+                      <option value="">Select size...</option>
+                      {(() => {
+                        const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
+                        const sizes = prod?.other_sizes
+                          ? prod.other_sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
+                          : [];
+                        return sizes.map((sz: string) => (
+                          <option key={sz} value={sz}>{sz}</option>
+                        ));
+                      })()}
+                    </select>
+                  )}
                 </div>
               )}
 
               {/* Product SAM */}
-              {quotationType !== 'READYMADE' && (
+              {quotationType !== 'READYMADE' && !isAccessoryType && (
                 <div className="w-24">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
                   <input
@@ -1386,7 +2188,7 @@ export default function WizardStep2({
               )}
 
               {/* Final SAM Price */}
-              {quotationType !== 'READYMADE' && (
+              {quotationType !== 'READYMADE' && !isAccessoryType && (
                 <div className="w-28 text-right self-center">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Final SAM Price</p>
                   <p className="text-sm font-black text-[#8b6b5a] font-mono mt-2">
@@ -1395,12 +2197,12 @@ export default function WizardStep2({
                 </div>
               )}
 
-              {/* Unit Price (for READYMADE) */}
-              {quotationType === 'READYMADE' && (
+              {/* Unit Price (for READYMADE and ACCESSORIES) */}
+              {(quotationType === 'READYMADE' || isAccessoryType) && (
                 <div className="w-28">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Unit Price</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] mb-1.5 font-bold">Unit Price (₹)</p>
                   <input
-                    type="number" step="any" min="0" placeholder="0.00"
+                    type="number" step="0.01" min="0" placeholder="0.00"
                     value={item.price}
                     onChange={(e) => updateItem(index, { price: e.target.value })}
                     className={inputCls}
@@ -1408,21 +2210,114 @@ export default function WizardStep2({
                 </div>
               )}
 
-              {/* Quantity */}
-              <div className="w-24">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
-                <input
-                  type="number" min="1" placeholder="50"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, { quantity: e.target.value })}
-                  className={inputCls}
-                />
+              {/* Quantity Selection Mode (Radio) */}
+              <div className="min-w-[270px] bg-zinc-50 p-2.5 rounded-2xl border border-zinc-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Qty Selection</span>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`qty_mode_manual_${item.id || index}`}
+                        checked={item.qty_mode !== 'direct_products'}
+                        onChange={() => {
+                          const m = parseInt(item.no_of_members || '') || 1;
+                          const s = parseInt(item.no_of_sets || '2') || 2;
+                          updateItem(index, {
+                            qty_mode: 'members_sets',
+                            no_of_members: String(m),
+                            no_of_sets: String(s),
+                            quantity: String(m * s)
+                          });
+                        }}
+                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                      />
+                      <span>Members &amp; Sets</span>
+                    </label>
+                    <span className="text-zinc-300 font-bold">|</span>
+                    <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`qty_mode_manual_${item.id || index}`}
+                        checked={item.qty_mode === 'direct_products'}
+                        onChange={() => {
+                          updateItem(index, {
+                            qty_mode: 'direct_products',
+                            quantity: item.quantity || '1'
+                          });
+                        }}
+                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                      />
+                      <span>No. of Products</span>
+                    </label>
+                  </div>
+                </div>
+
+                {item.qty_mode !== 'direct_products' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">Members</p>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 50"
+                        value={item.no_of_members || ''}
+                        onChange={(e) => {
+                          const m = e.target.value;
+                          const s = item.no_of_sets || '2';
+                          const total = (parseInt(m) || 0) * (parseInt(s) || 0);
+                          updateItem(index, {
+                            no_of_members: m,
+                            quantity: String(total || 1)
+                          });
+                        }}
+                        className={inputCls}
+                      />
+                    </div>
+                    <span className="text-zinc-400 font-black text-xs pt-3">×</span>
+                    <div className="w-16">
+                      <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">Sets</p>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="2"
+                        value={item.no_of_sets || '2'}
+                        onChange={(e) => {
+                          const s = e.target.value;
+                          const m = item.no_of_members || '1';
+                          const total = (parseInt(m) || 0) * (parseInt(s) || 0);
+                          updateItem(index, {
+                            no_of_sets: s,
+                            quantity: String(total || 1)
+                          });
+                        }}
+                        className={inputCls}
+                      />
+                    </div>
+                    <span className="text-zinc-400 font-black text-xs pt-3">=</span>
+                    <div className="text-right pl-1 pt-3 min-w-[55px]">
+                      <span className="text-xs font-mono font-black text-[#2d8d9b]">{item.quantity || 0} Units</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">No. of Products</p>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Total units"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Unit Cost Display */}
               <div className="ml-auto text-right self-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                  {quotationType === 'READYMADE' ? 'Unit Price' : 'Unit Cost'}
+                  {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
                 </p>
                 <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
                   ₹{unitTotal.toFixed(2)}
@@ -1444,38 +2339,11 @@ export default function WizardStep2({
               </button>
             </div>
 
-            {/* Pattern / Art Number & Design Number (DNS) Identifiers */}
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/70 p-3 rounded-xl border border-zinc-100">
-              <div>
-                <label className="block text-[9px] font-black uppercase tracking-widest text-sky-700 mb-1">
-                  Art # (Pattern / Article Code)
-                </label>
-                <input
-                  type="text"
-                  value={item.art_number || ''}
-                  onChange={(e) => updateItem(index, { art_number: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-sky-200/70 rounded-lg text-sky-900 focus:outline-none focus:border-sky-500 bg-white placeholder:text-zinc-300 transition-all"
-                  placeholder="e.g. 4J-1-012"
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black uppercase tracking-widest text-indigo-700 mb-1">
-                  Design # (DNS Code)
-                </label>
-                <input
-                  type="text"
-                  value={item.design_number || ''}
-                  onChange={(e) => updateItem(index, { design_number: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-indigo-200/70 rounded-lg text-indigo-900 focus:outline-none focus:border-indigo-500 bg-white placeholder:text-zinc-300 transition-all"
-                  placeholder="e.g. DNS-0001 or DNS-STANDARD"
-                />
-              </div>
-            </div>
           </div>
         )}
 
         {/* ── Costing Breakdown Table ── */}
-        <div className="p-5" style={{ display: quotationType === 'READYMADE' ? 'none' : 'block' }}>
+        <div className="p-5" style={{ display: (quotationType === 'READYMADE' || isAccessoryType) ? 'none' : 'block' }}>
           <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Material Cost Breakdown</p>
           <div className="rounded-2xl border border-zinc-100 overflow-hidden">
             <table className="w-full text-xs border-collapse">
@@ -1711,7 +2579,7 @@ export default function WizardStep2({
                 {/* ── Dynamic Database Trims ── */}
                 {((item.trims && item.trims.length > 0) ? item.trims : [
                   { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
-                  { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '', uom: 'spools' }
+                  { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '1', uom: 'spools' }
                 ]).map((trimItem: any, trimIdx: number) => {
                   const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
                                  threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
@@ -1758,7 +2626,7 @@ export default function WizardStep2({
 
                             let newCount = trimItem.count;
                             if (itemMeta.isThr && (!newCount || newCount === '0' || newCount === '')) {
-                              newCount = item.thread_count || '';
+                              newCount = item.thread_count || '1';
                             }
 
                             updateItemTrim(index, trimIdx, {
@@ -1808,7 +2676,7 @@ export default function WizardStep2({
                         <div className="flex items-center gap-1.5">
                           <input
                             type="number" step="0.5" min="0" placeholder="0"
-                            value={trimItem.count || ''}
+                            value={isThr ? (trimItem.count || item.thread_count || '1') : (trimItem.count || '')}
                             onChange={(e) => updateItemTrim(index, trimIdx, { count: e.target.value })}
                             className={`${inputCls} w-20`}
                           />
@@ -2053,7 +2921,7 @@ export default function WizardStep2({
                             is_set: true,
                             products: [
                               ...currentProds,
-                              { product_type_id: '', product_type_name: '', product_id: '', product_name: '' }
+                              { product_type_id: '', product_type_name: '', product_id: '', product_name: '', gender: '' }
                             ]
                           }
                         };
@@ -2102,9 +2970,39 @@ export default function WizardStep2({
                                 className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] bg-white focus:outline-none"
                               >
                                 <option value="">Select Category...</option>
-                                {productTypes.map(pt => (
+                                {displayProductTypes.map(pt => (
                                   <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
                                 ))}
+                              </select>
+                            </div>
+
+                            {/* Manual Gender Select */}
+                            <div className="w-[140px]">
+                              <select
+                                value={prod.gender || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const updated = [...manualItems];
+                                  const prods = [...(updated[setIdx].size_breakdown?.products || [])];
+                                  prods[prodIdx] = {
+                                    ...prods[prodIdx],
+                                    gender: val
+                                  };
+                                  updated[setIdx] = {
+                                    ...updated[setIdx],
+                                    size_breakdown: {
+                                      ...updated[setIdx].size_breakdown,
+                                      products: prods
+                                    }
+                                  };
+                                  setManualItems(updated);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] bg-white focus:outline-none cursor-pointer"
+                              >
+                                <option value="">Select Gender...</option>
+                                <option value="male">{isSchool ? 'Boys / Male' : 'Men / Male'}</option>
+                                <option value="female">{isSchool ? 'Girls / Female' : 'Women / Female'}</option>
+                                <option value="unisex">Unisex / All</option>
                               </select>
                             </div>
 
@@ -2136,7 +3034,20 @@ export default function WizardStep2({
                               >
                                 <option value="">Select Garment...</option>
                                 {allProducts
-                                  .filter(p => String(p.product_type_id) === String(prod.product_type_id))
+                                  .filter(p => {
+                                    const isCat = String(p.product_type_id) === String(prod.product_type_id);
+                                    if (!isCat) return false;
+                                    if (!prod.gender) return true;
+                                    const prodGen = (p.gender || '').toLowerCase();
+                                    const g = prod.gender.toLowerCase();
+                                    if (g === 'male' || g === 'boy' || g === 'boys') {
+                                      return prodGen === 'male' || prodGen === 'boys' || prodGen === 'boy' || prodGen === 'unisex' || !prodGen;
+                                    }
+                                    if (g === 'female' || g === 'girl' || g === 'girls') {
+                                      return prodGen === 'female' || prodGen === 'girls' || prodGen === 'girl' || prodGen === 'unisex' || !prodGen;
+                                    }
+                                    return true;
+                                  })
                                   .map(p => (
                                     <option key={p.id} value={String(p.id)}>
                                       {p.name}{p.art_number ? ` (${p.art_number})` : ''}
@@ -2300,8 +3211,210 @@ export default function WizardStep2({
             </div>
           )}
 
-          {/* TEMPLATE SIZING AUDIT TABLE */}
-          {templateLineItems.length === 0 ? (
+          {/* SIZING & MEASUREMENT AUDITS - SPLIT BY DEPARTMENT OR GLOBAL */}
+          {auditDepartments.length > 0 ? (
+            <div className="space-y-8 pt-2">
+              <div className="flex items-center gap-2">
+                <Layers size={14} className="text-[#2d8d9b]" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Department-Wise Sizing &amp; Measurement Audits</h4>
+                <span className="ml-auto text-[9px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-70">
+                  Live verification profiles by department · Add gender manually
+                </span>
+              </div>
+
+              {auditDepartments.map((dept: any) => {
+                const deptId = String(dept.id);
+                const cleanId = deptId.replace(/_.*$/, '');
+                const deptEntities = (orgAnalysis?.entities || []).filter((e: any) => {
+                  const eid = String(e.department_id || '');
+                  return eid === deptId || eid === cleanId || (dept.name && e.department_name === dept.name);
+                });
+
+                const totalDeptMembers = deptEntities.length || parseInt(dept.persons || '0') || 0;
+                const completedDept = deptEntities.filter((e: any) => e.measurement_status === 'Completed').length;
+                const pendingDept = deptEntities.filter((e: any) => e.measurement_status === 'Pending').length;
+                const missingDept = deptEntities.filter((e: any) => e.measurement_status === 'Missing').length;
+
+                const currentRows = deptAuditItems[deptId] || uniqueTemplateProducts.map((p: any, idx: number) => ({
+                  ...p,
+                  id: `${deptId}_${p.product_id}_${idx}`,
+                  department_id: deptId,
+                  department_name: dept.name,
+                  gender: '',
+                }));
+
+                const deptUnits = currentRows.reduce((sum: number, it: any) => sum + getDeptAuditRowQty(deptId, dept.name, it.gender, completedDept), 0);
+                const deptPriceTotal = currentRows.reduce((sum: number, it: any) => {
+                  const q = getDeptAuditRowQty(deptId, dept.name, it.gender, completedDept);
+                  const p = parseFloat(it.price_override || '0');
+                  return sum + (p > 0 ? p * q : 0);
+                }, 0);
+                const deptSAMTotal = currentRows.reduce((sum: number, it: any) => {
+                  const q = getDeptAuditRowQty(deptId, dept.name, it.gender, completedDept);
+                  return sum + (it.sam_value ? it.sam_value * q : 0);
+                }, 0);
+
+                return (
+                  <div key={deptId} className="border-2 border-zinc-200 hover:border-[#2d8d9b]/30 rounded-[2rem] bg-white p-6 shadow-sm space-y-4">
+                    {/* Department Header with Live verification of measurements profiles */}
+                    <div className="flex items-center justify-between gap-4 flex-wrap border-b border-zinc-100 pb-4">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider bg-zinc-100 px-3 py-1.5 rounded-xl border border-zinc-200">
+                          {dept.division ? `${dept.name} (${dept.division})` : dept.name}
+                        </span>
+                        <span className="text-[10px] font-black text-[#2d8d9b] bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 px-2.5 py-1 rounded-lg font-mono">
+                          {totalDeptMembers} Members
+                        </span>
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 font-mono">
+                          <CheckCircle2 size={12} /> {completedDept} Verified Profiles
+                        </span>
+                        {(missingDept > 0 || pendingDept > 0) && (
+                          <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1 font-mono">
+                            <AlertTriangle size={12} /> {missingDept + pendingDept} Missing / Pending
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => addDeptAuditRow(deptId, dept.name)}
+                        className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Plus size={12} />
+                        <span>Add Product / Gender Line</span>
+                      </button>
+                    </div>
+
+                    {/* Department Audit Table */}
+                    <div className="border border-zinc-150 rounded-2xl overflow-x-auto custom-scrollbar bg-white shadow-2xs">
+                      <table className="w-full min-w-[950px] text-left border-collapse text-xs align-middle">
+                        <thead>
+                          <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                            <th className="p-3 align-middle">ART Number</th>
+                            <th className="p-3 align-middle">Product Name</th>
+                            <th className="p-3 align-middle w-40">Gender</th>
+                            <th className="p-3 align-middle">Design Number</th>
+                            <th className="p-3 align-middle">Material</th>
+                            <th className="p-3 align-middle font-mono">SAM (₹)</th>
+                            <th className="p-3 align-middle text-right">Quantity</th>
+                            <th className="p-3 align-middle w-28">Price/Unit (₹)</th>
+                            <th className="p-3 align-middle w-12 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
+                          {currentRows.map((rowItem: any, rIdx: number) => {
+                            const rowQty = getDeptAuditRowQty(deptId, dept.name, rowItem.gender, completedDept);
+                            return (
+                              <tr key={rowItem.id || rIdx} className="hover:bg-zinc-50/50 bg-white">
+                                <td className="p-3 font-black text-[#2d8d9b] align-middle">{rowItem.art_number || '—'}</td>
+                                <td className="p-3 text-zinc-800 align-middle">
+                                  {uniqueTemplateProducts.length > 1 ? (
+                                    <select
+                                      value={rowItem.product_id}
+                                      onChange={(e) => {
+                                        const pid = e.target.value;
+                                        const matched = uniqueTemplateProducts.find((u: any) => String(u.product_id) === String(pid));
+                                        updateDeptAuditRow(deptId, rIdx, {
+                                          product_id: pid,
+                                          product_name: matched?.product_name || rowItem.product_name,
+                                          art_number: matched?.art_number || rowItem.art_number,
+                                          materials: matched?.materials || rowItem.materials,
+                                          sam_value: matched?.sam_value ?? rowItem.sam_value
+                                        });
+                                      }}
+                                      className="text-xs font-bold text-zinc-800 bg-transparent border border-zinc-200 rounded px-1.5 py-1 focus:outline-none focus:border-[#2d8d9b]"
+                                    >
+                                      {uniqueTemplateProducts.map((u: any) => (
+                                        <option key={u.product_id} value={u.product_id}>{u.product_name}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    rowItem.product_name
+                                  )}
+                                </td>
+                                <td className="p-2 align-middle">
+                                  <select
+                                    value={rowItem.gender || ''}
+                                    onChange={(e) => updateDeptAuditRow(deptId, rIdx, { gender: e.target.value })}
+                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer"
+                                  >
+                                    <option value="">Select Gender...</option>
+                                    {availableGenders.map((g: any) => (
+                                      <option key={g.id || g.code || g.value} value={g.value}>
+                                        {g.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="p-2 align-middle">
+                                  <div className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-700 flex items-center justify-between">
+                                    <span>{rowItem.design_number_override || rowItem.design_code || 'Auto (BOM)'}</span>
+                                    <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-zinc-200/60 text-zinc-600">Locked</span>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-zinc-400 align-middle">{rowItem.materials || '—'}</td>
+                                <td className="p-2 align-middle">
+                                  <input
+                                    type="number" step="0.0001" min="0" placeholder="₹"
+                                    value={rowItem.sam_value ?? ''}
+                                    onChange={(e) => updateDeptAuditRow(deptId, rIdx, { sam_value: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-600 focus:outline-none transition-all"
+                                  />
+                                </td>
+                                <td className="p-3 text-right font-black text-[#3a525d] align-middle">
+                                  {rowQty > 0 ? (
+                                    <span>{rowQty} <span className="text-zinc-400 font-normal">Units</span></span>
+                                  ) : (
+                                    <span className="text-zinc-300">0</span>
+                                  )}
+                                </td>
+                                <td className="p-2 align-middle">
+                                  <input
+                                    type="number" step="0.01" min="0" placeholder="Optional"
+                                    value={rowItem.price_override || ''}
+                                    onChange={(e) => updateDeptAuditRow(deptId, rIdx, { price_override: e.target.value })}
+                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-[#2d8d9b] focus:outline-none transition-all"
+                                  />
+                                </td>
+                                <td className="p-2 text-center align-middle">
+                                  {currentRows.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeDeptAuditRow(deptId, rIdx)}
+                                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                      title="Remove row"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-[#3a525d]/5 border-t-2 border-[#2d8d9b]/20 text-[#3a525d] font-black text-xs">
+                            <td colSpan={5} className="p-3 text-[10px] uppercase tracking-widest text-zinc-400 align-middle">
+                              {dept.name} Totals
+                            </td>
+                            <td className="p-3 font-mono font-black text-[#3a525d] align-middle">
+                              {deptSAMTotal > 0 ? `₹${deptSAMTotal.toFixed(2)}` : '—'}
+                            </td>
+                            <td className="p-3 text-right font-black text-[#3a525d] align-middle">
+                              {deptUnits} <span className="text-zinc-400 font-normal text-[10px]">Units</span>
+                            </td>
+                            <td colSpan={2} className="p-3 font-mono font-black text-[#2d8d9b] align-middle">
+                              {deptPriceTotal > 0 ? `₹${deptPriceTotal.toFixed(2)}` : '—'}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : templateLineItems.length === 0 ? (
             <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-2xl flex gap-3 text-amber-800 text-xs">
               <AlertTriangle className="shrink-0 text-amber-600" size={18} />
               <div>
@@ -2338,21 +3451,32 @@ export default function WizardStep2({
                         <tr key={mi} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-3 font-black text-[#2d8d9b] align-middle">{item.art_number || '—'}</td>
                           <td className="p-3 text-zinc-800 align-middle">{item.product_name}</td>
-                          <td className="p-3 capitalize text-zinc-500 align-middle">{item.gender}</td>
-                          <td className="p-2 align-middle">
-                            <input
-                              type="text"
-                              placeholder={item.design_code || 'e.g. DN-001'}
-                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none focus:ring-1 focus:ring-[#2d8d9b]/30 transition-all"
-                              value={templateLineItems[firstIdx]?.design_number_override || ''}
+                                                    <td className="p-2 align-middle min-w-[130px]">
+                            <select
+                              value={item.gender || ''}
                               onChange={(e) => {
+                                const val = e.target.value;
                                 const updated = [...templateLineItems];
                                 item._indices.forEach((i: number) => {
-                                  updated[i] = { ...updated[i], design_number_override: e.target.value };
+                                  updated[i] = { ...updated[i], gender: val };
                                 });
                                 setTemplateLineItems(updated);
                               }}
-                            />
+                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer"
+                            >
+                              <option value="">Select Gender...</option>
+                              {availableGenders.map((g: any) => (
+                                <option key={g.id || g.code || g.value} value={g.value}>
+                                  {g.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="p-2 align-middle">
+                            <div className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-700 flex items-center justify-between">
+                              <span>{templateLineItems[firstIdx]?.design_number_override || item.design_code || 'Auto (BOM)'}</span>
+                              <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-zinc-200/60 text-zinc-600">Locked</span>
+                            </div>
                           </td>
                           <td className="p-3 text-zinc-400 align-middle">{item.materials || '—'}</td>
                           <td className="p-2 align-middle">
@@ -2429,119 +3553,6 @@ export default function WizardStep2({
         </>
       ) : (
         <>
-          {/* ═══ ENTITY SIZING AUTOMATION & GLOBAL SETS TOOLBAR ═══ */}
-          <div className="bg-gradient-to-r from-[#2d8d9b]/10 via-[#fce4d4]/20 to-white p-6 rounded-3xl border-2 border-[#2d8d9b]/25 shadow-sm space-y-5">
-            <div className="flex items-center justify-between flex-wrap gap-4 border-b border-zinc-200/60 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b] text-white flex items-center justify-center shadow-sm">
-                  <GraduationCap size={24} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-base font-black text-[#3a525d]">
-                      {selectedOrg?.name || 'Customer Organization'}
-                    </h4>
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b]/15 text-[#2d8d9b]">
-                      {isSchool ? 'School Grade Scaling' : 'Department Sizing'}
-                    </span>
-                  </div>
-                  <p className="text-xs font-bold text-zinc-500 mt-0.5">
-                    Auto-load student/staff headcounts &amp; link class-wise measurements from product matrix
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Button: Auto-Load Entities & Measurements */}
-              <button
-                type="button"
-                onClick={handleAutoLoadEntitiesAndMeasurements}
-                disabled={isLoadingEntities || !selectedOrgId}
-                className="h-12 px-6 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-2xl font-black uppercase tracking-wider text-xs flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                {isLoadingEntities ? (
-                  <>
-                    <RefreshCw size={16} className="animate-spin" />
-                    <span>Auditing Measurements...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap size={16} className="fill-current text-amber-300" />
-                    <span>Auto-Load Entities &amp; Measurements</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Sizing Audit Metrics Summary if loaded */}
-            {entityAuditSummary && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/80 backdrop-blur p-4 rounded-2xl border border-[#2d8d9b]/20 animate-in fade-in duration-300">
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Total Enrolled</p>
-                  <p className="text-lg font-black text-[#3a525d] font-mono">{entityAuditSummary.totalEntities} Members</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Measured (Ready)</p>
-                  <p className="text-lg font-black text-emerald-600 font-mono">{entityAuditSummary.measuredCount} Sized</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending Sizing</p>
-                  <p className="text-lg font-black text-amber-600 font-mono">{entityAuditSummary.pendingCount} Pending</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-black uppercase tracking-wider text-[#2d8d9b]">{isSchool ? 'Classes Synced' : 'Departments Synced'}</p>
-                  <p className="text-lg font-black text-[#2d8d9b] font-mono">{entityAuditSummary.classesCount} {isSchool ? 'Classes' : 'Depts'}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Provision to Select Number of Sets */}
-            <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-1.5">
-                  <Package size={14} className="text-[#2d8d9b]" />
-                  Provision: Uniform Sets Per Person
-                </label>
-                <p className="text-[10px] text-zinc-400 font-semibold">
-                  Select uniform sets to automatically calculate total units across all {isSchool ? 'grades' : 'departments'}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                {['1', '2', '3', '4'].map((setVal) => (
-                  <button
-                    key={setVal}
-                    type="button"
-                    onClick={() => handleApplySetsGlobally(setVal)}
-                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                      globalSets === setVal
-                        ? 'bg-[#2d8d9b] text-white shadow-sm ring-2 ring-[#2d8d9b]/30'
-                        : 'bg-white hover:bg-zinc-100 text-[#3a525d] border border-zinc-200'
-                    }`}
-                  >
-                    {setVal} {setVal === '1' ? 'Set' : 'Sets'} {setVal === '2' ? '(Default)' : ''}
-                  </button>
-                ))}
-
-                <div className="flex items-center gap-1.5 ml-2 bg-white px-2.5 py-1 rounded-xl border border-zinc-200">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase">Custom:</span>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="2"
-                    value={globalSets}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val) handleApplySetsGlobally(val);
-                      else setGlobalSets(val);
-                    }}
-                    className="w-12 text-xs font-mono font-bold text-center border-none focus:outline-none text-[#2d8d9b]"
-                  />
-                  <span className="text-[10px] font-black text-zinc-400">Sets</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* ═══ DEPARTMENT-WISE PRODUCT ITEMS ═══ */}
           {(() => {
             const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
@@ -2552,25 +3563,34 @@ export default function WizardStep2({
               return (
                 <div className="space-y-6">
                   {/* Department mode banner */}
-                  <div className="flex items-center gap-3 px-4 py-3 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl flex-wrap">
                     <div className="w-8 h-8 rounded-lg bg-[#2d8d9b]/15 flex items-center justify-center flex-shrink-0">
                       <Layers size={16} className="text-[#2d8d9b]" />
                     </div>
                     <div className="flex-1">
                       <p className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Department-Wise Quotation Mode</p>
                       <p className="text-[9px] font-bold text-[#2d8d9b] mt-0.5">
-                        {selectedDepts.length} department{selectedDepts.length !== 1 ? 's' : ''} selected · Average fabric & trim consumption automatically loaded per class
+                        {selectedDepts.length} department division{selectedDepts.length !== 1 ? 's' : ''} active · Consumption &amp; sizing managed per division
                       </p>
                     </div>
-                    <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest">
-                      {selectedDepts.reduce((sum: number, d: any) => sum + (parseInt(d.persons) || 0) * (parseInt(d.sets) || 0), 0)} Total Units
-                    </span>
+                    <div className="flex items-center gap-2">
+
+                      <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest font-mono">
+                        {selectedDepts.reduce((sum: number, d: any) => {
+                          const isDirect = d.qty_mode === 'direct_products';
+                          const units = isDirect
+                            ? (parseInt(d.direct_qty || d.persons) || 0)
+                            : (parseInt(d.persons) || 0) * (parseInt(d.sets) || 0);
+                          return sum + units;
+                        }, 0)} Total Units
+                      </span>
+                    </div>
                   </div>
 
                   {(() => {
                     const grouped: Record<string, any[]> = {};
                     selectedDepts.forEach((d: any) => {
-                      const name = d.name || 'General';
+                      const name = d.baseDeptName || d.name?.replace(/\s*\((Boys|Girls|Men|Women)\)/i, '') || 'General';
                       if (!grouped[name]) {
                         grouped[name] = [];
                       }
@@ -2579,25 +3599,53 @@ export default function WizardStep2({
 
                     return Object.entries(grouped).map(([deptName, deptsInGroup]) => (
                       <div key={deptName} className="rounded-[2rem] overflow-hidden border-2 border-zinc-200 hover:border-[#2d8d9b]/30 transition-all shadow-sm bg-white p-6 space-y-6">
-                        <div className="flex items-center gap-4 border-b border-zinc-100 pb-4">
-                          <div className="w-10 h-10 rounded-xl bg-[#3a525d]/10 flex items-center justify-center flex-shrink-0">
-                            <Layers size={18} className="text-[#3a525d]" />
+                        <div className="flex items-center justify-between gap-4 border-b border-zinc-100 pb-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-[#3a525d]/10 flex items-center justify-center flex-shrink-0">
+                              <Layers size={18} className="text-[#3a525d]" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-[#3a525d]">{deptName}</p>
+                              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                                {deptsInGroup.length} Division{deptsInGroup.length !== 1 ? 's' : ''} under this Department
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-black text-[#3a525d]">{deptName}</p>
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                              {deptsInGroup.length} Division{deptsInGroup.length !== 1 ? 's' : ''} under this Department
-                            </p>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!setOrgDepartments) return;
+                              const base = deptsInGroup[0];
+                              const newDivId = `${base.id}_div_${Date.now()}`;
+                              const newDept = {
+                                ...base,
+                                id: newDivId,
+                                division: `Division ${deptsInGroup.length + 1}`,
+                                gender: '',
+                                persons: '0',
+                                sets: '2',
+                                qty_mode: 'members_sets',
+                                direct_qty: '',
+                                selected: true
+                              };
+                              setOrgDepartments([...orgDepartments, newDept]);
+                            }}
+                            className="px-3 py-1.5 bg-zinc-100 hover:bg-[#2d8d9b] text-zinc-700 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <Plus size={12} />
+                            <span>Add Division</span>
+                          </button>
                         </div>
 
                         <div className="space-y-8 divide-y divide-zinc-200 pt-2">
                           {deptsInGroup.map((dept: any) => {
                             const deptId = String(dept.id);
                             const deptItems = (departmentItems || {})[deptId] || [];
+                            const isDirectMode = dept.qty_mode === 'direct_products';
                             const personsCount = parseInt(dept.persons) || 0;
                             const setsCount = parseInt(dept.sets) || 0;
-                            const totalUnits = personsCount * setsCount;
+                            const directUnits = parseInt(dept.direct_qty || dept.persons) || 0;
+                            const totalUnits = isDirectMode ? directUnits : personsCount * setsCount;
 
                             const addDeptItem = () => {
                               const newItem: ManualItem = {
@@ -2633,6 +3681,30 @@ export default function WizardStep2({
                               if (setDepartmentItems) {
                                 setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
                               }
+
+                              if (
+                                'art_number' in changes ||
+                                'product_id' in changes ||
+                                'fabric_id' in changes ||
+                                'attachment_fabric1_id' in changes ||
+                                'attachment_fabric2_id' in changes ||
+                                'button_id' in changes ||
+                                'thread_id' in changes ||
+                                'trims' in changes
+                              ) {
+                                resolveCandidateDns(newItem).then((matched) => {
+                                  if (setDepartmentItems) {
+                                    setDepartmentItems((prev: any) => {
+                                      const prevList = prev?.[deptId] || [];
+                                      const fresh = [...prevList];
+                                      if (fresh[index] && fresh[index].id === newItem.id) {
+                                        fresh[index] = { ...fresh[index], design_number: matched || '' };
+                                      }
+                                      return { ...(prev || {}), [deptId]: fresh };
+                                    });
+                                  }
+                                });
+                              }
                             };
 
                             const updateDeptItemTrim = (itemIndex: number, trimIndex: number, changes: any) => {
@@ -2640,7 +3712,7 @@ export default function WizardStep2({
                               const item = { ...updated[itemIndex] };
                               const defaultTrims = [
                                 { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
                               ];
                               const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
                               while (curTrims.length <= trimIndex) {
@@ -2665,7 +3737,7 @@ export default function WizardStep2({
                               const thr = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || String(t.id).startsWith('thr'));
                               if (thr) {
                                 item.thread_id = thr.trim_id || '';
-                                item.thread_count = thr.count || '';
+                                item.thread_count = thr.count || '1';
                               }
 
                               if (quotationType !== 'READYMADE') {
@@ -2676,6 +3748,19 @@ export default function WizardStep2({
                               if (setDepartmentItems) {
                                 setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
                               }
+
+                              resolveCandidateDns(item).then((matched) => {
+                                if (setDepartmentItems) {
+                                  setDepartmentItems((prev: any) => {
+                                    const prevList = prev?.[deptId] || [];
+                                    const fresh = [...prevList];
+                                    if (fresh[itemIndex] && fresh[itemIndex].id === item.id) {
+                                      fresh[itemIndex] = { ...fresh[itemIndex], design_number: matched || '' };
+                                    }
+                                    return { ...(prev || {}), [deptId]: fresh };
+                                  });
+                                }
+                              });
                             };
 
                             const addDeptItemTrim = (itemIndex: number, category = 'Trim') => {
@@ -2683,7 +3768,7 @@ export default function WizardStep2({
                               const item = { ...updated[itemIndex] };
                               const defaultTrims = [
                                 { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
                               ];
                               const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
                               const meta = getTrimCategoryMeta(category);
@@ -2692,7 +3777,7 @@ export default function WizardStep2({
                                 trim_id: '',
                                 category: category,
                                 name: '',
-                                count: meta.isThr ? (item.thread_count || '') : '1',
+                                count: meta.isThr ? (item.thread_count || '1') : '1',
                                 uom: meta.defaultUom,
                                 unit_price: 0
                               });
@@ -2708,7 +3793,7 @@ export default function WizardStep2({
                               const item = { ...updated[itemIndex] };
                               const defaultTrims = [
                                 { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
+                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
                               ];
                               const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
                               curTrims.splice(trimIndex, 1);
@@ -2736,83 +3821,235 @@ export default function WizardStep2({
                               <div key={dept.id} className="pt-6 first:pt-0 space-y-4">
                                 {/* Division Header with Sizing & Persons config */}
                                 <div className="flex items-center justify-between gap-4 flex-wrap bg-zinc-50 p-4 rounded-2xl border border-zinc-150">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="flex items-center gap-3 flex-wrap">
                                     <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider bg-zinc-200/50 px-3 py-1 rounded-lg">
                                       {dept.division ? `Division: ${dept.division}` : 'Main Division'}
                                     </span>
-                                    {dept._memberCount !== undefined && dept._memberCount > 0 && (
-                                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1 font-mono">
-                                        <Users size={12} /> {dept._memberCount} Students ({dept._measuredCount || 0} Measured)
-                                      </span>
+                                    {deptsInGroup.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (setOrgDepartments) {
+                                            setOrgDepartments(orgDepartments.filter((d: any) => d.id !== dept.id));
+                                          }
+                                        }}
+                                        className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                        title="Remove this division"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
                                     )}
+                                    {(() => {
+                                      const deptEntities = (orgAnalysis?.entities || []).filter((e: any) => {
+                                        const eid = String(e.department_id || '');
+                                        const cleanId = String(dept.id || '').replace(/_.*$/, '');
+                                        return eid === String(dept.id) || eid === cleanId || (dept.name && e.department_name === dept.name);
+                                      });
+                                      const mCount = deptEntities.length || dept._memberCount || parseInt(dept.persons || '0') || 0;
+                                      const measCount = deptEntities.filter((e: any) => e.measurement_status === 'Completed').length || dept._measuredCount || 0;
+                                      if (mCount > 0) {
+                                        return (
+                                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1 font-mono">
+                                            <Users size={12} /> {mCount} Members ({measCount} Measured)
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+
+                                    {/* Gender Dropdown */}
+                                    <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
+                                      <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Gender:</label>
+                                      <select
+                                        value={dept.gender || ''}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (setOrgDepartments) {
+                                            setOrgDepartments(orgDepartments.map((d: any) => d.id === dept.id ? { ...d, gender: val } : d));
+                                          }
+                                        }}
+                                        className="text-xs font-bold text-[#3a525d] bg-transparent border-none focus:outline-none cursor-pointer"
+                                      >
+                                        <option value="">Select Gender...</option>
+                                        {availableGenders.map((g: any) => (
+                                          <option key={g.id || g.code || g.value} value={g.value}>
+                                            {g.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
                                   </div>
+
                                   <div className="flex items-center gap-4 flex-wrap">
-                                    <div className="flex items-center gap-2">
-                                      <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">No. of Persons</label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        placeholder="0"
-                                        value={dept.persons}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          if (setOrgDepartments) {
-                                            const updatedDepts = orgDepartments.map(d => {
-                                              if (d.id === dept.id) {
-                                                const newTotal = (parseInt(val) || 0) * (parseInt(d.sets) || 0);
-                                                if (setDepartmentItems && departmentItems[deptId]) {
-                                                  const updatedItems = departmentItems[deptId].map(item => ({
-                                                    ...item,
-                                                    quantity: String(newTotal || 1)
-                                                  }));
-                                                  setDepartmentItems({
-                                                    ...departmentItems,
-                                                    [deptId]: updatedItems
-                                                  });
+                                    {/* Radio mode: By Members & Sets VS No. of Products */}
+                                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
+                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-[#3a525d]">
+                                        <input
+                                          type="radio"
+                                          name={`qty_mode_${dept.id}`}
+                                          checked={dept.qty_mode !== 'direct_products'}
+                                          onChange={() => {
+                                            if (setOrgDepartments) {
+                                              const updatedDepts = orgDepartments.map((d: any) => {
+                                                if (d.id === dept.id) {
+                                                  const m = parseInt(d.persons) || 0;
+                                                  const s = parseInt(d.sets) || 2;
+                                                  const newUnits = m * s;
+                                                  if (setDepartmentItems && departmentItems[deptId]) {
+                                                    setDepartmentItems({
+                                                      ...departmentItems,
+                                                      [deptId]: departmentItems[deptId].map((it: any) => ({ ...it, quantity: String(newUnits || 1) }))
+                                                    });
+                                                  }
+                                                  return { ...d, qty_mode: 'members_sets' };
                                                 }
-                                                return { ...d, persons: val };
-                                              }
-                                              return d;
-                                            });
-                                            setOrgDepartments(updatedDepts);
-                                          }
-                                        }}
-                                        className="w-20 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
-                                      />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Sets per Person</label>
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        placeholder="2"
-                                        value={dept.sets}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          if (setOrgDepartments) {
-                                            const updatedDepts = orgDepartments.map(d => {
-                                              if (d.id === dept.id) {
-                                                const newTotal = (parseInt(d.persons) || 0) * (parseInt(val) || 0);
-                                                if (setDepartmentItems && departmentItems[deptId]) {
-                                                  const updatedItems = departmentItems[deptId].map(item => ({
-                                                    ...item,
-                                                    quantity: String(newTotal || 1)
-                                                  }));
-                                                  setDepartmentItems({
-                                                    ...departmentItems,
-                                                    [deptId]: updatedItems
-                                                  });
+                                                return d;
+                                              });
+                                              setOrgDepartments(updatedDepts);
+                                            }
+                                          }}
+                                          className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                                        />
+                                        <span>Members &amp; Sets</span>
+                                      </label>
+
+                                      <span className="text-zinc-300 font-bold">|</span>
+
+                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-[#3a525d]">
+                                        <input
+                                          type="radio"
+                                          name={`qty_mode_${dept.id}`}
+                                          checked={dept.qty_mode === 'direct_products'}
+                                          onChange={() => {
+                                            if (setOrgDepartments) {
+                                              const updatedDepts = orgDepartments.map((d: any) => {
+                                                if (d.id === dept.id) {
+                                                  const directQty = d.direct_qty || d.persons || '10';
+                                                  const newUnits = parseInt(directQty) || 0;
+                                                  if (setDepartmentItems && departmentItems[deptId]) {
+                                                    setDepartmentItems({
+                                                      ...departmentItems,
+                                                      [deptId]: departmentItems[deptId].map((it: any) => ({ ...it, quantity: String(newUnits || 1) }))
+                                                    });
+                                                  }
+                                                  return { ...d, qty_mode: 'direct_products', direct_qty: directQty };
                                                 }
-                                                return { ...d, sets: val };
-                                              }
-                                              return d;
-                                            });
-                                            setOrgDepartments(updatedDepts);
-                                          }
-                                        }}
-                                        className="w-16 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
-                                      />
+                                                return d;
+                                              });
+                                              setOrgDepartments(updatedDepts);
+                                            }
+                                          }}
+                                          className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                                        />
+                                        <span>No. of Products</span>
+                                      </label>
                                     </div>
+
+                                    {dept.qty_mode !== 'direct_products' ? (
+                                      <>
+                                        <div className="flex items-center gap-2">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">No. of Members</label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="0"
+                                            value={dept.persons}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (setOrgDepartments) {
+                                                const updatedDepts = orgDepartments.map((d: any) => {
+                                                  if (d.id === dept.id) {
+                                                    const newTotal = (parseInt(val) || 0) * (parseInt(d.sets) || 0);
+                                                    if (setDepartmentItems && departmentItems[deptId]) {
+                                                      const updatedItems = departmentItems[deptId].map((item: any) => ({
+                                                        ...item,
+                                                        quantity: String(newTotal || 1)
+                                                      }));
+                                                      setDepartmentItems({
+                                                        ...departmentItems,
+                                                        [deptId]: updatedItems
+                                                      });
+                                                    }
+                                                    return { ...d, persons: val };
+                                                  }
+                                                  return d;
+                                                });
+                                                setOrgDepartments(updatedDepts);
+                                              }
+                                            }}
+                                            className="w-20 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Sets per Person</label>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="2"
+                                            value={dept.sets}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (setOrgDepartments) {
+                                                const updatedDepts = orgDepartments.map((d: any) => {
+                                                  if (d.id === dept.id) {
+                                                    const newTotal = (parseInt(d.persons) || 0) * (parseInt(val) || 0);
+                                                    if (setDepartmentItems && departmentItems[deptId]) {
+                                                      const updatedItems = departmentItems[deptId].map((item: any) => ({
+                                                        ...item,
+                                                        quantity: String(newTotal || 1)
+                                                      }));
+                                                      setDepartmentItems({
+                                                        ...departmentItems,
+                                                        [deptId]: updatedItems
+                                                      });
+                                                    }
+                                                    return { ...d, sets: val };
+                                                  }
+                                                  return d;
+                                                });
+                                                setOrgDepartments(updatedDepts);
+                                              }
+                                            }}
+                                            className="w-16 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                          />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">No. of Products</label>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          placeholder="0"
+                                          value={dept.direct_qty || dept.persons || ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (setOrgDepartments) {
+                                              const updatedDepts = orgDepartments.map((d: any) => {
+                                                if (d.id === dept.id) {
+                                                  const newTotal = parseInt(val) || 0;
+                                                  if (setDepartmentItems && departmentItems[deptId]) {
+                                                    const updatedItems = departmentItems[deptId].map((item: any) => ({
+                                                      ...item,
+                                                      quantity: String(newTotal || 1)
+                                                    }));
+                                                    setDepartmentItems({
+                                                      ...departmentItems,
+                                                      [deptId]: updatedItems
+                                                    });
+                                                  }
+                                                  return { ...d, direct_qty: val };
+                                                }
+                                                return d;
+                                              });
+                                              setOrgDepartments(updatedDepts);
+                                            }
+                                          }}
+                                          className="w-24 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                        />
+                                      </div>
+                                    )}
+
                                     <div className="text-right min-w-[90px] border-l border-zinc-200 pl-4">
                                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Units</p>
                                       <p className="text-xs font-mono font-black text-[#2d8d9b]">{totalUnits} Units</p>
@@ -2832,20 +4069,42 @@ export default function WizardStep2({
                                       {deptItems.map((item: ManualItem, idx: number) => {
                                         // Inline render adapted for department items
                                         const { mainFabricCost, att1Cost, att2Cost, samCost, unitTotal: calculatedUnitTotal } = getItemCosts(item);
-                                        const unitTotal = quotationType === 'READYMADE' ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
+                                        const unitTotal = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
                                         const totalItemCost = unitTotal * (parseInt(item.quantity) || 0);
 
+                                        const matchedDeptProduct = (allProducts || []).find((p: any) => {
+                                          if (item.product_id && String(p.id) === String(item.product_id)) return true;
+                                          if (!item.art_number) return false;
+                                          const clean = item.art_number.trim().toLowerCase();
+                                          const cleanNoDash = clean.replace(/[-\s]/g, '');
+                                          const pArt = (p.art_number || '').trim().toLowerCase();
+                                          const pArtNoDash = pArt.replace(/[-\s]/g, '');
+                                          return pArt === clean || (cleanNoDash.length >= 3 && pArtNoDash === cleanNoDash);
+                                        });
+
                                         const deptFilteredProducts = allProducts.filter((p: any) => {
+                                          const isAcc = isAccessoryProduct(p);
+                                          if (isAccessoryType) {
+                                            if (!isAcc) return false;
+                                            if (item.product_type_id && String(p.product_type_id) !== String(item.product_type_id)) {
+                                              return false;
+                                            }
+                                            return true;
+                                          }
+                                          if (isAcc) return false;
+
                                           const isCorrectCategory = String(p.product_type_id) === String(item.product_type_id);
                                           
                                           // Filter by gender: boys/girls/unisex
-                                          const deptGender = (dept.gender || (dept.name?.toLowerCase().includes('boy') ? 'male' : (dept.name?.toLowerCase().includes('girl') ? 'female' : ''))).toLowerCase();
+                                          const deptGender = (dept.gender || '').toLowerCase();
                                           const prodGender = (p.gender || '').toLowerCase();
                                           let matchesGender = true;
-                                          if (deptGender === 'male' || deptGender === 'boy' || deptGender === 'boys') {
-                                            matchesGender = prodGender === 'male' || prodGender === 'boys' || prodGender === 'boy' || prodGender === 'unisex' || prodGender === 'all' || !prodGender;
-                                          } else if (deptGender === 'female' || deptGender === 'girl' || deptGender === 'girls') {
-                                            matchesGender = prodGender === 'female' || prodGender === 'girls' || prodGender === 'girl' || prodGender === 'unisex' || prodGender === 'all' || !prodGender;
+                                          if (deptGender === 'male' || deptGender === 'boy' || deptGender === 'boys' || deptGender === '1' || deptGender === 'm') {
+                                            matchesGender = prodGender === 'male' || prodGender === 'boys' || prodGender === 'boy' || prodGender === 'unisex' || prodGender === 'all' || prodGender === '1' || !prodGender;
+                                          } else if (deptGender === 'female' || deptGender === 'girl' || deptGender === 'girls' || deptGender === '2' || deptGender === 'f') {
+                                            matchesGender = prodGender === 'female' || prodGender === 'girls' || prodGender === 'girl' || prodGender === 'unisex' || prodGender === 'all' || prodGender === '2' || !prodGender;
+                                          } else if (deptGender && deptGender !== 'unisex' && deptGender !== 'all') {
+                                            matchesGender = prodGender === deptGender || prodGender === 'unisex' || prodGender === 'all' || !prodGender;
                                           }
 
                                           if (quotationType === 'READYMADE') {
@@ -2900,7 +4159,65 @@ export default function WizardStep2({
                                                 </div>
                                               </div>
                                             ) : (
-                                              <div className="p-4 bg-white border-b border-zinc-100">
+                                              <div className="p-5 bg-white border-b border-zinc-100">
+                                                {/* ── TOP SECTION: ART NUMBER & QUICK SPEC IDENTIFIER ── */}
+                                                <div className="mb-4 pb-3 border-b border-zinc-150 bg-sky-50/40 -mx-5 -mt-5 p-4 rounded-t-2xl flex items-center justify-between gap-4 flex-wrap">
+                                                  <div className="flex items-center gap-3 flex-wrap flex-1">
+                                                    <div className="min-w-[240px] max-w-[340px] flex-1">
+                                                      <div className="flex items-center justify-between mb-1">
+                                                        <label className="text-[10px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
+                                                          <Hash size={13} className="text-sky-600" />
+                                                          ART Number
+                                                        </label>
+                                                        {matchedDeptProduct && (
+                                                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                                                            <CheckCircle2 size={10} className="text-emerald-600" /> Auto-loaded: {matchedDeptProduct.name}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      <div className="relative">
+                                                        <input
+                                                          type="text"
+                                                          list={`art-list-dept-${deptId}-${idx}`}
+                                                          value={item.art_number || ''}
+                                                          onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            const updates = handleApplyArtNumber(val, item, dept?.baseDeptName || dept?.name || '');
+                                                            updateDeptItem(idx, updates);
+                                                          }}
+                                                          placeholder="Enter ART # to auto-load product..."
+                                                          className="w-full px-3 py-2 text-xs font-mono font-black border border-sky-300 rounded-xl text-sky-950 bg-white placeholder:text-zinc-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-2xs"
+                                                        />
+                                                        <datalist id={`art-list-dept-${deptId}-${idx}`}>
+                                                          {availableArtNumbers.map(a => (
+                                                            <option key={a.art_number} value={a.art_number}>
+                                                              {a.product_name}
+                                                            </option>
+                                                          ))}
+                                                        </datalist>
+                                                      </div>
+                                                    </div>
+
+                                                    <div className="min-w-[170px]">
+                                                      <label className="block text-[10px] font-black uppercase tracking-wider text-indigo-700 mb-1">
+                                                        Design # (DNS Code)
+                                                      </label>
+                                                      <div className="h-[38px] px-3 py-1.5 border border-indigo-200 rounded-xl bg-indigo-50/70 flex items-center justify-between gap-2 shadow-inner">
+                                                        <span className="text-xs font-mono font-black text-indigo-950 truncate">
+                                                          {item.design_number && !item.design_number.startsWith('Auto') ? item.design_number : 'Auto (BOM Mint)'}
+                                                        </span>
+                                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0 ${
+                                                          item.design_number && !item.design_number.startsWith('Auto')
+                                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                                            : 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                                                        }`}>
+                                                          {item.design_number && !item.design_number.startsWith('Auto') ? 'Matched' : 'Auto on Save'}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </div>
+
                                                 <div className="flex items-start gap-4 flex-wrap">
                                                   {/* Product Type */}
                                                   <div className="min-w-[140px]">
@@ -2911,7 +4228,7 @@ export default function WizardStep2({
                                                       onChange={(e) => updateDeptItem(idx, { product_type_id: e.target.value, product_id: '', sam_value: '', design_number: '' })}
                                                     >
                                                       <option value="">Select type...</option>
-                                                      {productTypes.map((pt: any) => (
+                                                      {displayProductTypes.map((pt: any) => (
                                                         <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
                                                       ))}
                                                     </select>
@@ -2927,7 +4244,31 @@ export default function WizardStep2({
                                                       onChange={(e) => {
                                                         const val = e.target.value;
                                                         const prod = allProducts.find((p: any) => String(p.id) === val);
-                                                        const updates: Partial<ManualItem> = { product_id: val };
+                                                        const updates: Partial<ManualItem> = {
+                                                          product_id: val,
+                                                          product_type_id: String(prod?.product_type_id || item.product_type_id || ''),
+                                                          product_name: prod?.name || '',
+                                                          name: prod?.name || ''
+                                                        };
+                                                        if (isAccessoryType) {
+                                                          if (prod) {
+                                                            const basePrice = parseFloat(prod.base_price || prod.retail_sam_value || '0') || 0;
+                                                            updateDeptItem(idx, {
+                                                              product_id: val,
+                                                              product_type_id: String(prod.product_type_id || item.product_type_id || ''),
+                                                              art_number: prod.art_number || item.art_number || '',
+                                                              price: basePrice > 0 ? basePrice.toFixed(2) : (item.price || '0.00'),
+                                                              size_breakdown: {
+                                                                ...(item.size_breakdown || {}),
+                                                                selected_size: prod.base_size || 'Free Size',
+                                                                is_accessory: true
+                                                              }
+                                                            });
+                                                          } else {
+                                                            updateDeptItem(idx, { product_id: '', art_number: '', price: '' });
+                                                          }
+                                                          return;
+                                                        }
                                                         if (prod) {
                                                           updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
 
@@ -2957,8 +4298,10 @@ export default function WizardStep2({
                                                             updates.main_fabric_sam = autoDefaults.main_fabric_sam;
                                                             updates.attachment_fabric1_sam = autoDefaults.attachment_fabric1_sam;
                                                             updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
-                                                            updates.design_number = autoDefaults.design_number;
-                                                            updates.art_number = autoDefaults.art_number;
+                                                            updates.design_number = '';
+                                                            updates.art_number = prod.art_number || autoDefaults.art_number || item.art_number || '';
+                                                          } else {
+                                                            updates.art_number = prod.art_number || item.art_number || '';
                                                           }
                                                         } else {
                                                           updates.sam_value = '';
@@ -2977,48 +4320,60 @@ export default function WizardStep2({
                                                         updateDeptItem(idx, updates);
                                                       }}
                                                     >
-                                                      <option value="">{item.product_type_id ? 'Select product...' : 'Select type first'}</option>
+                                                      <option value="">{isAccessoryType ? 'Select accessory...' : (item.product_type_id ? 'Select product...' : 'Select type first')}</option>
                                                       {deptFilteredProducts.map((p: any) => (
                                                         <option key={p.id} value={String(p.id)}>
-                                                          {p.name}{p.art_number ? ` (${p.art_number})` : ''}
+                                                          {p.name}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
                                                         </option>
                                                       ))}
                                                     </select>
                                                   </div>
 
-                                                  {/* Selected Size (for MANUAL type) */}
-                                                  {quotationType === 'MANUAL' && (
+                                                  {/* Selected Size (for MANUAL and ACCESSORIES type) */}
+                                                  {(quotationType === 'MANUAL' || isAccessoryType) && (
                                                     <div className="w-32">
                                                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">
-                                                        Size <span className="text-red-500">*</span>
+                                                        Size
                                                       </p>
-                                                      <select
-                                                        className={selectCls}
-                                                        value={item.size_breakdown?.selected_size || ''}
-                                                        onChange={(e) => updateDeptItem(idx, {
-                                                          size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value }
-                                                        })}
-                                                      >
-                                                        <option value="">Select size...</option>
-                                                        {(() => {
-                                                          const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
-                                                          const sizes = prod?.other_sizes
-                                                            ? prod.other_sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
-                                                            : [];
-                                                          return sizes.map((sz: string) => (
-                                                            <option key={sz} value={sz}>{sz}</option>
-                                                          ));
-                                                        })()}
-                                                      </select>
+                                                      {isAccessoryType ? (
+                                                        <input
+                                                          type="text"
+                                                          placeholder="Free Size"
+                                                          value={item.size_breakdown?.selected_size || ''}
+                                                          onChange={(e) => updateDeptItem(idx, {
+                                                            size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value, is_accessory: true }
+                                                          })}
+                                                          className={inputCls}
+                                                        />
+                                                      ) : (
+                                                        <select
+                                                          className={selectCls}
+                                                          value={item.size_breakdown?.selected_size || ''}
+                                                          onChange={(e) => updateDeptItem(idx, {
+                                                            size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value }
+                                                          })}
+                                                        >
+                                                          <option value="">Select size...</option>
+                                                          {(() => {
+                                                            const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
+                                                            const sizes = prod?.other_sizes
+                                                              ? prod.other_sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
+                                                              : [];
+                                                            return sizes.map((sz: string) => (
+                                                              <option key={sz} value={sz}>{sz}</option>
+                                                            ));
+                                                          })()}
+                                                        </select>
+                                                      )}
                                                     </div>
                                                   )}
 
                                                   {/* SAM / Unit Price */}
-                                                  {quotationType === 'READYMADE' ? (
-                                                    <div className="w-24">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Unit Price</p>
+                                                  {(quotationType === 'READYMADE' || isAccessoryType) ? (
+                                                    <div className="w-28">
+                                                      <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] mb-1.5 font-bold">Unit Price (₹)</p>
                                                       <input
-                                                        type="number" step="any" min="0" placeholder="0.00"
+                                                        type="number" step="0.01" min="0" placeholder="0.00"
                                                         value={item.price}
                                                         onChange={(e) => updateDeptItem(idx, { price: e.target.value })}
                                                         className={inputCls}
@@ -3050,7 +4405,7 @@ export default function WizardStep2({
                                                   {/* Unit Cost Display */}
                                                   <div className="ml-auto text-right self-center">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                                                      {quotationType === 'READYMADE' ? 'Unit Price' : 'Unit Cost'}
+                                                      {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
                                                     </p>
                                                     <p className="text-xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
                                                       ₹{unitTotal.toFixed(2)}
@@ -3070,38 +4425,11 @@ export default function WizardStep2({
                                                     <Trash2 size={14} />
                                                   </button>
                                                 </div>
-                                                {/* Pattern / Art Number & Design Number (DNS) Identifiers */}
-                                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-zinc-50/70 p-3 rounded-xl border border-zinc-100">
-                                                  <div>
-                                                    <label className="block text-[9px] font-black uppercase tracking-widest text-sky-700 mb-1">
-                                                      Art # (Pattern / Article Code)
-                                                    </label>
-                                                    <input
-                                                      type="text"
-                                                      value={item.art_number || ''}
-                                                      onChange={(e) => updateDeptItem(idx, { art_number: e.target.value })}
-                                                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-sky-200/70 rounded-lg text-sky-900 focus:outline-none focus:border-sky-500 bg-white placeholder:text-zinc-300 transition-all"
-                                                      placeholder="e.g. 4J-1-012"
-                                                    />
-                                                  </div>
-                                                  <div>
-                                                    <label className="block text-[9px] font-black uppercase tracking-widest text-indigo-700 mb-1">
-                                                      Design # (DNS Code)
-                                                    </label>
-                                                    <input
-                                                      type="text"
-                                                      value={item.design_number || ''}
-                                                      onChange={(e) => updateDeptItem(idx, { design_number: e.target.value })}
-                                                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-indigo-200/70 rounded-lg text-indigo-900 focus:outline-none focus:border-indigo-500 bg-white placeholder:text-zinc-300 transition-all"
-                                                      placeholder="e.g. DNS-0001 or DNS-STANDARD"
-                                                    />
-                                                  </div>
-                                                </div>
                                               </div>
                                             )}
 
                                             {/* Material Cost Breakdown (STANDARD only) */}
-                                            {quotationType !== 'READYMADE' && (
+                                            {quotationType !== 'READYMADE' && !isAccessoryType && (
                                               <div className="p-5" style={{ display: 'block' }}>
                                                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Material Cost Breakdown</p>
                                                 <div className="rounded-2xl border border-zinc-100 overflow-hidden">
@@ -3349,7 +4677,7 @@ export default function WizardStep2({
                                                       {/* ── Dynamic Database Trims ── */}
                                                       {((item.trims && item.trims.length > 0) ? item.trims : [
                                                         { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
-                                                        { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '', uom: 'spools' }
+                                                        { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '1', uom: 'spools' }
                                                       ]).map((trimItem: any, trimIdx: number) => {
                                                         const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
                                                                        threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
@@ -3396,7 +4724,7 @@ export default function WizardStep2({
 
                                                                   let newCount = trimItem.count;
                                                                   if (itemMeta.isThr && (!newCount || newCount === '0' || newCount === '')) {
-                                                                    newCount = item.thread_count || '';
+                                                                    newCount = item.thread_count || '1';
                                                                   }
 
                                                                   updateDeptItemTrim(idx, trimIdx, {
@@ -3446,7 +4774,7 @@ export default function WizardStep2({
                                                               <div className="flex items-center gap-1.5">
                                                                 <input
                                                                   type="number" step="0.5" min="0" placeholder="0"
-                                                                  value={trimItem.count || ''}
+                                                                  value={isThr ? (trimItem.count || item.thread_count || '1') : (trimItem.count || '')}
                                                                   onChange={(e) => updateDeptItemTrim(idx, trimIdx, { count: e.target.value })}
                                                                   className={`${inputCls} w-20`}
                                                                 />
@@ -3624,7 +4952,7 @@ export default function WizardStep2({
       {/* ═══ RAW FABRICS — SOLD SEPARATELY ═══ */}
       {/* This section is for customers who want to PURCHASE FABRICS alongside their garment/product order */}
       {/* Visible for STANDARD (Readymade) and READYMADE (Trade Readymade) quotation types */}
-      {quotationType !== 'FABRIC' && quotationType !== 'FABRIC_SET' && (
+      {quotationType !== 'FABRIC' && quotationType !== 'FABRIC_SET' && !isAccessoryType && (
         <div className="mt-10 rounded-[2rem] overflow-hidden border-2 border-[#2d8d9b]/20 shadow-lg shadow-[#2d8d9b]/5">
           {/* Section Banner Header */}
           <div className="bg-gradient-to-r from-[#2d8d9b]/10 via-[#2d8d9b]/5 to-transparent px-6 py-4 border-b border-[#2d8d9b]/15 flex items-center gap-4 flex-wrap">

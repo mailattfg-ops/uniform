@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import api from '@/lib/api';
@@ -15,6 +16,24 @@ import { RevisionModal } from './_components/RevisionModal';
 export interface Organization {
   id: number;
   name: string;
+  customer_code?: string | null;
+  gst_number?: string | null;
+  pan_number?: string | null;
+  legal_name?: string | null;
+  delivery_address?: string | null;
+  delivery_city?: string | null;
+  delivery_state?: string | null;
+  delivery_pincode?: string | null;
+  delivery_country?: string | null;
+  is_b2b?: boolean | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  pin_code?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
 }
 
 export interface ProductType {
@@ -39,7 +58,7 @@ export interface Quotation {
   quotation_no: string;
   title: string;
   organization_id: number;
-  organizations?: { name: string };
+  organizations?: Organization;
   estimated_expenses: number;
   total_estimated_time: string;
   production_days_estimate: number;
@@ -101,6 +120,8 @@ export interface ManualItem {
   id: number;
   product_type_id: string;
   product_id?: string;
+  product_name?: string;
+  name?: string;
   // Main Fabric — mandatory
   fabric_id: string;
   main_fabric_meters: string;
@@ -137,6 +158,13 @@ export interface ManualItem {
   quantity: string;
   price: string; // computed unit cost
   size_breakdown?: any;
+  // Department, Gender & Manual Quantity selection
+  department_id?: string;
+  department_name?: string;
+  gender?: string;
+  qty_mode?: 'members_sets' | 'direct_products';
+  no_of_members?: string;
+  no_of_sets?: string;
 }
 
 export interface TemplateLineItem {
@@ -152,9 +180,11 @@ export interface TemplateLineItem {
   design_number_override: string;
   price_override: string;
   template_quantity: number | null;
+  department_id?: string;
+  department_name?: string;
+  quantity_override?: string;
+  id?: string | number;
 }
-
-import { useSearchParams } from 'next/navigation';
 
 export default function QuotationsPage() {
   const searchParams = useSearchParams();
@@ -493,8 +523,8 @@ export default function QuotationsPage() {
       {/* HEADER CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="relative">
-          <h1 className="text-4xl font-black tracking-tighter text-[#3a525d] flex items-center gap-3">
-            Marketing Quotations
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d] flex items-center gap-3">
+            Quotations
           </h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             {activeTab === 'list' && 'Client Contract proposals & custom sizing estimates'}

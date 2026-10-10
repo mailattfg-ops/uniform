@@ -4,7 +4,7 @@ import React from 'react';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Truck } from 'lucide-react';
 import { Organization } from '../../page';
 import { formatDate } from '@/lib/formatters';
 
@@ -42,8 +42,6 @@ export default function WizardStep1({
   onOrgSelection,
   quoteTitle,
   setQuoteTitle,
-  quoteNo,
-  setQuoteNo,
   coverLetter,
   setCoverLetter,
   salesType,
@@ -57,12 +55,11 @@ export default function WizardStep1({
   generateAutoCoverLetter,
   previousOrders,
   onSelectPreviousOrder,
-  groupDesignCombinations,
-  selectedGroupDesignId,
-  onSelectGroupDesign,
   orgDepartments = [],
   setOrgDepartments,
 }: WizardStep1Props) {
+  const selectedOrg = organizations.find(o => String(o.id) === String(selectedOrgId));
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
@@ -76,7 +73,10 @@ export default function WizardStep1({
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Customer Organization</label>
           <Select
-            options={organizations.map(o => ({ label: o.name, value: String(o.id) }))}
+            options={organizations.map(o => ({
+              label: `${o.name}${o.gst_number ? ' [B2B / GST]' : ''}`,
+              value: String(o.id)
+            }))}
             value={selectedOrgId}
             onChange={onOrgSelection}
             placeholder="Select Customer Organization..."
@@ -92,12 +92,50 @@ export default function WizardStep1({
           />
         </div>
 
+        {/* B2B Verified Commercial Customer Banner */}
+        {selectedOrg && Boolean(selectedOrg.gst_number || selectedOrg.is_b2b) && (
+          <div className="md:col-span-2 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
+                B2B
+              </div>
+              <div>
+                <p className="text-xs font-black text-emerald-900 flex items-center gap-2 flex-wrap">
+                  <span>Verified B2B Commercial Client</span>
+                  {selectedOrg.gst_number && (
+                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-emerald-300 text-emerald-800 text-[11px] font-bold">
+                      GSTIN: {selectedOrg.gst_number}
+                    </span>
+                  )}
+                  {selectedOrg.pan_number && (
+                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-700 text-[10px]">
+                      PAN: {selectedOrg.pan_number}
+                    </span>
+                  )}
+                </p>
+                <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                  {selectedOrg.legal_name ? `Legal: ${selectedOrg.legal_name} • ` : ''}
+                  {selectedOrg.delivery_city ? (
+                    <span>Dispatch: {selectedOrg.delivery_city}, {selectedOrg.delivery_state || ''} ({selectedOrg.delivery_pincode || ''})</span>
+                  ) : (
+                    <span>Defaulting to registered billing address</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-lg tracking-wider shadow-xs">
+              Automatic B2B Active
+            </span>
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Sales Channel Type</label>
           <Select
             options={[
-              { label: 'Wholesale (B2B)', value: 'WHOLESALE' },
-              { label: 'Retail (B2C)', value: 'RETAIL' }
+              { label: 'B2B Commercial (GST Tax Invoice)', value: 'B2B' },
+              { label: 'Wholesale', value: 'WHOLESALE' },
+              { label: 'Retail', value: 'RETAIL' }
             ]}
             value={salesType}
             onChange={setSalesType}
@@ -125,8 +163,10 @@ export default function WizardStep1({
             options={[
               { label: 'Fabric Set (with Departments)', value: 'FABRIC_SET' },
               { label: 'Readymade Set (with Departments)', value: 'READYMADE_SET' },
+              { label: 'Accessories Set (with Departments)', value: 'ACCESSORIES_SET' },
               { label: 'Fabric Normal', value: 'FABRIC' },
               { label: 'Readymade Normal', value: 'STANDARD' },
+              { label: 'Accessories Normal', value: 'ACCESSORIES' },
               { label: 'Manual (Individual-wise)', value: 'MANUAL' }
             ]}
             value={quotationType}
@@ -139,12 +179,12 @@ export default function WizardStep1({
 
       {selectedOrgId && (
         <>
-          {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') && (
+          {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET' || quotationType === 'ACCESSORIES_SET' || quotationType === 'MANUAL') && (
             <div className="space-y-4 border-t border-zinc-100 pt-6">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments / Classes for Quotation</h4>
-                  <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Check the departments to include — student headcounts, measurements, and sets are auto-loaded in Step 2</p>
+                  <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Select departments to include — each department can be auto-split by gender divisions with manual quantity and sets</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

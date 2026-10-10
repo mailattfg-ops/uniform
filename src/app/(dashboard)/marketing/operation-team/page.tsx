@@ -12,19 +12,19 @@ import {
   Layers,
   Trash2,
   Check,
-  Building2,
-  Scale,
   Clock,
   Percent,
-  Mail
+  Mail,
+  Building2,
+  Scale
 } from 'lucide-react';
 
 import { 
   Quotation, 
   Organization, 
   ProductType, 
-  Fabric, 
-  compileQuotationHTML 
+  Fabric,
+  compileQuotationHTML
 } from './_lib/compileQuotationHTML';
 
 import { MessageModal } from './_components/MessageModal';
@@ -336,19 +336,16 @@ export default function OperationTeamPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-16">
+    <div className="space-y-8 animate-in fade-in duration-700">
 
       {/* 1. HEADER SECTION */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest">
-            OPERATIONS DESK
-          </span>
-          <h2 className="text-4xl font-black tracking-tighter text-[#3a525d] mt-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">
             Operations Quotation Registry
-          </h2>
-          <p className="text-sm font-bold text-zinc-400 mt-1">
-            Deep-audit, modify, Review, and verify quotation entries prior to contract finalization.
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            Deep-audit, modify, review, and verify quotation entries prior to contract finalization
           </p>
         </div>
       </div>
@@ -357,7 +354,7 @@ export default function OperationTeamPage() {
         <>
           {/* 2. KPI METRIC SUMMARY CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="p-8 border border-zinc-100 bg-zinc-50/50 flex items-center justify-between shadow-md">
+            <Card className="p-6 rounded-3xl border border-zinc-100 bg-white flex items-center justify-between shadow-sm">
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Quotations</p>
                 <p className="text-3xl font-black tracking-tighter text-[#3a525d]">{stats.total}</p>
@@ -367,7 +364,7 @@ export default function OperationTeamPage() {
               </div>
             </Card>
 
-            <Card className="p-8 border border-zinc-100 bg-zinc-50/50 flex items-center justify-between shadow-md">
+            <Card className="p-6 rounded-3xl border border-zinc-100 bg-white flex items-center justify-between shadow-sm">
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Pending Operations Review</p>
                 <p className="text-3xl font-black tracking-tighter text-amber-500">{stats.pending}</p>
@@ -377,7 +374,7 @@ export default function OperationTeamPage() {
               </div>
             </Card>
 
-            <Card className="p-8 border border-[#2d8d9b]/10 bg-[#2d8d9b]/5 flex items-center justify-between shadow-md">
+            <Card className="p-6 rounded-3xl border border-zinc-100 bg-white flex items-center justify-between shadow-sm">
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-75">Approved Contract Value</p>
                 <p className="text-2xl font-black tracking-tighter text-[#2d8d9b] font-mono">
@@ -389,7 +386,7 @@ export default function OperationTeamPage() {
               </div>
             </Card>
 
-            <Card className="p-8 border border-zinc-100 bg-zinc-50/50 flex items-center justify-between shadow-md">
+            <Card className="p-6 rounded-3xl border border-zinc-100 bg-white flex items-center justify-between shadow-sm">
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Average Profit Margin</p>
                 <p className="text-3xl font-black tracking-tighter text-emerald-500">+{stats.avgMargin}%</p>
@@ -400,18 +397,19 @@ export default function OperationTeamPage() {
             </Card>
           </div>
 
-          {/* 3. FILTER TABS */}
-          <div className="flex gap-2 flex-wrap border-b border-zinc-100 pb-2">
+          {/* 3. FILTER TABS WITH SLEEK PILL DESIGN */}
+          <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
             {['All', 'Draft', 'Pending', 'Approved', 'Rejected'].map(st => {
               const isActive = filterStatus === st;
               return (
                 <button
                   key={st}
                   onClick={() => setFilterStatus(st)}
-                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isActive
-                    ? 'bg-[#3a525d] text-white shadow-md'
-                    : 'bg-zinc-50 border border-zinc-100 hover:bg-zinc-100 text-zinc-500 font-bold'
-                    }`}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                    isActive
+                      ? 'bg-[#3a525d] text-white shadow-md'
+                      : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
                 >
                   {st}
                 </button>

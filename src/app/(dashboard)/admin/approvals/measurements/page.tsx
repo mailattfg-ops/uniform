@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle2, XCircle, User, Calendar, MessageSquare, Loader2, Download } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
+import { CheckCircle2, XCircle, Loader2, Download, User, MessageSquare, Calendar, Filter } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { MeasurementDetailModal } from '@/components/measurements/MeasurementDetailModal';
-import { Select } from '@/components/ui/Select';
-import { Filter } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
 import { formatDate } from '@/lib/formatters';
 
 interface Measurement {
@@ -49,7 +47,7 @@ export default function MeasurementApprovals() {
       setSizeCharts(chartsRes.data);
       setMeasurementFields(configRes.data);
     } catch (err) {
-      console.error('Failed to load filters');
+      console.error('Failed to load filters', err);
     }
   };
 
@@ -69,6 +67,7 @@ export default function MeasurementApprovals() {
       setMeasurements(res.data.filter((m: any) => m.status === 'Pending'));
     } catch (err) {
       toast.error('Failed to load pending queue');
+      console.error('Failed to load pending queue', err);
     } finally {
       setLoading(false);
     }
@@ -100,6 +99,7 @@ export default function MeasurementApprovals() {
       fetchPending();
     } catch (err) {
       toast.error('Bulk operation failed', { id: loadingToast });
+      console.error('Bulk operation failed', err);
     }
   };
 
@@ -225,7 +225,7 @@ export default function MeasurementApprovals() {
   const columns: Column<Measurement>[] = [
     {
       header: (
-        <Input
+        <input
           type="checkbox"
           checked={measurements.length > 0 && selectedIds.length === measurements.length}
           onChange={toggleSelectAll}
@@ -233,7 +233,7 @@ export default function MeasurementApprovals() {
         />
       ),
       accessor: (m) => (
-        <Input
+        <input
           type="checkbox"
           checked={selectedIds.includes(m.id)}
           onChange={() => toggleSelect(m.id)}
@@ -323,11 +323,13 @@ export default function MeasurementApprovals() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
         <div>
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 leading-none">Administrative Gateway</p>
           <h1 className="text-4xl font-black text-[#3a525d] tracking-tighter italic">Measurements Approvals</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            Administrative Gateway &gt; Staff Submission Review
+          </p>
         </div>
         <div className="flex gap-4">
           <div className="bg-amber-50 px-8 py-4 rounded-3xl border border-amber-100 flex items-center gap-5 shadow-inner">

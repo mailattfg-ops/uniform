@@ -5,19 +5,16 @@ import Link from 'next/link';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Barcode } from '@/components/ui/Barcode';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
+import { Barcode } from '@/components/ui/Barcode';
 import {
-  TrendingUp,
   Package,
-  Printer,
   Plus,
   Clock,
   CheckCircle2,
   X,
-  Sliders,
   Send,
   ShieldAlert,
   ShieldCheck,
@@ -26,8 +23,11 @@ import {
   AlertTriangle,
   Check,
   RefreshCw,
+  Layers,
+  Sliders,
+  TrendingUp,
   Mail,
-  Layers
+  Printer
 } from 'lucide-react';
 
 interface Organization {
@@ -718,27 +718,29 @@ export default function OrderPlacementPage() {
   ];
 
   return (
-    <div className="p-4 md:p-8 space-y-8 bg-zinc-50/50 min-h-screen">
+    <div className="space-y-8 animate-in fade-in duration-700">
       {/* Top Title Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black italic tracking-tight text-[#3a525d]">Order Placement &amp; Corporate Approval</h1>
-          <p className="text-xs text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="relative">
+          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">
+            Order Placement &amp; Corporate Approval
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             Branch Confirmation &gt; Corporate Triage Pipeline
           </p>
         </div>
         <button
           onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition shadow-xs"
+          className="h-14 px-8 bg-white border border-zinc-200/80 hover:border-[#2d8d9b]/30 rounded-[1.2rem] text-xs font-black uppercase tracking-wider text-[#3a525d] hover:text-[#2d8d9b] transition-all shadow-sm flex items-center gap-2.5 cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 text-[#2d8d9b] ${isLoading ? 'animate-spin' : ''}`} />
           Refresh Pipeline
         </button>
       </div>
 
       {/* KPI Counters */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-[#fce4d4]/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
             <Clock size={24} />
           </div>
@@ -750,7 +752,7 @@ export default function OrderPlacementPage() {
           </div>
         </Card>
 
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-amber-50/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-amber-100/50 flex items-center justify-center text-amber-600">
             <PauseCircle size={24} />
           </div>
@@ -762,7 +764,7 @@ export default function OrderPlacementPage() {
           </div>
         </Card>
 
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-purple-50/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-purple-100/50 flex items-center justify-center text-purple-600">
             <ShieldAlert size={24} />
           </div>
@@ -774,7 +776,7 @@ export default function OrderPlacementPage() {
           </div>
         </Card>
 
-        <Card variant="solid" className="p-6 flex items-center gap-4 bg-gradient-to-br from-white to-emerald-50/10">
+        <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-emerald-100/50 flex items-center justify-center text-emerald-600">
             <CheckCircle2 size={24} />
           </div>
@@ -787,61 +789,86 @@ export default function OrderPlacementPage() {
         </Card>
       </div>
 
-      {/* Tab Selectors */}
-      <div className="flex gap-2 border-b border-zinc-200 pb-px overflow-x-auto custom-scrollbar">
+      {/* Tab Selectors with Sleek Pill Design */}
+      <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
         <button
           onClick={() => setActiveTab('awaiting')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
             activeTab === 'awaiting'
-              ? 'border-[#2d8d9b] text-[#2d8d9b]'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              ? 'bg-[#3a525d] text-white shadow-md'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
-          Awaiting Placement ({awaitingOrders.length})
+          <span>Awaiting Placement</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeTab === 'awaiting' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {awaitingOrders.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('held')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
             activeTab === 'held'
-              ? 'border-amber-500 text-amber-700'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
+              : 'text-zinc-500 hover:text-amber-700 hover:bg-amber-50'
           }`}
         >
-          Branch Verification ({heldOrders.length})
+          <span>Branch Verification</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeTab === 'held' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {heldOrders.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('pending')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
             activeTab === 'pending'
-              ? 'border-purple-500 text-purple-700'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
+              : 'text-zinc-500 hover:text-purple-700 hover:bg-purple-50'
           }`}
         >
-          Corporate Approval Queue ({pendingOrders.length})
+          <span>Corporate Approval Queue</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {pendingOrders.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('active')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
             activeTab === 'active'
-              ? 'border-emerald-500 text-emerald-700'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'text-zinc-500 hover:text-emerald-700 hover:bg-emerald-50'
           }`}
         >
-          Active Production ({activeProductionOrders.length})
+          <span>Active Production</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeTab === 'active' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {activeProductionOrders.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('all')}
-          className={`pb-4 px-6 font-black text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
             activeTab === 'all'
-              ? 'border-[#2d8d9b] text-[#2d8d9b]'
-              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              ? 'bg-[#3a525d] text-white shadow-md'
+              : 'text-zinc-500 hover:text-zinc-800'
           }`}
         >
-          All Orders ({orders.length})
+          <span>All Orders</span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
+            activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
+          }`}>
+            {orders.length}
+          </span>
         </button>
       </div>
 
