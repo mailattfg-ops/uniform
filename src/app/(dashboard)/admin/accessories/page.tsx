@@ -374,23 +374,20 @@ export default function AccessoriesAndTradeCatalogPage() {
   const fetchCatalogData = async () => {
     setIsLoading(true);
     try {
-      const [prodsRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fitsRes, chartRes] = await Promise.all([
+      const [prodsRes, typeRes, masterRes, nextPatternRes, chartRes] = await Promise.all([
         api.get('/products'),
         api.get('/product-types').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/dresses').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/genders').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/patterns').catch(() => ({ data: [] })),
+        api.get('/art-number-hub/master-data').catch(() => ({ data: { dresses: [], genders: [], patterns: [], fits: [] } })),
         api.get('/art-number-hub/patterns/next').catch(() => ({ data: { nextCode: '001' } })),
-        api.get('/art-number-hub/fits').catch(() => ({ data: [] })),
         api.get('/size-charts').catch(() => ({ data: [] })),
         fetchCategories()
       ]);
 
       setProductTypes(typeRes.data || []);
-      setDresses(dressRes.data || []);
-      setGenders(genderRes.data || []);
-      setPatterns(patternRes.data || []);
-      setFitsList(fitsRes.data || []);
+      setDresses(masterRes.data?.dresses || []);
+      setGenders(masterRes.data?.genders || []);
+      setPatterns(masterRes.data?.patterns || []);
+      setFitsList(masterRes.data?.fits || []);
       setSizeCharts(chartRes.data || []);
       setNextPatternCode(nextPatternRes.data?.nextCode || '001');
 

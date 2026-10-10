@@ -757,21 +757,18 @@ export default function ProductManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, configRes, chartRes, typeRes, dressRes, genderRes, patternRes, nextPatternRes, fabricRes, gdRes, buttonsRes, threadsRes, trimsRes, fitsRes] = await Promise.all([
+      const [prodRes, configRes, chartRes, typeRes, masterHubRes, nextPatternRes, fabricRes, gdRes, buttonsRes, threadsRes, trimsRes] = await Promise.all([
         api.get('/products'),
         api.get('/measurements/config'),
         api.get('/size-charts'),
         api.get('/product-types').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/dresses').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/genders').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/patterns').catch(() => ({ data: [] })),
+        api.get('/art-number-hub/master-data').catch(() => ({ data: { dresses: [], genders: [], patterns: [], fits: [] } })),
         api.get('/art-number-hub/patterns/next').catch(() => ({ data: { nextCode: '001' } })),
         api.get('/inventory/fabrics').catch(() => ({ data: [] })),
         api.get('/quotations/group-designs').catch(() => ({ data: [] })),
         api.get('/inventory/buttons').catch(() => ({ data: [] })),
         api.get('/inventory/threads').catch(() => ({ data: [] })),
-        api.get('/inventory/trims').catch(() => ({ data: [] })),
-        api.get('/art-number-hub/fits').catch(() => ({ data: [] }))
+        api.get('/inventory/trims').catch(() => ({ data: [] }))
       ]);
       const allProds: Product[] = prodRes.data || [];
       // Accessories and Readymade (Trade) are managed exclusively in the Accessories & Trade Hub
@@ -795,10 +792,10 @@ export default function ProductManagement() {
       setMeasureConfig(configRes.data || []);
       setSizeCharts(chartRes.data || []);
       setProductTypes(typeRes.data || []);
-      setDresses(dressRes.data || []);
-      setGenders(genderRes.data || []);
-      setPatterns(patternRes.data || []);
-      setFitsList(fitsRes.data || []);
+      setDresses(masterHubRes.data?.dresses || []);
+      setGenders(masterHubRes.data?.genders || []);
+      setPatterns(masterHubRes.data?.patterns || []);
+      setFitsList(masterHubRes.data?.fits || []);
       setNextPatternCode(nextPatternRes.data?.nextCode || '001');
       setFabrics(fabricRes.data || []);
       setGroupDesigns(gdRes.data || []);
