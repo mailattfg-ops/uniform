@@ -28,11 +28,14 @@ export interface DataTableProps<T> {
   onSearch?: (term: string) => void;
   isLoading?: boolean;
   headerAction?: React.ReactNode;
+  rightAction?: React.ReactNode;
   pageSize?: number;
   emptyMessage?: string;
   defaultSortIndex?: number | null;
   defaultSortDirection?: 'asc' | 'desc';
   onPrint?: (sortedData: T[], sortInfo: SortInfo<T>) => void;
+  pinRowTop?: (item: T) => boolean;
+  rowClassName?: (item: T) => string | undefined;
 }
 
 function extractTextFromReactNode(node: React.ReactNode): string {
@@ -130,11 +133,14 @@ export function DataTable<T extends { id: string | number }>({
   onSearch,
   isLoading,
   headerAction,
+  rightAction,
   pageSize = 10,
   emptyMessage,
   defaultSortIndex = null,
   defaultSortDirection = 'asc',
   onPrint,
+  pinRowTop,
+  rowClassName,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -196,19 +202,32 @@ export function DataTable<T extends { id: string | number }>({
   }, [data, searchTerm]);
 
   const sortedData = React.useMemo(() => {
-    if (sortColumnIndex === null || sortColumnIndex < 0 || sortColumnIndex >= columns.length) {
-      return filteredData;
+    let list = filteredData;
+    if (sortColumnIndex !== null && sortColumnIndex >= 0 && sortColumnIndex < columns.length) {
+      const activeCol = columns[sortColumnIndex];
+      const modifier = sortDirection === 'asc' ? 1 : -1;
+      list = [...filteredData].sort((a, b) => {
+        const valA = getColumnValue(a, activeCol);
+        const valB = getColumnValue(b, activeCol);
+        return modifier * naturalCompare(valA, valB);
+      });
     }
 
-    const activeCol = columns[sortColumnIndex];
-    const modifier = sortDirection === 'asc' ? 1 : -1;
+    if (pinRowTop) {
+      const pinned: T[] = [];
+      const regular: T[] = [];
+      list.forEach(item => {
+        if (pinRowTop(item)) {
+          pinned.push(item);
+        } else {
+          regular.push(item);
+        }
+      });
+      return [...pinned, ...regular];
+    }
 
-    return [...filteredData].sort((a, b) => {
-      const valA = getColumnValue(a, activeCol);
-      const valB = getColumnValue(b, activeCol);
-      return modifier * naturalCompare(valA, valB);
-    });
-  }, [filteredData, sortColumnIndex, sortDirection, columns]);
+    return list;
+  }, [filteredData, sortColumnIndex, sortDirection, columns, pinRowTop]);
 
   const currentSortInfo: SortInfo<T> = React.useMemo(() => {
     const col = sortColumnIndex !== null && sortColumnIndex >= 0 && sortColumnIndex < columns.length ? columns[sortColumnIndex] : null;
@@ -237,51 +256,61 @@ export function DataTable<T extends { id: string | number }>({
   return (
     <div className="bg-white rounded-2xl md:rounded-3xl border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
       {/* Table Header Section - Light Themed */}
-      {(title || subtitle || searchPlaceholder) && (
-        <div className="px-4 py-3.5 md:px-6 md:py-4 border-b border-[#fce4d4] flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 bg-[#fce4d4]/10">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
-            {subtitle && (
-              <div className="relative group/info inline-flex items-center">
-                <button
-                  type="button"
-                  tabIndex={0}
-                  aria-label="Table description info"
-                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
-                >
-                  <Info size={12} strokeWidth={2.5} />
-                </button>
-                <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
-                  <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
-                  <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
-                    {subtitle}
-                  </p>
+      {(title || subtitle || searchPlaceholder || headerAction || rightAction || onPrint) && (
+        <div className="px-4 py-3 md:px-6 md:py-3.5 border-b border-[#fce4d4] flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#fce4d4]/10">
+          {(title || subtitle) && (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
+              {subtitle && (
+                <div className="relative group/info inline-flex items-center">
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    aria-label="Table description info"
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
+                  >
+                    <Info size={12} strokeWidth={2.5} />
+                  </button>
+                  <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
+                    <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
+                    <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
+                      {subtitle}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           
-          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
-            {headerAction && <div className="flex justify-start">{headerAction}</div>}
-            <div className="flex gap-2 flex-1 sm:flex-initial items-center">
-              <div className="relative group flex-1 sm:flex-initial">
-                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={15} />
-                 <input 
-                   type="text" 
-                   value={searchTerm}
-                   onChange={handleSearchChange}
-                   placeholder={searchPlaceholder} 
-                   className="h-10 bg-white border border-[#fce4d4] rounded-xl py-2 pl-10 pr-9 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 w-full sm:w-60 transition-all text-foreground shadow-xs"
-                 />
-                 {searchTerm && (
-                   <button 
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition-colors"
-                   >
-                     <ChevronRight size={14} className="rotate-45" />
-                   </button>
-                 )}
-              </div>
+          <div className="flex flex-1 items-center gap-2.5 flex-wrap justify-between w-full min-w-0">
+            {headerAction && <div className="flex items-center gap-2.5 flex-wrap shrink-0">{headerAction}</div>}
+            <div className="flex items-center gap-2.5 flex-1 min-w-[200px] justify-end flex-wrap">
+              {searchPlaceholder && (
+                <div className="relative group flex-1 min-w-[180px]">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={15} />
+                  <input 
+                    type="text" 
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    placeholder={searchPlaceholder} 
+                    className="h-10 bg-white border border-[#fce4d4] rounded-xl py-2 pl-10 pr-9 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 w-full transition-all text-foreground shadow-2xs hover:border-[#2d8d9b]/50"
+                  />
+                  {searchTerm && (
+                    <button 
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition-colors cursor-pointer"
+                    >
+                      <ChevronRight size={14} className="rotate-45" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {rightAction && (
+                <div className="shrink-0 flex items-center">
+                  {rightAction}
+                </div>
+              )}
               {onPrint && (
                 <button
                   type="button"
@@ -306,8 +335,9 @@ export function DataTable<T extends { id: string | number }>({
               {columns.map((col, idx) => {
                 const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
                 const isLast = idx === columns.length - 1;
-                const isSticky = isAction || isLast;
-                const isSortable = col.sortable !== false && !isAction;
+                const isCollapsed = col.className?.includes('!w-0');
+                const isSticky = (isAction || isLast) && !isCollapsed;
+                const isSortable = col.sortable !== false && !isAction && !isCollapsed;
                 const isSorted = sortColumnIndex === idx;
                 const isRightAligned = col.className?.includes('text-right');
 
@@ -317,7 +347,7 @@ export function DataTable<T extends { id: string | number }>({
                     onClick={() => isSortable && handleSort(idx)}
                     aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                     title={isSortable ? `Click to sort by ${typeof col.header === 'string' ? col.header : 'column'} (${isSorted && sortDirection === 'asc' ? 'Descending' : 'Ascending'})` : undefined}
-                    className={`px-4 py-2.5 md:py-3 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none transition-all border-r border-[#fce4d4]/30 last:border-r-0 ${
+                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-[#fce4d4]/30 last:border-r-0 ${
                       isSortable 
                         ? 'cursor-pointer hover:bg-[#fce4d4]/35 hover:text-[#3a525d] group/th' 
                         : ''
@@ -357,13 +387,14 @@ export function DataTable<T extends { id: string | number }>({
                   {columns.map((col, j) => {
                     const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
                     const isLast = j === columns.length - 1;
-                    const isSticky = isAction || isLast;
+                    const isCollapsed = col.className?.includes('!w-0');
+                    const isSticky = (isAction || isLast) && !isCollapsed;
                     return (
                       <td 
                         key={j} 
-                        className={`px-4 py-2.5 md:py-3 ${
+                        className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 ${
                           isSticky ? 'sticky right-0 bg-white z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
-                        }`}
+                        } ${col.className || ''}`}
                       >
                         <div className="h-5 bg-zinc-100 rounded-xl w-3/4" />
                       </td>
@@ -372,32 +403,42 @@ export function DataTable<T extends { id: string | number }>({
                 </tr>
               ))
             ) : paginatedData.length > 0 ? (
-              paginatedData.map((item) => (
-                <tr key={item.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
-                  {columns.map((col, idx) => {
-                    const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
-                    const isLast = idx === columns.length - 1;
-                    const isSticky = isAction || isLast;
-                    const isSorted = sortColumnIndex === idx;
+              paginatedData.map((item) => {
+                const customRowClass = rowClassName ? (rowClassName(item) || '') : '';
+                const hasRedShade = customRowClass.includes('rose') || customRowClass.includes('red');
+                return (
+                  <tr key={item.id} className={`transition-colors group ${customRowClass || 'hover:bg-[#fce4d4]/5'}`}>
+                    {columns.map((col, idx) => {
+                      const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
+                      const isLast = idx === columns.length - 1;
+                      const isFirst = idx === 0;
+                      const isCollapsed = col.className?.includes('!w-0');
+                      const isSticky = (isAction || isLast) && !isCollapsed;
+                      const isSorted = sortColumnIndex === idx;
 
-                    return (
-                      <td 
-                        key={idx} 
-                        className={`px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium text-foreground ${
-                          isSorted ? 'bg-[#fce4d4]/5 font-semibold' : ''
-                        } ${
-                          isSticky ? 'sticky right-0 bg-white group-hover:bg-[#fef9f6] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] transition-colors' : ''
-                        } ${col.className || ''}`}
-                      >
-                        {typeof col.accessor === 'function' 
-                          ? col.accessor(item) 
-                          : (item[col.accessor] as React.ReactNode)
-                        }
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+                      return (
+                        <td 
+                          key={idx} 
+                          className={`transition-all duration-300 ease-in-out px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-foreground ${
+                            isSorted && !hasRedShade ? 'bg-[#fce4d4]/5 font-semibold' : ''
+                          } ${
+                            isSticky 
+                              ? `sticky right-0 ${hasRedShade ? 'bg-rose-50/95 group-hover:bg-rose-100/90' : 'bg-white group-hover:bg-[#fef9f6]'} z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] transition-colors` 
+                              : ''
+                          } ${
+                            isFirst && hasRedShade ? 'border-l-4 border-l-rose-500 shadow-[inset_4px_0_0_0_#f43f5e]' : ''
+                          } ${col.className || ''}`}
+                        >
+                          {typeof col.accessor === 'function' 
+                            ? col.accessor(item) 
+                            : (item[col.accessor] as React.ReactNode)
+                          }
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={columns.length} className="p-8 md:p-12 text-center">

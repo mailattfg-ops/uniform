@@ -91,19 +91,29 @@ export default function QuotationDetails({
   }, []);
 
   const getSelectedQuotePricing = (quote: Quotation) => {
-    const finalValue = Number(quote.final_quote_value) || 0;
+    let finalValue = Number(quote.final_quote_value) || 0;
     const gstRate = quote.metrics_summary?.gst_percent != null
       ? Number(quote.metrics_summary.gst_percent)
       : 0;
     const subtotal = quote.metrics_summary?.pre_tax_subtotal != null
       ? Number(quote.metrics_summary.pre_tax_subtotal)
-      : (gstRate > 0 ? (finalValue / (1 + gstRate / 100)) : finalValue);
-    const gstValue = finalValue - subtotal;
+      : (gstRate > 0 && finalValue > 0 ? (finalValue / (1 + gstRate / 100)) : finalValue);
+
+    let gstValue = 0;
+    if (finalValue > 0 && finalValue >= subtotal) {
+      gstValue = finalValue - subtotal;
+    } else {
+      gstValue = quote.metrics_summary?.tax_amount != null
+        ? Number(quote.metrics_summary.tax_amount)
+        : (subtotal * gstRate / 100);
+      finalValue = subtotal + gstValue;
+    }
+
     return {
       finalValue,
       gstRate,
       subtotal,
-      gstValue
+      gstValue: Math.max(0, gstValue)
     };
   };
 
@@ -1389,7 +1399,7 @@ export default function QuotationDetails({
                 Total Contract Value (With GST)
               </p>
               <p className="text-4xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-1">
-                ₹{Number(selectedQuotation.final_quote_value).toLocaleString(undefined, {
+                ₹{Number(pricing.finalValue).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}

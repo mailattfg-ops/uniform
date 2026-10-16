@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { CreditCard, Plus, Scan, Trash2, Edit3, ShieldAlert, CheckCircle2, FileCheck } from 'lucide-react';
+import { CreditCard, Plus, Scan, Trash2, Edit3, ShieldAlert, CheckCircle2, FileCheck, Eye } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 
 interface InvoiceItem {
   item_description: string;
@@ -34,6 +35,8 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedInvoiceForModal, setSelectedInvoiceForModal] = useState<any | null>(null);
+  const [showTaxInvoiceModal, setShowTaxInvoiceModal] = useState(false);
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -206,7 +209,19 @@ export default function InvoicesPage() {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {invoices.map(inv => (
                 <tr key={inv.id} className="hover:bg-slate-50 transition">
-                  <td className="px-6 py-4 font-mono font-bold text-indigo-600">{inv.invoice_no}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedInvoiceForModal(inv);
+                        setShowTaxInvoiceModal(true);
+                      }}
+                      className="font-mono font-bold text-[#991b1b] hover:underline cursor-pointer border-none bg-transparent p-0 text-left"
+                      title="Click to view & print official GST Tax Invoice"
+                    >
+                      {inv.invoice_no}
+                    </button>
+                  </td>
                   <td className="px-6 py-4 font-semibold text-slate-900">{inv.customer_name}</td>
                   <td className="px-6 py-4">{inv.customer_type}</td>
                   <td className="px-6 py-4">
@@ -222,11 +237,14 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-6 py-4 flex gap-2">
                     <button
-                      onClick={() => window.print()}
-                      className="p-1.5 text-slate-500 hover:text-indigo-600 rounded-lg hover:bg-slate-100"
-                      title="Print Invoice"
+                      onClick={() => {
+                        setSelectedInvoiceForModal(inv);
+                        setShowTaxInvoiceModal(true);
+                      }}
+                      className="p-1.5 text-[#991b1b] hover:text-[#7f1d1d] rounded-lg hover:bg-rose-50 cursor-pointer transition"
+                      title="View & Print Official GST Tax Invoice"
                     >
-                      <FileCheck className="w-4 h-4" />
+                      <Eye className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteInvoice(inv.id)}
@@ -457,6 +475,13 @@ export default function InvoicesPage() {
           </div>
         </div>
       )}
+
+      {/* Real GST Tax Invoice Template Modal */}
+      <TaxInvoiceModal
+        isOpen={showTaxInvoiceModal}
+        onClose={() => setShowTaxInvoiceModal(false)}
+        data={selectedInvoiceForModal}
+      />
     </div>
   );
 }

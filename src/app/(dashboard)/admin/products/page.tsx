@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers, FolderTree, Bookmark, Sparkles } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -1036,13 +1037,16 @@ export default function ProductManagement() {
       name: 'art_number',
       label: 'Generated Art Number',
       type: 'text',
-      value: (selectedDress && selectedGender)
-        ? `${selectedDress}-${selectedGender}${selectedPattern || nextPatternCode || '001'}-${
-            fit
-              ? (fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase())?.code || (fit.toLowerCase().includes('slim') ? 'S' : fit.toLowerCase().includes('loose') ? 'L' : 'R'))
-              : 'R'
-          }${allowance && allowance.trim() ? allowance.trim() : ''}`
-        : '',
+      value: (() => {
+        if (!selectedDress || !selectedGender) return '';
+        const patRaw = (selectedPattern || nextPatternCode || '001').trim();
+        const pat = /^\d+$/.test(patRaw) && patRaw.length < 3 ? patRaw.padStart(3, '0') : patRaw;
+        const fitCode = fit
+          ? (fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase())?.code || (fit.toLowerCase().includes('slim') ? 'S' : fit.toLowerCase().includes('loose') ? 'L' : 'R'))
+          : 'R';
+        const cleanAllowance = allowance && allowance.trim() ? allowance.trim() : '';
+        return `${selectedDress}-${selectedGender}${pat}-${fitCode}${cleanAllowance}`;
+      })(),
       readOnly: true,
       placeholder: 'Will generate automatically from Prefix, Gender, Pattern, Fit & Allowance (e.g. 4J-1012-R2)...',
       required: true
@@ -1824,7 +1828,7 @@ export default function ProductManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Products</h1>
@@ -1834,23 +1838,46 @@ export default function ProductManagement() {
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Inventory & Specification Hub</p>
         </div>
-        <div className="flex items-center gap-3">
-          <a
-            href="/admin/accessories"
-            className="h-16 px-6 bg-white hover:bg-zinc-50 border-2 border-[#2d8d9b]/20 hover:border-[#2d8d9b] text-[#2d8d9b] rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] shadow-sm flex items-center gap-2 transition-all"
+        
+        {/* Catalog Navigation & Actions */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/admin/product-types"
+            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
           >
-            <Tag size={16} />
-            Accessories & Trade Hub &rarr;
-          </a>
+            <FolderTree size={16} className="text-[#2d8d9b]" />
+            Product Types
+          </Link>
+          <Link
+            href="/admin/art-number-hub"
+            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#CC9448] text-[#3a525d] hover:text-[#CC9448] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
+          >
+            <Bookmark size={16} className="text-[#CC9448]" />
+            ART Number Hub
+          </Link>
+          <Link
+            href="/admin/design-numbers"
+            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
+          >
+            <Sparkles size={16} className="text-[#2d8d9b]" />
+            Design Numbers (DNS/DNG)
+          </Link>
+          <Link
+            href="/admin/accessories"
+            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#3a525d] text-[#3a525d] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
+          >
+            <Tag size={16} className="text-[#3a525d]" />
+            Accessories Hub
+          </Link>
           <Button
             onClick={() => {
               setEditingProduct(null);
               setIsAdding(true);
               fetchData();
             }}
-            className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+            className="h-14 px-7 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2.5"
           >
-            <Plus size={20} strokeWidth={3} />
+            <Plus size={18} strokeWidth={3} />
             Add New
           </Button>
         </div>

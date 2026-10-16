@@ -255,3 +255,99 @@ export function extractGarmentDisplayMetrics(
   };
 }
 
+/**
+ * Capitalizes the first letter of a string (if it's a letter), leaving the rest unchanged.
+ * e.g. "urgent uniform requirements" -> "Urgent uniform requirements"
+ */
+export function capitalizeFirstLetter(str: string | null | undefined): string {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Capitalizes the first letter of each word (Title Case).
+ * e.g. "orchid hospital private limited" -> "Orchid Hospital Private Limited"
+ * e.g. "kizhakkethala, down hill" -> "Kizhakkethala, Down Hill"
+ */
+export function capitalizeWords(str: string | null | undefined): string {
+  if (!str) return '';
+  return str.replace(/\b([a-z])/g, (char) => char.toUpperCase());
+}
+
+/**
+ * Format a Date object or ISO string into "DD Mon YYYY" format.
+ * e.g. "2026-10-05" -> "05 Oct 2026"
+ */
+export function formatDateDoc(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return '—';
+  try {
+    const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    if (isNaN(d.getTime())) return String(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch {
+    return String(dateStr);
+  }
+}
+
+/**
+ * Convert number to Indian Rupee Words (Indian numbering system)
+ * e.g. 102375 -> "Rupees One Lakh Two Thousand Three Hundred Seventy Five Only"
+ */
+export function numberToWordsINR(num: number | string | null | undefined): string {
+  if (num === null || num === undefined || num === '') return 'Rupees Zero Only';
+  const val = typeof num === 'string' ? parseFloat(num) : num;
+  if (isNaN(val) || val <= 0) return 'Rupees Zero Only';
+
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  const convertTwoDigits = (n: number): string => {
+    if (n === 0) return '';
+    if (n < 20) return a[n];
+    const tens = b[Math.floor(n / 10)];
+    const ones = a[n % 10];
+    return ones ? `${tens} ${ones}` : tens;
+  };
+
+  const convertThreeDigits = (n: number): string => {
+    const hundreds = Math.floor(n / 100);
+    const rest = n % 100;
+    const parts: string[] = [];
+    if (hundreds > 0) parts.push(`${a[hundreds]} Hundred`);
+    if (rest > 0) parts.push(convertTwoDigits(rest));
+    return parts.join(' ');
+  };
+
+  const rounded = Math.round(val * 100) / 100;
+  const integerPart = Math.floor(rounded);
+  const decimalPart = Math.round((rounded - integerPart) * 100);
+
+  // Indian format: Crores, Lakhs, Thousands, Hundreds/Tens/Units
+  const crore = Math.floor(integerPart / 10000000);
+  const remainderCrore = integerPart % 10000000;
+  const lakh = Math.floor(remainderCrore / 100000);
+  const remainderLakh = remainderCrore % 100000;
+  const thousand = Math.floor(remainderLakh / 1000);
+  const remainderThousand = remainderLakh % 1000;
+
+  const words: string[] = [];
+  if (crore > 0) words.push(`${convertTwoDigits(crore)} Crore`);
+  if (lakh > 0) words.push(`${convertTwoDigits(lakh)} Lakh`);
+  if (thousand > 0) words.push(`${convertTwoDigits(thousand)} Thousand`);
+  if (remainderThousand > 0) words.push(convertThreeDigits(remainderThousand));
+
+  const rupeesStr = words.length > 0 ? words.join(' ') : 'Zero';
+  let result = `Rupees ${rupeesStr}`;
+
+  if (decimalPart > 0) {
+    result += ` and ${convertTwoDigits(decimalPart)} Paise`;
+  }
+  return `${result} Only`;
+}

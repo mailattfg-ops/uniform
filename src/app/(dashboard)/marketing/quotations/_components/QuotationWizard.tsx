@@ -1402,7 +1402,7 @@ export default function QuotationWizard({
           delivery_address: selectedOrg?.delivery_address || selectedOrg?.address || null,
           delivery_city: selectedOrg?.delivery_city || selectedOrg?.city || null,
           delivery_state: selectedOrg?.delivery_state || selectedOrg?.state || null,
-          delivery_pincode: selectedOrg?.delivery_pincode || selectedOrg?.pincode || selectedOrg?.pin_code || null,
+          delivery_pincode: selectedOrg?.delivery_pincode || selectedOrg?.pincode || null,
           delivery_country: selectedOrg?.delivery_country || selectedOrg?.country || 'India',
           extra_charges: extraCharges,
           separate_fabrics: separateFabrics,

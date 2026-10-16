@@ -20,6 +20,8 @@ import {
   Camera
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
+import { capitalizeFirstLetter } from '@/lib/formatters';
+
 
 const getFieldIcon = (name: string) => {
   const n = name.toLowerCase();
@@ -320,8 +322,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                     readOnly={field.readOnly}
                     rows={4}
                     onChange={(e: any) => {
-                      if (field.onChange) field.onChange(e.target.value);
+                      const val = capitalizeFirstLetter(e.target.value);
+                      if (val !== e.target.value) {
+                        e.target.value = val;
+                      }
+                      if (field.onChange) field.onChange(val);
                     }}
+                    autoCapitalize="sentences"
                     className="w-full px-5 py-3.5 bg-white border-2 border-zinc-200 hover:border-[#2d8d9b]/50 rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-sm font-bold text-[#3a525d] placeholder:text-zinc-400 shadow-sm"
                   />
                 </div>

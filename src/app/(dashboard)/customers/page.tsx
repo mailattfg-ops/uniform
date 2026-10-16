@@ -13,7 +13,6 @@ import {
   Star,
   AlertTriangle,
   Phone,
-  Edit2,
   ExternalLink,
   CreditCard,
   Clock,
@@ -34,18 +33,20 @@ interface Customer {
   id: number;
   customer_code: string | null;
   name: string;
+  contact_title?: string | null;
   contact_person?: string | null;
+  contact_designation?: string | null;
+  origin?: string | null;
   phone?: string | null;
   contact_number?: string | null;
   email?: string | null;
   contact_email?: string | null;
-  contact_phone?: string | null;
   address: string;
   city?: string | null;
   state?: string | null;
   pincode?: string | null;
-  pin_code?: string | null;
   country?: string | null;
+  branch_id?: number | null;
   industry_id: number;
   industries?: { name: string };
   relationship_manager_id: number | null;
@@ -71,15 +72,19 @@ function compileCustomerDirectoryHTML({
   sortInfo,
   statusFilter,
   selectedIndustryName,
+  selectedBranchName,
   printedAt,
-  invoices = []
+  invoices = [],
+  branches = []
 }: {
   customers: Customer[];
   sortInfo: SortInfo<Customer>;
   statusFilter: string;
   selectedIndustryName: string;
+  selectedBranchName?: string;
   printedAt: string;
   invoices?: any[];
+  branches?: any[];
 }): string {
   const totalCount = customers.length;
   const activeCount = customers.filter(c => c.is_active !== false).length;
@@ -94,17 +99,17 @@ function compileCustomerDirectoryHTML({
 
   const filterLabel = [
     statusFilter === 'ALL' ? 'All Customers' : `${statusFilter.charAt(0) + statusFilter.slice(1).toLowerCase()} Customers`,
-    selectedIndustryName !== 'ALL' ? `Sector: ${selectedIndustryName}` : 'All Sectors'
+    selectedIndustryName !== 'ALL' ? `Sector: ${selectedIndustryName}` : 'All Sectors',
+    selectedBranchName && selectedBranchName !== 'All Branches' ? `Branch: ${selectedBranchName}` : 'All Branches'
   ].join(' • ');
 
   const rowsHtml = customers.map((c, idx) => {
     const custId = c.customer_code || `#${c.id}`;
     const name = c.name || 'Unnamed Customer';
-    const sector = c.industries?.name || '—';
+    const sector = c.industries?.name || '';
+    const branchName = branches?.find((b: any) => String(b.id) === String(c.branch_id))?.name || (c as any).branches?.name || '—';
     const contactPerson = c.contact_person || '—';
-    const phone = c.phone || c.contact_phone || c.contact_number || '—';
-    const isActive = c.is_active !== false;
-    const clientType = c.is_special ? '★ Favourite' : c.is_risk ? '⚠ Risk' : 'Standard';
+    const phone = c.contact_number || c.phone || '—';
     const salesPerson = c.relationship_manager?.full_name || 'Unassigned';
     const receivables = Number(c.receivables || 0);
 
@@ -127,22 +132,14 @@ function compileCustomerDirectoryHTML({
         <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${custId}</td>
         <td>
           <div style="font-weight: 800; color: #1a202c; font-size: 11px;">${name}</div>
+          ${sector ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${sector}</td>
+        <td style="font-size: 10px; color: #4a5568;">${branchName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
-          <div style="color: #718096; font-size: 9px; font-family: monospace;">${phone}</div>
+          ${c.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${c.contact_designation}</div>` : ''}
         </td>
-        <td style="text-align: center;">
-          <span class="badge ${isActive ? 'badge-active' : 'badge-inactive'}">
-            ${isActive ? 'Active' : 'Inactive'}
-          </span>
-        </td>
-        <td style="text-align: center;">
-          <span class="badge ${c.is_special ? 'badge-special' : c.is_risk ? 'badge-risk' : 'badge-standard'}">
-            ${clientType}
-          </span>
-        </td>
+        <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${phone}</td>
         <td style="font-size: 10px; color: #4a5568;">${salesPerson}</td>
         <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${receivables > 0 ? '#e53e3e' : '#4a5568'}; white-space: nowrap;">
           ₹${receivables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -181,13 +178,15 @@ function compileCustomerDirectoryHTML({
 
     @page {
       size: landscape;
-      margin: 10mm;
+      margin: 8mm;
     }
 
     .report-header {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 12px;
       border-bottom: 2px solid #3a525d;
       padding-bottom: 14px;
       margin-bottom: 14px;
@@ -238,6 +237,7 @@ function compileCustomerDirectoryHTML({
 
     .kpi-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 12px;
       margin-bottom: 14px;
       background: #f7fafc;
@@ -248,6 +248,7 @@ function compileCustomerDirectoryHTML({
 
     .kpi-col {
       flex: 1;
+      min-width: 80px;
       border-right: 1px solid #e2e8f0;
       padding-right: 10px;
     }
@@ -274,6 +275,7 @@ function compileCustomerDirectoryHTML({
 
     table {
       width: 100%;
+      min-width: 650px;
       border-collapse: collapse;
       margin-bottom: 16px;
     }
@@ -355,6 +357,9 @@ function compileCustomerDirectoryHTML({
       body {
         padding: 0;
       }
+      table {
+        min-width: 100%;
+      }
       .no-print {
         display: none !important;
       }
@@ -406,20 +411,19 @@ function compileCustomerDirectoryHTML({
   <table>
     <thead>
       <tr>
-        <th style="width: 30px;">#</th>
-        <th style="width: 85px;">Cust ID</th>
-        <th>Customer / Institution Name</th>
-        <th>Sector</th>
-        <th>Contact Person & Phone</th>
-        <th style="width: 65px; text-align: center;">Status</th>
-        <th style="width: 80px; text-align: center;">Type</th>
+        <th style="width: 25px;">#</th>
+        <th style="width: 70px;">ID</th>
+        <th>Customer Name</th>
+        <th>Branch</th>
+        <th>Contact Person</th>
+        <th>Contact Number</th>
         <th>Sales Person</th>
-        <th style="text-align: right; width: 100px;">Receivables</th>
-        <th style="text-align: right; width: 90px;">Credits</th>
+        <th style="text-align: right; width: 85px;">Receivables</th>
+        <th style="text-align: right; width: 80px;">Credits</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #718096;">No customer records matching the active filters.</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #718096;">No customer records matching the active filters.</td></tr>'}
     </tbody>
   </table>
 
@@ -440,6 +444,8 @@ export default function CustomersRegistry() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   
   // Filters
+  const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
+  const [branches, setBranches] = useState<any[]>([]);
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'SPECIAL' | 'RISK'>('ALL');
   
@@ -507,6 +513,8 @@ export default function CustomersRegistry() {
   const compiledPrintHTML = useMemo(() => {
     if (!printModal?.isOpen) return '';
     const selectedInd = industries.find(i => String(i.id) === String(selectedIndustry));
+    const activeBranch = branches.find(b => String(b.id) === selectedBranch);
+    const selectedBranchName = selectedBranch === 'ALL' ? 'All Branches' : (activeBranch?.name || `Branch #${selectedBranch}`);
     const now = new Date();
     const printedAt = `${now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
     return compileCustomerDirectoryHTML({
@@ -514,10 +522,12 @@ export default function CustomersRegistry() {
       sortInfo: printModal.sortInfo,
       statusFilter,
       selectedIndustryName: selectedInd ? selectedInd.name : (selectedIndustry === 'ALL' ? 'All Sectors' : selectedIndustry),
+      selectedBranchName,
       printedAt,
       invoices,
+      branches,
     });
-  }, [printModal, industries, selectedIndustry, statusFilter, invoices]);
+  }, [printModal, industries, selectedIndustry, selectedBranch, branches, statusFilter, invoices]);
 
   useEffect(() => {
     try {
@@ -539,16 +549,18 @@ export default function CustomersRegistry() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [custRes, indRes, empRes, invRes] = await Promise.all([
+      const [custRes, indRes, empRes, invRes, branchRes] = await Promise.all([
         api.get('/customers').catch(() => api.get('/organizations')).catch(() => ({ data: [] })),
         api.get('/industries').catch(() => ({ data: [] })),
         api.get('/employees').catch(() => ({ data: [] })),
-        api.get('/invoices').catch(() => ({ data: [] }))
+        api.get('/invoices').catch(() => ({ data: [] })),
+        api.get('/branches').catch(() => ({ data: [] }))
       ]);
       setCustomers(custRes.data || []);
       setIndustries(indRes.data || []);
       setEmployees(empRes.data || []);
       setInvoices(invRes.data || []);
+      setBranches(branchRes.data || []);
     } catch (err) {
       toast.error('Failed to load customer directory data');
       console.error(err);
@@ -647,10 +659,11 @@ export default function CustomersRegistry() {
 
     const payload = {
       name: formData.name,
+      contact_title: formData.contact_title || 'Mr.',
       contact_person: formData.contact_person?.trim() || null,
+      contact_designation: formData.contact_designation?.trim() || null,
       phone: formData.phone.trim(),
       contact_number: formData.phone.trim(),
-      contact_phone: formData.phone.trim(),
       email: formData.email?.trim() || null,
       contact_email: formData.email?.trim() || null,
       industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
@@ -659,6 +672,8 @@ export default function CustomersRegistry() {
       state: formData.state?.trim() || null,
       pincode: formData.pincode?.trim() || null,
       country: formData.country?.trim() || 'India',
+      branch_id: currentUser?.branchId || null,
+      origin: currentUser?.branchId ? 'BRANCH' : 'HQ',
       relationship_manager_id: resolvedRmId,
       is_active: formData.is_active === 'true',
       is_special: isSpecial,
@@ -783,7 +798,7 @@ export default function CustomersRegistry() {
       const customerName = linkedCust?.name || inv.customer_name || 'Customer';
       const customerCode = linkedCust?.customer_code || (linkedCust ? `#${linkedCust.id}` : undefined);
       const contactPerson = linkedCust?.contact_person || undefined;
-      const contactPhone = linkedCust?.phone || linkedCust?.contact_number || linkedCust?.contact_phone || undefined;
+      const contactPhone = linkedCust?.contact_number || linkedCust?.phone || undefined;
       const creditPeriod = inv.credit_period_days || linkedCust?.credit_period_days || 30;
 
       const invDateStr = inv.invoice_date || inv.created_at;
@@ -910,6 +925,11 @@ export default function CustomersRegistry() {
   // Filtered customer list
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
+      // Branch filter
+      if (selectedBranch !== 'ALL' && String(c.branch_id || '') !== selectedBranch) {
+        return false;
+      }
+
       // Sector filter
       if (selectedIndustry !== 'ALL' && String(c.industry_id) !== selectedIndustry) {
         return false;
@@ -923,222 +943,170 @@ export default function CustomersRegistry() {
 
       return true;
     });
-  }, [customers, selectedIndustry, statusFilter]);
+  }, [customers, selectedBranch, selectedIndustry, statusFilter]);
 
-  // Columns definition
+  // Columns definition (ID, Customer Name, Branch, Contact Person, Contact Number, Sales Person, Receivables, Credits)
   const columns: Column<Customer>[] = [
     {
-      header: 'Customer ID',
-      className: 'w-[140px] whitespace-nowrap',
+      header: 'ID',
+      className: 'w-[85px] whitespace-nowrap',
       sortValue: (c) => c.customer_code || String(c.id),
       accessor: (c) => {
         const idLabel = c.customer_code || `#${c.id}`;
+        const isActive = c.is_active !== false;
         return (
-          <div className="group inline-flex items-center gap-1.5">
+          <div className="inline-flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                isActive
+                  ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]'
+                  : 'bg-rose-400'
+              }`}
+              title={isActive ? 'Active Customer' : 'Inactive Customer'}
+            />
             <button
               type="button"
               onClick={() => handleViewDetails(c, false)}
-              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#fce4d4]/40 text-[#8b6b5a] border border-[#fce4d4] hover:bg-[#fce4d4]/70 hover:text-[#3a525d] transition-all cursor-pointer"
+              className="font-mono font-bold text-xs text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer bg-transparent border-none p-0 outline-none"
               title="Click to view details"
             >
               {idLabel}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewDetails(c, true);
-              }}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-              title="Open customer in new tab"
-            >
-              <ExternalLink size={12} />
             </button>
           </div>
         );
       }
     },
     {
-      header: 'Name',
-      className: 'min-w-[220px]',
+      header: 'Customer Name',
+      className: 'min-w-[160px] max-w-[280px]',
       sortValue: (c) => c.name,
-      accessor: (c) => (
-        <div className="flex items-center gap-3 group">
-          <div 
-            onClick={() => handleViewDetails(c, false)}
-            className="w-9 h-9 bg-[#3a525d]/5 hover:bg-[#2d8d9b]/15 rounded-xl flex items-center justify-center text-[#3a525d] hover:text-[#2d8d9b] border border-[#3a525d]/10 transition-all cursor-pointer shrink-0"
-            title="Click to view details"
-          >
-            <Building2 size={18} className="group-hover:scale-105 transition-transform" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
+      accessor: (c) => {
+        const isRisk = Boolean(c.is_risk);
+        const isSpecial = Boolean(c.is_special);
+
+        return (
+          <div className="group min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <button
                 type="button"
                 onClick={() => handleViewDetails(c, false)}
-                className="text-left font-black text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none block"
-                title="Click to view details"
+                className="text-left font-black text-xs md:text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
+                title={c.name}
               >
-                <span>{c.name}</span>
+                {c.name}
               </button>
+              {isRisk && (
+                <span title="Risk Client" className="shrink-0 text-rose-500">
+                  <AlertTriangle size={13} className="stroke-[2.5]" />
+                </span>
+              )}
+              {isSpecial && (
+                <span title="Favourite Client" className="shrink-0 text-amber-500">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                </span>
+              )}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleViewDetails(c, true);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
                 title="Open customer in new tab"
               >
-                <ExternalLink size={12} />
+                <ExternalLink size={13.5} />
               </button>
             </div>
             {c.industries?.name && (
-              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider mt-0.5">
+              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
                 {c.industries.name}
               </p>
             )}
           </div>
-        </div>
-      ),
+        );
+      }
     },
     {
-      header: 'Phone Number',
-      className: 'w-[150px] whitespace-nowrap',
-      sortValue: (c) => c.phone || '',
+      header: 'Branch',
+      className: 'w-[110px] whitespace-nowrap',
+      sortValue: (c) => {
+        const b = branches.find(br => String(br.id) === String(c.branch_id));
+        return b ? b.name : (c as any).branches?.name || '';
+      },
+      accessor: (c) => {
+        const b = branches.find(br => String(br.id) === String(c.branch_id));
+        const branchName = b ? b.name : (c as any).branches?.name || null;
+        return branchName ? (
+          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 truncate inline-block max-w-[100px]" title={branchName}>
+            {branchName}
+          </span>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+        );
+      }
+    },
+    {
+      header: 'Contact Person',
+      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap',
+      sortValue: (c) => c.contact_person || '',
       accessor: (c) => (
-        c.phone ? (
-          <a
-            href={`tel:${c.phone}`}
-            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
-            title={`Call ${c.phone}`}
-          >
-            <Phone size={13} className="text-[#2d8d9b] shrink-0" />
-            <span>{c.phone}</span>
-          </a>
+        c.contact_person ? (
+          <div className="flex flex-col min-w-0 max-w-[190px]">
+            <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${c.contact_title ? c.contact_title + ' ' : ''}${c.contact_person}`}>
+              {c.contact_title ? `${c.contact_title} ` : ''}{c.contact_person}
+            </span>
+            {c.contact_designation && (
+              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={c.contact_designation}>
+                {c.contact_designation}
+              </span>
+            )}
+          </div>
         ) : (
           <span className="text-zinc-400 text-xs italic font-medium">—</span>
         )
       )
     },
     {
-      header: 'Status',
-      className: 'w-[140px] whitespace-nowrap',
-      sortValue: (c) => (c.is_active !== false ? 'Active' : 'Inactive'),
+      header: 'Contact Number',
+      className: 'w-[125px] whitespace-nowrap',
+      sortValue: (c) => c.contact_number || c.phone || '',
       accessor: (c) => {
-        const isActive = c.is_active !== false;
-
-        if (isClientUser) {
-          return (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border ${
-              isActive 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                : 'bg-zinc-100 text-zinc-500 border-zinc-200'
-            }`}>
-              {isActive ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-              {isActive ? 'Active' : 'Inactive'}
-            </span>
-          );
-        }
-
-        return (
-          <div className="flex items-center">
-            {/* Staff inline toggle for Active / Inactive */}
-            <button
-              type="button"
-              onClick={() => handleToggleStatus(c, !isActive)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
-                isActive 
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
-                  : 'bg-zinc-100 text-zinc-500 border-zinc-300 hover:bg-zinc-200'
-              }`}
-              title="Click to toggle Active / Inactive"
-            >
-              {isActive ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Active</span>
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                  <span>Inactive</span>
-                </>
-              )}
-            </button>
-          </div>
-        );
-      }
-    },
-    {
-      header: 'Client Type',
-      className: 'w-[150px] whitespace-nowrap',
-      sortValue: (c) => (c.is_special ? 'Favourite' : c.is_risk ? 'Risk' : 'Standard'),
-      accessor: (c) => {
-        const isSpecial = !!c.is_special;
-        const isRisk = !!c.is_risk;
-
-        if (isClientUser) {
-          if (isSpecial) {
-            return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300">
-                <Star size={11} className="fill-amber-500 text-amber-500" /> Favourite Client
-              </span>
-            );
-          }
-          if (isRisk) {
-            return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-red-50 text-red-700 border border-red-300">
-                <AlertTriangle size={11} className="text-red-600" /> Risk Alert
-              </span>
-            );
-          }
-          return <span className="text-zinc-400 text-xs font-semibold">Standard</span>;
-        }
-
-        // Allowed staff can mark either Favourite or Risk (mutually exclusive)
-        const currentType = isSpecial ? 'special' : isRisk ? 'risk' : 'standard';
-
-        return (
-          <div className="flex items-center gap-1.5">
-            <select
-              value={currentType}
-              onChange={(e) => handleSetClassification(c, e.target.value as any)}
-              className={`h-8 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border outline-none cursor-pointer transition-all shadow-2xs ${
-                isSpecial
-                  ? 'bg-amber-50 text-amber-800 border-amber-300 font-black'
-                  : isRisk
-                  ? 'bg-red-50 text-red-700 border-red-300 font-black'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
-              }`}
-            >
-              <option value="standard">Standard</option>
-              <option value="special">★ Favourite</option>
-              <option value="risk">⚠ Risk Client</option>
-            </select>
-          </div>
+        const num = c.contact_number || c.phone;
+        return num ? (
+          <a
+            href={`tel:${num}`}
+            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+            title={`Call ${num}`}
+          >
+            <Phone size={12} className="text-[#2d8d9b] shrink-0" />
+            <span>{num}</span>
+          </a>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
         );
       }
     },
     {
       header: 'Sales Person',
-      className: 'w-[180px] whitespace-nowrap',
+      className: 'min-w-[150px] max-w-[200px] whitespace-nowrap',
       sortValue: (c) => c.relationship_manager?.full_name || '',
       accessor: (c) => (
         c.relationship_manager ? (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
-              <Users size={16} />
+          <div className="flex items-center gap-2 min-w-0 max-w-[190px]">
+            <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
+              <Users size={12} />
             </div>
-            <div>
-              <p className="text-xs font-black text-[#3a525d]">{c.relationship_manager.full_name}</p>
-              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">
-                Staff ID: {c.relationship_manager.employee_id}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-[#3a525d] truncate block" title={c.relationship_manager.full_name}>
+                {c.relationship_manager.full_name}
+              </p>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
+                {c.relationship_manager.employee_id}
               </p>
             </div>
           </div>
         ) : (
-          <span className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+          <span className="px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
             Unassigned
           </span>
         )
@@ -1146,18 +1114,18 @@ export default function CustomersRegistry() {
     },
     {
       header: 'Receivables',
-      className: 'w-[150px] whitespace-nowrap',
+      className: 'w-[115px] whitespace-nowrap text-right',
       sortValue: (c) => Number(c.receivables ?? 0),
       accessor: (c) => {
         const amt = Number(c.receivables ?? 0);
         const hasDue = amt > 0;
         return (
-          <div className="flex flex-col" title={String(amt)}>
+          <div className="flex flex-col items-end" title={String(amt)}>
             <span className={`text-xs font-black font-mono ${hasDue ? 'text-rose-600' : 'text-zinc-600'}`}>
               ₹{amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`text-[9px] font-bold uppercase tracking-wider ${hasDue ? 'text-rose-500' : 'text-zinc-400'}`}>
-              {hasDue ? 'Amount Due' : 'Zero Due'}
+            <span className={`text-[8px] font-bold uppercase tracking-wider ${hasDue ? 'text-rose-500' : 'text-zinc-400'}`}>
+              {hasDue ? 'Due' : 'Zero Due'}
             </span>
           </div>
         );
@@ -1165,7 +1133,7 @@ export default function CustomersRegistry() {
     },
     {
       header: 'Credits',
-      className: 'w-[150px] whitespace-nowrap',
+      className: 'w-[115px] whitespace-nowrap text-right',
       sortValue: (c) => {
         let amt = Number(c.credits ?? 0);
         if (amt === 0 && invoices && invoices.length > 0) {
@@ -1196,38 +1164,17 @@ export default function CustomersRegistry() {
         }
         const hasCredit = amt > 0;
         return (
-          <div className="flex flex-col" title={`Credit (Amount Paid - Invoice): ₹${amt.toFixed(2)}`}>
+          <div className="flex flex-col items-end" title={`Credit (Amount Paid - Invoice): ₹${amt.toFixed(2)}`}>
             <span className={`text-xs font-black font-mono ${hasCredit ? 'text-emerald-600' : 'text-zinc-600'}`}>
               ₹{amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`text-[9px] font-bold uppercase tracking-wider ${hasCredit ? 'text-emerald-600' : 'text-zinc-400'}`}>
-              {hasCredit ? 'Credit Balance' : 'Zero Credit'}
+            <span className={`text-[8px] font-bold uppercase tracking-wider ${hasCredit ? 'text-emerald-600' : 'text-zinc-400'}`}>
+              {hasCredit ? 'Credit' : 'Zero Credit'}
             </span>
           </div>
         );
       }
-    },
-    ...(!isClientUser ? [
-      {
-        header: 'Actions',
-        className: 'w-[90px] text-right whitespace-nowrap',
-        accessor: (c: Customer) => (
-          <div className="flex items-center justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setEditingCustomer(c);
-                setIsAdding(false);
-              }}
-              className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-[#2d8d9b] hover:text-white text-zinc-500 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-              title="Edit Customer Profile"
-            >
-              <Edit2 size={13} />
-            </button>
-          </div>
-        )
-      }
-    ] : [])
+    }
   ];
 
   return (
@@ -1251,167 +1198,63 @@ export default function CustomersRegistry() {
             className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
           >
             <Plus size={20} strokeWidth={3} />
-            New
+            New Customer
           </Button>
         )}
       </div>
 
-      {/* Metrics Row (Total Customers, Total Receivables, Upcoming Dues, Dues, Overdues) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        
-        {/* 1. Total Customers */}
-        <div className="bg-white p-5 rounded-3xl shadow-xs border border-[#fce4d4] flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">Total Customers</p>
-            <h3 className="text-3xl font-black text-[#3a525d] tracking-tight">{stats.total}</h3>
-            {/* <p className="text-[9px] font-bold text-zinc-400 mt-0.5">Directory Accounts</p> */}
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d] shrink-0">
-            <Building2 size={22} />
-          </div>
-        </div>
-
-        {/* 2. Total Receivables (Clickable -> Opens Breakdown Modal) */}
-        <div 
-          onClick={() => {
-            setFinancialModal({ isOpen: true, type: 'receivables' });
-            setModalSearchQuery('');
-          }}
-          className="bg-white p-5 rounded-3xl shadow-xs border border-[#fce4d4] hover:border-[#2d8d9b] hover:shadow-md transition-all cursor-pointer flex items-center justify-between group"
-          title="Click to view total receivables breakdown"
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mb-1 flex items-center gap-1">
-              <span>Total Receivables</span>
-            </p>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight font-mono">
-              ₹{totalReceivablesAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            {/* <p className="text-[9px] font-bold text-[#2d8d9b] group-hover:underline mt-0.5">
-              {receivablesItems.length} Pending Account(s) →
-            </p> */}
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-teal-50 group-hover:bg-[#2d8d9b] flex items-center justify-center text-[#2d8d9b] group-hover:text-white transition-colors shrink-0">
-            <CreditCard size={22} />
-          </div>
-        </div>
-
-        {/* 3. Upcoming Dues (Clickable -> Opens Upcoming Dues Modal) */}
-        <div 
-          onClick={() => {
-            setFinancialModal({ isOpen: true, type: 'upcoming' });
-            setModalSearchQuery('');
-          }}
-          className="bg-white p-5 rounded-3xl shadow-xs border border-[#fce4d4] hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex items-center justify-between group bg-blue-50/10"
-          title="Click to view upcoming dues list (due in next 7 days)"
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1">Upcoming Dues (Next 7 Days)</p>
-            <h3 className="text-2xl font-black text-blue-700 tracking-tight font-mono">
-              ₹{upcomingDuesAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            {/* <p className="text-[9px] font-bold text-blue-600 group-hover:underline mt-0.5">
-              {upcomingItems.length} Due in Next 7 Days →
-            </p> */}
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 group-hover:bg-blue-600 flex items-center justify-center text-blue-600 group-hover:text-white transition-colors shrink-0">
-            <Clock size={22} />
-          </div>
-        </div>
-
-        {/* 4. Dues (Clickable -> Opens Due Today Modal) */}
-        <div 
-          onClick={() => {
-            setFinancialModal({ isOpen: true, type: 'due' });
-            setModalSearchQuery('');
-          }}
-          className="bg-white p-5 rounded-3xl shadow-xs border border-[#fce4d4] hover:border-amber-400 hover:shadow-md transition-all cursor-pointer flex items-center justify-between group bg-amber-50/20"
-          title="Click to view invoices due today (final credit day)"
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 mb-1">Dues</p>
-            <h3 className="text-2xl font-black text-amber-700 tracking-tight font-mono">
-              ₹{duesAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            {/* <p className="text-[9px] font-bold text-amber-700 group-hover:underline mt-0.5">
-              {dueItems.length} Due Today (Last Day) →
-            </p> */}
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 group-hover:bg-amber-600 flex items-center justify-center text-amber-700 group-hover:text-white transition-colors shrink-0">
-            <AlertCircle size={22} />
-          </div>
-        </div>
-
-        {/* 5. Overdues (Clickable -> Opens Overdue Modal) */}
-        <div 
-          onClick={() => {
-            setFinancialModal({ isOpen: true, type: 'overdue' });
-            setModalSearchQuery('');
-          }}
-          className="bg-white p-5 rounded-3xl shadow-xs border border-[#fce4d4] hover:border-rose-400 hover:shadow-md transition-all cursor-pointer flex items-center justify-between group bg-rose-50/20"
-          title="Click to view overdue invoices past credit period"
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 mb-1">Overdues</p>
-            <h3 className="text-2xl font-black text-rose-600 tracking-tight font-mono">
-              ₹{overduesAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            {/* <p className="text-[9px] font-bold text-rose-600 group-hover:underline mt-0.5">
-              {overdueItems.length} Past Credit Window →
-            </p> */}
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-rose-100 group-hover:bg-rose-600 flex items-center justify-center text-rose-600 group-hover:text-white transition-colors shrink-0">
-            <AlertTriangle size={22} />
-          </div>
-        </div>
-
-      </div>
-
       {/* Main Table with Header Actions */}
       <DataTable
-        title="Customer Directory"
-        subtitle="Manage client accounts, active status, favourite/risk classifications, and financial ledgers"
         columns={columns}
         data={filteredCustomers}
         isLoading={isLoading}
         searchPlaceholder="Search customers by code, name, location, sector, manager..."
         onPrint={handlePrintCustomers}
         headerAction={
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Branch Filter */}
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="ALL">All Branches</option>
+              {branches.map((b) => (
+                <option key={b.id} value={String(b.id)}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
             
             {/* USER REQUEST: Dropdown Filter for All, Active, Inactive, Favourite, Risk */}
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-black uppercase tracking-wider text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="ALL">All Customers ({customers.length})</option>
-                <option value="ACTIVE">Active Customers ({stats.activeCount})</option>
-                <option value="INACTIVE">Inactive Customers ({stats.inactiveCount})</option>
-                <option value="SPECIAL">★ Favourite Customers ({stats.specialCount})</option>
-                <option value="RISK">⚠ Risk Customers ({stats.riskCount})</option>
-              </select>
-            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="ALL">All Customers ({customers.length})</option>
+              <option value="ACTIVE">Active Customers ({stats.activeCount})</option>
+              <option value="INACTIVE">Inactive Customers ({stats.inactiveCount})</option>
+              <option value="SPECIAL">★ Favourite Customers ({stats.specialCount})</option>
+              <option value="RISK">⚠ Risk Customers ({stats.riskCount})</option>
+            </select>
 
             {/* Sector / Industry Filter */}
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedIndustry}
-                onChange={(e) => setSelectedIndustry(e.target.value)}
-                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="ALL">All Sectors ({customers.length})</option>
-                {industries.map(ind => {
-                  const count = customers.filter(c => String(c.industry_id) === String(ind.id)).length;
-                  return (
-                    <option key={ind.id} value={String(ind.id)}>
-                      {ind.name} ({count})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <select
+              value={selectedIndustry}
+              onChange={(e) => setSelectedIndustry(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="ALL">All Sectors ({customers.length})</option>
+              {industries.map(ind => {
+                const count = customers.filter(c => String(c.industry_id) === String(ind.id)).length;
+                return (
+                  <option key={ind.id} value={String(ind.id)}>
+                    {ind.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
           </div>
         }
       />
@@ -1448,7 +1291,7 @@ export default function CustomersRegistry() {
       {/* Financial Breakdown Modal */}
       {financialModal.isOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
           onClick={() => setFinancialModal({ isOpen: false, type: null })}
         >
           <div 
@@ -1759,7 +1602,7 @@ export default function CustomersRegistry() {
       {/* Customer Directory Print Preview Modal */}
       {printModal?.isOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
           onClick={() => setPrintModal(null)}
         >
           <div 
@@ -1818,13 +1661,13 @@ export default function CustomersRegistry() {
                 id="customer-preview-frame"
                 srcDoc={compiledPrintHTML}
                 title="Customer Directory Print Preview"
-                className="w-full flex-1 min-h-[550px] bg-white rounded-2xl border border-zinc-200 shadow-sm"
+                className="w-full flex-1 min-h-[450px] sm:min-h-[550px] bg-white rounded-2xl border border-zinc-200 shadow-sm"
               />
             </div>
 
             {/* Footer */}
             <div className="p-4 px-6 bg-zinc-50 border-t border-zinc-200 flex flex-wrap justify-between items-center gap-3 text-xs text-zinc-500 font-medium">
-              <span>Ready for printing or PDF export • Landscape A4 / Letter format</span>
+              <span>Ready for printing or PDF export • Portrait A4 / Letter format</span>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"

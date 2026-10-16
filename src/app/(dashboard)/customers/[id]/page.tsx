@@ -41,7 +41,18 @@ import {
   Mail,
   Truck,
   Clock,
-  FileText
+  FileText,
+  Boxes,
+  ShoppingBag,
+  BookOpen,
+  TrendingDown,
+  Wallet,
+  Receipt,
+  FileCheck,
+  Eye,
+  Layers,
+  Target,
+  MessageSquarePlus
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
@@ -53,6 +64,8 @@ import { Select } from '@/components/ui/Select';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 import * as XLSX from 'xlsx';
 import { formatDate } from '@/lib/formatters';
+import ProFormaInvoiceModal from '@/components/documents/ProFormaInvoiceModal';
+import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 
 interface Organization {
   id: number;
@@ -63,12 +76,10 @@ interface Organization {
   contact_number?: string | null;
   email?: string | null;
   contact_email?: string | null;
-  contact_phone?: string | null;
   address: string;
   city?: string | null;
   state?: string | null;
   pincode?: string | null;
-  pin_code?: string | null;
   country?: string | null;
   industry_id: number;
   industries?: { name: string };
@@ -211,15 +222,50 @@ function OrganizationDetailsPageContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'entities' | 'quotations' | 'ledger'>(
-    initialTab === 'ledger' ? 'ledger' : 'overview'
+  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'transactions' | 'ledger'>(
+    initialTab === 'ledger' 
+      ? 'ledger' 
+      : (initialTab === 'transactions' || initialTab === 'quotations') 
+      ? 'transactions' 
+      : (initialTab === 'departments' || initialTab === 'entities')
+      ? 'departments'
+      : 'overview'
   );
+  const [deptSubTab, setDeptSubTab] = useState<'departments' | 'entities'>(
+    initialTab === 'entities' ? 'entities' : 'departments'
+  );
+
+  // Transaction Sub-Tabs (9 categories: Quotes, customer payments, sales orders, packages, shipments, invoices, expenses, journals, pro forma invoice)
+  type TransactionSubTab =
+    | 'quotes'
+    | 'customer_payments'
+    | 'sales_orders'
+    | 'packages'
+    | 'shipments'
+    | 'invoices'
+    | 'expenses'
+    | 'journals'
+    | 'pro_forma_invoice';
+
+  const [transactionSubTab, setTransactionSubTab] = useState<TransactionSubTab>('quotes');
+  const [deliveryChallans, setDeliveryChallans] = useState<any[]>([]);
+  const [isLoadingChallans, setIsLoadingChallans] = useState(false);
+  const [selectedProForma, setSelectedProForma] = useState<any | null>(null);
+  const [isProFormaModalOpen, setIsProFormaModalOpen] = useState(false);
+  const [selectedTaxInvoice, setSelectedTaxInvoice] = useState<any | null>(null);
+  const [isTaxInvoiceModalOpen, setIsTaxInvoiceModalOpen] = useState(false);
 
   // Customer Ledger States (Phase 1 Option B)
   const [ledgerData, setLedgerData] = useState<any | null>(null);
   const [isLoadingLedger, setIsLoadingLedger] = useState(false);
   const [ledgerFilter, setLedgerFilter] = useState<'all' | 'invoices' | 'payments'>('all');
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // Linked Lead & Customer Lifecycle Journal States
+  const [linkedLead, setLinkedLead] = useState<any | null>(null);
+  const [leadStageHistory, setLeadStageHistory] = useState<any[]>([]);
+  const [leadActivities, setLeadActivities] = useState<any[]>([]);
+  const [journalCategoryFilter, setJournalCategoryFilter] = useState<string>('ALL');
 
   // Organization Basic & Details State
   const [org, setOrg] = useState<Organization | null>(null);
@@ -243,6 +289,34 @@ function OrganizationDetailsPageContent() {
   const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState<{ isOpen: boolean }>({
     isOpen: false
   });
+
+  // Customer Profile Actions Dropdown
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  const actionsDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsDropdownRef.current && !actionsDropdownRef.current.contains(event.target as Node)) {
+        setIsActionsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const openGstDeliveryModal = () => {
+    setGstDeliveryForm({
+      gst_number: org?.gst_number || '',
+      pan_number: org?.pan_number || '',
+      legal_name: org?.legal_name || '',
+      delivery_address: org?.delivery_address || '',
+      delivery_city: org?.delivery_city || '',
+      delivery_state: org?.delivery_state || '',
+      delivery_pincode: org?.delivery_pincode || '',
+      delivery_country: org?.delivery_country || 'India'
+    });
+    setIsGstDeliveryModalOpen(true);
+  };
 
   // Modals & Order Details
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -285,7 +359,7 @@ function OrganizationDetailsPageContent() {
   );
 
   useEffect(() => {
-    if (isClientUser && activeTab === 'quotations') {
+    if (isClientUser && activeTab === 'transactions') {
       setActiveTab('overview');
     }
   }, [isClientUser, activeTab]);
@@ -393,11 +467,64 @@ function OrganizationDetailsPageContent() {
     }
   };
 
-  useEffect(() => {
-    if (orgId && activeTab === 'ledger') {
-      fetchLedgerData();
+  const fetchChallans = async () => {
+    setIsLoadingChallans(true);
+    try {
+      const res = await api.get('/delivery-challans');
+      const allChallans = res.data || [];
+      const orgChallans = allChallans.filter((dc: any) => {
+        const qOrgId = dc.orders?.quotations?.organization_id;
+        const orgName = dc.orders?.quotations?.organizations?.name;
+        return (
+          qOrgId === orgId ||
+          (org?.name && orgName && orgName.toLowerCase() === org.name.toLowerCase())
+        );
+      });
+      setDeliveryChallans(orgChallans);
+    } catch (err) {
+      console.error('Failed to load delivery challans', err);
+    } finally {
+      setIsLoadingChallans(false);
     }
-  }, [orgId, activeTab]);
+  };
+
+  const fetchLeadHistory = async () => {
+    try {
+      const res = await api.get('/leads').catch(() => ({ data: [] }));
+      const allLeads = res.data || [];
+      const matched = allLeads.find((l: any) => 
+        (l.organization_id && (String(l.organization_id) === String(orgId) || (org?.id && String(l.organization_id) === String(org.id)))) ||
+        (org?.name && l.name && l.name.trim().toLowerCase() === org.name.trim().toLowerCase()) ||
+        (org?.contact_number && (l.contact_number === org.contact_number || l.phone === org.contact_number)) ||
+        (org?.phone && (l.contact_number === org.phone || l.phone === org.phone))
+      );
+
+      if (matched) {
+        setLinkedLead(matched);
+        const [shRes, actRes] = await Promise.allSettled([
+          api.get(`/leads/${matched.id}/stage-history`),
+          api.get(`/leads/${matched.id}/activities`)
+        ]);
+
+        if (shRes.status === 'fulfilled' && Array.isArray(shRes.value.data)) {
+          setLeadStageHistory(shRes.value.data);
+        }
+        if (actRes.status === 'fulfilled' && Array.isArray(actRes.value.data)) {
+          setLeadActivities(actRes.value.data);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch linked lead history:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (orgId && (activeTab === 'ledger' || activeTab === 'transactions')) {
+      fetchLedgerData();
+      fetchChallans();
+      fetchLeadHistory();
+    }
+  }, [orgId, activeTab, org?.name]);
 
   useEffect(() => {
     if (org?.credit_period_days !== undefined && org?.credit_period_days !== null) {
@@ -533,7 +660,6 @@ function OrganizationDetailsPageContent() {
       contact_person: formData.contact_person?.trim() || null,
       phone: formData.phone.trim(),
       contact_number: formData.phone.trim(),
-      contact_phone: formData.phone.trim(),
       email: formData.email?.trim() || null,
       contact_email: formData.email?.trim() || null,
       industry_id: formData.industry_id ? parseInt(formData.industry_id, 10) : null,
@@ -750,13 +876,13 @@ function OrganizationDetailsPageContent() {
   };
 
   useEffect(() => {
-    if (activeTab === 'entities' && entityView === 'list') {
+    if (activeTab === 'departments' && deptSubTab === 'entities' && entityView === 'list') {
       const timer = setTimeout(() => {
         fetchEntities();
       }, entitySearchQuery ? 500 : 0);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, selectedDeptFilter, entitySearchQuery, entityView]);
+  }, [activeTab, deptSubTab, selectedDeptFilter, entitySearchQuery, entityView]);
 
 
   // --- Entity Directory Logic ---
@@ -991,6 +1117,435 @@ function OrganizationDetailsPageContent() {
     }
   };
 
+  // Memoized Transaction Datasets for Customer Scoped Sub-Tab Tables
+  const customerQuotes = quotations;
+
+  const customerPayments = React.useMemo(() => {
+    return ledgerData?.payments || [];
+  }, [ledgerData?.payments]);
+
+  const customerOrders = React.useMemo(() => {
+    if (ledgerData?.orders && ledgerData.orders.length > 0) {
+      return ledgerData.orders;
+    }
+    return orgDetails?.orders || [];
+  }, [ledgerData?.orders, orgDetails?.orders]);
+
+  const customerShipments = React.useMemo(() => {
+    return deliveryChallans.map((dc: any) => ({
+      id: dc.id,
+      dc_no: dc.dc_no,
+      order_id: dc.order_id,
+      order_no: dc.orders?.order_no || `ORD-${dc.order_id}`,
+      quotation_no: dc.orders?.quotations?.quotation_no || '—',
+      dispatch_date: dc.dispatch_date || dc.created_at,
+      transporter_name: dc.transporter_name || 'Standard Logistics',
+      vehicle_no: dc.vehicle_no || '—',
+      total_packages: dc.total_packages || 1,
+      status: dc.status || 'Dispatched',
+      notes: dc.notes || '—'
+    }));
+  }, [deliveryChallans]);
+
+  const customerPackages = React.useMemo(() => {
+    const list: any[] = [];
+    deliveryChallans.forEach((dc: any) => {
+      const count = Math.max(1, parseInt(dc.total_packages, 10) || 1);
+      if (count <= 6) {
+        for (let i = 1; i <= count; i++) {
+          list.push({
+            id: `PKG-${dc.dc_no || dc.id}-${i}`,
+            package_no: `PKG-${dc.dc_no || dc.id}-BX${String(i).padStart(2, '0')}`,
+            order_no: dc.orders?.order_no || `ORD-${dc.order_id}`,
+            challan_no: dc.dc_no,
+            carton_label: `Carton ${i} of ${count}`,
+            date: dc.dispatch_date || dc.created_at,
+            carrier: dc.transporter_name || 'Inland Logistics / Courier',
+            vehicle_no: dc.vehicle_no || '—',
+            status: dc.status || 'Dispatched',
+            notes: dc.notes || 'Consolidated uniform garments'
+          });
+        }
+      } else {
+        list.push({
+          id: `PKG-${dc.dc_no || dc.id}-BULK`,
+          package_no: `PKG-${dc.dc_no || dc.id}-BX01~${count}`,
+          order_no: dc.orders?.order_no || `ORD-${dc.order_id}`,
+          challan_no: dc.dc_no,
+          carton_label: `Bulk Dispatch (${count} Cartons)`,
+          date: dc.dispatch_date || dc.created_at,
+          carrier: dc.transporter_name || 'Inland Logistics / Courier',
+          vehicle_no: dc.vehicle_no || '—',
+          status: dc.status || 'Dispatched',
+          notes: dc.notes || `${count} uniform shipment cartons`
+        });
+      }
+    });
+
+    // Also include packaging in preparation for active placed orders
+    customerOrders.forEach((ord: any) => {
+      const hasChallan = deliveryChallans.some((dc: any) => dc.order_id === ord.id);
+      if (!hasChallan) {
+        list.push({
+          id: `PKG-PREP-${ord.id}`,
+          package_no: `PKG-PREP-${ord.order_no}`,
+          order_no: ord.order_no,
+          challan_no: 'Pending DC Issue',
+          carton_label: 'Carton Assembly / Sorting',
+          date: ord.created_at,
+          carrier: 'Factory Dispatch Gate',
+          vehicle_no: '—',
+          status: ord.status === 'In Production' ? 'Packing in Progress' : 'Awaiting Production Packaging',
+          notes: 'Pre-dispatch order packaging verification'
+        });
+      }
+    });
+    return list;
+  }, [deliveryChallans, customerOrders]);
+
+  const customerInvoices = React.useMemo(() => {
+    return ledgerData?.invoices || [];
+  }, [ledgerData?.invoices]);
+
+  const customerExpenses = React.useMemo(() => {
+    const list: any[] = [];
+    quotations.forEach((q: any) => {
+      const totalExp = parseFloat(q.estimated_expenses || 0);
+      const quoteVal = parseFloat(q.final_quote_value || 0);
+      const fabricExp = totalExp > 0 ? (totalExp * 0.65) : (quoteVal * 0.45);
+      const trimExp = totalExp > 0 ? (totalExp * 0.20) : (quoteVal * 0.12);
+      const opsExp = totalExp > 0 ? (totalExp * 0.15) : (quoteVal * 0.08);
+
+      if (quoteVal > 0 || totalExp > 0) {
+        list.push({
+          id: `EXP-${q.id}-01`,
+          expense_ref: `EXP-${q.quotation_no || q.id}-FAB`,
+          date: q.created_at,
+          category: 'Fabric & Raw Materials',
+          linked_ref: q.quotation_no,
+          description: `Textile & milling procurement for ${q.title || 'Client Uniforms'}`,
+          amount: fabricExp,
+          status: 'Allocated'
+        });
+        list.push({
+          id: `EXP-${q.id}-02`,
+          expense_ref: `EXP-${q.quotation_no || q.id}-TRM`,
+          date: q.created_at,
+          category: 'Trims, Buttons & Labels',
+          linked_ref: q.quotation_no,
+          description: `Custom branded trims, embroidery & accessories`,
+          amount: trimExp,
+          status: 'Allocated'
+        });
+        list.push({
+          id: `EXP-${q.id}-03`,
+          expense_ref: `EXP-${q.quotation_no || q.id}-DEV`,
+          date: q.created_at,
+          category: 'Sampling & Pattern Development',
+          linked_ref: q.quotation_no,
+          description: `CAD sizing, grade digitisation & pre-production sample`,
+          amount: opsExp,
+          status: 'Allocated'
+        });
+      }
+    });
+    return list;
+  }, [quotations]);
+
+  const customerJournals = React.useMemo(() => {
+    const list: any[] = [];
+
+    // 1. Lead Stage Transitions & Intake Logs
+    if (linkedLead) {
+      // 1a. Initial Intake
+      list.push({
+        id: `JOURNAL-LEAD-INTAKE-${linkedLead.id}`,
+        ref: linkedLead.lead_code || `#LN${linkedLead.id}`,
+        date: linkedLead.created_at,
+        category: 'Lead Stage',
+        stage_label: 'Lead Intake',
+        title: `Prospect Registered: ${linkedLead.name}`,
+        description: linkedLead.requirements ? `Requirements: ${linkedLead.requirements}` : `Lead intake captured via ${linkedLead.origin || 'Branch'}.`,
+        author: linkedLead.employees?.full_name || 'Intake Officer',
+        amount: null,
+        impact_type: 'neutral',
+        status: linkedLead.status || 'Feeds',
+        icon: Target,
+        icon_bg: 'bg-violet-50 text-violet-700 border-violet-200'
+      });
+
+      // 1b. Stage Transitions
+      leadStageHistory.forEach((sh: any, idx: number) => {
+        list.push({
+          id: `JOURNAL-STAGE-${sh.id || idx}`,
+          ref: linkedLead.lead_code || `#LN${linkedLead.id}`,
+          date: sh.entered_at || sh.created_at,
+          category: 'Lead Stage',
+          stage_label: `Stage: ${sh.stage}`,
+          title: `Pipeline Transition: ${sh.stage}`,
+          description: sh.transition_reason || `Stage advanced to "${sh.stage}" in 10-stage pipeline.`,
+          author: sh.performed_by_name || sh.employees?.full_name || 'Sales Representative',
+          amount: null,
+          impact_type: 'neutral',
+          status: sh.stage,
+          icon: Layers,
+          icon_bg: 'bg-purple-50 text-purple-700 border-purple-200'
+        });
+      });
+
+      // 1c. Lead Activities & Follow-up Notes
+      leadActivities.forEach((act: any, idx: number) => {
+        list.push({
+          id: `JOURNAL-ACT-${act.id || idx}`,
+          ref: linkedLead.lead_code || `#LN${linkedLead.id}`,
+          date: act.created_at || act.date,
+          category: 'Lead Activity',
+          stage_label: `${act.stage || 'Follow-up'}: Note`,
+          title: `Follow-up Interaction: ${act.activity_type || 'Note Logged'}`,
+          description: act.notes || act.text || act.remarks || 'Client communication recorded.',
+          author: act.staff?.full_name || act.author?.name || 'Sales Representative',
+          amount: null,
+          impact_type: 'neutral',
+          status: act.stage || 'Follow-up',
+          icon: MessageSquarePlus,
+          icon_bg: 'bg-amber-50 text-amber-700 border-amber-200'
+        });
+      });
+
+      // 1d. Lead Remarks JSON Array
+      if (Array.isArray(linkedLead.remarks)) {
+        linkedLead.remarks.forEach((rem: any, idx: number) => {
+          const remText = rem.text || rem.remarks || rem.notes;
+          const remDate = rem.date ? (rem.time ? `${rem.date} ${rem.time}` : rem.date) : linkedLead.created_at;
+          const isDup = list.some(item => item.description === remText);
+          if (!isDup && remText) {
+            list.push({
+              id: `JOURNAL-REM-${idx}`,
+              ref: linkedLead.lead_code || `#LN${linkedLead.id}`,
+              date: remDate,
+              category: 'Lead Activity',
+              stage_label: `${rem.stage || 'Lead Log'}`,
+              title: `Pipeline Log: ${rem.stage || 'Sales Leads'}`,
+              description: remText,
+              author: rem.author?.name || rem.author?.employee_id || 'Sales Representative',
+              amount: null,
+              impact_type: 'neutral',
+              status: rem.stage || 'Logged',
+              icon: MessageSquarePlus,
+              icon_bg: 'bg-amber-50 text-amber-700 border-amber-200'
+            });
+          }
+        });
+      }
+    }
+
+    // 2. Quotation Proposals
+    quotations.forEach((q: any) => {
+      const qVal = parseFloat(q.final_quote_value || 0);
+      list.push({
+        id: `JOURNAL-QUOTE-${q.id}`,
+        ref: q.quotation_no || `QT-${q.id}`,
+        date: q.updated_at || q.created_at,
+        category: 'Quotation',
+        stage_label: `Quotation: ${q.status || 'Sent'}`,
+        title: `Commercial Quotation: ${q.quotation_no || `QT-${q.id}`}`,
+        description: `Proposal "${q.title || 'Uniform Requirements'}" for ₹${qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`,
+        author: q.sales_representative || 'Commercial Sales',
+        amount: qVal,
+        impact_type: 'quote',
+        status: q.status || 'Draft',
+        icon: FileText,
+        icon_bg: 'bg-cyan-50 text-cyan-700 border-cyan-200'
+      });
+    });
+
+    // 3. Sales Orders
+    customerOrders.forEach((ord: any) => {
+      const ordVal = parseFloat(ord.total_amount || 0);
+      list.push({
+        id: `JOURNAL-ORDER-${ord.id}`,
+        ref: ord.order_no || `ORD-${ord.id}`,
+        date: ord.order_date || ord.created_at,
+        category: 'Sales Order',
+        stage_label: `Order: ${ord.status || 'Placed'}`,
+        title: `Sales Order Placed: ${ord.order_no}`,
+        description: `Production Order confirmed for ₹${ordVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${ord.status || 'In Production'}`,
+        author: 'Sales Operations',
+        amount: ordVal,
+        impact_type: 'order',
+        status: ord.status || 'Placed',
+        icon: ShoppingBag,
+        icon_bg: 'bg-blue-50 text-blue-700 border-blue-200'
+      });
+    });
+
+    // 4. Tax Invoices
+    customerInvoices.forEach((inv: any) => {
+      const invVal = parseFloat(inv.total_amount || 0);
+      const paidVal = parseFloat(inv.paid_amount || 0);
+      list.push({
+        id: `JOURNAL-INV-${inv.id}`,
+        ref: inv.invoice_no || `INV-${inv.id}`,
+        date: inv.invoice_date || inv.created_at,
+        category: 'Invoice',
+        stage_label: `Invoice: ${inv.payment_status || 'Issued'}`,
+        title: `Tax Invoice Issued: ${inv.invoice_no}`,
+        description: `Billed ₹${invVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (Paid: ₹${paidVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}). Due: ${formatDate(inv.due_date || inv.invoice_date)}`,
+        author: 'Billing & Accounts',
+        amount: invVal,
+        impact_type: 'debit',
+        status: inv.payment_status || 'Unpaid',
+        icon: ReceiptText,
+        icon_bg: 'bg-amber-50 text-amber-800 border-amber-200'
+      });
+    });
+
+    // 5. Customer Payments
+    customerPayments.forEach((pay: any) => {
+      const payVal = parseFloat(pay.amount || 0);
+      list.push({
+        id: `JOURNAL-PAY-${pay.id}`,
+        ref: pay.payment_number || `PAY-${pay.id}`,
+        date: pay.payment_date || pay.created_at,
+        category: 'Payment',
+        stage_label: `Payment: ${pay.payment_mode || 'Received'}`,
+        title: `Payment Received: ₹${payVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        description: `Received via ${pay.payment_mode || 'Bank Transfer'}${pay.notes ? ` • Note: ${pay.notes}` : ''}`,
+        author: 'Finance Desk',
+        amount: payVal,
+        impact_type: 'credit',
+        status: 'Cleared',
+        icon: CreditCard,
+        icon_bg: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      });
+    });
+
+    // 6. Shipments & Delivery Challans
+    customerShipments.forEach((ship: any) => {
+      list.push({
+        id: `JOURNAL-SHIP-${ship.id}`,
+        ref: ship.dc_no || `DC-${ship.id}`,
+        date: ship.dispatch_date,
+        category: 'Shipment',
+        stage_label: `Dispatch: ${ship.status || 'Dispatched'}`,
+        title: `Consignment Dispatched: ${ship.dc_no}`,
+        description: `Transporter: ${ship.transporter_name} • Vehicle: ${ship.vehicle_no} • Packages: ${ship.total_packages}`,
+        author: 'Warehouse Dispatch Gate',
+        amount: null,
+        impact_type: 'neutral',
+        status: ship.status || 'Dispatched',
+        icon: Truck,
+        icon_bg: 'bg-sky-50 text-sky-700 border-sky-200'
+      });
+    });
+
+    // 7. Customer Profile Account Inception
+    if (org) {
+      list.push({
+        id: `JOURNAL-ORG-INIT-${org.id}`,
+        ref: org.customer_code || `CN-${org.id}`,
+        date: org.created_at || '2026-01-01T00:00:00Z',
+        category: 'Customer Profile',
+        stage_label: 'Account Active',
+        title: `Customer Account Established: ${org.name}`,
+        description: `Customer code ${org.customer_code || `#${org.id}`} • Credit Period: ${org.credit_period_days || 30} days • Status: Active Commercial Account`,
+        author: org.relationship_manager?.full_name || 'Relationship Desk',
+        amount: null,
+        impact_type: 'neutral',
+        status: 'Active Customer',
+        icon: Building2,
+        icon_bg: 'bg-teal-50 text-teal-700 border-teal-200'
+      });
+    }
+
+    // 8. Standalone Accounting Ledger Entries
+    if (ledgerData?.transactions) {
+      ledgerData.transactions.forEach((tx: any, idx: number) => {
+        const isInvOrPay = list.some(item => 
+          (tx.reference_no && item.ref === tx.reference_no) ||
+          (tx.description && item.description && item.description.includes(tx.reference_no))
+        );
+        if (!isInvOrPay) {
+          const isDebit = Boolean(tx.debit && tx.debit > 0);
+          list.push({
+            id: `JOURNAL-JV-${tx.id || idx}`,
+            ref: `JV-${tx.type || 'ADJ'}-${tx.raw_id || idx + 1}`,
+            date: tx.date,
+            category: 'Accounting Journal',
+            stage_label: `JV: ${tx.type || 'Journal'}`,
+            title: `Journal Voucher: ${tx.reference_no || 'Ledger Entry'}`,
+            description: `${tx.description || 'Adjustment Entry'} (Running Balance: ₹${parseFloat(String(tx.running_balance || 0)).toLocaleString('en-IN')})`,
+            author: 'Ledger System',
+            amount: isDebit ? tx.debit : (tx.credit || 0),
+            impact_type: isDebit ? 'debit' : 'credit',
+            status: 'Posted',
+            icon: BookOpen,
+            icon_bg: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+          });
+        }
+      });
+    }
+
+    // Filter by category if selected
+    let filtered = list;
+    if (journalCategoryFilter !== 'ALL') {
+      filtered = list.filter(item => item.category === journalCategoryFilter);
+    }
+
+    // CRITICAL: Sorted from latest update to older
+    return filtered.sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [
+    linkedLead,
+    leadStageHistory,
+    leadActivities,
+    quotations,
+    customerOrders,
+    customerInvoices,
+    customerPayments,
+    customerShipments,
+    org,
+    ledgerData?.transactions,
+    journalCategoryFilter
+  ]);
+
+  const customerProFormaInvoices = React.useMemo(() => {
+    return quotations.map((q: any) => {
+      const piNo = `PI-${q.quotation_no ? q.quotation_no.replace('QT-', '') : q.id}`;
+      const hasOrder = (ledgerData?.orders || orgDetails?.orders || []).some(
+        (o: any) => o.quotation_id === q.id || (o.quotations && o.quotations.quotation_no === q.quotation_no)
+      );
+      let piStatus = 'Active PI';
+      if (hasOrder) {
+        piStatus = 'Converted to Order';
+      } else if (q.status === 'Accepted') {
+        piStatus = 'Ready for Order Issue';
+      } else if (q.status === 'Rejected') {
+        piStatus = 'Cancelled';
+      } else if (q.status === 'Sent') {
+        piStatus = 'Pending Advance Clearance';
+      } else {
+        piStatus = 'Draft PI';
+      }
+
+      return {
+        id: q.id,
+        pi_no: piNo,
+        quote_no: q.quotation_no,
+        date: q.created_at,
+        validity_days: org?.credit_period_days || 30,
+        title: q.title,
+        type: q.quotation_type || q.metrics_summary?.quotation_type || 'Commercial Bulk',
+        amount: parseFloat(q.final_quote_value || '0'),
+        status: piStatus,
+        raw: q
+      };
+    });
+  }, [quotations, ledgerData?.orders, orgDetails?.orders, org?.credit_period_days]);
+
   if (isLoadingOrg) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
@@ -1013,278 +1568,309 @@ function OrganizationDetailsPageContent() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header section with Premium Back button & Action Toolbar */}
-      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-zinc-100 space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      {/* Header section with Single-Line Navigation, Details & Action Toolbar */}
+      <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-sm border border-zinc-100 space-y-4">
+        <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3.5">
+          {/* Left: Back button + Name & Meta Details (Code, Industry, Date stamp, Badges) */}
+          <div className="flex items-center gap-3 min-w-0">
             <Button
               onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
               variant="secondary"
-              className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm !p-0 shrink-0 cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-2xs !p-0 shrink-0 cursor-pointer"
             >
               <ArrowLeft size={16} />
             </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#3a525d]">
+            <div className="min-w-0 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-[#3a525d] whitespace-nowrap">
                 {org.name}
               </h1>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider">
-                  {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
+              <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider shrink-0">
+                {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
+              </span>
+              <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest shrink-0">
+                {org.industries?.name || 'School Sector'}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-50 border border-zinc-200/80 text-zinc-600 rounded-lg text-[9px] font-bold shrink-0">
+                <Calendar size={11} className="text-[#2d8d9b]" />
+                <span>Onboarded: {formatDate(org.created_at)}</span>
+              </span>
+              {Boolean(org.is_b2b || org.gst_number) && (
+                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-300 shrink-0">
+                  B2B
                 </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
-                <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest">
-                  {org.industries?.name || 'School Sector'}
+              )}
+              {org.is_special && (
+                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
+                  ★ Favourite
                 </span>
-                {Boolean(org.is_b2b || org.gst_number) && (
-                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-300">
-                    B2B Commercial (GST)
-                  </span>
-                )}
-                {org.is_special && (
-                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300">
-                    ★ Favourite
-                  </span>
-                )}
-                {org.is_risk && (
-                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300">
-                    ⚠ Risk Client
-                  </span>
-                )}
-                {org.is_active === false && (
-                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">
-                    Inactive
-                  </span>
-                )}
-              </div>
+              )}
+              {org.is_risk && (
+                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300 shrink-0">
+                  ⚠ Risk
+                </span>
+              )}
+              {org.is_active === false && (
+                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200 shrink-0">
+                  Inactive
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Customer Management Actions (For Staff) */}
-          {!isClientUser && (
-            <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
-              <Button
-                onClick={() => {
-                  setGstDeliveryForm({
-                    gst_number: org?.gst_number || '',
-                    pan_number: org?.pan_number || '',
-                    legal_name: org?.legal_name || '',
-                    delivery_address: org?.delivery_address || '',
-                    delivery_city: org?.delivery_city || '',
-                    delivery_state: org?.delivery_state || '',
-                    delivery_pincode: org?.delivery_pincode || '',
-                    delivery_country: org?.delivery_country || 'India'
-                  });
-                  setIsGstDeliveryModalOpen(true);
-                }}
-                variant="none"
-                className="h-10 px-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
-                title="Configure GST and Delivery Address"
-              >
-                <Truck size={15} />
-                <span>GST & Delivery Details</span>
-              </Button>
-              <Button
-                onClick={() => setIsEditingCustomer(true)}
-                variant="none"
-                className="h-10 px-4 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/25 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
-                title="Edit Customer Profile"
-              >
-                <Edit2 size={15} />
-                <span>Edit Profile</span>
-              </Button>
-              <Button
-                onClick={handleResetPassword}
-                variant="none"
-                className="h-10 px-4 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
-                title="Reset Portal Password"
-              >
-                <Key size={15} />
-                <span>Reset Password</span>
-              </Button>
-              <Button
-                onClick={() => setDeleteCustomerConfirm({ isOpen: true })}
-                variant="none"
-                className="h-10 px-4 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white transition-all shadow-xs text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
-                title="Delete Customer Account"
-              >
-                <Trash2 size={15} />
-                <span>Delete</span>
-              </Button>
+          {/* Right: Tab Switcher Buttons & Actions Button on the same line */}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            <div className="flex bg-zinc-100/90 p-1 rounded-xl border border-zinc-200/60 gap-1 overflow-x-auto">
+              {(isClientUser 
+                ? (['overview', 'departments', 'ledger'] as const)
+                : (['overview', 'departments', 'transactions', 'ledger'] as const)
+              ).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab as any);
+                    setEntityView('list');
+                    setIsAddingDept(false);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === tab
+                    ? 'bg-[#3a525d] text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/50'
+                    }`}
+                >
+                  {tab === 'transactions' && <CreditCard size={13} className={activeTab === 'transactions' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />}
+                  {tab === 'ledger' && <ReceiptText size={13} className={activeTab === 'ledger' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />}
+                  {tab === 'ledger' ? 'Statement' : tab === 'transactions' ? 'Transactions' : tab}
+                </button>
+              ))}
             </div>
-          )}
+
+            {/* Customer Management Actions Dropdown (For Staff) */}
+            {!isClientUser && (
+              <div className="relative shrink-0" ref={actionsDropdownRef}>
+                <Button
+                  onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
+                  variant="none"
+                  className="h-8 md:h-9 px-3.5 rounded-xl bg-[#3a525d] text-white hover:bg-[#2d8d9b] transition-all shadow-sm text-xs font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  title="Customer Account Actions"
+                >
+                  <span>Actions</span>
+                  <ChevronDown size={13} className={`transition-transform duration-200 ${isActionsDropdownOpen ? 'rotate-180' : ''}`} />
+                </Button>
+
+                {isActionsDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-zinc-100 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        setIsEditingCustomer(true);
+                      }}
+                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-[#3a525d] hover:bg-[#2d8d9b]/10 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Edit2 size={13} className="text-[#2d8d9b]" />
+                      <span>Edit Profile</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        handleResetPassword();
+                      }}
+                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-[#3a525d] hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Key size={13} className="text-amber-600" />
+                      <span>Reset Password</span>
+                    </button>
+
+                    <div className="my-1 border-t border-zinc-100" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        setDeleteCustomerConfirm({ isOpen: true });
+                      }}
+                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={13} className="text-red-500" />
+                      <span>Delete Customer</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Tab Switcher with Sleek Pill Design */}
-        <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
-          {(isClientUser 
-            ? (['overview', 'departments', 'entities', 'ledger'] as const)
-            : (['overview', 'departments', 'entities', 'quotations', 'ledger'] as const)
-          ).map(tab => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab as any);
-                setEntityView('list');
-                setIsAddingDept(false);
-              }}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === tab
-                ? 'bg-[#3a525d] text-white shadow-md'
-                : 'text-zinc-500 hover:text-zinc-800'
-                }`}
-            >
-              {tab === 'ledger' && <ReceiptText size={14} className={activeTab === 'ledger' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />}
-              {tab === 'ledger' ? 'Account Statement' : tab}
-            </button>
-          ))}
+        {/* Compact Single-Line Measurement & Directory Stats Grid */}
+        <div className="pt-2.5 border-t border-zinc-100 grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div className="px-3.5 py-2 bg-zinc-50/80 hover:bg-zinc-50 rounded-xl border border-zinc-150/80 flex items-center justify-between gap-2.5 transition-all group">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 bg-[#3a525d]/10 rounded-lg flex items-center justify-center text-[#3a525d] shrink-0">
+                <Users size={14} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 truncate">
+                Total Members
+              </span>
+            </div>
+            <span className="text-base md:text-lg font-black text-[#3a525d] tracking-tight shrink-0">
+              {orgDetails?.measurements?.total || 0}
+            </span>
+          </div>
+
+          <div className="px-3.5 py-2 bg-green-50/40 hover:bg-green-50/70 rounded-xl border border-green-200/60 flex items-center justify-between gap-2.5 transition-all group">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center text-green-700 shrink-0">
+                <Check size={14} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-green-700 truncate">
+                Measurements Captured
+              </span>
+            </div>
+            <span className="text-base md:text-lg font-black text-green-700 tracking-tight shrink-0">
+              {orgDetails?.measurements?.completed || 0}
+            </span>
+          </div>
+
+          <div className="px-3.5 py-2 bg-orange-50/40 hover:bg-orange-50/70 rounded-xl border border-orange-200/60 flex items-center justify-between gap-2.5 transition-all group">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 shrink-0">
+                <Ruler size={14} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-700 truncate">
+                Pending Measurements
+              </span>
+            </div>
+            <span className="text-base md:text-lg font-black text-orange-600 tracking-tight shrink-0">
+              {orgDetails?.measurements?.pending || 0}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Tab 1: Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-in fade-in duration-500">
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center justify-between group hover:shadow-lg transition-all duration-300">
+          {isClientUser && (
+            <div className="p-4 bg-[#2d8d9b]/10 rounded-2xl border border-[#2d8d9b]/20 flex items-center gap-3">
+              <Building2 className="text-[#2d8d9b] shrink-0" size={20} />
               <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2">Total Directory Members</p>
-                <h3 className="text-3xl font-black text-[#3a525d] tracking-tighter">{orgDetails?.measurements?.total || 0}</h3>
-              </div>
-              <div className="w-12 h-12 bg-[#3a525d]/5 rounded-2xl flex items-center justify-center text-[#3a525d]">
-                <Users size={20} />
+                <p className="text-xs font-bold text-[#3a525d]">Organization Client Portal</p>
+                <p className="text-[11px] text-zinc-500 font-medium">You are viewing your official organization directory and account records.</p>
               </div>
             </div>
-
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center justify-between group hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2">Measurements Captured</p>
-                <h3 className="text-3xl font-black text-green-600 tracking-tighter">{orgDetails?.measurements?.completed || 0}</h3>
-              </div>
-              <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
-                <Check size={20} />
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center justify-between group hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2">Pending Measurements</p>
-                <h3 className="text-3xl font-black text-orange-500 tracking-tighter">{orgDetails?.measurements?.pending || 0}</h3>
-              </div>
-              <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500">
-                <Ruler size={20} />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Org details metadata card */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-6">
-              {isClientUser && (
-                <div className="p-4 bg-[#2d8d9b]/10 rounded-2xl border border-[#2d8d9b]/20 flex items-center gap-3">
-                  <Building2 className="text-[#2d8d9b] shrink-0" size={20} />
-                  <div>
-                    <p className="text-xs font-bold text-[#3a525d]">Organization Client Portal</p>
-                    <p className="text-[11px] text-zinc-500 font-medium">You are viewing your official organization directory and account records.</p>
-                  </div>
-                </div>
-              )}
-              <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Organization Profile</h3>
+          <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-zinc-100 space-y-6">
+            <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Organization Profile</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <MapPin size={12} /> Address Location
-                  </span>
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-bold text-[#3a525d]">
-                      {org.address || (org.city || org.state || org.pincode || org.pin_code || org.country ? '' : 'Not registered')}
-                    </p>
-                    {(org.city || org.state || org.pincode || org.pin_code || org.country) && (
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
-                        {org.city && (
-                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
-                            {org.city}
-                          </span>
-                        )}
-                        {org.state && (
-                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
-                            {org.state}
-                          </span>
-                        )}
-                        {(org.pincode || org.pin_code) && (
-                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#2d8d9b]">
-                            PIN: {org.pincode || org.pin_code}
-                          </span>
-                        )}
-                        {org.country && (
-                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
-                            {org.country}
-                          </span>
-                        )}
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                  <MapPin size={12} /> Address Location
+                </span>
+                <div className="space-y-1.5">
+                  <p className="text-sm font-bold text-[#3a525d]">
+                    {org.address || (org.city || org.state || org.pincode || org.country ? '' : 'Not registered')}
+                  </p>
+                  {(org.city || org.state || org.pincode || org.country) && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                      {org.city && (
+                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                          {org.city}
+                        </span>
+                      )}
+                      {org.state && (
+                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                          {org.state}
+                        </span>
+                      )}
+                      {org.pincode && (
+                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#2d8d9b]">
+                          PIN: {org.pincode}
+                        </span>
+                      )}
+                      {org.country && (
+                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
+                          {org.country}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Person & Contact Info */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                  <User size={12} /> Contact Person & Details
+                </span>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-[#3a525d]">
+                    {org.contact_person || 'No Contact Person Listed'}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
+                    {(org.contact_number || org.phone) && (
+                      <a
+                        href={`tel:${org.contact_number || org.phone}`}
+                        className="inline-flex items-center gap-1.5 font-mono text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+                      >
+                        <Phone size={12} className="text-[#2d8d9b]" />
+                        <span>{org.contact_number || org.phone}</span>
+                      </a>
+                    )}
+                    {(org.email || org.contact_email) && (
+                      <a
+                        href={`mailto:${org.email || org.contact_email}`}
+                        className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#2d8d9b] transition-colors"
+                      >
+                        <Mail size={12} className="text-[#2d8d9b]" />
+                        <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
+                      </a>
                     )}
                   </div>
                 </div>
+              </div>
 
-                {/* Contact Person & Contact Info */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                  <Users size={12} /> Sales Person
+                </span>
+                <p className="text-sm font-bold text-[#3a525d]">
+                  {org.relationship_manager?.full_name
+                    ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
+                    : 'Unassigned'}
+                </p>
+              </div>
+
+              {org.assigned_operator && (
                 <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <User size={12} /> Contact Person & Details
-                  </span>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-[#3a525d]">
-                      {org.contact_person || 'No Contact Person Listed'}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
-                      {(org.contact_number || org.phone || org.contact_phone) && (
-                        <a
-                          href={`tel:${org.contact_number || org.phone || org.contact_phone}`}
-                          className="inline-flex items-center gap-1.5 font-mono text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
-                        >
-                          <Phone size={12} className="text-[#2d8d9b]" />
-                          <span>{org.contact_number || org.phone || org.contact_phone}</span>
-                        </a>
-                      )}
-                      {(org.email || org.contact_email) && (
-                        <a
-                          href={`mailto:${org.email || org.contact_email}`}
-                          className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#2d8d9b] transition-colors"
-                        >
-                          <Mail size={12} className="text-[#2d8d9b]" />
-                          <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <Users size={12} /> Assigned Relationship Manager
+                    <Users size={12} /> Assigned Marketing Executive
                   </span>
                   <p className="text-sm font-bold text-[#3a525d]">
-                    {org.relationship_manager?.full_name
-                      ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
-                      : 'Unassigned'}
+                    {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
                   </p>
                 </div>
+              )}
 
-                {org.assigned_operator && (
-                  <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                      <Users size={12} /> Assigned Marketing Operator
-                    </span>
-                    <p className="text-sm font-bold text-[#3a525d]">
-                      {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
-                    </p>
-                  </div>
-                )}
-
-                {/* GST & B2B Tax Profile Card */}
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-                      <ReceiptText size={12} /> GST & B2B Tax Profile
-                    </span>
+              {/* GST & B2B Tax Profile Card */}
+              <div 
+                onClick={() => {
+                  if (isClientUser) return;
+                  openGstDeliveryModal();
+                }}
+                className={`p-5 bg-zinc-50 rounded-2xl border border-zinc-100 transition-all group ${
+                  !isClientUser ? 'cursor-pointer hover:border-[#2d8d9b]/40 hover:bg-[#2d8d9b]/5 hover:shadow-sm' : ''
+                }`}
+                title={!isClientUser ? "Click to configure GST & Delivery details" : undefined}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-[#2d8d9b] transition-colors">
+                    <ReceiptText size={12} className="text-zinc-400 group-hover:text-[#2d8d9b] transition-colors" /> GST & B2B Tax Profile
+                  </span>
+                  <div className="flex items-center gap-2">
                     {org.gst_number ? (
                       <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
                         B2B Registered
@@ -1294,149 +1880,131 @@ function OrganizationDetailsPageContent() {
                         B2C / No GST
                       </span>
                     )}
-                  </div>
-                  {org.gst_number ? (
-                    <div className="space-y-1">
-                      <p className="text-sm font-black font-mono text-[#3a525d] tracking-wide">
-                        {org.gst_number}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600 pt-0.5">
-                        {org.legal_name && (
-                          <span className="text-zinc-600 truncate max-w-[220px]" title={org.legal_name}>
-                            Legal: <span className="font-bold text-[#3a525d]">{org.legal_name}</span>
-                          </span>
-                        )}
-                        {org.pan_number && (
-                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs font-mono font-bold text-zinc-700">
-                            PAN: {org.pan_number}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-semibold text-zinc-400">
-                        No GST number on file. Quotations default to standard retail pricing.
-                      </p>
-                      {!isClientUser && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGstDeliveryForm({
-                              gst_number: '',
-                              pan_number: '',
-                              legal_name: '',
-                              delivery_address: '',
-                              delivery_city: '',
-                              delivery_state: '',
-                              delivery_pincode: '',
-                              delivery_country: 'India'
-                            });
-                            setIsGstDeliveryModalOpen(true);
-                          }}
-                          className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          + Add GSTIN for B2B Pricing
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Delivery & Dispatch Destination Card */}
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-                      <Truck size={12} /> Delivery Destination
-                    </span>
-                    {(org.delivery_address || org.delivery_city) && (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
-                        Custom Dispatch
+                    {!isClientUser && (
+                      <span className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 group-hover:text-[#2d8d9b] transition-all" title="Edit GST Details">
+                        <Edit2 size={12} />
                       </span>
                     )}
                   </div>
-                  {(org.delivery_address || org.delivery_city || org.delivery_state || org.delivery_pincode) ? (
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold text-[#3a525d]">
-                        {org.delivery_address || 'Address registered'}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
-                        {org.delivery_city && (
-                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_city}</span>
-                        )}
-                        {org.delivery_state && (
-                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_state}</span>
-                        )}
-                        {org.delivery_pincode && (
-                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-[#2d8d9b] font-mono">
-                            PIN: {org.delivery_pincode}
-                          </span>
-                        )}
-                        {org.delivery_country && (
-                          <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-zinc-500">
-                            {org.delivery_country}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-semibold text-zinc-500">
-                        Same as billing location: {org.address ? `${org.address}, ${org.city || ''}` : (org.city || 'Not specified')}
-                      </p>
-                      {!isClientUser && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGstDeliveryForm({
-                              gst_number: org?.gst_number || '',
-                              pan_number: org?.pan_number || '',
-                              legal_name: org?.legal_name || '',
-                              delivery_address: org?.delivery_address || '',
-                              delivery_city: org?.delivery_city || '',
-                              delivery_state: org?.delivery_state || '',
-                              delivery_pincode: org?.delivery_pincode || '',
-                              delivery_country: org?.delivery_country || 'India'
-                            });
-                            setIsGstDeliveryModalOpen(true);
-                          }}
-                          className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          + Set Separate Delivery Address
-                        </button>
+                </div>
+                {org.gst_number ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-black font-mono text-[#3a525d] tracking-wide group-hover:text-[#2d8d9b] transition-colors">
+                      {org.gst_number}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600 pt-0.5">
+                      {org.legal_name && (
+                        <span className="text-zinc-600 truncate max-w-[220px]" title={org.legal_name}>
+                          Legal: <span className="font-bold text-[#3a525d]">{org.legal_name}</span>
+                        </span>
+                      )}
+                      {org.pan_number && (
+                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs font-mono font-bold text-zinc-700">
+                          PAN: {org.pan_number}
+                        </span>
                       )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-zinc-400">
+                      No GST number on file. Quotations default to standard retail pricing.
+                    </p>
+                    {!isClientUser && (
+                      <div className="text-[11px] font-bold text-[#2d8d9b] flex items-center gap-1 group-hover:underline">
+                        <span>+ Add GSTIN for B2B Pricing</span>
+                        <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery & Dispatch Destination Card */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                    <Truck size={12} /> Delivery Destination
+                  </span>
+                  {(org.delivery_address || org.delivery_city) && (
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                      Custom Dispatch
+                    </span>
                   )}
                 </div>
-
-                {/* Credit Period & Commercial Terms Card */}
-                <div className="p-5 bg-teal-50/50 rounded-2xl border border-teal-150/60">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-2 text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">
-                      <CreditCard size={12} /> Credit Period Terms
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#2d8d9b] text-white shadow-xs">
-                      {org.credit_period_days || 30} Days
-                    </span>
+                {(org.delivery_address || org.delivery_city || org.delivery_state || org.delivery_pincode) ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-[#3a525d]">
+                      {org.delivery_address || 'Address registered'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                      {org.delivery_city && (
+                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_city}</span>
+                      )}
+                      {org.delivery_state && (
+                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_state}</span>
+                      )}
+                      {org.delivery_pincode && (
+                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-[#2d8d9b] font-mono">
+                          PIN: {org.delivery_pincode}
+                        </span>
+                      )}
+                      {org.delivery_country && (
+                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-zinc-500">
+                          {org.delivery_country}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm font-black text-[#3a525d]">
-                    {org.credit_period_days || 30} Days Payment Window
-                  </p>
-                  <p className="text-xs text-zinc-500 font-medium mt-1">
-                    Invoices are marked as <span className="font-bold text-amber-600">Due</span> on the last day, and <span className="font-bold text-rose-600">Overdue</span> next day onwards.
-                  </p>
-                </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-zinc-500">
+                      Same as billing location: {org.address ? `${org.address}, ${org.city || ''}` : (org.city || 'Not specified')}
+                    </p>
+                    {!isClientUser && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGstDeliveryForm({
+                            gst_number: org?.gst_number || '',
+                            pan_number: org?.pan_number || '',
+                            legal_name: org?.legal_name || '',
+                            delivery_address: org?.delivery_address || '',
+                            delivery_city: org?.delivery_city || '',
+                            delivery_state: org?.delivery_state || '',
+                            delivery_pincode: org?.delivery_pincode || '',
+                            delivery_country: org?.delivery_country || 'India'
+                          });
+                          setIsGstDeliveryModalOpen(true);
+                        }}
+                        className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        + Set Separate Delivery Address
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <Calendar size={12} /> Onboarding Timestamp
+              {/* Credit Period & Commercial Terms Card */}
+              <div className="p-5 bg-teal-50/50 rounded-2xl border border-teal-150/60">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-2 text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">
+                    <CreditCard size={12} /> Credit Period Terms
                   </span>
-                  <p className="text-sm font-bold text-[#3a525d]">
-                    {formatDate(org.created_at)}
-                  </p>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#2d8d9b] text-white shadow-xs">
+                    {org.credit_period_days || 30} Days
+                  </span>
                 </div>
+                <p className="text-sm font-black text-[#3a525d]">
+                  {org.credit_period_days || 30} Days Payment Window
+                </p>
+                <p className="text-xs text-zinc-500 font-medium mt-1">
+                  Invoices are marked as <span className="font-bold text-amber-600">Due</span> on the last day, and <span className="font-bold text-rose-600">Overdue</span> next day onwards.
+                </p>
               </div>
             </div>
+          </div>
 
           {/* Orders registry list */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 space-y-4">
@@ -1481,10 +2049,48 @@ function OrganizationDetailsPageContent() {
         </div>
       )}
 
-      {/* Tab 2: Departments Tab */}
+      {/* Tab 2: Departments & Entities Tab */}
       {activeTab === 'departments' && (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          {isAddingDept ? (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          {/* Sub-tab Switcher: Departments vs Entities Directory */}
+          <div className="flex items-center justify-between gap-4 pb-2 border-b border-[#fce4d4]/60">
+            <div className="flex items-center bg-zinc-100/90 p-1 rounded-xl border border-zinc-200/60 gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeptSubTab('departments');
+                  setIsAddingDept(false);
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                  deptSubTab === 'departments'
+                    ? 'bg-[#3a525d] text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/50'
+                }`}
+              >
+                <Grid size={13} className={deptSubTab === 'departments' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                <span>Departments ({departments.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeptSubTab('entities');
+                  setEntityView('list');
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                  deptSubTab === 'entities'
+                    ? 'bg-[#3a525d] text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/50'
+                }`}
+              >
+                <Users size={13} className={deptSubTab === 'entities' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                <span>Entities / Members ({entities.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-view 1: Departments */}
+          {deptSubTab === 'departments' && (
+            isAddingDept ? (
             <div className="max-w-4xl mx-auto">
               <DynamicForm
                 title={editingDept ? "Edit Department" : "Setup New Department"}
@@ -1501,18 +2107,6 @@ function OrganizationDetailsPageContent() {
             </div>
           ) : (
             <div className="space-y-6">
-              {!isClientUser && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() => setIsAddingDept(true)}
-                    className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-md gap-2"
-                  >
-                    <Plus size={16} />
-                    Setup Department
-                  </Button>
-                </div>
-              )}
-
               <DataTable
                 title="Departments & Sections"
                 subtitle={`Active segments inside ${org.name}`}
@@ -1578,16 +2172,23 @@ function OrganizationDetailsPageContent() {
                 data={departments}
                 isLoading={false}
                 searchPlaceholder="Filter departments..."
+                rightAction={!isClientUser ? (
+                  <Button
+                    onClick={() => setIsAddingDept(true)}
+                    className="h-10 px-4 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] shadow-sm gap-1.5 shrink-0"
+                  >
+                    <Plus size={15} />
+                    Setup Department
+                  </Button>
+                ) : undefined}
               />
             </div>
-          )}
-        </div>
-      )}
+          )
+        )}
 
-      {/* Tab 3: Entities (Directory) Tab */}
-      {activeTab === 'entities' && (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          {entityView === 'register' ? (
+          {/* Sub-view 2: Entities (Directory) */}
+          {deptSubTab === 'entities' && (
+            entityView === 'register' ? (
             <div className="max-w-4xl mx-auto">
               <Button
                 onClick={() => {
@@ -1827,62 +2428,10 @@ function OrganizationDetailsPageContent() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Directory Filter bar scoped strictly to this organization */}
-              <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100">
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-                  <div className="w-full sm:w-[220px]">
-                    <Select
-                      placeholder="Filter by Department"
-                      value={selectedDeptFilter}
-                      options={[
-                        { label: 'All Departments', value: '' },
-                        ...departments.map((d: any) => ({ label: d.name, value: String(d.id) }))
-                      ]}
-                      onChange={(val: string) => setSelectedDeptFilter(val)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 justify-end w-full xl:w-auto">
-                  <Button
-                    onClick={downloadCSV}
-                    variant="secondary"
-                    className="h-11 px-5 bg-zinc-50 border border-zinc-150 text-[#3a525d] hover:bg-[#3a525d] hover:text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-2 shadow-sm"
-                  >
-                    <Download size={14} /> Export CSV
-                  </Button>
-                  {!isClientUser && (
-                    <>
-                      <Button
-                        onClick={() => {
-                          setEditingEntity(null);
-                          setGeneratedEntityCreds(null);
-                          setEntityView('register');
-                        }}
-                        className="gap-2 text-[10px] rounded-xl h-11 uppercase font-black tracking-wider px-5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white"
-                      >
-                        <UserPlus size={14} /> Register Member
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setBulkFile(null);
-                          setBulkResults(null);
-                          setEntityView('bulk');
-                        }}
-                        variant="secondary"
-                        className="gap-2 text-[10px] rounded-xl h-11 uppercase font-black tracking-wider px-5 border border-zinc-200 text-[#3a525d] bg-white hover:bg-zinc-50"
-                      >
-                        <FileUp size={14} /> Import Roster
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-
               {/* Data Table */}
               <DataTable
-                title="Active Directory Directory"
-                subtitle={`Roster listing for ${org.name}`}
+                title="Members"
+                subtitle={`Member listing for ${org.name}`}
                 columns={[
                   {
                     header: 'Entity / Member Name',
@@ -1983,108 +2532,1207 @@ function OrganizationDetailsPageContent() {
                 data={entities}
                 isLoading={isLoadingEntities}
                 onSearch={setEntitySearchQuery}
-                searchPlaceholder="Search directory roster..."
+                searchPlaceholder="Search Member Name"
+                headerAction={
+                  <div className="flex items-center gap-2.5">
+                    <select
+                      value={selectedDeptFilter}
+                      onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                      className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+                    >
+                      <option value="">All Departments</option>
+                      {departments.map((d: any) => (
+                        <option key={d.id} value={String(d.id)}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                }
+                rightAction={
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      onClick={downloadCSV}
+                      variant="secondary"
+                      className="h-10 px-3.5 bg-white border border-[#fce4d4] text-[#3a525d] hover:bg-[#3a525d] hover:text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-2xs transition-all shrink-0"
+                    >
+                      <Download size={14} /> Download Entity List
+                    </Button>
+                    {!isClientUser && (
+                      <>
+                        <Button
+                          onClick={() => {
+                            setEditingEntity(null);
+                            setGeneratedEntityCreds(null);
+                            setEntityView('register');
+                          }}
+                          className="h-10 px-3.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-sm shrink-0"
+                        >
+                          <UserPlus size={14} /> Add Member
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setBulkFile(null);
+                            setBulkResults(null);
+                            setEntityView('bulk');
+                          }}
+                          variant="secondary"
+                          className="h-10 px-3.5 bg-white border border-[#fce4d4] text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-2xs shrink-0"
+                        >
+                          <FileUp size={14} /> Import List
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                }
               />
-            </div>
+              </div>
+            )
           )}
         </div>
       )}
 
-      {/* Tab 4: Quotations Tab */}
-      {!isClientUser && activeTab === 'quotations' && (
+      {/* Tab 3: Transactions (Commercial History: 9 Sub-Categories) Tab */}
+      {!isClientUser && activeTab === 'transactions' && (
         <div className="space-y-6 animate-in fade-in duration-500">
-          <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] border border-zinc-150/50 shadow-sm">
+          {/* Header Action Bar */}
+          {/* <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[2.5rem] border border-zinc-150/50 shadow-sm">
             <div>
-              <h3 className="text-lg font-black text-[#3a525d] italic">Quotations History</h3>
-              <p className="text-xs text-zinc-400 font-bold mt-0.5">Manage and view all formal quote proposals generated for this organization</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 flex items-center justify-center">
+                  <CreditCard size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-[#3a525d] italic">Commercial Transactions Hub</h3>
+                  <p className="text-xs text-zinc-400 font-bold mt-0.5">
+                    Quotes, payments, sales orders, packaging, dispatches, invoices, expenses, journals & pro forma records for {org.name}
+                  </p>
+                </div>
+              </div>
             </div>
-            <Button
-              onClick={() => router.push('/marketing/quotations')}
-              className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#3a525d]/10"
-            >
-              <Plus size={16} /> Create New Quotation
-            </Button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button
+                onClick={() => router.push('/marketing/quotations')}
+                className="h-11 px-4 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#3a525d]/10"
+              >
+                <Plus size={15} /> Create Quote
+              </Button>
+              <Button
+                onClick={() => {
+                  setInvoiceCreditPeriod(org.credit_period_days || 30);
+                  setSelectedOrderIdForInvoice(null);
+                  setIsInvoiceModalOpen(true);
+                }}
+                className="h-11 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-emerald-600/20"
+              >
+                <ReceiptText size={15} /> Create Invoice
+              </Button>
+              <Button
+                onClick={() => router.push('/marketing/order-placement')}
+                variant="secondary"
+                className="h-11 px-4 bg-white border border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-2xs"
+              >
+                <ShoppingBag size={15} /> Place Order
+              </Button>
+            </div>
+          </div> */}
+
+          {/* Sub-tab Switcher: 9 Transaction Categories */}
+          <div className="bg-white p-2.5 rounded-2xl border border-zinc-200/80 shadow-2xs overflow-x-auto custom-scrollbar">
+            <div className="flex items-center gap-2 min-w-max">
+              {[
+                { id: 'quotes', label: 'Quotes', count: customerQuotes.length, icon: FileText },
+                { id: 'customer_payments', label: 'Customer Payments', count: customerPayments.length, icon: CreditCard },
+                { id: 'sales_orders', label: 'Sales Orders', count: customerOrders.length, icon: ShoppingBag },
+                { id: 'packages', label: 'Packages', count: customerPackages.length, icon: Boxes },
+                { id: 'shipments', label: 'Shipments', count: customerShipments.length, icon: Truck },
+                { id: 'invoices', label: 'Invoices', count: customerInvoices.length, icon: ReceiptText },
+                { id: 'expenses', label: 'Expenses', count: customerExpenses.length, icon: TrendingDown },
+                { id: 'journals', label: 'Journals', count: customerJournals.length, icon: BookOpen },
+                { id: 'pro_forma_invoice', label: 'Pro Forma Invoice', count: customerProFormaInvoices.length, icon: FileSpreadsheet },
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = transactionSubTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setTransactionSubTab(tab.id as TransactionSubTab)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-[#3a525d] text-white shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 bg-zinc-50/60 border border-zinc-200/60'
+                    }`}
+                  >
+                    <Icon size={14} className={isActive ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                    <span>{tab.label}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        isActive
+                          ? 'bg-[#2d8d9b] text-white'
+                          : 'bg-zinc-200/80 text-zinc-600'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6">
-            <DataTable
-              columns={[
-                {
-                  header: 'Quotation No',
-                  accessor: (q) => (
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
-                      className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left"
-                      title="Click to view quotation"
-                    >
-                      {q.quotation_no}
-                    </button>
-                  )
-                },
-                {
-                  header: 'Title',
-                  accessor: (q) => (
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
-                      className="font-bold text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
-                      title="Click to view quotation"
-                    >
-                      {q.title}
-                    </button>
-                  )
-                },
-                {
-                  header: 'Type',
-                  accessor: (q) => {
-                    const qType = q.metrics_summary?.quotation_type || q.quotation_type || 'STANDARD';
-                    return (
-                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-50 border border-zinc-150 rounded-lg text-zinc-650">
-                        {qType}
+          {/* Sub-View 1: Quotes Table */}
+          {transactionSubTab === 'quotes' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Customer Quotes"
+                subtitle={`Formal quotation proposals created for ${org.name}`}
+                columns={[
+                  {
+                    header: 'QT / Ref No',
+                    accessor: (q) => (
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                        className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5"
+                        title="Click to view quotation"
+                      >
+                        <FileText size={14} className="text-[#2d8d9b] shrink-0" />
+                        <span>{q.quotation_no}</span>
+                      </button>
+                    )
+                  },
+                  {
+                    header: 'Title / Description',
+                    accessor: (q) => (
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                        className="font-bold text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
+                        title="Click to view quotation"
+                      >
+                        {q.title || 'Uniform Proposal'}
+                      </button>
+                    )
+                  },
+                  {
+                    header: 'Type',
+                    accessor: (q) => {
+                      const qType = q.metrics_summary?.quotation_type || q.quotation_type || 'STANDARD';
+                      return (
+                        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-50 border border-zinc-150 rounded-lg text-zinc-650">
+                          {qType}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (q) => {
+                      const statusColors: Record<string, string> = {
+                        'Draft': 'bg-zinc-50 text-zinc-500 border-zinc-200',
+                        'Sent': 'bg-blue-50 text-blue-750 border-blue-150',
+                        'Accepted': 'bg-green-50 text-green-700 border-green-150',
+                        'Rejected': 'bg-red-50 text-red-650 border-red-150'
+                      };
+                      const cls = statusColors[q.status] || 'bg-zinc-50 text-zinc-500 border-zinc-200';
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider border rounded-lg ${cls}`}>
+                          {q.status}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Final Value',
+                    accessor: (q) => (
+                      <span className="font-mono font-black text-zinc-800">
+                        ₹{parseFloat(q.final_quote_value || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
-                    );
-                  }
-                },
-                {
-                  header: 'Status',
-                  accessor: (q) => {
-                    const statusColors: Record<string, string> = {
-                      'Draft': 'bg-zinc-50 text-zinc-500 border-zinc-200',
-                      'Sent': 'bg-blue-50 text-blue-750 border-blue-150',
-                      'Accepted': 'bg-green-50 text-green-700 border-green-150',
-                      'Rejected': 'bg-red-50 text-red-650 border-red-150'
-                    };
-                    const cls = statusColors[q.status] || 'bg-zinc-50 text-zinc-500 border-zinc-200';
-                    return (
-                      <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider border rounded-lg ${cls}`}>
-                        {q.status}
+                    )
+                  },
+                  {
+                    header: 'Date Created',
+                    accessor: (q) => (
+                      <span className="text-zinc-500 font-bold">
+                        {formatDate(q.created_at)}
                       </span>
-                    );
+                    )
+                  },
+                  {
+                    header: 'Actions',
+                    accessor: (q) => (
+                      <Button
+                        onClick={() => router.push(`/marketing/quotations?id=${q.id}&action=view`)}
+                        variant="secondary"
+                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all flex items-center gap-1.5"
+                      >
+                        <Eye size={12} /> View
+                      </Button>
+                    )
                   }
-                },
-                {
-                  header: 'Final Value',
-                  accessor: (q) => (
-                    <span className="font-mono font-black text-zinc-800">
-                      ₹{parseFloat(q.final_quote_value || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                  )
-                },
-                {
-                  header: 'Date Created',
-                  accessor: (q) => (
-                    <span className="text-zinc-500 font-bold">
-                      {formatDate(q.created_at)}
-                    </span>
-                  )
+                ]}
+                data={customerQuotes}
+                isLoading={isLoadingOrg}
+                searchPlaceholder="Search customer quotes..."
+                emptyMessage="No quotations recorded for this customer."
+                rightAction={
+                  <Button
+                    onClick={() => router.push('/marketing/quotations')}
+                    className="h-9 px-3.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus size={14} /> New Quote
+                  </Button>
                 }
-              ]}
-              data={quotations}
-              isLoading={isLoadingOrg}
-              searchPlaceholder="Search quotations..."
-            />
-          </div>
+              />
+            </div>
+          )}
+
+          {/* Sub-View 2: Customer Payments Table */}
+          {transactionSubTab === 'customer_payments' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Customer Payments"
+                subtitle={`Payment receipts and credit collections recorded for ${org.name}`}
+                columns={[
+                  {
+                    header: 'Receipt / Ref No',
+                    accessor: (p: any) => (
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                          <CreditCard size={14} />
+                        </div>
+                        <span className="font-mono font-black text-zinc-850">
+                          {p.reference_no || `PAY-${p.id}`}
+                        </span>
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'Payment Date',
+                    accessor: (p: any) => (
+                      <span className="text-zinc-600 font-bold">
+                        {formatDate(p.paid_at || p.created_at)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Payment Method',
+                    accessor: (p: any) => (
+                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200">
+                        {p.payment_method || 'Bank Transfer'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Linked Quote / Ref',
+                    accessor: (p: any) => {
+                      const quoteMatch = quotations.find((q: any) => q.id === p.quotation_id);
+                      return (
+                        <span className="font-mono font-bold text-xs text-[#2d8d9b]">
+                          {quoteMatch?.quotation_no || (p.quotation_id ? `QT-${p.quotation_id}` : 'Account Credit')}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Narration / Notes',
+                    accessor: (p: any) => (
+                      <span className="text-xs text-zinc-500 font-medium max-w-xs truncate block" title={p.notes || ''}>
+                        {p.notes || 'Payment settlement received'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Amount Paid',
+                    accessor: (p: any) => (
+                      <span className="font-mono font-black text-emerald-600 text-sm">
+                        ₹{parseFloat(String(p.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Status',
+                    accessor: () => (
+                      <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">
+                        ✓ Confirmed
+                      </span>
+                    )
+                  }
+                ]}
+                data={customerPayments}
+                isLoading={isLoadingLedger}
+                searchPlaceholder="Search customer payments..."
+                emptyMessage="No payments recorded yet for this customer."
+                rightAction={
+                  <Button
+                    onClick={() => setActiveTab('ledger')}
+                    variant="secondary"
+                    className="h-9 px-3.5 bg-white border border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <ReceiptText size={14} /> Full Statement
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 3: Sales Orders Table */}
+          {transactionSubTab === 'sales_orders' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Sales Orders"
+                subtitle={`Confirmed manufacturing & purchase commitments placed for ${org.name}`}
+                columns={[
+                  {
+                    header: 'Order No',
+                    accessor: (o: any) => (
+                      <button
+                        type="button"
+                        onClick={() => handleViewOrder(Number(o.id))}
+                        className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5"
+                        title="Click to view full order details"
+                      >
+                        <ShoppingBag size={14} className="text-[#2d8d9b] shrink-0" />
+                        <span>{o.order_no}</span>
+                      </button>
+                    )
+                  },
+                  {
+                    header: 'Order Date',
+                    accessor: (o: any) => (
+                      <span className="text-zinc-600 font-bold">
+                        {formatDate(o.created_at)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Target Delivery',
+                    accessor: (o: any) => (
+                      <span className="text-zinc-500 font-semibold text-xs">
+                        {o.target_delivery_date ? formatDate(o.target_delivery_date) : 'Standard Lead Time'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Linked Quote',
+                    accessor: (o: any) => (
+                      <span className="font-mono text-xs font-bold text-zinc-600">
+                        {o.quotations?.quotation_no || (o.quotation_id ? `QT-${o.quotation_id}` : '—')}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Order Value',
+                    accessor: (o: any) => (
+                      <span className="font-mono font-black text-zinc-800">
+                        {o.quotations?.final_quote_value ? `₹${parseFloat(o.quotations.final_quote_value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Order Status',
+                    accessor: (o: any) => {
+                      const st = o.status || 'Placed';
+                      const isDelivered = st === 'Delivered';
+                      const isShipped = st === 'Shipped';
+                      const isProd = st === 'In Production';
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                          isDelivered ? 'bg-green-50 text-green-700 border-green-200' :
+                          isShipped ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          isProd ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {st}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Actions',
+                    accessor: (o: any) => (
+                      <Button
+                        onClick={() => handleViewOrder(Number(o.id))}
+                        variant="secondary"
+                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all flex items-center gap-1.5"
+                      >
+                        <Eye size={12} /> View Order
+                      </Button>
+                    )
+                  }
+                ]}
+                data={customerOrders}
+                isLoading={isLoadingOrg}
+                searchPlaceholder="Search customer orders..."
+                emptyMessage="No sales orders placed for this customer yet."
+                rightAction={
+                  <Button
+                    onClick={() => router.push('/marketing/order-placement')}
+                    className="h-9 px-3.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus size={14} /> New Sales Order
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 4: Packages Table */}
+          {transactionSubTab === 'packages' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Packaging & Carton Dispatches"
+                subtitle={`Carton parcels, packing lists and uniform packaging logs for ${org.name}`}
+                columns={[
+                  {
+                    header: 'Package Slip / Ref',
+                    accessor: (pkg) => (
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center shrink-0">
+                          <Boxes size={14} />
+                        </div>
+                        <span className="font-mono font-black text-zinc-800 text-xs">
+                          {pkg.package_no}
+                        </span>
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'Sales Order Ref',
+                    accessor: (pkg) => (
+                      <span className="font-mono font-bold text-xs text-[#2d8d9b]">
+                        {pkg.order_no}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Challan Ref',
+                    accessor: (pkg) => (
+                      <span className="font-mono text-xs text-zinc-600 font-semibold">
+                        {pkg.challan_no}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Carton Breakdown',
+                    accessor: (pkg) => (
+                      <span className="px-2.5 py-1 text-[10px] font-bold bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200">
+                        {pkg.carton_label}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Date',
+                    accessor: (pkg) => (
+                      <span className="text-zinc-600 font-semibold text-xs">
+                        {formatDate(pkg.date)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Carrier / Logistics',
+                    accessor: (pkg) => (
+                      <span className="text-zinc-700 font-bold text-xs">
+                        {pkg.carrier}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (pkg) => {
+                      const isDispatched = pkg.status.includes('Dispatched');
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                          isDispatched
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-blue-50 text-blue-750 border-blue-200'
+                        }`}>
+                          {pkg.status}
+                        </span>
+                      );
+                    }
+                  }
+                ]}
+                data={customerPackages}
+                isLoading={isLoadingChallans}
+                searchPlaceholder="Search package slips & cartons..."
+                emptyMessage="No packaging consignments logged yet for this customer."
+                rightAction={
+                  <Button
+                    onClick={() => router.push('/sales')}
+                    variant="secondary"
+                    className="h-9 px-3.5 bg-white border border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <Truck size={14} /> Operations Dispatch Hub
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 5: Shipments Table */}
+          {transactionSubTab === 'shipments' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Shipments & Delivery Challans"
+                subtitle={`Official delivery challans (DC) and dispatch consignments generated for ${org.name}`}
+                columns={[
+                  {
+                    header: 'Challan / DC No',
+                    accessor: (dc) => (
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+                          <Truck size={14} />
+                        </div>
+                        <span className="font-mono font-black text-zinc-900 text-xs">
+                          {dc.dc_no}
+                        </span>
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'Sales Order No',
+                    accessor: (dc) => (
+                      <span className="font-mono font-bold text-xs text-[#2d8d9b]">
+                        {dc.order_no}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Dispatch Date',
+                    accessor: (dc) => (
+                      <span className="text-zinc-600 font-bold text-xs">
+                        {formatDate(dc.dispatch_date)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Transporter / Carrier',
+                    accessor: (dc) => (
+                      <span className="text-zinc-800 font-bold text-xs">
+                        {dc.transporter_name}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Vehicle / Tracking',
+                    accessor: (dc) => (
+                      <span className="font-mono text-xs text-zinc-500 font-medium">
+                        {dc.vehicle_no || '—'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Packages',
+                    accessor: (dc) => (
+                      <span className="px-2.5 py-1 text-[10px] font-black bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200">
+                        {dc.total_packages || 1} Box(es)
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (dc) => {
+                      const st = dc.status || 'Dispatched';
+                      const isDelivered = st.toLowerCase() === 'delivered';
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                          isDelivered
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {st}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Notes',
+                    accessor: (dc) => (
+                      <span className="text-xs text-zinc-400 font-medium truncate max-w-xs block" title={dc.notes}>
+                        {dc.notes || '—'}
+                      </span>
+                    )
+                  }
+                ]}
+                data={customerShipments}
+                isLoading={isLoadingChallans}
+                searchPlaceholder="Search shipments & delivery challans..."
+                emptyMessage="No shipments or delivery challans logged for this customer."
+                rightAction={
+                  <Button
+                    onClick={() => router.push('/billing/delivery-challans')}
+                    className="h-9 px-3.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus size={14} /> New Delivery Challan
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 6: Invoices Table */}
+          {transactionSubTab === 'invoices' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Customer Tax Invoices"
+                subtitle={`Commercial tax invoices and retail cash registers billed to ${org.name}`}
+                columns={[
+                  {
+                    header: 'Invoice No',
+                    accessor: (inv: any) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTaxInvoice({
+                            ...inv,
+                            customer: {
+                              name: org.name,
+                              address: org.address,
+                              city: org.city,
+                              state: org.state,
+                              pincode: org.pincode,
+                              country: org.country || 'India',
+                              gst_number: org.gst_number,
+                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
+                              phone: org.phone,
+                              email: org.email
+                            }
+                          });
+                          setIsTaxInvoiceModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 hover:opacity-85 transition cursor-pointer text-left border-none bg-transparent p-0 outline-none"
+                        title="Click to view official Tax Invoice (GST)"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#2d8d9b] border border-teal-100 flex items-center justify-center shrink-0">
+                          <ReceiptText size={14} />
+                        </div>
+                        <span className="font-mono font-black text-[#991b1b] hover:underline text-xs">
+                          {inv.invoice_no}
+                        </span>
+                      </button>
+                    )
+                  },
+                  {
+                    header: 'Invoice Date',
+                    accessor: (inv: any) => (
+                      <span className="text-zinc-600 font-bold text-xs">
+                        {formatDate(inv.invoice_date || inv.created_at)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Due Date',
+                    accessor: (inv: any) => (
+                      <span className="text-zinc-500 font-semibold text-xs">
+                        {formatDate(inv.due_date)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Sale Type',
+                    accessor: (inv: any) => (
+                      <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-zinc-50 text-zinc-600 border-zinc-200">
+                        {inv.sale_type === 'retail' ? 'Retail' : 'Bulk Order'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Total Amount',
+                    accessor: (inv: any) => (
+                      <span className="font-mono font-black text-zinc-900 text-xs">
+                        ₹{parseFloat(String(inv.total_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Paid Amount',
+                    accessor: (inv: any) => (
+                      <span className="font-mono font-black text-emerald-600 text-xs">
+                        ₹{parseFloat(String(inv.paid_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Balance Due',
+                    accessor: (inv: any) => {
+                      const bal = parseFloat(String(inv.total_amount || 0)) - parseFloat(String(inv.paid_amount || 0));
+                      return (
+                        <span className={`font-mono font-black text-xs ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                          ₹{Math.max(0, bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Payment Status',
+                    accessor: (inv: any) => {
+                      const st = inv.payment_status || 'Unpaid';
+                      const isPaid = st.toLowerCase() === 'paid';
+                      const isPartial = st.toLowerCase() === 'partially paid';
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                          isPaid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          isPartial ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {st}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Actions',
+                    accessor: (inv: any) => (
+                      <Button
+                        onClick={() => {
+                          setSelectedTaxInvoice({
+                            ...inv,
+                            customer: {
+                              name: org.name,
+                              address: org.address,
+                              city: org.city,
+                              state: org.state,
+                              pincode: org.pincode,
+                              country: org.country || 'India',
+                              gst_number: org.gst_number,
+                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
+                              phone: org.phone,
+                              email: org.email
+                            }
+                          });
+                          setIsTaxInvoiceModalOpen(true);
+                        }}
+                        variant="secondary"
+                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#991b1b] hover:bg-[#991b1b] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Eye size={12} /> View Invoice
+                      </Button>
+                    )
+                  }
+                ]}
+                data={customerInvoices}
+                isLoading={isLoadingLedger}
+                searchPlaceholder="Search customer invoices..."
+                emptyMessage="No invoices generated yet for this customer."
+                rightAction={
+                  <Button
+                    onClick={() => {
+                      setInvoiceCreditPeriod(org.credit_period_days || 30);
+                      setSelectedOrderIdForInvoice(null);
+                      setIsInvoiceModalOpen(true);
+                    }}
+                    className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus size={14} /> Create Invoice
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 7: Expenses Table */}
+          {transactionSubTab === 'expenses' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Customer & Job Expenses"
+                subtitle={`Direct commercial costs, materials procurement & development charges for ${org.name}`}
+                columns={[
+                  {
+                    header: 'Expense Ref',
+                    className: 'whitespace-nowrap shrink-0',
+                    accessor: (exp) => (
+                      <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
+                        {exp.expense_ref}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Date',
+                    className: 'whitespace-nowrap shrink-0',
+                    accessor: (exp) => (
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                        {formatDate(exp.date)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Expense Category',
+                    className: 'whitespace-nowrap shrink-0',
+                    accessor: (exp) => (
+                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-[#3a525d] rounded-lg border border-zinc-200 whitespace-nowrap">
+                        {exp.category}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Linked Quote / Job',
+                    className: 'whitespace-nowrap shrink-0',
+                    accessor: (exp) => (
+                      <span className="font-mono font-bold text-xs text-[#2d8d9b] whitespace-nowrap">
+                        {exp.linked_ref}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Description',
+                    className: 'w-full min-w-[200px]',
+                    accessor: (exp) => (
+                      <span 
+                        className="text-xs text-zinc-600 font-medium block truncate" 
+                        title={exp.description}
+                      >
+                        {exp.description}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Allocated Cost',
+                    className: 'whitespace-nowrap text-right shrink-0',
+                    accessor: (exp) => (
+                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                        ₹{parseFloat(String(exp.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Status',
+                    className: 'whitespace-nowrap text-center shrink-0',
+                    accessor: () => (
+                      <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
+                        ✓ Allocated
+                      </span>
+                    )
+                  }
+                ]}
+                data={customerExpenses}
+                isLoading={isLoadingOrg}
+                searchPlaceholder="Search customer expenses..."
+                emptyMessage="No commercial expenses allocated for this customer yet."
+                rightAction={
+                  <Button
+                    onClick={() => router.push('/marketing/quotations')}
+                    variant="secondary"
+                    className="h-9 px-3.5 bg-white border border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <FileText size={14} /> Quotation Costings
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 8: Customer Lifecycle & Transaction Journals */}
+          {transactionSubTab === 'journals' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Customer Lifecycle & Transaction Journals"
+                subtitle={`Complete chronological activity logs: Lead stages, quotations, sales orders, invoices, payments, dispatches & customer events for ${org?.name}`}
+                columns={[
+                  {
+                    header: 'Ref / Code',
+                    className: 'w-[145px] whitespace-nowrap',
+                    sortValue: (j: any) => j.ref,
+                    accessor: (j: any) => {
+                      const Icon = j.icon || BookOpen;
+                      return (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${j.icon_bg || 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
+                            <Icon size={14} />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-mono font-black text-zinc-900 text-xs block truncate">
+                              {j.ref}
+                            </span>
+                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block truncate">
+                              {j.category}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Date & Time',
+                    className: 'w-[135px] whitespace-nowrap',
+                    sortValue: (j: any) => (j.date ? new Date(j.date).getTime() : 0),
+                    accessor: (j: any) => {
+                      const d = j.date ? new Date(j.date) : null;
+                      const timeStr = d && !isNaN(d.getTime()) ? d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+                      return (
+                        <div>
+                          <span className="text-zinc-800 font-bold text-xs block">
+                            {formatDate(j.date)}
+                          </span>
+                          {timeStr && (
+                            <span className="text-[10px] text-zinc-400 font-medium block">
+                              {timeStr}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Stage / Category',
+                    className: 'w-[160px] whitespace-nowrap',
+                    sortValue: (j: any) => j.stage_label || j.category,
+                    accessor: (j: any) => {
+                      const badgeStyles: Record<string, string> = {
+                        'Lead Stage': 'bg-purple-50 text-purple-700 border-purple-200',
+                        'Lead Activity': 'bg-amber-50 text-amber-700 border-amber-200',
+                        'Quotation': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                        'Sales Order': 'bg-blue-50 text-blue-700 border-blue-200',
+                        'Invoice': 'bg-amber-50 text-amber-800 border-amber-200',
+                        'Payment': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        'Shipment': 'bg-sky-50 text-sky-700 border-sky-200',
+                        'Customer Profile': 'bg-teal-50 text-teal-700 border-teal-200',
+                        'Accounting Journal': 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                      };
+                      const cls = badgeStyles[j.category] || 'bg-zinc-100 text-zinc-700 border-zinc-200';
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${cls}`}>
+                          {j.stage_label || j.category}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Activity Details & Narration',
+                    className: 'min-w-[260px] max-w-[420px]',
+                    sortValue: (j: any) => j.title || j.description,
+                    accessor: (j: any) => (
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-black text-[#3a525d] leading-tight block truncate" title={j.title}>
+                          {j.title}
+                        </p>
+                        <p className="text-[11px] text-zinc-600 font-medium leading-normal line-clamp-2" title={j.description}>
+                          {j.description}
+                        </p>
+                        {j.author && (
+                          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
+                            Logged by: <span className="text-[#2d8d9b] font-semibold">{j.author}</span>
+                          </p>
+                        )}
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'Commercial Value',
+                    className: 'w-[130px] whitespace-nowrap text-right',
+                    sortValue: (j: any) => (j.amount || 0),
+                    accessor: (j: any) => {
+                      if (j.amount === null || j.amount === undefined || isNaN(j.amount)) {
+                        return <span className="text-zinc-300 font-bold text-xs">—</span>;
+                      }
+                      const val = parseFloat(String(j.amount));
+                      if (j.impact_type === 'credit') {
+                        return (
+                          <span className="font-mono font-black text-xs text-emerald-600 bg-emerald-50/60 px-2 py-0.5 rounded-md border border-emerald-100">
+                            +₹{val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        );
+                      }
+                      if (j.impact_type === 'debit') {
+                        return (
+                          <span className="font-mono font-black text-xs text-amber-800 bg-amber-50/60 px-2 py-0.5 rounded-md border border-amber-200">
+                            ₹{val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="font-mono font-bold text-xs text-zinc-800">
+                          ₹{val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Status',
+                    className: 'w-[110px] whitespace-nowrap text-center',
+                    sortValue: (j: any) => j.status,
+                    accessor: (j: any) => (
+                      <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-zinc-50 text-zinc-700 border-zinc-200">
+                        {j.status || 'Recorded'}
+                      </span>
+                    )
+                  }
+                ]}
+                data={customerJournals}
+                isLoading={isLoadingLedger || isLoadingOrg}
+                searchPlaceholder="Search journal entries, lead stages, quotes, orders, invoices, payments, notes..."
+                emptyMessage="No lifecycle or transaction logs recorded yet for this customer."
+                headerAction={
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={journalCategoryFilter}
+                      onChange={(e) => setJournalCategoryFilter(e.target.value)}
+                      className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                    >
+                      <option value="ALL">All Categories ({customerJournals.length})</option>
+                      <option value="Lead Stage">Lead Stages</option>
+                      <option value="Lead Activity">Lead Follow-up Notes</option>
+                      <option value="Quotation">Quotations</option>
+                      <option value="Sales Order">Sales Orders</option>
+                      <option value="Invoice">Invoices</option>
+                      <option value="Payment">Payments</option>
+                      <option value="Shipment">Shipments & Dispatches</option>
+                      <option value="Customer Profile">Customer Profile</option>
+                      <option value="Accounting Journal">Accounting JVs</option>
+                    </select>
+                  </div>
+                }
+                rightAction={
+                  <Button
+                    onClick={() => setActiveTab('ledger')}
+                    className="h-9 px-3.5 bg-[#2d8d9b] hover:bg-[#236e7a] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                  >
+                    <ReceiptText size={14} /> Customer Statement
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Sub-View 9: Pro Forma Invoice Table */}
+          {transactionSubTab === 'pro_forma_invoice' && (
+            <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
+              <DataTable
+                title="Pro Forma Invoices (PI)"
+                subtitle={`Advance commercial quotes & pro forma billing estimates for ${org.name}`}
+                columns={[
+                  {
+                    header: 'Pro Forma No (PI)',
+                    accessor: (pi) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProForma({
+                            ...pi,
+                            customer: {
+                              name: org.name,
+                              address: org.address,
+                              city: org.city,
+                              state: org.state,
+                              pincode: org.pincode,
+                              country: org.country || 'India',
+                              gst_number: org.gst_number,
+                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
+                              phone: org.phone,
+                              email: org.email
+                            }
+                          });
+                          setIsProFormaModalOpen(true);
+                        }}
+                        className="font-mono font-black text-[#991b1b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5"
+                        title="Click to view official Pro Forma Invoice"
+                      >
+                        <FileSpreadsheet size={14} className="text-[#991b1b] shrink-0" />
+                        <span>{pi.pi_no}</span>
+                      </button>
+                    )
+                  },
+                  {
+                    header: 'Quote Ref',
+                    accessor: (pi) => (
+                      <span className="font-mono text-xs font-bold text-zinc-600">
+                        {pi.quote_no}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Issue Date',
+                    accessor: (pi) => (
+                      <span className="text-zinc-600 font-bold text-xs">
+                        {formatDate(pi.date)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Validity',
+                    accessor: (pi) => (
+                      <span className="text-xs font-bold text-zinc-500">
+                        {pi.validity_days} Days
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Scope / Items',
+                    accessor: (pi) => (
+                      <span className="text-xs font-bold text-[#3a525d] truncate max-w-sm block" title={pi.title}>
+                        {pi.title || 'Institutional Uniforms Specification'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Pro Forma Amount',
+                    accessor: (pi) => (
+                      <span className="font-mono font-black text-zinc-900 text-sm">
+                        ₹{parseFloat(String(pi.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (pi) => {
+                      const isOrder = pi.status.includes('Order');
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                          isOrder
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {pi.status}
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    header: 'Actions',
+                    accessor: (pi) => (
+                      <Button
+                        onClick={() => {
+                          setSelectedProForma({
+                            ...pi,
+                            customer: {
+                              name: org.name,
+                              address: org.address,
+                              city: org.city,
+                              state: org.state,
+                              pincode: org.pincode,
+                              country: org.country || 'India',
+                              gst_number: org.gst_number,
+                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
+                              phone: org.phone,
+                              email: org.email
+                            }
+                          });
+                          setIsProFormaModalOpen(true);
+                        }}
+                        variant="secondary"
+                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#991b1b] hover:bg-[#991b1b] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Eye size={12} /> View PI
+                      </Button>
+                    )
+                  }
+                ]}
+                data={customerProFormaInvoices}
+                isLoading={isLoadingOrg}
+                searchPlaceholder="Search pro forma invoices..."
+                emptyMessage="No pro forma invoices generated for this customer."
+                rightAction={
+                  <Button
+                    onClick={() => router.push('/marketing/quotations')}
+                    className="h-9 px-3.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus size={14} /> New Quote / PI
+                  </Button>
+                }
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -2747,7 +4395,7 @@ function OrganizationDetailsPageContent() {
                         delivery_address: org?.address || '',
                         delivery_city: org?.city || '',
                         delivery_state: org?.state || '',
-                        delivery_pincode: org?.pincode || org?.pin_code || '',
+                        delivery_pincode: org?.pincode || '',
                         delivery_country: org?.country || 'India'
                       }));
                       toast.success('Billing address copied to delivery fields');
@@ -3229,6 +4877,21 @@ function OrganizationDetailsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Real Pro Forma Invoice Template Modal */}
+      <ProFormaInvoiceModal
+        isOpen={isProFormaModalOpen}
+        onClose={() => setIsProFormaModalOpen(false)}
+        data={selectedProForma}
+      />
+
+      {/* Real GST Tax Invoice Template Modal */}
+      <TaxInvoiceModal
+        isOpen={isTaxInvoiceModalOpen}
+        onClose={() => setIsTaxInvoiceModalOpen(false)}
+        data={selectedTaxInvoice}
+        defaultCustomer={org}
+      />
     </div>
   );
 }

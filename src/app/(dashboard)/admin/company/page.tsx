@@ -53,16 +53,16 @@ export default function CompanySettingsPage() {
   const [isSavingTax, setIsSavingTax] = useState(false);
 
   const [settings, setSettings] = useState<CompanySettings>({
-    company_name: 'Forma Apparels',
-    address: '63/3608, CD Tower, Arayidathupalam, Kozhikode, Kerala - 673 004, India',
-    phone: '(+91) 7902 499 990 | 0495 2 922 992',
-    email: 'info@formaapparels.com',
-    website: 'www.formaapparels.com',
-    bank_name: 'HDFC BANK',
-    account_no: '50200076116064',
-    branch_name: 'MAJESTIC CENTER',
-    ifsc_code: 'HDFC0001255',
-    upi_id: '7902 499 991',
+    company_name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    bank_name: '',
+    account_no: '',
+    branch_name: '',
+    ifsc_code: '',
+    upi_id: '',
     qr_image: null
   });
 
@@ -121,11 +121,24 @@ export default function CompanySettingsPage() {
     try {
       const response = await api.get('/company-settings');
       if (response.data?.success && response.data.data) {
-        setSettings(response.data.data);
+        const d = response.data.data;
+        setSettings({
+          company_name: d.company_name || '',
+          address: d.address || '',
+          phone: d.phone || '',
+          email: d.email || '',
+          website: d.website || '',
+          bank_name: d.bank_name || '',
+          account_no: d.account_no || '',
+          branch_name: d.branch_name || '',
+          ifsc_code: d.ifsc_code || '',
+          upi_id: d.upi_id || '',
+          qr_image: d.qr_image || null
+        });
       }
     } catch (err: any) {
       console.error('Failed to load settings:', err);
-      toast.error('Failed to load company profile from backend; defaults are active.');
+      toast.error('Failed to load company profile from database.');
     } finally {
       setIsLoading(false);
     }
