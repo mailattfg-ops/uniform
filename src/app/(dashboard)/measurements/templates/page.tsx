@@ -532,7 +532,7 @@ export default function IndustryTemplatesPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] flex items-center gap-1.5">
                       <UserCheck size={14} className="text-[#2d8d9b]" />
-                      Customer Roster Demographics
+                      Customer Member Demographics
                     </span>
                     {entityDemographics?.isLoading && (
                       <span className="text-[9px] text-[#2d8d9b] font-bold animate-pulse">Scanning...</span>
@@ -672,7 +672,7 @@ export default function IndustryTemplatesPage() {
                     <UserCircle size={20} className="text-blue-600 shrink-0" />
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-blue-900">
-                        Department Roster: Male Members Only ({deptDemographics.male} Enrolled)
+                        Department Member: Male Members Only ({deptDemographics.male} Enrolled)
                       </p>
                       <p className="text-[10px] text-blue-700 font-bold">
                         Only Male Member Set provision is enabled. Listing only male and unisex products.
@@ -686,7 +686,7 @@ export default function IndustryTemplatesPage() {
                     <UserCircle2 size={20} className="text-pink-600 shrink-0" />
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-pink-900">
-                        Department Roster: Female Members Only ({deptDemographics.female} Enrolled)
+                        Department Member: Female Members Only ({deptDemographics.female} Enrolled)
                       </p>
                       <p className="text-[10px] text-pink-700 font-bold">
                         Only Female Member Set provision is enabled. Listing only female and unisex products.

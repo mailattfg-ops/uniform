@@ -1,4 +1,5 @@
 import React from 'react';
+import { capitalizeFirstLetter, capitalizeWords } from '@/lib/formatters';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,9 +9,40 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   allowSpecialCharacters?: boolean;
   onlyLetters?: boolean;
   onlyNumbers?: boolean;
+  capitalize?: 'first' | 'words' | 'none';
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, suffix, icon, allowSpecialCharacters = false, onlyLetters, onlyNumbers, className = '', ...props }) => {
+export const Input: React.FC<InputProps> = ({
+  label,
+  error,
+  suffix,
+  icon,
+  allowSpecialCharacters = false,
+  onlyLetters,
+  onlyNumbers,
+  capitalize,
+  className = '',
+  ...props
+}) => {
+  const isExcludedType =
+    props.type === 'email' ||
+    props.type === 'password' ||
+    props.type === 'number' ||
+    props.type === 'tel' ||
+    props.type === 'url' ||
+    props.type === 'file' ||
+    props.type === 'date' ||
+    props.type === 'time' ||
+    onlyNumbers ||
+    Boolean(props.name && /email|url|website|link|password/i.test(props.name));
+
+  const effectiveCapitalize: 'first' | 'words' | 'none' =
+    capitalize !== undefined
+      ? capitalize
+      : isExcludedType
+      ? 'none'
+      : 'first';
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
 
@@ -25,11 +57,25 @@ export const Input: React.FC<InputProps> = ({ label, error, suffix, icon, allowS
       value = value.replace(/[^a-zA-Z0-9\s\@\.\+\-\,\_]/g, '');
     }
 
+    if (effectiveCapitalize === 'words') {
+      value = capitalizeWords(value);
+    } else if (effectiveCapitalize === 'first') {
+      value = capitalizeFirstLetter(value);
+    }
+
     if (value !== e.target.value) {
       e.target.value = value;
     }
     props.onChange?.(e);
   };
+
+  const autoCapitalizeValue =
+    props.autoCapitalize ||
+    (effectiveCapitalize === 'words'
+      ? 'words'
+      : effectiveCapitalize === 'first'
+      ? 'sentences'
+      : 'none');
 
   return (
     <div className={`flex flex-col gap-2 w-full group ${props.disabled ? 'opacity-40' : ''}`}>
@@ -50,6 +96,7 @@ export const Input: React.FC<InputProps> = ({ label, error, suffix, icon, allowS
           } rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-sm font-bold text-[#3a525d] placeholder:text-zinc-400 shadow-sm ${
             icon ? 'pl-12' : ''
           } ${suffix ? 'pr-14' : ''} ${props.disabled ? 'bg-zinc-50 cursor-not-allowed' : ''} ${className}`}
+          autoCapitalize={autoCapitalizeValue}
           {...props}
           onChange={handleChange}
         />

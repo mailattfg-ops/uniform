@@ -47,10 +47,29 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/billing', permissions: ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'] },
 
   // Registry & Client CRM
+  { prefix: '/crm', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'manage_quotations', 'view_quotations'] },
   { prefix: '/customers', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students'] },
   { prefix: '/organizations', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students'] },
   { prefix: '/entities', permissions: ['view_students', 'register_students', 'view_own_students'] },
-  { prefix: '/measurements', permissions: ['manage_measurements', 'view_measurements', 'view_own_measurements'] }
+  { prefix: '/measurements', permissions: ['manage_measurements', 'view_measurements', 'view_own_measurements'] },
+
+  // Items Hub
+  { prefix: '/items', permissions: ['manage_inventory', 'view_inventory', 'manage_products', 'view_products', 'manage_art_numbers', 'manage_design_numbers'] },
+
+  // Accounts & Billing Hub
+  { prefix: '/accounts', permissions: ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank'] },
+
+  // Inventory Hub
+  { prefix: '/inventory', permissions: ['manage_inventory', 'view_inventory', 'branch_transfers', 'branch_inventory', 'move_inventory'] },
+
+  // Sales Hub
+  { prefix: '/sales', permissions: ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver', 'submit_quotations_ops', 'view_orders', 'manage_orders', 'manage_delivery_challans'] },
+
+  // Purchase Hub
+  { prefix: '/purchase', permissions: ['manage_system', 'manage_inventory', 'view_inventory', 'view_vendors', 'manage_vendors', 'manage_purchase_orders', 'manage_purchase_bills'] },
+
+  // Reports Hub
+  { prefix: '/reports', permissions: ['manage_system', 'manage_sam', 'view_audit_logs', 'view_sam_reports'] }
 ];
 
 export default function DashboardLayout({
@@ -143,12 +162,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-[#030303] text-white overflow-hidden relative w-full p-3 lg:p-4 gap-3 lg:gap-4 font-sans">
+    <div className="flex h-screen bg-[#030303] text-white overflow-hidden relative w-full py-3 pr-3 md:py-4 md:pr-4 pl-0 gap-3 md:gap-4 font-sans">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 bg-[#F5F4F2] text-[#030303] rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden relative">
         <Header />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-10 custom-scrollbar">
-          <div className="max-w-[1600px] mx-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 custom-scrollbar">
+          <div className="w-full mx-auto">
             {isAuthorized ? (
               children
             ) : (

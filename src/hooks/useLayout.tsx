@@ -6,17 +6,26 @@ interface LayoutContextType {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  isSidebarExpanded: boolean;
+  setIsSidebarExpanded: (expanded: boolean) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Closed by default on mobile
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   return (
-    <LayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen, toggleSidebar }}>
+    <LayoutContext.Provider value={{
+      isSidebarOpen,
+      setIsSidebarOpen,
+      toggleSidebar,
+      isSidebarExpanded,
+      setIsSidebarExpanded,
+    }}>
       {children}
     </LayoutContext.Provider>
   );

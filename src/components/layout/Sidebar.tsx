@@ -40,11 +40,11 @@ interface ModuleItem {
 
 const modules: ModuleItem[] = [
   {
-    icon: Star, label: 'Dashboard', href: '/dashboard',
+    icon: Star, label: 'Home', href: '/dashboard',
     subsections: []
   },
   {
-    icon: Users, label: 'CRM', href: '/customers/leads',
+    icon: Users, label: 'CRM', href: '/crm',
     subsections: [
       { label: 'Leads', href: '/customers/leads' },
       { label: 'Customers', href: '/customers' },
@@ -52,19 +52,16 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Tag, label: 'Items', href: '/admin/products',
+    icon: Tag, label: 'Items', href: '/items',
     subsections: [
       { label: 'Products', href: '/admin/products' },
-      { label: 'Product Types', href: '/admin/product-types' },
-      { label: 'ART Number Hub', href: '/admin/art-number-hub' },
-      { label: 'Design Numbers (DNS/DNG)', href: '/admin/design-numbers' },
       { label: 'Fabrics', href: '/admin/inventory/fabrics' },
       { label: 'Trims', href: '/admin/inventory/trims' },
       { label: 'Accessories', href: '/admin/accessories' }
     ]
   },
   {
-    icon: Ruler, label: 'Measurements', href: '/measurements/entry',
+    icon: Ruler, label: 'Measurements', href: '/measurements',
     subsections: [
       { label: 'Record Measurements', href: '/measurements/entry' },
       { label: 'Measurement History', href: '/measurements/history' },
@@ -74,7 +71,7 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Calculator, label: 'SAM Engineering', href: '/sam-management/calculator',
+    icon: Calculator, label: 'SAM Engineering', href: '/sam-management',
     subsections: [
       { label: 'SAM Calculator', href: '/sam-management/calculator' },
       { label: 'Configurations', href: '/sam-management/configurations' },
@@ -82,7 +79,7 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Package, label: 'Inventory', href: '/admin/inventory/product-stock',
+    icon: Package, label: 'Inventory', href: '/inventory',
     subsections: [
       { label: 'Readymade (Trade) Stock', href: '/admin/inventory/product-stock' },
       { label: 'Accessories Stock', href: '/admin/inventory/accessories-stock' },
@@ -94,7 +91,7 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: ShoppingBag, label: 'Sales', href: '/marketing/order-placement',
+    icon: ShoppingBag, label: 'Sales', href: '/sales',
     subsections: [
       { label: 'Sales Orders', href: '/marketing/order-placement' },
       { label: 'Operations Review', href: '/marketing/operation-team' },
@@ -104,7 +101,7 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: ShoppingCart, label: 'Purchase', href: '/admin/purchase-orders',
+    icon: ShoppingCart, label: 'Purchase', href: '/purchase',
     subsections: [
       { label: 'Vendors Manager', href: '/admin/vendors' },
       { label: 'Purchase Orders (PO)', href: '/admin/purchase-orders' },
@@ -112,14 +109,14 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: Factory, label: 'Factory Operations', href: '/factory/job-cards',
+    icon: Factory, label: 'Factory Operations', href: '/factory',
     subsections: [
       { label: 'Job Cards & PO Handler', href: '/factory/job-cards' },
       { label: 'Production Queue', href: '/factory/production-queue' }
     ]
   },
   {
-    icon: Receipt, label: 'Accounts', href: '/billing/invoices',
+    icon: Receipt, label: 'Accounts', href: '/accounts',
     subsections: [
       { label: 'Customer Invoices', href: '/billing/invoices' },
       { label: 'Customer Payments', href: '/marketing/initial-payment' },
@@ -128,14 +125,14 @@ const modules: ModuleItem[] = [
     ]
   },
   {
-    icon: BarChart3, label: 'Reports', href: '/sam-management/reports',
+    icon: BarChart3, label: 'Reports', href: '/reports',
     subsections: [
       { label: 'SAM & Operations Reports', href: '/sam-management/reports' },
       { label: 'Audit Trail Logs', href: '/admin/audit' },
     ]
   },
   {
-    icon: Settings, label: 'Admin Settings', href: '/admin/settings',
+    icon: Settings, label: 'Admin Settings', href: '/admin',
     subsections: [
       { label: 'Industry Sectors', href: '/admin/industries' },
       { label: 'Staff Management', href: '/admin/employees' },
@@ -293,7 +290,7 @@ interface ClientNavItem {
 function buildClientOrgNav(organizationId: number | string): ClientNavItem[] {
   const orgId = String(organizationId);
   return [
-    { icon: Star, label: 'Dashboard', href: '/dashboard' },
+    { icon: Star, label: 'Home', href: '/dashboard' },
     { icon: Building2, label: 'My Organization', href: `/customers/${orgId}` },
     { icon: Users, label: 'Members Directory', href: `/customers/${orgId}?tab=entities` },
     { icon: ReceiptText, label: 'Account Statement', href: `/customers/${orgId}?tab=ledger`, badge: 'Finance' },
@@ -303,7 +300,7 @@ function buildClientOrgNav(organizationId: number | string): ClientNavItem[] {
 
 function buildClientEntityNav(memberId: number | string): ClientNavItem[] {
   return [
-    { icon: Star, label: 'Dashboard', href: '/dashboard' },
+    { icon: Star, label: 'Home', href: '/dashboard' },
     { icon: Ruler, label: 'My Measurements', href: '/measurements/history' },
   ];
 }
@@ -312,17 +309,23 @@ function buildClientEntityNav(memberId: number | string): ClientNavItem[] {
 function ClientPortalSidebar({
   user,
   isExpanded,
+  isPinned,
   toggleSidebar,
   handleLogout,
   isSidebarOpen,
   setIsSidebarOpen,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   user: any;
   isExpanded: boolean;
+  isPinned?: boolean;
   toggleSidebar: () => void;
   handleLogout: () => void;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -369,55 +372,57 @@ function ClientPortalSidebar({
     <>
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
-      <aside className={`
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 transition-all duration-300 ease-in-out
-        fixed lg:static inset-y-0 left-0 z-[100]
-        ${isExpanded ? 'w-72' : 'w-24'}
-        bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full
-      `}>
+      <aside 
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        className={`
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0 transition-[width] duration-300 ease-in-out
+          fixed md:static inset-y-0 left-0 z-[100]
+          ${isExpanded ? 'w-72' : 'w-20'}
+          bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full shrink-0
+          overflow-hidden select-none will-change-[width]
+        `}
+      >
         {/* Brand Header */}
-        <div className={`w-full justify-between h-24 flex items-center px-6 mb-2 transition-all border-b border-white/5 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
-          <div className="flex items-center gap-3">
-            {!isExpanded ? (
-              <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
-                </svg>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-4 duration-500 shrink-0">
-                <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
-                  </svg>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
-                  <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
-                </div>
-              </div>
-            )}
+        <div className="w-full justify-between h-24 flex items-center px-5 mb-2 border-b border-white/5 overflow-hidden shrink-0">
+          <div className="flex items-center min-w-0">
+            <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
+              </svg>
+            </div>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+              isExpanded ? 'opacity-100 max-w-[140px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+            }`}>
+              <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
+              <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
+            </div>
           </div>
           <button
             onClick={toggleSidebar}
-            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
+            title={isPinned ? "Unpin sidebar" : "Pin sidebar open"}
+            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all duration-300 hidden md:flex shrink-0 ${
+              !isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+            }`}
           >
-            <ChevronLeft size={16} className="text-white" />
+            <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#CC9448]' : ''}`} />
           </button>
         </div>
 
         {/* Client Portal Badge */}
-        {isExpanded && (
-          <div className="mx-4 mb-4 px-3 py-2 rounded-xl bg-[#CC9448]/10 border border-[#CC9448]/20 flex items-center gap-2 animate-in fade-in duration-500">
+        <div className={`mx-4 overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+          isExpanded ? 'max-h-12 opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0 pointer-events-none'
+        }`}>
+          <div className="px-3 py-2 rounded-xl bg-[#CC9448]/10 border border-[#CC9448]/20 flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse shrink-0" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#CC9448]">{portalLabel}</span>
           </div>
-        )}
+        </div>
 
         {/* Navigation */}
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
@@ -426,7 +431,7 @@ function ClientPortalSidebar({
               const Icon = item.icon;
               const isActive = isItemActive(item.href);
               return (
-                <div key={item.label} className={`transition-all ${isExpanded ? 'px-3' : 'px-0 flex flex-col items-center'}`}>
+                <div key={item.label} className="transition-all duration-300 px-1.5">
                   <Link
                     href={item.href}
                     onClick={() => {
@@ -434,25 +439,31 @@ function ClientPortalSidebar({
                         setIsSidebarOpen(false);
                       }
                     }}
-                    className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 w-full ${isActive
+                    className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${isActive
                       ? '!bg-[#CC9448] text-white shadow-xl font-semibold'
                       : 'hover:bg-white/5 text-white/60 hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="shrink-0">
+                    <div className="flex items-center min-w-0">
+                      <div className="shrink-0 w-7 h-7 flex items-center justify-center">
                         <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />
                       </div>
-                      {isExpanded && (
-                        <span className="text-[13.5px] font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+                        isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                      }`}>
+                        <span className="text-[13.5px] font-semibold tracking-wide">
                           {item.label}
                         </span>
-                      )}
+                      </div>
                     </div>
-                    {isExpanded && item.badge && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
-                        {item.badge}
-                      </span>
+                    {item.badge && (
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+                        isExpanded ? 'opacity-100 max-w-[60px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                      }`}>
+                        <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                          {item.badge}
+                        </span>
+                      </div>
                     )}
                   </Link>
                 </div>
@@ -460,7 +471,7 @@ function ClientPortalSidebar({
             })}
 
             {/* Divider & Settings */}
-            <div className={`px-3 mt-2`}>
+            <div className="px-1.5 mt-2">
               <div className="border-t border-white/5 pt-2">
                 <Link
                   href="/settings/profile"
@@ -469,17 +480,21 @@ function ClientPortalSidebar({
                       setIsSidebarOpen(false);
                     }
                   }}
-                  className={`flex items-center p-3 rounded-2xl transition-all duration-300 w-full ${
+                  className={`flex items-center p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${
                     pathname === '/settings/profile'
                       ? '!bg-[#CC9448] text-white shadow-xl font-semibold'
                       : 'hover:bg-white/5 text-white/60 hover:text-white'
                   }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <Settings size={19} strokeWidth={2} />
-                    {isExpanded && (
+                  <div className="flex items-center min-w-0">
+                    <div className="shrink-0 w-7 h-7 flex items-center justify-center">
+                      <Settings size={19} strokeWidth={2} />
+                    </div>
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+                      isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                    }`}>
                       <span className="text-[13.5px] font-semibold tracking-wide">Profile & Settings</span>
-                    )}
+                    </div>
                   </div>
                 </Link>
               </div>
@@ -488,9 +503,9 @@ function ClientPortalSidebar({
         </div>
 
         {/* User Footer */}
-        <div className={`mt-auto p-4 border-t border-white/5 relative ${!isExpanded && 'flex justify-center'}`} ref={dropdownRef}>
-          {isDropdownOpen && (
-            <div className={`absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${isExpanded ? 'left-4 right-4' : 'left-4 w-48'}`}>
+        <div className="mt-auto p-3 border-t border-white/5 relative shrink-0" ref={dropdownRef}>
+          {isDropdownOpen && isExpanded && (
+            <div className="absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl left-3 right-3 animate-in fade-in duration-200">
               <div className="flex flex-col gap-1">
                 <Link
                   href="/settings/profile"
@@ -512,10 +527,10 @@ function ClientPortalSidebar({
           )}
 
           <div
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`flex items-center justify-between p-3 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}
+            onClick={() => isExpanded && setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center justify-between p-2 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer transition-all duration-300 w-full overflow-hidden"
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center min-w-0">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 shadow-inner">
                 {isClientEntity ? (
                   <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
@@ -523,22 +538,24 @@ function ClientPortalSidebar({
                   <Building2 size={16} className="text-[#CC9448]" strokeWidth={2.5} />
                 )}
               </div>
-              {isExpanded && (
-                <div className="flex flex-col min-w-0">
-                  <p className="text-sm font-bold truncate leading-tight text-white">
-                    {displayName}
-                  </p>
-                  <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none truncate">
-                    {subLabel}
-                  </p>
-                </div>
-              )}
+              <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+                isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+              }`}>
+                <p className="text-sm font-bold truncate leading-tight text-white">
+                  {displayName}
+                </p>
+                <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none truncate">
+                  {subLabel}
+                </p>
+              </div>
             </div>
-            {isExpanded && (
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+              isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+            }`}>
               <svg className={`w-4 h-4 text-white/85 shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
               </svg>
-            )}
+            </div>
           </div>
         </div>
       </aside>
@@ -549,12 +566,38 @@ function ClientPortalSidebar({
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { isSidebarOpen, setIsSidebarOpen, toggleSidebar: toggleMobileSidebar } = useLayout();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const { isSidebarOpen, setIsSidebarOpen, toggleSidebar: toggleMobileSidebar, setIsSidebarExpanded } = useLayout();
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const leaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Expands on hover (or when pinned on desktop/tablet, or on mobile when sidebar drawer is open)
+  const isExpanded = isPinned || isHovered || (isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 768);
+  const toggleSidebar = () => setIsPinned(!isPinned);
+
+  useEffect(() => {
+    setIsSidebarExpanded(isExpanded);
+  }, [isExpanded, setIsSidebarExpanded]);
+
+  const handleMouseEnter = () => {
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    // 150ms buffer prevents accidental collapse when mouse moves quickly near borders
+    leaveTimerRef.current = setTimeout(() => {
+      setIsHovered(false);
+      setIsDropdownOpen(false);
+    }, 150);
+  };
 
   // Load user on mount and sync with identity updates
   const loadUser = () => {
@@ -567,7 +610,10 @@ export const Sidebar: React.FC = () => {
   useEffect(() => {
     loadUser();
     window.addEventListener('storage', loadUser);
-    return () => window.removeEventListener('storage', loadUser);
+    return () => {
+      window.removeEventListener('storage', loadUser);
+      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -589,11 +635,13 @@ export const Sidebar: React.FC = () => {
     }, 100);
   };
 
-  const toggleSidebar = () => setIsExpanded(!isExpanded);
-
   const handleModuleClick = (item: ModuleItem) => {
     if (item.subsections.length > 0) {
-      setActiveMenu(activeMenu === item.label ? null : item.label);
+      setActiveMenu(activeMenu === item.label && pathname === item.href ? null : item.label);
+      router.push(item.href);
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      }
     } else {
       router.push(item.href);
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -619,10 +667,13 @@ export const Sidebar: React.FC = () => {
       <ClientPortalSidebar
         user={user}
         isExpanded={isExpanded}
+        isPinned={isPinned}
         toggleSidebar={toggleSidebar}
         handleLogout={handleLogout}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       />
     );
   }
@@ -632,48 +683,48 @@ export const Sidebar: React.FC = () => {
     <>
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
       {/* Sidebar Content */}
-      <aside className={`
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 transition-all duration-300 ease-in-out
-        fixed lg:static inset-y-0 left-0 z-[100]
-        ${isExpanded ? 'w-72' : 'w-24'}
-        bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full
-      `}>
+      <aside 
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0 transition-[width] duration-300 ease-in-out
+          fixed md:static inset-y-0 left-0 z-[100]
+          ${isExpanded ? 'w-72' : 'w-20'}
+          bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full shrink-0
+          overflow-hidden select-none will-change-[width]
+        `}
+      >
         {/* Brand Identity Section */}
-        <div className={`w-full justify-between h-24 flex items-center px-6 mb-6 transition-all border-b border-white/5 ${isExpanded ? 'active' : 'justify-center overflow-hidden'}`}>
-          <div className="flex items-center gap-3">
-            {!isExpanded ? (
-              <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center animate-in fade-in duration-500 shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
-                </svg>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-4 duration-500 shrink-0">
-                <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
-                  </svg>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
-                  <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
-                </div>
-              </div>
-            )}
+        <div className="w-full justify-between h-24 flex items-center px-5 mb-2 border-b border-white/5 overflow-hidden shrink-0">
+          <div className="flex items-center min-w-0">
+            <div className="w-8 h-8 rounded-lg border border-white flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
+              </svg>
+            </div>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+              isExpanded ? 'opacity-100 max-w-[140px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+            }`}>
+              <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
+              <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
+            </div>
           </div>
 
           <button
             onClick={toggleSidebar}
-            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all hidden lg:flex ${!isExpanded ? 'rotate-180' : ''}`}
+            title={isPinned ? "Unpin sidebar" : "Pin sidebar open"}
+            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all duration-300 hidden md:flex shrink-0 ${
+              !isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+            }`}
           >
-            <ChevronLeft size={16} className="text-white" />
+            <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#CC9448]' : ''}`} />
           </button>
         </div>
 
@@ -707,34 +758,42 @@ export const Sidebar: React.FC = () => {
                 pathname === sub.href || (sub.href !== '/' && (pathname.startsWith(sub.href + '/') || pathname.startsWith(sub.href + '?')))
               ) ||
                 (item.href !== '/' && (pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?'))) ||
-                (item.label === 'Dashboard' && pathname === '/dashboard');
+                (item.label === 'Home' && pathname === '/dashboard');
               const Icon = item.icon;
               const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
 
               return (
-                <div key={item.label} className={`transition-all ${isExpanded ? 'px-3' : 'px-0 flex flex-col items-center'}`}>
+                <div key={item.label} className="transition-all duration-300 px-1.5">
                   <div
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 w-full cursor-pointer ${isPathActive ? '!bg-[#CC9448] text-white shadow-xl scale-102 font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'
+                    className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full cursor-pointer overflow-hidden ${isPathActive ? '!bg-[#CC9448] text-white shadow-xl font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'
                       }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="shrink-0">
+                    <div className="flex items-center min-w-0">
+                      <div className="shrink-0 w-7 h-7 flex items-center justify-center">
                         <Icon size={19} strokeWidth={isPathActive ? 2.5 : 2} />
                       </div>
-                      {isExpanded && (
-                        <span className="text-[13.5px] font-semibold tracking-wide animate-in fade-in slide-in-from-left-4">
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+                        isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                      }`}>
+                        <span className="text-[13.5px] font-semibold tracking-wide">
                           {item.label}
                         </span>
-                      )}
+                      </div>
                     </div>
-                    {isExpanded && item.subsections.length > 0 && (
-                      <ChevronDown size={13} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                    {item.subsections.length > 0 && (
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+                        isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                      }`}>
+                        <ChevronDown size={13} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                      </div>
                     )}
                   </div>
 
-                  {isExpanded && isOpen && item.subsections.length > 0 && (
-                    <div className="relative ml-9 mt-2 pl-4 border-l border-[#CC9448]/30 space-y-2.5 animate-in fade-in slide-in-from-top-4 duration-500 pb-2 pt-1">
+                  {item.subsections.length > 0 && (
+                    <div className={`relative ml-8 pl-4 border-l border-[#CC9448]/30 space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                      isExpanded && isOpen ? 'max-h-96 opacity-100 mt-2 pb-2 pt-1' : 'max-h-0 opacity-0 mt-0 pb-0 pt-0 pointer-events-none'
+                    }`}>
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
 
@@ -749,7 +808,7 @@ export const Sidebar: React.FC = () => {
                             key={idx}
                             href={sub.href}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
-                            className={`relative flex items-center gap-2.5 group text-[12.5px] transition-all py-2 px-3 rounded-xl ${isSubActive
+                            className={`relative flex items-center gap-2.5 group text-[12.5px] transition-all py-1.5 px-3 rounded-xl whitespace-nowrap ${isSubActive
                               ? 'text-white bg-[#CC9448]/20 font-bold shadow-inner'
                               : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'
                               }`}
@@ -773,10 +832,9 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* User Profile Footer */}
-        <div className={`mt-auto p-4 border-t border-white/5 relative ${!isExpanded && 'flex justify-center'}`} ref={dropdownRef}>
-          {isDropdownOpen && (
-            <div className={`absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${isExpanded ? 'left-4 right-4' : 'left-4 w-48'
-              }`}>
+        <div className="mt-auto p-3 border-t border-white/5 relative shrink-0" ref={dropdownRef}>
+          {isDropdownOpen && isExpanded && (
+            <div className="absolute bottom-20 z-50 bg-[#121212]/95 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl left-3 right-3 animate-in fade-in duration-200">
               <div className="flex flex-col gap-1">
                 <Link
                   href="/settings/profile"
@@ -803,29 +861,31 @@ export const Sidebar: React.FC = () => {
           )}
 
           <div
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`flex items-center justify-between p-3 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer ${!isExpanded && 'w-12 h-12 p-0 justify-center'}`}
+            onClick={() => isExpanded && setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center justify-between p-2 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer transition-all duration-300 w-full overflow-hidden"
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0">
+            <div className="flex items-center min-w-0">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 shadow-inner">
                 <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
               </div>
-              {isExpanded && (
-                <div className="flex flex-col min-w-0">
-                  <p className="text-sm font-bold truncate leading-tight text-white">
-                    {user?.fullName || 'John Lee'}
-                  </p>
-                  <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none">
-                    {user?.role || 'Admin'}
-                  </p>
-                </div>
-              )}
+              <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
+                isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+              }`}>
+                <p className="text-sm font-bold truncate leading-tight text-white">
+                  {user?.fullName || 'John Lee'}
+                </p>
+                <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest mt-0.5 leading-none">
+                  {user?.role || 'Admin'}
+                </p>
+              </div>
             </div>
-            {isExpanded && (
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+              isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+            }`}>
               <svg className={`w-4 h-4 text-white/85 shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
               </svg>
-            )}
+            </div>
           </div>
         </div>
       </aside>

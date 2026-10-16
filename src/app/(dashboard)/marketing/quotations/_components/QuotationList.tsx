@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
+import api from '@/lib/api';
 import {
   TrendingUp,
   Trash2,
@@ -52,6 +53,20 @@ export default function QuotationList({
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved'>('all');
   const [selectedOrgId, setSelectedOrgId] = useState<string>('ALL');
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
+  const [industries, setIndustries] = useState<any[]>([]);
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
+
+  useEffect(() => {
+    api.get('/branches')
+      .then(res => setBranches(res.data || []))
+      .catch(err => console.error('Failed to load branches in Quotations', err));
+
+    api.get('/industries')
+      .then(res => setIndustries(res.data || []))
+      .catch(err => console.error('Failed to load industries in Quotations', err));
+  }, []);
 
   const userPermissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
   const userRole = (currentUser?.role || '').toLowerCase();
@@ -65,8 +80,16 @@ export default function QuotationList({
   // Filtered dataset based on active tab and selected customer
   const filteredQuotations = useMemo(() => {
     return quotations.filter(q => {
+      if (selectedBranch !== 'ALL') {
+        const bId = String(q.branch_id || (q.organizations as any)?.branch_id || '');
+        if (bId !== selectedBranch) return false;
+      }
       if (selectedOrgId !== 'ALL' && String(q.organization_id) !== selectedOrgId) {
         return false;
+      }
+      if (selectedIndustry !== 'ALL') {
+        const indId = String((q.organizations as any)?.industry_id || '');
+        if (indId !== selectedIndustry) return false;
       }
       switch (activeFilter) {
         case 'drafts':
@@ -81,7 +104,7 @@ export default function QuotationList({
           return true;
       }
     });
-  }, [quotations, activeFilter, selectedOrgId]);
+  }, [quotations, activeFilter, selectedBranch, selectedOrgId, selectedIndustry]);
 
   // Tab counts
   const counts = useMemo(() => {
@@ -97,42 +120,37 @@ export default function QuotationList({
   const columns: Column<Quotation>[] = [
     {
       header: 'QT No.',
-      className: 'w-[150px] whitespace-nowrap',
+      className: 'w-[130px] whitespace-nowrap',
       sortValue: (q) => q.quotation_no,
       accessor: (q) => (
-        <div className="flex items-center gap-2.5 group">
+        <div className="flex items-center gap-2 group">
           <div 
             onClick={() => onViewDetails(q)}
-            className="w-8 h-8 shrink-0 bg-[#2d8d9b]/5 hover:bg-[#2d8d9b]/20 rounded-xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-xs cursor-pointer transition-all"
+            className="w-7 h-7 shrink-0 bg-[#2d8d9b]/5 hover:bg-[#2d8d9b]/20 rounded-xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-xs cursor-pointer transition-all"
             title="Click to view details"
           >
-            <TrendingUp size={15} />
+            <TrendingUp size={14} />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => onViewDetails(q)}
-                className="font-mono font-black text-xs md:text-sm text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
-                title="Click to view details"
-              >
-                {q.quotation_no}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(`/marketing/quotations?id=${q.id}&action=view`, '_blank');
-                }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-                title="Open quotation in new tab"
-              >
-                <ExternalLink size={12} />
-              </button>
-            </div>
-            <p className="text-[10px] text-zinc-500 font-bold truncate max-w-[140px]" title={q.title}>
-              {q.title}
-            </p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => onViewDetails(q)}
+              className="font-mono font-black text-xs md:text-sm text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
+              title="Click to view details"
+            >
+              {q.quotation_no}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/marketing/quotations?id=${q.id}&action=view`, '_blank');
+              }}
+              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
+              title="Open quotation in new tab"
+            >
+              <ExternalLink size={13.5} />
+            </button>
           </div>
         </div>
       )
@@ -161,7 +179,7 @@ export default function QuotationList({
               className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
               title="Open customer in new tab"
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={13.5} />
             </button>
           </div>
         ) : (
@@ -172,8 +190,27 @@ export default function QuotationList({
       )
     },
     {
+      header: 'Branch',
+      className: 'w-[110px] whitespace-nowrap',
+      sortValue: (q) => {
+        const b = branches.find(br => String(br.id) === String(q.branch_id || (q.organizations as any)?.branch_id));
+        return b ? b.name : (q as any).branches?.name || '';
+      },
+      accessor: (q) => {
+        const b = branches.find(br => String(br.id) === String(q.branch_id || (q.organizations as any)?.branch_id));
+        const branchName = b ? b.name : (q as any).branches?.name || null;
+        return branchName ? (
+          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 truncate inline-block max-w-[100px]" title={branchName}>
+            {branchName}
+          </span>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+        );
+      }
+    },
+    {
       header: 'Design Code',
-      className: 'w-[120px] whitespace-nowrap',
+      className: 'w-[100px] whitespace-nowrap',
       sortValue: (q) => q.group_design_number?.code || '',
       accessor: (q) => (
         <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
@@ -183,7 +220,7 @@ export default function QuotationList({
     },
     {
       header: 'Delivery Date',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[120px] whitespace-nowrap',
       sortValue: (q) => q.expected_delivery_date || '',
       accessor: (q) => (
         <div>
@@ -200,7 +237,7 @@ export default function QuotationList({
     },
     {
       header: 'Value',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[120px] whitespace-nowrap',
       sortValue: (q) => Number(q.final_quote_value || 0),
       accessor: (q) => (
         <div>
@@ -264,127 +301,160 @@ export default function QuotationList({
     }
   ];
 
+  const handlePrintQuotations = (sortedData: Quotation[], sortInfo: SortInfo<Quotation>) => {
+    const printedAt = new Date().toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const activeBranchName = selectedBranch === 'ALL'
+      ? 'All Branches'
+      : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
+
+    const rowsHtml = sortedData.map((q, idx) => {
+      const b = branches.find(br => String(br.id) === String(q.branch_id || (q.organizations as any)?.branch_id));
+      const branchName = b ? b.name : (q as any).branches?.name || '—';
+      return `
+      <tr>
+        <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
+        <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${q.title || 'Quotation Estimate'}</td>
+        <td style="font-size: 10px; color: #4a5568;">${q.organizations?.name || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568;">${branchName}</td>
+        <td style="font-size: 10px; font-weight: bold; font-family: monospace; text-align: right; color: #1a202c;">
+          ₹${(parseFloat(String(q.final_quote_value)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.created_at)}</td>
+        <td style="text-align: center;">
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: bold; text-transform: uppercase; background: #e0f2fe; color: #0369a1;">
+            ${q.status}
+          </span>
+        </td>
+      </tr>
+    `;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Quotations Registry Report - Forma Apparels</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #1a202c; padding: 24px; font-size: 11px; }
+    @page { size: landscape; margin: 8mm; }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3a525d; padding-bottom: 14px; margin-bottom: 14px; }
+    .brand-title { font-size: 22px; font-weight: 900; color: #3a525d; }
+    .brand-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #2d8d9b; font-weight: 800; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 9px; text-transform: uppercase; font-weight: 800; color: #3a525d; }
+    td { border: 1px solid #e2e8f0; padding: 6px 10px; }
+    tr:nth-child(even) { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="report-header">
+    <div>
+      <div class="brand-title">FORMA APPARELS</div>
+      <div class="brand-subtitle">Central Manufacturing & Institutional Distribution</div>
+      <div style="font-size: 14px; font-weight: 800; color: #2d8d9b; margin-top: 6px;">Quotations Registry Report</div>
+    </div>
+    <div style="text-align: right; font-size: 10px; color: #4a5568;">
+      <div><strong>Printed:</strong> ${printedAt}</div>
+      <div><strong>Branch:</strong> ${activeBranchName}</div>
+      <div><strong>Total Records:</strong> ${sortedData.length}</div>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35px;">#</th>
+        <th>QT No.</th>
+        <th>Title / Description</th>
+        <th>Customer</th>
+        <th>Branch</th>
+        <th style="text-align: right;">Total Value</th>
+        <th style="text-align: center;">Created Date</th>
+        <th style="text-align: center;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="8" style="text-align: center; padding: 20px;">No quotations matching filters</td></tr>'}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(html);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 250);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* STATS OVERVIEW CARDS (Matching Customers Page Style) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Quotations */}
-        <div
-          onClick={() => setActiveFilter('all')}
-          className={`bg-white p-5 rounded-3xl shadow-xs border transition-all cursor-pointer flex items-center justify-between ${
-            activeFilter === 'all'
-              ? 'border-[#3a525d] ring-2 ring-[#3a525d]/10'
-              : 'border-[#fce4d4] hover:border-[#3a525d]/40'
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">Total Quotations</p>
-            <h3 className="text-3xl font-black text-[#3a525d] tracking-tight">{quotations.length}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d]">
-            <Layers size={22} />
-          </div>
-        </div>
-
-        {/* Awaiting BM Sign-off */}
-        <div
-          onClick={() => setActiveFilter(activeFilter === 'pending_bm' ? 'all' : 'pending_bm')}
-          className={`bg-white p-5 rounded-3xl shadow-xs border transition-all cursor-pointer flex items-center justify-between ${
-            activeFilter === 'pending_bm'
-              ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20'
-              : 'border-[#fce4d4] hover:border-amber-300'
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 mb-1">Waiting for BM's Approval</p>
-            <h3 className="text-3xl font-black text-amber-700 tracking-tight">{counts.pending_bm}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700">
-            <ShieldCheck size={22} />
-          </div>
-        </div>
-
-        {/* Under Ops Review */}
-        <div
-          onClick={() => setActiveFilter(activeFilter === 'pending_ops' ? 'all' : 'pending_ops')}
-          className={`bg-white p-5 rounded-3xl shadow-xs border transition-all cursor-pointer flex items-center justify-between ${
-            activeFilter === 'pending_ops'
-              ? 'border-sky-500 ring-2 ring-sky-500/20 bg-sky-50/20'
-              : 'border-[#fce4d4] hover:border-sky-300'
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-600 mb-1">Under Ops Review</p>
-            <h3 className="text-3xl font-black text-sky-600 tracking-tight">{counts.pending_ops}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600">
-            <Clock size={22} />
-          </div>
-        </div>
-
-        {/* Approved Quotes */}
-        <div
-          onClick={() => setActiveFilter(activeFilter === 'approved' ? 'all' : 'approved')}
-          className={`bg-white p-5 rounded-3xl shadow-xs border transition-all cursor-pointer flex items-center justify-between ${
-            activeFilter === 'approved'
-              ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
-              : 'border-[#fce4d4] hover:border-emerald-300'
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-1">Approved Quotes</p>
-            <h3 className="text-3xl font-black text-emerald-600 tracking-tight">{counts.approved}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 size={22} />
-          </div>
-        </div>
-      </div>
-
       <DataTable
-        title="Quotations Registry"
-        subtitle="Manage client proposals, estimation breakdowns, and approval lifecycle"
         columns={columns}
         data={filteredQuotations}
         isLoading={isLoading}
         searchPlaceholder="Search quotations by title, code, or customer..."
+        onPrint={handlePrintQuotations}
         headerAction={
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
-            {/* Status Dropdown Filter */}
-            <div className="flex items-center gap-2">
-              <select
-                value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value as any)}
-                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-black uppercase tracking-wider text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="all">All Quotes ({counts.all})</option>
-                <option value="pending_bm">Waiting for BM's Approval ({counts.pending_bm})</option>
-                <option value="pending_ops">Under Ops Review ({counts.pending_ops})</option>
-                <option value="approved">Approved Quotes ({counts.approved})</option>
-                <option value="drafts">Drafts Only ({counts.drafts})</option>
-              </select>
-            </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* 1. Branch Filter */}
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="ALL">All Branches ({quotations.length})</option>
+              {branches.map((b) => {
+                const count = quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(b.id)).length;
+                return (
+                  <option key={b.id} value={String(b.id)}>
+                    {b.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
 
-            {/* Customer / Organization Filter */}
-            {organizations && organizations.length > 0 && (
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedOrgId}
-                  onChange={(e) => setSelectedOrgId(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-                >
-                  <option value="ALL">All Customers ({quotations.length})</option>
-                  {organizations.map((org) => {
-                    const count = quotations.filter((q) => q.organization_id === org.id).length;
-                    return (
-                      <option key={org.id} value={String(org.id)}>
-                        {org.name} ({count})
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-            )}
+            {/* 2. Status Dropdown Filter */}
+            <select
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value as any)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="all">All Quotes ({counts.all})</option>
+              <option value="pending_bm">Waiting for BM's Approval ({counts.pending_bm})</option>
+              <option value="pending_ops">Under Ops Review ({counts.pending_ops})</option>
+              <option value="approved">Approved Quotes ({counts.approved})</option>
+              <option value="drafts">Drafts Only ({counts.drafts})</option>
+            </select>
+
+            {/* 3. Sector / Industry Filter */}
+            <select
+              value={selectedIndustry}
+              onChange={(e) => setSelectedIndustry(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="ALL">All Sectors ({quotations.length})</option>
+              {industries.map((ind) => {
+                const count = quotations.filter((q) => String((q.organizations as any)?.industry_id || '') === String(ind.id)).length;
+                return (
+                  <option key={ind.id} value={String(ind.id)}>
+                    {ind.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
           </div>
         }
       />

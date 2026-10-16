@@ -35,7 +35,7 @@ export default function EntitiesRoot() {
 
   const actions = [
     {
-      title: 'Customer Rosters & Directories',
+      title: 'Customer member & Directories',
       description: 'Access entity member directories, manage active student/employee rosters by partner organization.',
       href: '/customers',
       icon: Building2,

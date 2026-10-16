@@ -1268,7 +1268,7 @@ Forma Apparels Co.`;
                   </div>
                 ) : (
                   <p className="text-4xl font-black tracking-tighter text-[#2d8d9b] font-mono">
-                    ₹{Number(selectedQuotation.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{Number(pricing.finalValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 )}
               </div>

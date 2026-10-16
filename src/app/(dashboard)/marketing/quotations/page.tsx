@@ -30,10 +30,10 @@ export interface Organization {
   city?: string | null;
   state?: string | null;
   pincode?: string | null;
-  pin_code?: string | null;
   country?: string | null;
   phone?: string | null;
   email?: string | null;
+  branch_id?: number | null;
 }
 
 export interface ProductType {
@@ -58,6 +58,7 @@ export interface Quotation {
   quotation_no: string;
   title: string;
   organization_id: number;
+  branch_id?: number | null;
   organizations?: Organization;
   estimated_expenses: number;
   total_estimated_time: string;

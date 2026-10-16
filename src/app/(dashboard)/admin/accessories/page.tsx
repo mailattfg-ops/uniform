@@ -597,7 +597,8 @@ export default function AccessoriesAndTradeCatalogPage() {
   const computeTradeArtNumber = useMemo(() => {
     const { dress_prefix, gender_code, pattern_code, fit, allowance } = tradeFormData;
     if (!dress_prefix || !gender_code) return '';
-    const pat = pattern_code || nextPatternCode || '001';
+    const rawPat = (pattern_code || nextPatternCode || '001').trim();
+    const pat = /^\d+$/.test(rawPat) && rawPat.length < 3 ? rawPat.padStart(3, '0') : rawPat;
     let fitCode = 'R';
     if (fit) {
       const matched = fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase());

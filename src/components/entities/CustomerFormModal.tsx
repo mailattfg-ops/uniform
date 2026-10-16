@@ -15,6 +15,8 @@ import {
   X
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
+import { capitalizeWords } from '@/lib/formatters';
+
 
 export interface CustomerFormModalProps {
   isOpen: boolean;
@@ -32,7 +34,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   industries
 }) => {
   const [name, setName] = useState('');
+  const [contactTitle, setContactTitle] = useState('Mr.');
   const [contactPerson, setContactPerson] = useState('');
+  const [contactDesignation, setContactDesignation] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [industryId, setIndustryId] = useState('');
@@ -58,8 +62,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   useEffect(() => {
     if (editingCustomer) {
       setName(editingCustomer.name || '');
+      setContactTitle(editingCustomer.contact_title || 'Mr.');
       setContactPerson(editingCustomer.contact_person || '');
-      setPhone(editingCustomer.phone || editingCustomer.contact_number || editingCustomer.contact_phone || '');
+      setContactDesignation(editingCustomer.contact_designation || '');
+      setPhone(editingCustomer.contact_number || editingCustomer.phone || '');
       setEmail(editingCustomer.email || editingCustomer.contact_email || '');
       setIndustryId(editingCustomer.industry_id ? String(editingCustomer.industry_id) : '');
       setClientTag(
@@ -69,7 +75,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setAddress(editingCustomer.address || '');
       setCity(editingCustomer.city || '');
       setState(editingCustomer.state || '');
-      setPincode(editingCustomer.pincode || editingCustomer.pin_code || '');
+      setPincode(editingCustomer.pincode || '');
       setCountry(editingCustomer.country || 'India');
       setReceivables(
         editingCustomer.receivables !== undefined && editingCustomer.receivables !== null
@@ -90,7 +96,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setIsUsernameManuallyEdited(false);
     } else {
       setName('');
+      setContactTitle('Mr.');
       setContactPerson('');
+      setContactDesignation('');
       setPhone('');
       setEmail('');
       setIndustryId(industries.length > 0 ? String(industries[0].id) : '');
@@ -130,7 +138,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     try {
       await onSubmit({
         name: name.trim(),
+        contact_title: contactTitle,
         contact_person: contactPerson.trim() || null,
+        contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
         email: email.trim() || null,
         industry_id: industryId || null,
@@ -185,40 +195,70 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto flex-1">
-          {/* Company / Customer Name & Contact Person in 2 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Building2 size={13} className="text-[#2d8d9b]" />
-                Customer / Institution Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (!editingCustomer && !isUsernameManuallyEdited) {
-                    const clean = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
-                    setUsername(clean);
-                  }
-                }}
-                placeholder="e.g. St. Xavier International, Apollo Healthcare"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <User size={13} className="text-[#2d8d9b]" />
-                Contact Person (Optional)
-              </label>
-              <input
-                type="text"
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-                placeholder="e.g. Dr. Rajesh Sharma (Principal / Purchase Head)"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
+          {/* Customer / Institution Name */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <Building2 size={13} className="text-[#2d8d9b]" />
+              Customer / Institution Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => {
+                const capitalized = capitalizeWords(e.target.value);
+                setName(capitalized);
+                if (!editingCustomer && !isUsernameManuallyEdited) {
+                  const clean = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+                  setUsername(clean);
+                }
+              }}
+              autoCapitalize="words"
+              placeholder="e.g. St. Xavier International, Apollo Healthcare"
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+            />
+          </div>
+
+          {/* Contact Person Details: Title + Full Name + Designation */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <User size={13} className="text-[#2d8d9b]" />
+              Contact Person Details
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-3">
+                <select
+                  value={contactTitle}
+                  onChange={(e) => setContactTitle(e.target.value)}
+                  className="w-full px-3 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+                >
+                  <option value="Mr.">Mr.</option>
+                  <option value="Mrs.">Mrs.</option>
+                  <option value="Ms.">Ms.</option>
+                  <option value="Dr.">Dr.</option>
+                  <option value="Prof.">Prof.</option>
+                </select>
+              </div>
+              <div className="sm:col-span-5">
+                <input
+                  type="text"
+                  value={contactPerson}
+                  onChange={(e) => setContactPerson(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="Full Name (e.g. Rajesh Sharma)"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <div className="sm:col-span-4">
+                <input
+                  type="text"
+                  value={contactDesignation}
+                  onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="Designation (e.g. Principal / Purchase Head)"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
             </div>
           </div>
 
@@ -344,7 +384,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 type="text"
                 maxLength={200}
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => setAddress(capitalizeWords(e.target.value))}
+                autoCapitalize="words"
                 placeholder="Campus address, Street, Building"
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
@@ -360,7 +401,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   type="text"
                   maxLength={100}
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => setCity(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
                   placeholder="e.g. Mumbai, Bengaluru"
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
@@ -373,7 +415,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   type="text"
                   maxLength={100}
                   value={state}
-                  onChange={(e) => setState(e.target.value)}
+                  onChange={(e) => setState(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
                   placeholder="e.g. Maharashtra, Karnataka"
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
@@ -403,7 +446,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   type="text"
                   maxLength={100}
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
+                  onChange={(e) => setCountry(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
                   placeholder="e.g. India"
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
