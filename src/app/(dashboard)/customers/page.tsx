@@ -47,6 +47,8 @@ interface Customer {
   pincode?: string | null;
   country?: string | null;
   branch_id?: number | null;
+  zone_id?: number | null;
+  zones?: { id: number; name: string; code?: string } | null;
   industry_id: number;
   industries?: { name: string };
   relationship_manager_id: number | null;
@@ -129,18 +131,16 @@ function compileCustomerDirectoryHTML({
     return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${custId}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; font-size: 10px;">${custId}</td>
         <td>
           <div style="font-weight: 800; color: #1a202c; font-size: 11px;">${name}</div>
           ${sector ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${branchName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
           ${c.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${c.contact_designation}</div>` : ''}
         </td>
         <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${phone}</td>
-        <td style="font-size: 10px; color: #4a5568;">${salesPerson}</td>
         <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${receivables > 0 ? '#e53e3e' : '#4a5568'}; white-space: nowrap;">
           ₹${receivables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>
@@ -412,18 +412,16 @@ function compileCustomerDirectoryHTML({
     <thead>
       <tr>
         <th style="width: 25px;">#</th>
-        <th style="width: 70px;">ID</th>
-        <th>Customer Name</th>
-        <th>Branch</th>
-        <th>Contact Person</th>
-        <th>Contact Number</th>
-        <th>Sales Person</th>
-        <th style="text-align: right; width: 85px;">Receivables</th>
-        <th style="text-align: right; width: 80px;">Credits</th>
+        <th style="width: 80px;">CUST. ID</th>
+        <th>CUSTOMER NAME</th>
+        <th>CONTACT PERSON</th>
+        <th>CONTACT PHONE</th>
+        <th style="text-align: right; width: 85px;">RECEIVABLES</th>
+        <th style="text-align: right; width: 80px;">CREDITS</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #718096;">No customer records matching the active filters.</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #718096;">No customer records matching the active filters.</td></tr>'}
     </tbody>
   </table>
 
@@ -446,6 +444,7 @@ export default function CustomersRegistry() {
   // Filters
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [branches, setBranches] = useState<any[]>([]);
+  const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'SPECIAL' | 'RISK'>('ALL');
   
@@ -546,21 +545,30 @@ export default function CustomersRegistry() {
     ['organisation', 'organization', 'school', 'entity', 'student', 'member'].includes((currentUser?.role || '').toLowerCase())
   );
 
+  const [zones, setZones] = useState<any[]>([]);
+
+  const availableFilterZones = useMemo(() => {
+    if (selectedBranch === 'ALL') return zones;
+    return zones.filter(z => String(z.branch_id) === selectedBranch);
+  }, [zones, selectedBranch]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [custRes, indRes, empRes, invRes, branchRes] = await Promise.all([
+      const [custRes, indRes, empRes, invRes, branchRes, zoneRes] = await Promise.all([
         api.get('/customers').catch(() => api.get('/organizations')).catch(() => ({ data: [] })),
         api.get('/industries').catch(() => ({ data: [] })),
         api.get('/employees').catch(() => ({ data: [] })),
         api.get('/invoices').catch(() => ({ data: [] })),
-        api.get('/branches').catch(() => ({ data: [] }))
+        api.get('/branches').catch(() => ({ data: [] })),
+        api.get('/zones').catch(() => ({ data: [] }))
       ]);
       setCustomers(custRes.data || []);
       setIndustries(indRes.data || []);
       setEmployees(empRes.data || []);
       setInvoices(invRes.data || []);
       setBranches(branchRes.data || []);
+      setZones(zoneRes.data || []);
     } catch (err) {
       toast.error('Failed to load customer directory data');
       console.error(err);
@@ -672,7 +680,8 @@ export default function CustomersRegistry() {
       state: formData.state?.trim() || null,
       pincode: formData.pincode?.trim() || null,
       country: formData.country?.trim() || 'India',
-      branch_id: currentUser?.branchId || null,
+      branch_id: formData.branch_id ? parseInt(formData.branch_id, 10) : (currentUser?.branchId || null),
+      zone_id: formData.zone_id ? parseInt(formData.zone_id, 10) : null,
       origin: currentUser?.branchId ? 'BRANCH' : 'HQ',
       relationship_manager_id: resolvedRmId,
       is_active: formData.is_active === 'true',
@@ -930,6 +939,11 @@ export default function CustomersRegistry() {
         return false;
       }
 
+      // Zone filter
+      if (selectedZone !== 'ALL' && String(c.zone_id || '') !== selectedZone) {
+        return false;
+      }
+
       // Sector filter
       if (selectedIndustry !== 'ALL' && String(c.industry_id) !== selectedIndustry) {
         return false;
@@ -943,50 +957,46 @@ export default function CustomersRegistry() {
 
       return true;
     });
-  }, [customers, selectedBranch, selectedIndustry, statusFilter]);
+  }, [customers, selectedBranch, selectedZone, selectedIndustry, statusFilter]);
 
-  // Columns definition (ID, Customer Name, Branch, Contact Person, Contact Number, Sales Person, Receivables, Credits)
+  // Exact 6 Standardized Columns:
+  // 1. CUST. ID
+  // 2. CUSTOMER NAME (enlarged Risk & Favorite icons to 18px)
+  // 3. CONTACT PERSON
+  // 4. CONTACT PHONE
+  // 5. RECEIVABLES
+  // 6. CREDITS
   const columns: Column<Customer>[] = [
     {
-      header: 'ID',
-      className: 'w-[85px] whitespace-nowrap',
-      sortValue: (c) => c.customer_code || String(c.id),
-      accessor: (c) => {
-        const idLabel = c.customer_code || `#${c.id}`;
-        const isActive = c.is_active !== false;
-        return (
-          <div className="inline-flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full shrink-0 ${
-                isActive
-                  ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]'
-                  : 'bg-rose-400'
-              }`}
-              title={isActive ? 'Active Customer' : 'Inactive Customer'}
-            />
-            <button
-              type="button"
-              onClick={() => handleViewDetails(c, false)}
-              className="font-mono font-bold text-xs text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer bg-transparent border-none p-0 outline-none"
-              title="Click to view details"
-            >
-              {idLabel}
-            </button>
-          </div>
-        );
-      }
+      header: 'CUST. ID',
+      className: 'w-[100px] whitespace-nowrap',
+      sortValue: (c) => c.customer_code || `#${c.id}`,
+      accessor: (c) => (
+        <span className="font-mono text-xs font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 px-2 py-0.5 rounded-md">
+          {c.customer_code || `#${c.id}`}
+        </span>
+      )
     },
     {
-      header: 'Customer Name',
-      className: 'min-w-[160px] max-w-[280px]',
+      header: 'CUSTOMER NAME',
+      className: 'min-w-[170px] max-w-[280px]',
       sortValue: (c) => c.name,
       accessor: (c) => {
         const isRisk = Boolean(c.is_risk);
         const isSpecial = Boolean(c.is_special);
+        const isActive = c.is_active !== false;
 
         return (
           <div className="group min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isActive
+                    ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]'
+                    : 'bg-rose-400'
+                }`}
+                title={isActive ? 'Active Customer' : 'Inactive Customer'}
+              />
               <button
                 type="button"
                 onClick={() => handleViewDetails(c, false)}
@@ -996,13 +1006,13 @@ export default function CustomersRegistry() {
                 {c.name}
               </button>
               {isRisk && (
-                <span title="Risk Client" className="shrink-0 text-rose-500">
-                  <AlertTriangle size={13} className="stroke-[2.5]" />
+                <span title="Risk Client" className="shrink-0 text-rose-500 transition-transform hover:scale-110">
+                  <AlertTriangle size={18} className="stroke-[2.5]" />
                 </span>
               )}
               {isSpecial && (
-                <span title="Favourite Client" className="shrink-0 text-amber-500">
-                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                <span title="Favourite Client" className="shrink-0 text-amber-500 transition-transform hover:scale-110">
+                  <Star size={18} className="fill-amber-400 text-amber-400" />
                 </span>
               )}
               <button
@@ -1018,7 +1028,7 @@ export default function CustomersRegistry() {
               </button>
             </div>
             {c.industries?.name && (
-              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
+              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5 ml-4">
                 {c.industries.name}
               </p>
             )}
@@ -1027,26 +1037,7 @@ export default function CustomersRegistry() {
       }
     },
     {
-      header: 'Branch',
-      className: 'w-[110px] whitespace-nowrap',
-      sortValue: (c) => {
-        const b = branches.find(br => String(br.id) === String(c.branch_id));
-        return b ? b.name : (c as any).branches?.name || '';
-      },
-      accessor: (c) => {
-        const b = branches.find(br => String(br.id) === String(c.branch_id));
-        const branchName = b ? b.name : (c as any).branches?.name || null;
-        return branchName ? (
-          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 truncate inline-block max-w-[100px]" title={branchName}>
-            {branchName}
-          </span>
-        ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
-        );
-      }
-    },
-    {
-      header: 'Contact Person',
+      header: 'CONTACT PERSON',
       className: 'min-w-[130px] max-w-[200px] whitespace-nowrap',
       sortValue: (c) => c.contact_person || '',
       accessor: (c) => (
@@ -1067,8 +1058,8 @@ export default function CustomersRegistry() {
       )
     },
     {
-      header: 'Contact Number',
-      className: 'w-[125px] whitespace-nowrap',
+      header: 'CONTACT PHONE',
+      className: 'w-[130px] whitespace-nowrap',
       sortValue: (c) => c.contact_number || c.phone || '',
       accessor: (c) => {
         const num = c.contact_number || c.phone;
@@ -1087,34 +1078,8 @@ export default function CustomersRegistry() {
       }
     },
     {
-      header: 'Sales Person',
-      className: 'min-w-[150px] max-w-[200px] whitespace-nowrap',
-      sortValue: (c) => c.relationship_manager?.full_name || '',
-      accessor: (c) => (
-        c.relationship_manager ? (
-          <div className="flex items-center gap-2 min-w-0 max-w-[190px]">
-            <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
-              <Users size={12} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#3a525d] truncate block" title={c.relationship_manager.full_name}>
-                {c.relationship_manager.full_name}
-              </p>
-              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
-                {c.relationship_manager.employee_id}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <span className="px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
-            Unassigned
-          </span>
-        )
-      )
-    },
-    {
-      header: 'Receivables',
-      className: 'w-[115px] whitespace-nowrap text-right',
+      header: 'RECEIVABLES',
+      className: 'w-[120px] whitespace-nowrap text-right',
       sortValue: (c) => Number(c.receivables ?? 0),
       accessor: (c) => {
         const amt = Number(c.receivables ?? 0);
@@ -1132,8 +1097,8 @@ export default function CustomersRegistry() {
       }
     },
     {
-      header: 'Credits',
-      className: 'w-[115px] whitespace-nowrap text-right',
+      header: 'CREDITS',
+      className: 'w-[120px] whitespace-nowrap text-right',
       sortValue: (c) => {
         let amt = Number(c.credits ?? 0);
         if (amt === 0 && invoices && invoices.length > 0) {
@@ -1208,11 +1173,11 @@ export default function CustomersRegistry() {
         columns={columns}
         data={filteredCustomers}
         isLoading={isLoading}
-        searchPlaceholder="Search customers by code, name, location, sector, manager..."
+        searchPlaceholder="Search"
         onPrint={handlePrintCustomers}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Branch Filter */}
+            {/* 1. Branch Filter */}
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
@@ -1226,7 +1191,7 @@ export default function CustomersRegistry() {
               ))}
             </select>
             
-            {/* USER REQUEST: Dropdown Filter for All, Active, Inactive, Favourite, Risk */}
+            {/* 2. Customers Dropdown Filter: All, Active, Inactive, Special, Risk */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -1239,7 +1204,24 @@ export default function CustomersRegistry() {
               <option value="RISK">⚠ Risk Customers ({stats.riskCount})</option>
             </select>
 
-            {/* Sector / Industry Filter */}
+            {/* 3. Zone Filter */}
+            <select
+              value={selectedZone}
+              onChange={(e) => setSelectedZone(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+            >
+              <option value="ALL">All Zones ({customers.length})</option>
+              {availableFilterZones.map(z => {
+                const count = customers.filter(c => String(c.zone_id) === String(z.id)).length;
+                return (
+                  <option key={z.id} value={String(z.id)}>
+                    {z.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
+
+            {/* 4. Sector / Industry Filter */}
             <select
               value={selectedIndustry}
               onChange={(e) => setSelectedIndustry(e.target.value)}
@@ -1286,6 +1268,8 @@ export default function CustomersRegistry() {
         onSubmit={handleAddOrUpdate}
         editingCustomer={editingCustomer}
         industries={industries}
+        branches={branches}
+        zones={zones}
       />
 
       {/* Financial Breakdown Modal */}

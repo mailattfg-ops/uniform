@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Building2,
   User,
@@ -14,9 +14,9 @@ import {
   Key,
   X
 } from 'lucide-react';
+import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { capitalizeWords } from '@/lib/formatters';
-
 
 export interface CustomerFormModalProps {
   isOpen: boolean;
@@ -24,6 +24,8 @@ export interface CustomerFormModalProps {
   onSubmit: (formData: any) => Promise<void>;
   editingCustomer?: any | null;
   industries: { id: number; name: string }[];
+  branches?: { id: number; name: string; code?: string }[];
+  zones?: { id: number; name: string; code?: string; branch_id: number }[];
 }
 
 export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
@@ -31,7 +33,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   onClose,
   onSubmit,
   editingCustomer,
-  industries
+  industries,
+  branches,
+  zones
 }) => {
   const [name, setName] = useState('');
   const [contactTitle, setContactTitle] = useState('Mr.');
@@ -45,6 +49,12 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [username, setUsername] = useState('');
   const [isUsernameManuallyEdited, setIsUsernameManuallyEdited] = useState(false);
   
+  // Branch & Zone
+  const [branchesList, setBranchesList] = useState<{ id: number; name: string; code?: string }[]>(branches || []);
+  const [zonesList, setZonesList] = useState<{ id: number; name: string; code?: string; branch_id: number }[]>(zones || []);
+  const [branchId, setBranchId] = useState('');
+  const [zoneId, setZoneId] = useState('');
+
   // Address
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -60,6 +70,22 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!branches || branches.length === 0) {
+      api.get('/branches').then(res => setBranchesList(res.data || [])).catch(() => {});
+    } else {
+      setBranchesList(branches);
+    }
+  }, [branches]);
+
+  useEffect(() => {
+    if (!zones || zones.length === 0) {
+      api.get('/zones').then(res => setZonesList(res.data || [])).catch(() => {});
+    } else {
+      setZonesList(zones);
+    }
+  }, [zones]);
+
+  useEffect(() => {
     if (editingCustomer) {
       setName(editingCustomer.name || '');
       setContactTitle(editingCustomer.contact_title || 'Mr.');
@@ -68,6 +94,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setPhone(editingCustomer.contact_number || editingCustomer.phone || '');
       setEmail(editingCustomer.email || editingCustomer.contact_email || '');
       setIndustryId(editingCustomer.industry_id ? String(editingCustomer.industry_id) : '');
+      setBranchId(editingCustomer.branch_id ? String(editingCustomer.branch_id) : '');
+      setZoneId(editingCustomer.zone_id ? String(editingCustomer.zone_id) : '');
       setClientTag(
         editingCustomer.is_special ? 'special' : editingCustomer.is_risk ? 'risk' : (editingCustomer.client_tag || 'standard')
       );
@@ -102,6 +130,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setPhone('');
       setEmail('');
       setIndustryId(industries.length > 0 ? String(industries[0].id) : '');
+      setBranchId('');
+      setZoneId('');
       setClientTag('standard');
       setIsActive(true);
       setUsername('');
@@ -116,6 +146,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setCreditPeriodDays('30');
     }
   }, [editingCustomer, isOpen, industries]);
+
+  const availableZones = useMemo(() => {
+    if (!branchId) return [];
+    return zonesList.filter(z => String(z.branch_id) === String(branchId));
+  }, [zonesList, branchId]);
 
   if (!isOpen) return null;
 
@@ -144,6 +179,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         phone: phone.trim(),
         email: email.trim() || null,
         industry_id: industryId || null,
+        branch_id: branchId ? parseInt(branchId, 10) : null,
+        zone_id: zoneId ? parseInt(zoneId, 10) : null,
         client_tag: clientTag,
         is_active: isActive ? 'true' : 'false',
         username: username.trim(),
@@ -339,6 +376,49 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
               >
                 <option value="true">Active Account</option>
                 <option value="false">Inactive Account</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Branch & Zone Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Building2 size={13} className="text-[#2d8d9b]" />
+                Assigned Branch
+              </label>
+              <select
+                value={branchId}
+                onChange={(e) => {
+                  setBranchId(e.target.value);
+                  setZoneId('');
+                }}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+              >
+                <option value="">HQ / Unassigned Branch</option>
+                {branchesList.map((b) => (
+                  <option key={b.id} value={String(b.id)}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#2d8d9b]" />
+                Assigned Zone {branchId ? `(${availableZones.length})` : ''}
+              </label>
+              <select
+                value={zoneId}
+                onChange={(e) => setZoneId(e.target.value)}
+                disabled={!branchId}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white disabled:bg-zinc-50 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
+              >
+                <option value="">{branchId ? (availableZones.length > 0 ? 'Select Zone' : 'No zones for this branch') : 'Select Branch first'}</option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={String(z.id)}>
+                    {z.name} {z.code ? `(${z.code})` : ''}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

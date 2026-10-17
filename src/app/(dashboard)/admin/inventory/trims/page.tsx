@@ -726,7 +726,7 @@ export default function TrimsCatalogPage() {
           columns={columns}
           data={filteredTrims}
           isLoading={isLoading}
-          searchPlaceholder="Search trims by code, name, category, material..."
+          searchPlaceholder="Search"
           headerAction={
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
               {/* Category Filter Dropdown */}

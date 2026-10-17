@@ -47,8 +47,11 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/billing', permissions: ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'] },
 
   // Registry & Client CRM
-  { prefix: '/crm', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'manage_quotations', 'view_quotations'] },
-  { prefix: '/customers', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students'] },
+  { prefix: '/crm', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'view_all_leads', 'manage_quotations', 'view_quotations'] },
+  { prefix: '/customers/feeds', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'view_all_leads', 'manage_lead_stage_feeds'] },
+  { prefix: '/customers/leads', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'view_all_leads'] },
+  { prefix: '/customers/deals', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'view_all_leads', 'manage_quotations'] },
+  { prefix: '/customers', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students', 'view_leads', 'manage_leads', 'view_all_leads'] },
   { prefix: '/organizations', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_own_students'] },
   { prefix: '/entities', permissions: ['view_students', 'register_students', 'view_own_students'] },
   { prefix: '/measurements', permissions: ['manage_measurements', 'view_measurements', 'view_own_measurements'] },
