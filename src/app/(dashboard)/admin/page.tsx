@@ -32,9 +32,9 @@ export default function AdminSettingsDashboardPage() {
       const [indRes, empRes, rolRes, scRes, msRes, brRes] = await Promise.allSettled([
         api.get('/industries'),
         api.get('/employees'),
-        api.get('/roles'),
+        api.get('/user/types').catch(() => api.get('/roles')),
         api.get('/size-charts'),
-        api.get('/measures'),
+        api.get('/measurements/config').catch(() => api.get('/measures')),
         api.get('/branches')
       ]);
 

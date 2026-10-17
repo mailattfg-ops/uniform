@@ -735,7 +735,7 @@ export default function JobCardsPage() {
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search by barcode, size, or member..."
+                    placeholder="Search"
                     value={pieceSearch}
                     onChange={(e) => setPieceSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-indigo-500 transition"

@@ -335,7 +335,7 @@ export default function VendorManagementPage() {
           columns={columns}
           data={vendors}
           isLoading={isLoading}
-          searchPlaceholder="Search registered vendors..."
+          searchPlaceholder="Search"
         />
       )}
 

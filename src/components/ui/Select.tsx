@@ -138,7 +138,7 @@ export const Select: React.FC<SelectProps> = ({
                     type="text"
                     value={filterQuery}
                     onChange={(e) => setFilterQuery(e.target.value)}
-                    placeholder="Search options..."
+                    placeholder="Search"
                     className="w-full bg-white border-none py-3 pl-11 pr-4 text-xs font-bold rounded-2xl outline-none ring-1 ring-zinc-100 focus:ring-2 focus:ring-[#2d8d9b]/20 transition-all"
                   />
                   {filterQuery && (

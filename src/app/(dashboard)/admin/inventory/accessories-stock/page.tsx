@@ -294,7 +294,7 @@ export default function AccessoriesStockPage() {
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input 
             type="text" 
-            placeholder="Search accessories by name, code..." 
+            placeholder="Search" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full h-12 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#2d8d9b] transition-all"

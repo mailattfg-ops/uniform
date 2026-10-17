@@ -423,7 +423,7 @@ export default function OperationTeamPage() {
             data={filteredQuotations}
             title="Quotation Submissions"
             subtitle="Verified client contracts processed by operations team"
-            searchPlaceholder="Search quotation number, title, customer..."
+            searchPlaceholder="Search"
             isLoading={isLoading}
           />
         </>

@@ -389,7 +389,7 @@ export default function SAMReports() {
               subtitle="Overview of catalog product SAM templates and values"
               columns={productColumns}
               data={productReport}
-              searchPlaceholder="Search catalog products..."
+              searchPlaceholder="Search"
             />
           )}
 

@@ -32,11 +32,19 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { id: 'manage_branches', label: 'Manage Branches & Outlets', category: 'System & Security', description: 'Configure retail outlets, factories, corporate HQ, and credentials' },
 
   // ── 2. Customer CRM & Leads ──
+  { id: 'view_all_leads', label: 'View All Leads (Global / HQ / Telecalling)', category: 'Customer CRM & Leads', description: 'Access and search all leads across all branches, telecallers, and sales reps globally' },
+  { id: 'view_leads', label: 'View Inward Leads Registry', category: 'Customer CRM & Leads', description: 'Inspect prospective client inquiries and inbound lead records (scoped to branch/assigned)' },
+  { id: 'manage_leads', label: 'Manage Leads (Create & Edit Details)', category: 'Customer CRM & Leads', description: 'Register new leads, edit client profile, contact details, and requirements' },
+  { id: 'manage_lead_stage_feeds', label: 'Lead Stage: Log & Convert Feeds', category: 'Customer CRM & Leads', description: 'Process raw field agent feeds, log responses, and convert into active leads' },
+  { id: 'manage_lead_stage_assign_branch', label: 'Lead Stage: Assign Branch (Open Leads)', category: 'Customer CRM & Leads', description: 'Route and assign unassigned Open Leads from HQ intake to specific branches' },
+  { id: 'manage_lead_stage_assign_staff', label: 'Lead Stage: Assign Sales Rep (New Leads)', category: 'Customer CRM & Leads', description: 'Assign or reassign designated sales executives and relationship managers to New Leads' },
+  { id: 'manage_lead_stage_sales_contact', label: 'Lead Stage: Initiate Sales Outreach (Sales Leads)', category: 'Customer CRM & Leads', description: 'Initiate outbound contact for assigned sales leads and transition them to active follow-up queue' },
+  { id: 'manage_lead_stage_followups', label: 'Lead Stage: Follow-up & Cold Tagging (Follow-ups)', category: 'Customer CRM & Leads', description: 'Log ongoing communication notes, advance to meetings, or tag as cold lead' },
+  { id: 'manage_lead_stage_meetings', label: 'Lead Stage: Record Meeting Outcome (Meetings)', category: 'Customer CRM & Leads', description: 'Record pitch/presentation outcome, advance to Hot Lead, or reject back to follow-up queue' },
+  { id: 'manage_lead_stage_hot_leads', label: 'Lead Stage: Qualify Hot Leads & Convert to Customer', category: 'Customer CRM & Leads', description: 'Qualify hot leads, convert to permanent organization accounts, and initiate quotation process' },
   { id: 'view_organizations', label: 'View Organizations & Clients', category: 'Customer CRM & Leads', description: 'Browse corporate client accounts, billing profiles, and contact details' },
   { id: 'manage_schools', label: 'Manage Organizations & Schools', category: 'Customer CRM & Leads', description: 'Register, edit, configure, and onboard client institutions and schools' },
   { id: 'view_schools', label: 'View Schools & Institutions', category: 'Customer CRM & Leads', description: 'Browse school directories, corporate accounts, and client portals' },
-  { id: 'view_leads', label: 'View Inward Leads Registry', category: 'Customer CRM & Leads', description: 'Inspect prospective client inquiries and inbound lead records' },
-  { id: 'manage_leads', label: 'Manage & Convert Leads', category: 'Customer CRM & Leads', description: 'Create, update, assign, and convert sales leads into customers' },
 
   // ── 3. Members & Student Registry ──
   { id: 'view_students', label: 'View Student / Member Registry', category: 'Members & Student Registry', description: 'Browse enrolled students, employees, and organization members' },
@@ -126,6 +134,8 @@ export const ROLE_PRESETS: RolePreset[] = [
     permissions: [
       'branch_inventory', 'branch_sales', 'branch_transfers',
       'view_employees', 'view_organizations', 'manage_schools', 'view_schools',
+      'view_leads', 'manage_leads', 'manage_lead_stage_assign_staff', 'manage_lead_stage_sales_contact',
+      'manage_lead_stage_followups', 'manage_lead_stage_meetings', 'manage_lead_stage_hot_leads',
       'manage_classes', 'manage_departments', 'view_students', 'register_students',
       'manage_students', 'view_products', 'manage_products', 'view_measurements',
       'manage_measurements', 'manage_quotations', 'view_quotations', 'manage_invoices', 'view_invoices',
@@ -140,7 +150,17 @@ export const ROLE_PRESETS: RolePreset[] = [
       'branch_inventory', 'branch_sales', 'view_organizations',
       'view_schools', 'view_students', 'register_students',
       'view_products', 'view_measurements', 'manage_measurements',
-      'view_quotations', 'view_invoices', 'manage_orders'
+      'view_quotations', 'view_invoices', 'manage_orders', 'view_leads'
+    ]
+  },
+  {
+    name: 'Telecalling & CRM Intake',
+    badge: 'HQ Telecalling',
+    description: 'Global lead intake, telecalling follow-ups, field feed qualification & branch routing',
+    permissions: [
+      'view_all_leads', 'view_leads', 'manage_leads',
+      'manage_lead_stage_feeds', 'manage_lead_stage_assign_branch',
+      'manage_lead_stage_followups', 'view_schools', 'view_organizations'
     ]
   },
   {
@@ -166,8 +186,10 @@ export const ROLE_PRESETS: RolePreset[] = [
     description: 'Quotations, pricing, proposals, sales leads, and client accounts',
     permissions: [
       'manage_quotations', 'view_quotations', 'submit_quotations_bm', 'branch_sales',
-      'view_organizations', 'view_schools', 'view_leads', 'manage_leads', 'view_products',
-      'dispatch_proposals'
+      'view_organizations', 'view_schools', 'view_leads', 'manage_leads',
+      'manage_lead_stage_sales_contact', 'manage_lead_stage_followups',
+      'manage_lead_stage_meetings', 'manage_lead_stage_hot_leads',
+      'view_products', 'dispatch_proposals'
     ]
   },
   {
@@ -224,27 +246,39 @@ export function getDefaultPermissionsForDepartment(department: string, designati
   if (dept.includes('measurement') || dept.includes('fitting') || desig.includes('measur')) {
     return ['manage_measurements', 'view_measurements', 'manage_tokens', 'view_schools', 'view_students', 'view_products'];
   }
-  // 4. Sales & Marketing
-  if (dept.includes('sales') || dept.includes('marketing') || desig.includes('sales') || desig.includes('marketing')) {
-    return ['manage_quotations', 'view_quotations', 'submit_quotations_bm', 'branch_sales', 'view_organizations', 'view_schools', 'view_leads', 'manage_leads', 'view_products', 'view_measurements'];
+  // 4. Telecalling & CRM Intake
+  if (dept.includes('telecalling') || dept.includes('call') || dept.includes('tele') || desig.includes('telecaller')) {
+    return ['view_all_leads', 'view_leads', 'manage_leads', 'manage_lead_stage_feeds', 'manage_lead_stage_assign_branch', 'manage_lead_stage_followups', 'view_organizations', 'view_schools'];
   }
-  // 5. Inventory & Logistics
+  // 5. Sales & Marketing
+  if (dept.includes('sales') || dept.includes('marketing') || desig.includes('sales') || desig.includes('marketing')) {
+    return [
+      'manage_quotations', 'view_quotations', 'submit_quotations_bm', 'branch_sales',
+      'view_organizations', 'view_schools', 'view_leads', 'manage_leads',
+      'manage_lead_stage_sales_contact', 'manage_lead_stage_followups',
+      'manage_lead_stage_meetings', 'manage_lead_stage_hot_leads',
+      'view_products', 'view_measurements'
+    ];
+  }
+  // 6. Inventory & Logistics
   if (dept.includes('inventory') || dept.includes('logistics') || dept.includes('warehouse') || desig.includes('inventory') || desig.includes('stock')) {
     return ['view_inventory', 'manage_inventory', 'branch_inventory', 'branch_transfers', 'move_inventory', 'view_products', 'manage_purchase_orders'];
   }
-  // 6. Accounts & Finance
+  // 7. Accounts & Finance
   if (dept.includes('account') || dept.includes('finance') || desig.includes('account') || desig.includes('cashier')) {
     return ['manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank', 'branch_sales', 'view_quotations'];
   }
-  // 7. Human Resources / Admin
+  // 8. Human Resources / Admin
   if (dept.includes('human') || dept.includes('hr') || desig.includes('hr') || desig.includes('admin')) {
     return ['view_employees', 'manage_employees', 'manage_roles', 'view_audit_logs'];
   }
-  // 8. Management & Branch Head
+  // 9. Management & Branch Head
   if (dept.includes('management') || desig.includes('manager')) {
     return [
       'branch_inventory', 'branch_sales', 'branch_transfers', 'view_employees',
       'view_organizations', 'manage_schools', 'view_schools', 'view_students',
+      'view_leads', 'manage_leads', 'manage_lead_stage_assign_staff', 'manage_lead_stage_sales_contact',
+      'manage_lead_stage_followups', 'manage_lead_stage_meetings', 'manage_lead_stage_hot_leads',
       'register_students', 'view_products', 'view_measurements', 'manage_measurements',
       'manage_quotations', 'view_quotations', 'corporate_approver', 'submit_quotations_ops', 'manage_invoices', 'view_invoices'
     ];

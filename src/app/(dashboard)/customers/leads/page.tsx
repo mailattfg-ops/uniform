@@ -9,7 +9,7 @@ import {
   Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus, 
   CheckCircle2, PauseCircle, Building2, FileSpreadsheet, Sparkles, User, 
   Compass, UserCheck, ExternalLink, Flame, Snowflake, ArrowRight,
-  Filter, Layers, Send, ChevronRight, CheckCircle, Navigation, AlertCircle
+  Filter, Layers, Send, ChevronRight, CheckCircle, Navigation, AlertCircle, Lock
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -33,6 +33,17 @@ export const PIPELINE_STAGES = [
 ] as const;
 
 export type PipelineStageKey = typeof PIPELINE_STAGES[number]['key'];
+
+export const ACTIVE_LEAD_STAGES = [
+  { key: 'Open Leads', label: 'Open Leads', desc: 'HQ unassigned intake' },
+  { key: 'New Leads', label: 'New Leads', desc: 'Branch intake / assigned' },
+  { key: 'Sales Leads', label: 'Sales Leads', desc: 'Sales rep assigned' },
+  { key: 'Follow-ups', label: 'Follow-ups', desc: 'Active communication queue' },
+  { key: 'Meetings', label: 'Meetings', desc: 'Pitching & presentation' },
+  { key: 'Hot Leads', label: 'Hot Leads', desc: 'Qualified & approved' }
+] as const;
+
+export const ACTIVE_LEAD_STAGE_KEYS: string[] = ACTIVE_LEAD_STAGES.map(s => s.key);
 
 export type UserIntakeRole = 'salesperson' | 'branch_staff' | 'hq_staff';
 
@@ -60,7 +71,7 @@ export const getUserIntakeRole = (currentUser: any): UserIntakeRole => {
   return 'hq_staff';
 };
 
-interface Lead {
+export interface Lead {
   id: number;
   lead_code: string;
   name: string;
@@ -88,6 +99,8 @@ interface Lead {
     designation?: string;
   } | null;
   branch_id?: number | null;
+  zone_id?: number | null;
+  zones?: Zone | null;
   status: string;
   remarks: any;
   area?: string | null;
@@ -99,12 +112,12 @@ interface Lead {
   updated_at: string;
 }
 
-interface Industry {
+export interface Industry {
   id: number;
   name: string;
 }
 
-interface Employee {
+export interface Employee {
   id: number;
   full_name: string;
   employee_id: string;
@@ -113,12 +126,22 @@ interface Employee {
   branch_id?: number | null;
 }
 
-interface Branch {
+export interface Branch {
   id: number;
   name: string;
 }
 
-interface LeadActivity {
+export interface Zone {
+  id: number;
+  name: string;
+  code?: string | null;
+  branch_id: number;
+  description?: string | null;
+  is_active?: boolean;
+  branches?: { id: number; name: string; code?: string | null } | null;
+}
+
+export interface LeadActivity {
   id: number;
   lead_id: number;
   stage: string;
@@ -138,16 +161,20 @@ export default function LeadsRegistryPage() {
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
+  const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [activeStageFilter, setActiveStageFilter] = useState<string>('ALL');
   const [followUpFilter, setFollowUpFilter] = useState<'all' | 'active' | 'cold'>('all');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
-  const [prioritizeOverdueSalesLeads, setPrioritizeOverdueSalesLeads] = useState<boolean>(true);
+  const [prioritizeNoFollowups, setPrioritizeNoFollowups] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Sidebar expansion tracking & Next Step column collapse
-  const { isSidebarExpanded } = useLayout();
-  const isNextStepCollapsed = isSidebarExpanded;
+  // Available zones filtered by selected branch
+  const availableFilterZones = useMemo(() => {
+    if (selectedBranch === 'ALL') return zones;
+    return zones.filter(z => String(z.branch_id) === selectedBranch);
+  }, [zones, selectedBranch]);
 
   // Modals
   const [isAddingLead, setIsAddingLead] = useState(false);
@@ -198,6 +225,36 @@ export default function LeadsRegistryPage() {
     }
   }, [searchParams, leads]);
 
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
+
+  const canViewAllLeads = isSuperAdmin || userPermissions.includes('view_all_leads');
+  const canManageLeads = isSuperAdmin || userPermissions.includes('manage_leads');
+  const canManageFeeds = canManageLeads || userPermissions.includes('manage_lead_stage_feeds');
+  const canAssignBranch = canManageLeads || userPermissions.includes('manage_lead_stage_assign_branch');
+  const canAssignStaff = canManageLeads || userPermissions.includes('manage_lead_stage_assign_staff');
+  const canSalesContact = canManageLeads || userPermissions.includes('manage_lead_stage_sales_contact');
+  const canManageFollowups = canManageLeads || userPermissions.includes('manage_lead_stage_followups');
+  const canManageMeetings = canManageLeads || userPermissions.includes('manage_lead_stage_meetings');
+  const canManageHotLeads = canManageLeads || userPermissions.includes('manage_lead_stage_hot_leads');
+
+  const isBranchManager = Boolean(
+    currentUser?.branchId && (
+      userRole.includes('branch manager') ||
+      (currentUser?.designation || '').toLowerCase().includes('branch manager') ||
+      ((currentUser?.designation || '').toLowerCase().includes('manager') && !(currentUser?.designation || '').toLowerCase().includes('sales')) ||
+      canAssignStaff
+    )
+  );
+
+  const isSalesperson = !isBranchManager && Boolean(
+    (currentUser?.designation || '').toLowerCase().includes('sales') ||
+    userRole.includes('sales') ||
+    (currentUser?.department || '').toLowerCase().includes('sales') ||
+    canSalesContact
+  );
+
   const authorName = currentUser?.fullName || currentUser?.full_name || currentUser?.username || 'Executive Agent';
   const authorDesignation = currentUser?.designation || currentUser?.role || 'Relationship Manager';
   const authorDepartment = currentUser?.department || 'Commercial Sales';
@@ -213,15 +270,15 @@ export default function LeadsRegistryPage() {
   }, []);
 
   const overdueSalesLeadsCount = useMemo(() => {
-    return leads.filter(l => isOverdueSalesLead(l)).length;
+    return leads.filter(l => ACTIVE_LEAD_STAGE_KEYS.includes(l.status) && isOverdueSalesLead(l)).length;
   }, [leads, isOverdueSalesLead]);
 
   const getRowClassName = useCallback((l: Lead) => {
-    if (prioritizeOverdueSalesLeads && isOverdueSalesLead(l)) {
+    if (prioritizeNoFollowups && isOverdueSalesLead(l)) {
       return '!bg-rose-50/75 hover:!bg-rose-100/75 transition-colors border-b border-rose-200/50';
     }
     return undefined;
-  }, [prioritizeOverdueSalesLeads, isOverdueSalesLead]);
+  }, [prioritizeNoFollowups, isOverdueSalesLead]);
 
   // Immediate optimistic/realtime lead update helper
   const handleLeadUpdated = useCallback((updatedLead: Lead) => {
@@ -232,11 +289,12 @@ export default function LeadsRegistryPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [leadsRes, indRes, empRes, brRes] = await Promise.allSettled([
+      const [leadsRes, indRes, empRes, brRes, zonesRes] = await Promise.allSettled([
         api.get('/leads'),
         api.get('/industries'),
         api.get('/employees'),
-        api.get('/branches')
+        api.get('/branches'),
+        api.get('/zones')
       ]);
 
       if (leadsRes.status === 'fulfilled') {
@@ -262,6 +320,10 @@ export default function LeadsRegistryPage() {
 
       if (brRes.status === 'fulfilled') {
         setBranches(brRes.value.data || []);
+      }
+
+      if (zonesRes.status === 'fulfilled') {
+        setZones(zonesRes.value.data || []);
       }
     } catch (err) {
       toast.error('Failed to load leads details');
@@ -373,6 +435,7 @@ export default function LeadsRegistryPage() {
       pincode: formData.pincode?.trim() || null,
       country: formData.country?.trim() || 'India',
       branch_id: resolvedBranchId,
+      zone_id: formData.zone_id ? parseInt(formData.zone_id, 10) : null,
       assigned_staff_id: resolvedAssignedStaffId,
       status: calculatedStatus,
       remarks: formData.remarks || null
@@ -450,20 +513,29 @@ export default function LeadsRegistryPage() {
     }
   };
 
-  // Filtered Leads
+  // Filtered Leads (Only active lead stages - excludes Feeds, Quotations, Deals, SO Converted Deals)
   const filteredLeads = useMemo(() => {
     return leads.filter(l => {
+      // Must be an active lead stage
+      if (!ACTIVE_LEAD_STAGE_KEYS.includes(l.status)) {
+        return false;
+      }
       // 1. Branch filter
       if (selectedBranch !== 'ALL') {
         const bId = String(l.branch_id || l.employees?.branch_id || '');
         if (bId !== selectedBranch) return false;
       }
-      // 2. Sector / Industry filter
+      // 2. Zone filter
+      if (selectedZone !== 'ALL') {
+        const zId = String(l.zone_id || '');
+        if (zId !== selectedZone) return false;
+      }
+      // 3. Sector / Industry filter
       if (selectedIndustry !== 'ALL') {
         const indId = String(l.industry_id || '');
         if (indId !== selectedIndustry) return false;
       }
-      // 3. Stage filter
+      // 4. Stage filter
       if (activeStageFilter === 'ALL') return true;
       if (activeStageFilter === 'cold_leads') {
         return l.status === 'Follow-ups' && !!l.is_cold;
@@ -476,17 +548,18 @@ export default function LeadsRegistryPage() {
       }
       return l.status === activeStageFilter;
     });
-  }, [leads, selectedBranch, selectedIndustry, activeStageFilter, followUpFilter]);
+  }, [leads, selectedBranch, selectedZone, selectedIndustry, activeStageFilter, followUpFilter]);
 
-  // Stage counts for Filter Pills
+  // Stage counts for Filter Pills (restricted to ACTIVE_LEAD_STAGES)
   const stageCounts = useMemo(() => {
+    const activeLeads = leads.filter(l => ACTIVE_LEAD_STAGE_KEYS.includes(l.status));
     const counts: Record<string, number> = {
-      ALL: leads.length,
-      'cold_followups': leads.filter(l => l.status === 'Follow-ups' && l.is_cold).length,
-      'active_followups': leads.filter(l => l.status === 'Follow-ups' && !l.is_cold).length,
+      ALL: activeLeads.length,
+      'cold_followups': activeLeads.filter(l => l.status === 'Follow-ups' && l.is_cold).length,
+      'active_followups': activeLeads.filter(l => l.status === 'Follow-ups' && !l.is_cold).length,
     };
-    PIPELINE_STAGES.forEach(s => {
-      counts[s.key] = leads.filter(l => l.status === s.key).length;
+    ACTIVE_LEAD_STAGES.forEach(s => {
+      counts[s.key] = activeLeads.filter(l => l.status === s.key).length;
     });
     return counts;
   }, [leads]);
@@ -520,13 +593,13 @@ export default function LeadsRegistryPage() {
           {l.status === 'Hot Leads' && <Flame size={11} className="text-orange-500" />}
           {l.status}
         </span>
-        {isOverdueSales && (
+        {prioritizeNoFollowups && isOverdueSales && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title={`Overdue: No follow-up for ${daysInactive} days`}>
             <Clock size={10} className="text-rose-600 shrink-0" />
             <span>No Follow-up ({daysInactive}d)</span>
           </span>
         )}
-        {!isOverdueSales && isOtherInactive && !l.is_cold && (
+        {prioritizeNoFollowups && !isOverdueSales && isOtherInactive && !l.is_cold && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs" title={`No follow-up logged for ${daysInactive} days`}>
             <Clock size={10} className="text-amber-600 shrink-0" />
             <span>No Follow-up ({daysInactive}d)</span>
@@ -544,26 +617,6 @@ export default function LeadsRegistryPage() {
 
   // Table Columns
   const columns: Column<Lead>[] = useMemo(() => [
-    {
-      header: 'Lead ID',
-      className: 'w-[85px] whitespace-nowrap',
-      sortValue: (l) => l.lead_code || String(l.id),
-      accessor: (l) => {
-        const idLabel = l.lead_code || `#${l.id}`;
-        return (
-          <div className="inline-flex items-center">
-            <button
-              type="button"
-              onClick={() => setViewingLead(l)}
-              className="font-mono font-bold text-xs text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer bg-transparent border-none p-0 outline-none"
-              title="Click to view journey & details"
-            >
-              {idLabel}
-            </button>
-          </div>
-        );
-      }
-    },
     {
       header: 'Customer Name',
       className: 'min-w-[160px] max-w-[280px]',
@@ -598,25 +651,6 @@ export default function LeadsRegistryPage() {
           )}
         </div>
       )
-    },
-    {
-      header: 'Branch',
-      className: 'w-[110px] whitespace-nowrap',
-      sortValue: (l) => {
-        const b = branches.find(br => String(br.id) === String(l.branch_id || l.employees?.branch_id));
-        return b ? b.name : (l as any).branches?.name || '';
-      },
-      accessor: (l) => {
-        const b = branches.find(br => String(br.id) === String(l.branch_id || l.employees?.branch_id));
-        const branchName = b ? b.name : (l as any).branches?.name || null;
-        return branchName ? (
-          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 truncate inline-block max-w-[100px]" title={branchName}>
-            {branchName}
-          </span>
-        ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
-        );
-      }
     },
     {
       header: 'Contact Person',
@@ -691,23 +725,13 @@ export default function LeadsRegistryPage() {
       accessor: (l) => renderStatusBadge(l)
     },
     {
-      header: (
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-          isNextStepCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100'
-        }`}>
-          Next Step
-        </div>
-      ),
-      className: `transition-all duration-300 ease-in-out ${
-        isNextStepCollapsed 
-          ? '!w-0 !min-w-0 !max-w-0 !p-0 !border-0 opacity-0 pointer-events-none !shadow-none !bg-transparent overflow-hidden' 
-          : 'w-[160px] min-w-[160px] opacity-100'
-      }`,
+      header: 'Follow-up ( next step)',
+      className: 'w-[170px] min-w-[170px] whitespace-nowrap',
       sortable: false,
       accessor: (l: Lead) => {
         let content: React.ReactNode = null;
         if (l.status === 'Feeds') {
-          content = (
+          content = canManageFeeds ? (
             <button
               type="button"
               onClick={() => setFeedOutcomeLead(l)}
@@ -715,9 +739,13 @@ export default function LeadsRegistryPage() {
             >
               Log Response
             </button>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_feeds">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
           );
         } else if (l.status === 'Open Leads') {
-          content = (
+          content = canAssignBranch ? (
             <button
               type="button"
               onClick={() => setAssignBranchLead(l)}
@@ -725,9 +753,13 @@ export default function LeadsRegistryPage() {
             >
               Assign Branch
             </button>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_assign_branch">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
           );
         } else if (l.status === 'New Leads') {
-          content = (
+          content = canAssignStaff ? (
             <button
               type="button"
               onClick={() => setAssignStaffLead(l)}
@@ -735,9 +767,13 @@ export default function LeadsRegistryPage() {
             >
               Assign Staff
             </button>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_assign_staff">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
           );
-        } else if (l.status === 'Follow-ups' || l.status === 'Sales Leads') {
-          content = (
+        } else if (l.status === 'Sales Leads') {
+          content = canSalesContact ? (
             <button
               type="button"
               onClick={() => setFollowUpLead(l)}
@@ -745,9 +781,27 @@ export default function LeadsRegistryPage() {
             >
               Follow-up Note
             </button>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_sales_contact">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
+          );
+        } else if (l.status === 'Follow-ups') {
+          content = canManageFollowups ? (
+            <button
+              type="button"
+              onClick={() => setFollowUpLead(l)}
+              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all cursor-pointer"
+            >
+              Follow-up Note
+            </button>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_followups">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
           );
         } else if (l.status === 'Meetings') {
-          content = (
+          content = canManageMeetings ? (
             <button
               type="button"
               onClick={() => setMeetingOutcomeLead(l)}
@@ -755,15 +809,23 @@ export default function LeadsRegistryPage() {
             >
               Meeting Outcome
             </button>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_meetings">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
           );
         } else if (l.status === 'Hot Leads') {
-          content = (
+          content = canManageHotLeads ? (
             <a
               href={`/marketing/quotations`}
               className="inline-block px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-lg transition-all cursor-pointer"
             >
               Send Quote
             </a>
+          ) : (
+            <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_hot_leads">
+              <Lock size={10} className="text-zinc-400" /> Locked
+            </span>
           );
         } else {
           content = (
@@ -778,15 +840,13 @@ export default function LeadsRegistryPage() {
         }
 
         return (
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-            isNextStepCollapsed ? 'max-w-0 opacity-0 transform scale-95' : 'max-w-[160px] opacity-100 transform scale-100'
-          }`}>
+          <div className="w-[170px] whitespace-nowrap">
             {content}
           </div>
         );
       }
     }
-  ], [isNextStepCollapsed, branches]);
+  ], [branches, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
 
   // Print Report Handler
   const handlePrintLeads = (sortedData: Lead[], sortInfo: SortInfo<Lead>) => {
@@ -803,15 +863,10 @@ export default function LeadsRegistryPage() {
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
     const rowsHtml = sortedData.map((l, idx) => {
-      const b = branches.find(br => String(br.id) === String(l.branch_id || l.employees?.branch_id));
-      const branchName = b ? b.name : (l as any).branches?.name || '—';
-
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${l.lead_code || `#${l.id}`}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
-        <td style="font-size: 10px; color: #4a5568;">${branchName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${l.contact_person ? `${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -865,9 +920,7 @@ export default function LeadsRegistryPage() {
     <thead>
       <tr>
         <th style="width: 35px;">#</th>
-        <th>Lead ID</th>
         <th>Customer Name</th>
-        <th>Branch</th>
         <th>Contact Person</th>
         <th>Contact Phone</th>
         <th>Sales Person</th>
@@ -875,7 +928,7 @@ export default function LeadsRegistryPage() {
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="8" style="text-align: center; padding: 20px;">No leads matching filters</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="6" style="text-align: center; padding: 20px;">No leads matching filters</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -897,33 +950,41 @@ export default function LeadsRegistryPage() {
       {/* Page Title & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Leads</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Leads</h1>
+            {canViewAllLeads ? (
+              <span className="px-3 py-1 bg-teal-50 border border-teal-200 text-teal-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
+                <ShieldCheck size={13} className="text-teal-600" /> Global Scope: All Leads
+              </span>
+            ) : isBranchManager ? (
+              <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
+                <Building2 size={13} className="text-amber-600" /> Branch Scope: {currentUser?.branchName || 'Branch Outlet'}
+              </span>
+            ) : isSalesperson ? (
+              <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
+                <UserCheck size={13} className="text-blue-600" /> My Assigned Leads
+              </span>
+            ) : null}
+          </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
-            11-Stage Commercial Pipeline & Field Agent Logs
+            Active Commercial Intake, Follow-ups &amp; Qualified Pipeline
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setIsAddingFeed(true)}
-            variant="outline"
-            className="h-14 px-6 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] border-2 border-[#2d8d9b] text-[#2d8d9b] hover:bg-[#2d8d9b]/10 gap-2 shadow-sm"
-          >
-            <Compass size={18} strokeWidth={2.5} />
-            + New Field Feed
-          </Button>
-
-          <Button
-            onClick={() => {
-              setEditingLead(null);
-              setPrefillFeedData(null);
-              setIsAddingLead(true);
-            }}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2"
-          >
-            <Plus size={18} strokeWidth={3} />
-            New Lead
-          </Button>
+          {canManageLeads && (
+            <Button
+              onClick={() => {
+                setEditingLead(null);
+                setPrefillFeedData(null);
+                setIsAddingLead(true);
+              }}
+              className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2"
+            >
+              <Plus size={18} strokeWidth={3} />
+              New Lead
+            </Button>
+          )}
         </div>
       </div>
 
@@ -932,10 +993,10 @@ export default function LeadsRegistryPage() {
         columns={columns}
         data={filteredLeads}
         isLoading={isLoading}
-        searchPlaceholder="Search by name, area, phone, status, or salesperson..."
+        searchPlaceholder="Search"
         onPrint={handlePrintLeads}
-        pinRowTop={prioritizeOverdueSalesLeads ? isOverdueSalesLead : undefined}
-        rowClassName={getRowClassName}
+        pinRowTop={prioritizeNoFollowups ? isOverdueSalesLead : undefined}
+        rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* 1. Branch Dropdown Filter */}
@@ -966,8 +1027,8 @@ export default function LeadsRegistryPage() {
               }}
               className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Stages ({stageCounts['ALL'] || leads.length})</option>
-              {PIPELINE_STAGES.map((s, idx) => (
+              <option value="ALL">All Stages ({stageCounts['ALL'] || 0})</option>
+              {ACTIVE_LEAD_STAGES.map((s, idx) => (
                 <option key={s.key} value={s.key}>
                   {idx + 1}. {s.label} ({stageCounts[s.key] || 0})
                 </option>
@@ -990,7 +1051,24 @@ export default function LeadsRegistryPage() {
               </select>
             )}
 
-            {/* 3. Sector / Industry Dropdown Filter */}
+            {/* 3. Zone Dropdown Filter */}
+            <select
+              value={selectedZone}
+              onChange={(e) => setSelectedZone(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Zones ({leads.length})</option>
+              {availableFilterZones.map(z => {
+                const count = leads.filter(l => String(l.zone_id) === String(z.id)).length;
+                return (
+                  <option key={z.id} value={String(z.id)}>
+                    {z.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
+
+            {/* 4. Sector / Industry Dropdown Filter */}
             <select
               value={selectedIndustry}
               onChange={(e) => setSelectedIndustry(e.target.value)}
@@ -1007,27 +1085,27 @@ export default function LeadsRegistryPage() {
               })}
             </select>
 
-            {/* 4. Tick Option: Prioritize overdue leads (2+ days) on top with red shade */}
+            {/* 5. No Follow-ups Filter */}
             <label 
               className={`h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all cursor-pointer select-none shadow-2xs ${
-                prioritizeOverdueSalesLeads 
+                prioritizeNoFollowups 
                   ? 'bg-rose-50/90 border-rose-300 text-rose-900 ring-2 ring-rose-400/20' 
                   : 'bg-white border-[#fce4d4] text-[#3a525d] hover:bg-zinc-50'
               }`}
-              title="Tick to pin leads with no follow-up for 2+ days to the top with a red shade background"
+              title="Tick to prioritize and highlight leads with no follow-up for 2+ days on top"
             >
               <input
                 type="checkbox"
-                checked={prioritizeOverdueSalesLeads}
-                onChange={(e) => setPrioritizeOverdueSalesLeads(e.target.checked)}
+                checked={prioritizeNoFollowups}
+                onChange={(e) => setPrioritizeNoFollowups(e.target.checked)}
                 className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-zinc-300 accent-rose-600 cursor-pointer"
               />
               <span className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className={`w-2 h-2 rounded-full ${prioritizeOverdueSalesLeads ? 'bg-rose-500 animate-pulse' : 'bg-zinc-300'}`} />
-                <span>No Follow-up (2d+)</span>
+                <span className={`w-2 h-2 rounded-full ${prioritizeNoFollowups ? 'bg-rose-500 animate-pulse' : 'bg-zinc-300'}`} />
+                <span>No Follow-ups</span>
                 {overdueSalesLeadsCount > 0 && (
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                    prioritizeOverdueSalesLeads ? 'bg-rose-200 text-rose-900' : 'bg-zinc-100 text-zinc-600'
+                    prioritizeNoFollowups ? 'bg-rose-200 text-rose-900' : 'bg-zinc-100 text-zinc-600'
                   }`}>
                     {overdueSalesLeadsCount}
                   </span>
@@ -1061,6 +1139,16 @@ export default function LeadsRegistryPage() {
         isOpen={!!viewingLead}
         lead={viewingLead}
         onClose={() => setViewingLead(null)}
+        permissions={{
+          canManageLeads,
+          canManageFeeds,
+          canAssignBranch,
+          canAssignStaff,
+          canSalesContact,
+          canManageFollowups,
+          canManageMeetings,
+          canManageHotLeads,
+        }}
         onEdit={() => {
           if (viewingLead) {
             setEditingLead(viewingLead);
@@ -1100,6 +1188,7 @@ export default function LeadsRegistryPage() {
         onClose={() => setIsAddingFeed(false)}
         onSubmit={handleCreateFeed}
         branches={branches}
+        zones={zones}
         authorName={authorName}
         authorDesignation={authorDesignation}
         authorDepartment={authorDepartment}
@@ -1120,6 +1209,7 @@ export default function LeadsRegistryPage() {
         prefillData={prefillFeedData}
         industries={industries}
         branches={branches}
+        zones={zones}
         employees={employees}
         currentUser={currentUser}
         userBranchId={currentUser?.branchId}
@@ -1211,6 +1301,7 @@ interface NewFeedModalProps {
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
   branches: Branch[];
+  zones?: Zone[];
   authorName: string;
   authorDesignation: string;
   authorDepartment: string;
@@ -1218,11 +1309,12 @@ interface NewFeedModalProps {
   userBranchName?: string | null;
 }
 
-const NewFeedModal: React.FC<NewFeedModalProps> = ({
+export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   branches,
+  zones = [],
   authorName,
   authorDesignation,
   authorDepartment,
@@ -1243,12 +1335,18 @@ const NewFeedModal: React.FC<NewFeedModalProps> = ({
   const [country, setCountry] = useState('India');
   const [remarks, setRemarks] = useState('');
   const [hqBranchId, setHqBranchId] = useState('');
+  const [zoneId, setZoneId] = useState('');
   const [responseType, setResponseType] = useState<'positive' | 'negative'>('positive');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isBranchUser = Boolean(userBranchId);
   const effectiveOrigin = isBranchUser ? 'BRANCH' : (hqBranchId ? 'BRANCH' : 'HQ');
   const effectiveBranchId = isBranchUser ? userBranchId : (hqBranchId ? parseInt(hqBranchId, 10) : null);
+
+  const availableZones = useMemo(() => {
+    if (!effectiveBranchId) return [];
+    return (zones || []).filter(z => String(z.branch_id) === String(effectiveBranchId));
+  }, [zones, effectiveBranchId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -1266,6 +1364,7 @@ const NewFeedModal: React.FC<NewFeedModalProps> = ({
       setCountry('India');
       setRemarks('');
       setHqBranchId('');
+      setZoneId('');
       setResponseType('positive');
     }
   }, [isOpen]);
@@ -1301,6 +1400,7 @@ const NewFeedModal: React.FC<NewFeedModalProps> = ({
         remarks: remarks.trim() || null,
         origin: effectiveOrigin,
         branch_id: effectiveBranchId,
+        zone_id: zoneId ? parseInt(zoneId, 10) : null,
         response_type: responseType
       });
     } finally {
@@ -1573,7 +1673,10 @@ const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 </p>
                 <select
                   value={hqBranchId}
-                  onChange={(e) => setHqBranchId(e.target.value)}
+                  onChange={(e) => {
+                    setHqBranchId(e.target.value);
+                    setZoneId('');
+                  }}
                   className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] text-xs font-bold text-zinc-800 bg-white"
                 >
                   <option value="">Unassigned (HQ Central - Open Leads)</option>
@@ -1583,6 +1686,27 @@ const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 </select>
               </div>
             )}
+
+            {/* Zone Selection within NewFeedModal */}
+            <div className="space-y-1.5 pt-2 border-t border-zinc-200/70">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#2d8d9b]" />
+                Assigned Zone {effectiveBranchId ? `(${availableZones.length})` : ''}
+              </label>
+              <select
+                value={zoneId}
+                onChange={(e) => setZoneId(e.target.value)}
+                disabled={!effectiveBranchId}
+                className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] text-xs font-bold text-zinc-800 bg-white disabled:bg-zinc-100 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
+              >
+                <option value="">{effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}</option>
+                {availableZones.map(z => (
+                  <option key={z.id} value={String(z.id)}>
+                    {z.name} {z.code ? `(${z.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Initial Contact Response Outcome Toggle */}
@@ -1687,13 +1811,14 @@ interface LeadFormModalProps {
   prefillData: Partial<Lead> | null;
   industries: Industry[];
   branches: Branch[];
+  zones?: Zone[];
   employees: Employee[];
   currentUser?: any;
   userBranchId?: number | null;
   userBranchName?: string | null;
 }
 
-const LeadFormModal: React.FC<LeadFormModalProps> = ({
+export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
@@ -1701,6 +1826,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
   prefillData,
   industries,
   branches,
+  zones = [],
   employees,
   currentUser,
   userBranchId,
@@ -1723,6 +1849,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const [pincode, setPincode] = useState('');
   const [country, setCountry] = useState('India');
   const [branchId, setBranchId] = useState('');
+  const [zoneId, setZoneId] = useState('');
   const [assignedStaffId, setAssignedStaffId] = useState('');
   const [status, setStatus] = useState('New Leads');
   const [remarks, setRemarks] = useState('');
@@ -1751,6 +1878,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setPincode(data.pincode || '');
       setCountry(data.country || 'India');
       setBranchId(data.branch_id ? String(data.branch_id) : (userBranchId ? String(userBranchId) : ''));
+      setZoneId(data.zone_id ? String(data.zone_id) : '');
       setAssignedStaffId(data.assigned_staff_id ? String(data.assigned_staff_id) : '');
       setStatus(data.status || 'New Leads');
       setRemarks(typeof data.remarks === 'string' ? data.remarks : '');
@@ -1772,6 +1900,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setPincode('');
       setCountry('India');
       setBranchId(userBranchId ? String(userBranchId) : '');
+      setZoneId('');
       if (intakeRole === 'salesperson') {
         const selfEmployee = employees.find(e => 
           (currentUser?.employeeRecordId && e.id === currentUser.employeeRecordId) ||
@@ -1810,6 +1939,13 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
     ? 'New Leads'
     : 'Open Leads';
 
+  const effectiveBranchId = derivedTargetBranchId;
+
+  const availableZones = useMemo(() => {
+    if (!effectiveBranchId) return [];
+    return (zones || []).filter(z => String(z.branch_id) === String(effectiveBranchId));
+  }, [zones, effectiveBranchId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -1845,6 +1981,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
           : intakeRole === 'hq_staff'
           ? (branchId || null)
           : (userBranchId ? String(userBranchId) : branchId || null),
+        zone_id: zoneId ? parseInt(zoneId, 10) : null,
         assigned_staff_id: isEditing
           ? (assignedStaffId || null)
           : intakeRole === 'salesperson'
@@ -2096,7 +2233,10 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 </label>
                 <select
                   value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
+                  onChange={(e) => {
+                    setBranchId(e.target.value);
+                    setZoneId('');
+                  }}
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
                 >
                   <option value="">HQ / Unassigned (Open Leads)</option>
@@ -2106,6 +2246,27 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 </select>
               </div>
             )}
+
+            {/* Zone Assignment Provision: Filtered by effective branch */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#2d8d9b]" />
+                Zone / Region {effectiveBranchId ? `(${availableZones.length})` : ''}
+              </label>
+              <select
+                value={zoneId}
+                onChange={(e) => setZoneId(e.target.value)}
+                disabled={!effectiveBranchId}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white disabled:bg-zinc-50 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
+              >
+                <option value="">{effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}</option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={String(z.id)}>
+                    {z.name} {z.code ? `(${z.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {/* Salesperson Assignment Provision: Visible for Branch staff or when editing */}
             {(isEditing || intakeRole === 'branch_staff') && (
@@ -2270,9 +2431,19 @@ interface LeadViewModalProps {
   onMeetingOutcome: () => void;
   onConvertFeed: () => void;
   onReload: () => void;
+  permissions?: {
+    canManageLeads: boolean;
+    canManageFeeds: boolean;
+    canAssignBranch: boolean;
+    canAssignStaff: boolean;
+    canSalesContact: boolean;
+    canManageFollowups: boolean;
+    canManageMeetings: boolean;
+    canManageHotLeads: boolean;
+  };
 }
 
-const LeadViewModal: React.FC<LeadViewModalProps> = ({
+export const LeadViewModal: React.FC<LeadViewModalProps> = ({
   isOpen,
   onClose,
   lead,
@@ -2284,8 +2455,20 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
   onFollowUp,
   onMeetingOutcome,
   onConvertFeed,
-  onReload
+  onReload,
+  permissions
 }) => {
+  const perms = permissions || {
+    canManageLeads: true,
+    canManageFeeds: true,
+    canAssignBranch: true,
+    canAssignStaff: true,
+    canSalesContact: true,
+    canManageFollowups: true,
+    canManageMeetings: true,
+    canManageHotLeads: true,
+  };
+
   const [selectedStageTab, setSelectedStageTab] = useState<string>('ALL');
   const [stageActivities, setStageActivities] = useState<LeadActivity[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -2466,66 +2649,102 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
             {/* Context-Sensitive Stage Action Button in Header */}
             <div className="flex items-center gap-2">
               {lead.status === 'Feeds' && (
-                <>
-                  <button
-                    onClick={onConvertFeed}
-                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white text-[#3a525d] hover:bg-teal-50 transition-all shadow-md flex items-center gap-1.5"
-                  >
-                    <ArrowRight size={13} />
-                    Convert to Lead
-                  </button>
-                  <button
-                    onClick={onFeedOutcome}
-                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white hover:bg-[#257a87] transition-all shadow-md"
-                  >
-                    Log Feed Response
-                  </button>
-                </>
+                perms.canManageFeeds ? (
+                  <>
+                    <button
+                      onClick={onConvertFeed}
+                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white text-[#3a525d] hover:bg-teal-50 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ArrowRight size={13} />
+                      Convert to Lead
+                    </button>
+                    <button
+                      onClick={onFeedOutcome}
+                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white hover:bg-[#257a87] transition-all shadow-md cursor-pointer"
+                    >
+                      Log Feed Response
+                    </button>
+                  </>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_feeds">
+                    <Lock size={12} /> Feed Processing Locked
+                  </span>
+                )
               )}
               {lead.status === 'Open Leads' && (
-                <button
-                  onClick={onAssignBranch}
-                  className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-md flex items-center gap-1.5"
-                >
-                  <Building2 size={13} />
-                  Assign Branch
-                </button>
+                perms.canAssignBranch ? (
+                  <button
+                    onClick={onAssignBranch}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Building2 size={13} />
+                    Assign Branch
+                  </button>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_assign_branch">
+                    <Lock size={12} /> Branch Assignment Locked
+                  </span>
+                )
               )}
               {lead.status === 'New Leads' && (
-                <button
-                  onClick={onAssignStaff}
-                  className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-indigo-500 hover:bg-indigo-600 text-white transition-all shadow-md flex items-center gap-1.5"
-                >
-                  <ShieldCheck size={13} />
-                  Assign Salesperson
-                </button>
+                perms.canAssignStaff ? (
+                  <button
+                    onClick={onAssignStaff}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-indigo-500 hover:bg-indigo-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ShieldCheck size={13} />
+                    Assign Salesperson
+                  </button>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_assign_staff">
+                    <Lock size={12} /> Salesperson Assignment Locked
+                  </span>
+                )
               )}
               {(lead.status === 'Follow-ups' || lead.status === 'Sales Leads') && (
-                <button
-                  onClick={onFollowUp}
-                  className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-md flex items-center gap-1.5"
-                >
-                  <MessageSquarePlus size={13} />
-                  Log Follow-up Note
-                </button>
+                (lead.status === 'Sales Leads' ? perms.canSalesContact : perms.canManageFollowups) ? (
+                  <button
+                    onClick={onFollowUp}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageSquarePlus size={13} />
+                    Log Follow-up Note
+                  </button>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_followups">
+                    <Lock size={12} /> Follow-up Logging Locked
+                  </span>
+                )
               )}
               {lead.status === 'Meetings' && (
-                <button
-                  onClick={onMeetingOutcome}
-                  className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-purple-500 hover:bg-purple-600 text-white transition-all shadow-md flex items-center gap-1.5"
-                >
-                  <CheckCircle size={13} />
-                  Record Meeting Outcome
-                </button>
+                perms.canManageMeetings ? (
+                  <button
+                    onClick={onMeetingOutcome}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-purple-500 hover:bg-purple-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle size={13} />
+                    Record Meeting Outcome
+                  </button>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_meetings">
+                    <Lock size={12} /> Meeting Outcome Locked
+                  </span>
+                )
               )}
               {lead.status === 'Hot Leads' && (
-                <a
-                  href={`/marketing/quotations`}
-                  className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-md flex items-center gap-1.5"
-                >
-                  <FileText size={13} />
-                  Create Quotation
-                </a>
+                perms.canManageHotLeads ? (
+                  <a
+                    href={`/marketing/quotations`}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileText size={13} />
+                    Create Quotation
+                  </a>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_hot_leads">
+                    <Lock size={12} /> Quotation Creation Locked
+                  </span>
+                )
               )}
             </div>
           </div>
@@ -2708,6 +2927,13 @@ const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       {[lead.pincode ? `PIN: ${lead.pincode}` : null, lead.country || 'India'].filter(Boolean).join(' • ')}
                     </p>
                   )}
+                  {lead.zones?.name && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-black uppercase">
+                        Zone: {lead.zones.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {lead.google_maps_link && (
                   <a
@@ -2887,7 +3113,7 @@ interface FeedOutcomeModalProps {
   onConvertToLead: () => void;
 }
 
-const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
+export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
   lead,
   branches,
   onClose,
@@ -3021,7 +3247,7 @@ interface AssignBranchModalProps {
   onSuccess: () => void;
 }
 
-const AssignBranchModal: React.FC<AssignBranchModalProps> = ({
+export const AssignBranchModal: React.FC<AssignBranchModalProps> = ({
   lead,
   branches,
   onClose,
@@ -3128,7 +3354,7 @@ interface AssignStaffModalProps {
   onSuccess: () => void;
 }
 
-const AssignStaffModal: React.FC<AssignStaffModalProps> = ({
+export const AssignStaffModal: React.FC<AssignStaffModalProps> = ({
   lead,
   employees,
   onClose,
@@ -3236,7 +3462,7 @@ interface FollowUpOutcomeModalProps {
   onSuccess: (updatedLead?: Lead) => void;
 }
 
-const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
+export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
   lead,
   onClose,
   onSuccess
@@ -3385,7 +3611,7 @@ interface MeetingOutcomeModalProps {
   onSuccess: (credentials?: any, updatedLead?: Lead) => void;
 }
 
-const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
+export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
   lead,
   onClose,
   onSuccess

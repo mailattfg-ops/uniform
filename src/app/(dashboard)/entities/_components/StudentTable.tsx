@@ -333,7 +333,7 @@ export const StudentTable: React.FC<EntityTableProps> = ({ onRegister, onBulkUpl
         data={entities}
         isLoading={isLoading}
         onSearch={setSearchQuery}
-        searchPlaceholder="Search by name, ID or reference..."
+        searchPlaceholder="Search"
       />
 
       <ConfirmModal 

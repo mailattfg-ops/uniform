@@ -880,7 +880,7 @@ export default function OrderPlacementPage() {
           title="Quotations Awaiting Sales Order Conversion"
           subtitle="Approved client quotations with registered payments ready to be placed in branch hold"
           isLoading={isLoading}
-          searchPlaceholder="Search quotation number, client..."
+          searchPlaceholder="Search"
         />
       ) : (
         <DataTable
@@ -894,7 +894,7 @@ export default function OrderPlacementPage() {
           }
           subtitle="Real-time multi-tier order tracking with industrial barcode IDs and corporate decision audit"
           isLoading={isLoading}
-          searchPlaceholder="Search order number, barcode, client..."
+          searchPlaceholder="Search"
         />
       )}
 

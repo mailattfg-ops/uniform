@@ -227,7 +227,7 @@ export default function ProductTypeManagementPage() {
           columns={columns}
           data={productTypes}
           isLoading={isLoading}
-          searchPlaceholder="Search defined product types..."
+          searchPlaceholder="Search"
         />
       )}
 

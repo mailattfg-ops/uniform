@@ -2532,7 +2532,7 @@ function OrganizationDetailsPageContent() {
                 data={entities}
                 isLoading={isLoadingEntities}
                 onSearch={setEntitySearchQuery}
-                searchPlaceholder="Search Member Name"
+                searchPlaceholder="Search"
                 headerAction={
                   <div className="flex items-center gap-2.5">
                     <select
@@ -2774,7 +2774,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerQuotes}
                 isLoading={isLoadingOrg}
-                searchPlaceholder="Search customer quotes..."
+                searchPlaceholder="Search"
                 emptyMessage="No quotations recorded for this customer."
                 rightAction={
                   <Button
@@ -2862,7 +2862,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerPayments}
                 isLoading={isLoadingLedger}
-                searchPlaceholder="Search customer payments..."
+                searchPlaceholder="Search"
                 emptyMessage="No payments recorded yet for this customer."
                 rightAction={
                   <Button
@@ -2964,7 +2964,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerOrders}
                 isLoading={isLoadingOrg}
-                searchPlaceholder="Search customer orders..."
+                searchPlaceholder="Search"
                 emptyMessage="No sales orders placed for this customer yet."
                 rightAction={
                   <Button
@@ -3056,7 +3056,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerPackages}
                 isLoading={isLoadingChallans}
-                searchPlaceholder="Search package slips & cartons..."
+                searchPlaceholder="Search"
                 emptyMessage="No packaging consignments logged yet for this customer."
                 rightAction={
                   <Button
@@ -3158,7 +3158,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerShipments}
                 isLoading={isLoadingChallans}
-                searchPlaceholder="Search shipments & delivery challans..."
+                searchPlaceholder="Search"
                 emptyMessage="No shipments or delivery challans logged for this customer."
                 rightAction={
                   <Button
@@ -3314,7 +3314,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerInvoices}
                 isLoading={isLoadingLedger}
-                searchPlaceholder="Search customer invoices..."
+                searchPlaceholder="Search"
                 emptyMessage="No invoices generated yet for this customer."
                 rightAction={
                   <Button
@@ -3408,7 +3408,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerExpenses}
                 isLoading={isLoadingOrg}
-                searchPlaceholder="Search customer expenses..."
+                searchPlaceholder="Search"
                 emptyMessage="No commercial expenses allocated for this customer yet."
                 rightAction={
                   <Button
@@ -3561,7 +3561,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerJournals}
                 isLoading={isLoadingLedger || isLoadingOrg}
-                searchPlaceholder="Search journal entries, lead stages, quotes, orders, invoices, payments, notes..."
+                searchPlaceholder="Search"
                 emptyMessage="No lifecycle or transaction logs recorded yet for this customer."
                 headerAction={
                   <div className="flex items-center gap-2 flex-wrap">
@@ -3720,7 +3720,7 @@ function OrganizationDetailsPageContent() {
                 ]}
                 data={customerProFormaInvoices}
                 isLoading={isLoadingOrg}
-                searchPlaceholder="Search pro forma invoices..."
+                searchPlaceholder="Search"
                 emptyMessage="No pro forma invoices generated for this customer."
                 rightAction={
                   <Button
@@ -4058,7 +4058,7 @@ function OrganizationDetailsPageContent() {
                 return true;
               })}
               isLoading={isLoadingLedger}
-              searchPlaceholder="Search ledger transactions..."
+              searchPlaceholder="Search"
             />
           </div>
         </div>

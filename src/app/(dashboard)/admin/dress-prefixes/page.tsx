@@ -279,7 +279,7 @@ export default function DressPrefixManagementPage() {
           columns={columns}
           data={dressPrefixes}
           isLoading={isLoading}
-          searchPlaceholder="Search defined dress prefixes..."
+          searchPlaceholder="Search"
         />
       )}
 

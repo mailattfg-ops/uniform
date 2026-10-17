@@ -464,7 +464,7 @@ export default function RoleManagementPage() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search permissions by name, module, or key (e.g. factory, invoice, stock)..."
+                      placeholder="Search"
                       className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-[#3a525d] focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
                     />
                   </div>

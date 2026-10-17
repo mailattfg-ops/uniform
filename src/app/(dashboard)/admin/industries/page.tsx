@@ -267,7 +267,7 @@ export default function IndustryManagementPage() {
             columns={columns}
             data={industries}
             isLoading={isLoading}
-            searchPlaceholder="Search defined sectors..."
+            searchPlaceholder="Search"
         />
       )}
 

@@ -257,36 +257,46 @@ export function DataTable<T extends { id: string | number }>({
     <div className="bg-white rounded-2xl md:rounded-3xl border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
       {/* Table Header Section - Light Themed */}
       {(title || subtitle || searchPlaceholder || headerAction || rightAction || onPrint) && (
-        <div className="px-4 py-3 md:px-6 md:py-3.5 border-b border-[#fce4d4] flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#fce4d4]/10">
-          {(title || subtitle) && (
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
-              {subtitle && (
-                <div className="relative group/info inline-flex items-center">
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    aria-label="Table description info"
-                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
-                  >
-                    <Info size={12} strokeWidth={2.5} />
-                  </button>
-                  <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
-                    <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
-                    <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
-                      {subtitle}
-                    </p>
-                  </div>
+        <div className={`px-4 py-3 md:px-6 md:py-3.5 border-b border-[#fce4d4] flex flex-col ${headerAction ? '' : 'sm:flex-row sm:items-center'} justify-between gap-3 bg-[#fce4d4]/10`}>
+          {/* Top Row: Title, Subtitle & Header Action Filters */}
+          {(title || subtitle || headerAction) && (
+            <div className="flex items-center gap-2.5 flex-wrap justify-between w-full min-w-0">
+              {(title || subtitle) && (
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
+                  {subtitle && (
+                    <div className="relative group/info inline-flex items-center">
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        aria-label="Table description info"
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
+                      >
+                        <Info size={12} strokeWidth={2.5} />
+                      </button>
+                      <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
+                        <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
+                        <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
+                          {subtitle}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {headerAction && (
+                <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
+                  {headerAction}
                 </div>
               )}
             </div>
           )}
           
-          <div className="flex flex-1 items-center gap-2.5 flex-wrap justify-between w-full min-w-0">
-            {headerAction && <div className="flex items-center gap-2.5 flex-wrap shrink-0">{headerAction}</div>}
-            <div className="flex items-center gap-2.5 flex-1 min-w-[200px] justify-end flex-wrap">
+          {/* Search, Right Action & Print: Places on next line and justifies content */}
+          {(searchPlaceholder || rightAction || onPrint) && (
+            <div className={`flex items-center gap-2.5 justify-between w-full ${headerAction ? '' : 'sm:w-auto sm:justify-end'} min-w-0`}>
               {searchPlaceholder && (
-                <div className="relative group flex-1 min-w-[180px]">
+                <div className={`relative group flex-1 ${headerAction ? '' : 'sm:w-72 sm:flex-initial'} min-w-[200px]`}>
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={15} />
                   <input 
                     type="text" 
@@ -323,7 +333,7 @@ export function DataTable<T extends { id: string | number }>({
                 </button>
               )}
             </div>
-          </div>
+          )}
         </div>
       )}
 

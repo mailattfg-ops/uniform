@@ -586,7 +586,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                           type="text"
                           value={permissionSearch}
                           onChange={(e) => setPermissionSearch(e.target.value)}
-                          placeholder="Search features (e.g., job cards, quotes, inventory, invoices)..."
+                          placeholder="Search"
                           className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
                         />
                       </div>

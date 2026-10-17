@@ -103,7 +103,7 @@ export default function MeasurementTokensPage() {
           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by student name, token number, or unique composite ID..."
+            placeholder="Search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 border rounded-xl text-sm"

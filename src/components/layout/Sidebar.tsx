@@ -46,9 +46,11 @@ const modules: ModuleItem[] = [
   {
     icon: Users, label: 'CRM', href: '/crm',
     subsections: [
+      { label: 'Feeds', href: '/customers/feeds' },
       { label: 'Leads', href: '/customers/leads' },
-      { label: 'Customers', href: '/customers' },
+      { label: 'New Deals', href: '/customers/deals' },
       { label: 'Quotations', href: '/marketing/quotations' },
+      { label: 'Customers', href: '/customers' },
     ]
   },
   {
@@ -147,7 +149,7 @@ const modules: ModuleItem[] = [
 
 // ── Static Permission Mapping Rules ──────────────────────────────────────────
 const MODULE_PERMISSION_MAP: Record<string, string[]> = {
-  'CRM': ['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales', 'view_leads', 'manage_leads'],
+  'CRM': ['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales', 'view_leads', 'manage_leads', 'view_all_leads'],
   'Items': ['manage_inventory', 'view_inventory', 'manage_products', 'view_products', 'manage_art_numbers', 'manage_design_numbers', 'manage_group_designs'],
   'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements', 'manage_templates', 'manage_tokens', 'approve_measurements', 'manage_measurement_config'],
   'SAM Engineering': ['manage_system', 'manage_sam'],
@@ -170,14 +172,17 @@ const MODULE_PERMISSION_MAP: Record<string, string[]> = {
 
 const SUB_PERMISSION_MAP: Record<string, string[]> = {
   // CRM
+  'Feeds': ['view_leads', 'manage_leads', 'view_all_leads', 'manage_lead_stage_feeds', 'branch_sales', 'manage_system'],
+  'Leads': ['view_leads', 'manage_leads', 'view_all_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales', 'manage_system'],
+  'New Deals': ['view_leads', 'manage_leads', 'view_all_leads', 'manage_quotations', 'branch_sales', 'manage_system'],
+  'Deals': ['view_leads', 'manage_leads', 'view_all_leads', 'manage_quotations', 'branch_sales', 'manage_system'],
+  'Quotations': ['manage_quotations', 'view_quotations', 'branch_sales', 'submit_quotations_bm', 'submit_quotations_ops', 'corporate_approver', 'manage_system'],
+  'Customers': ['view_schools', 'manage_schools', 'view_organizations'],
   'Customer Portal': ['view_schools', 'manage_schools', 'view_organizations'],
   'Organizations CRM': ['view_schools', 'manage_schools', 'view_organizations'],
   'Customer Directory': ['view_schools', 'manage_schools', 'view_organizations'],
-  'Customers': ['view_schools', 'manage_schools', 'view_organizations'],
   'Customer Departments': ['view_schools', 'manage_schools', 'view_organizations', 'manage_departments'],
-  'Leads': ['view_leads', 'manage_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales', 'manage_system'],
-  'Leads Registry': ['view_leads', 'manage_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales'],
-  'Quotations': ['manage_quotations', 'view_quotations', 'branch_sales', 'submit_quotations_bm', 'submit_quotations_ops', 'corporate_approver', 'manage_system'],
+  'Leads Registry': ['view_leads', 'manage_leads', 'view_all_leads', 'view_schools', 'manage_schools', 'view_organizations', 'branch_sales'],
   'Organization': ['view_schools', 'manage_schools', 'view_organizations'],
 
   // Items
@@ -570,10 +575,12 @@ export const Sidebar: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const leaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Expands on hover (or when pinned on desktop/tablet, or on mobile when sidebar drawer is open)
   const isExpanded = isPinned || isHovered || (isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 768);
@@ -596,6 +603,11 @@ export const Sidebar: React.FC = () => {
     leaveTimerRef.current = setTimeout(() => {
       setIsHovered(false);
       setIsDropdownOpen(false);
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+      setHoveredMenu(null);
     }, 150);
   };
 
@@ -613,6 +625,7 @@ export const Sidebar: React.FC = () => {
     return () => {
       window.removeEventListener('storage', loadUser);
       if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, []);
 
@@ -760,10 +773,36 @@ export const Sidebar: React.FC = () => {
                 (item.href !== '/' && (pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?'))) ||
                 (item.label === 'Home' && pathname === '/dashboard');
               const Icon = item.icon;
-              const isOpen = activeMenu === item.label || (isPathActive && activeMenu === null);
+              const isOpen = hoveredMenu !== null
+                ? hoveredMenu === item.label
+                : (activeMenu === item.label || (isPathActive && activeMenu === null));
 
               return (
-                <div key={item.label} className="transition-all duration-300 px-1.5">
+                <div 
+                  key={item.label} 
+                  className="transition-all duration-300 px-1.5"
+                  onMouseEnter={() => {
+                    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                      if (hoverTimeoutRef.current) {
+                        clearTimeout(hoverTimeoutRef.current);
+                        hoverTimeoutRef.current = null;
+                      }
+                      if (item.subsections.length > 0) {
+                        setHoveredMenu(item.label);
+                      } else {
+                        setHoveredMenu(null);
+                      }
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                      hoverTimeoutRef.current = setTimeout(() => {
+                        setHoveredMenu(current => (current === item.label ? null : current));
+                      }, 100);
+                    }
+                  }}
+                >
                   <div
                     onClick={() => handleModuleClick(item)}
                     className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full cursor-pointer overflow-hidden ${isPathActive ? '!bg-[#CC9448] text-white shadow-xl font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'

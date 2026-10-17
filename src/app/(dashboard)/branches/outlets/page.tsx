@@ -6,12 +6,21 @@ import api from '@/lib/api';
 import { 
   Building2, Plus, Key, Users, RefreshCw, CheckCircle2, ShieldCheck, 
   Mail, Phone, MapPin, Copy, Check, ExternalLink, History,
-  X, Store
+  X, Store, Edit2, Trash2, Tag, Compass
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import { AddBranchModal } from '@/app/(dashboard)/employees/_components/AddBranchModal';
 import { EmployeeWorkHistoryModal } from '@/app/(dashboard)/employees/_components/EmployeeWorkHistoryModal';
 import { formatDate } from '@/lib/formatters';
+
+export interface Zone {
+  id: number;
+  name: string;
+  code?: string;
+  branch_id: number;
+  description?: string;
+  is_active?: boolean;
+}
 
 interface Branch {
   id: number;
@@ -57,6 +66,7 @@ export default function BranchOutletsPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchUsers, setBranchUsers] = useState<BranchUser[]>([]);
   const [branchEmployees, setBranchEmployees] = useState<BranchEmployee[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -65,6 +75,15 @@ export default function BranchOutletsPage() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [selectedEmpForHistory, setSelectedEmpForHistory] = useState<any | null>(null);
+
+  // Zone Modal State
+  const [showZoneModal, setShowZoneModal] = useState(false);
+  const [editingZone, setEditingZone] = useState<Zone | null>(null);
+  const [zoneBranchId, setZoneBranchId] = useState<number | null>(null);
+  const [zoneName, setZoneName] = useState('');
+  const [zoneCode, setZoneCode] = useState('');
+  const [zoneDescription, setZoneDescription] = useState('');
+  const [submittingZone, setSubmittingZone] = useState(false);
 
   // New Branch User State
   const [userName, setUserName] = useState('');
@@ -90,14 +109,16 @@ export default function BranchOutletsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resBranches, resUsers, resEmployees] = await Promise.all([
+      const [resBranches, resUsers, resEmployees, resZones] = await Promise.all([
         api.get('/branches'),
         api.get('/branches/users/all').catch(() => ({ data: [] })),
-        api.get('/branches/employees/all').catch(() => api.get('/employees')).catch(() => ({ data: [] }))
+        api.get('/branches/employees/all').catch(() => api.get('/employees')).catch(() => ({ data: [] })),
+        api.get('/zones').catch(() => ({ data: [] }))
       ]);
       setBranches(resBranches.data || []);
       setBranchUsers(resUsers.data || []);
       setBranchEmployees(resEmployees.data || []);
+      setZones(resZones.data || []);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to load branch data');
     } finally {
@@ -108,6 +129,75 @@ export default function BranchOutletsPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const openAddZoneModal = (branch: Branch) => {
+    setEditingZone(null);
+    setZoneBranchId(branch.id);
+    setZoneName('');
+    setZoneCode('');
+    setZoneDescription('');
+    setShowZoneModal(true);
+  };
+
+  const openEditZoneModal = (zone: Zone) => {
+    setEditingZone(zone);
+    setZoneBranchId(zone.branch_id);
+    setZoneName(zone.name);
+    setZoneCode(zone.code || '');
+    setZoneDescription(zone.description || '');
+    setShowZoneModal(true);
+  };
+
+  const handleSaveZone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!zoneBranchId) {
+      toast.error('Please select a branch outlet');
+      return;
+    }
+    if (!zoneName.trim()) {
+      toast.error('Zone name is required');
+      return;
+    }
+
+    setSubmittingZone(true);
+    try {
+      const payload = {
+        branch_id: zoneBranchId,
+        name: zoneName.trim(),
+        code: zoneCode.trim() || null,
+        description: zoneDescription.trim() || null
+      };
+
+      if (editingZone) {
+        await api.put(`/zones/${editingZone.id}`, payload);
+        toast.success('Zone updated successfully');
+      } else {
+        await api.post('/zones', payload);
+        toast.success('Zone created successfully');
+      }
+      setShowZoneModal(false);
+      setEditingZone(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to save zone');
+    } finally {
+      setSubmittingZone(false);
+    }
+  };
+
+  const handleDeleteZone = async (zone: Zone) => {
+    if (!window.confirm(`Are you sure you want to delete zone "${zone.name}"?`)) {
+      return;
+    }
+    const toastId = toast.loading('Deleting zone...');
+    try {
+      await api.delete(`/zones/${zone.id}`);
+      toast.success('Zone deleted successfully', { id: toastId });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete zone', { id: toastId });
+    }
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,7 +313,7 @@ export default function BranchOutletsPage() {
       </div>
 
       {/* Summary KPI Cards in Forma Style */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-[#3a525d]/10 text-[#3a525d] flex items-center justify-center shadow-inner">
             <Building2 size={24} />
@@ -242,6 +332,21 @@ export default function BranchOutletsPage() {
         </div>
 
         <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner">
+            <MapPin size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Regional Zones</p>
+            <p className="text-2xl font-black text-[#2d8d9b] leading-none mt-1">
+              {isAdmin ? zones.length : zones.filter(z => z.branch_id === currentUser?.branchId).length}
+            </p>
+            <p className="text-[9px] font-bold text-zinc-400 mt-1">
+              Sectors & territories mapped to branches
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
             <Users size={24} />
           </div>
@@ -251,19 +356,19 @@ export default function BranchOutletsPage() {
               {isAdmin ? branchEmployees.length : branchEmployees.filter(e => e.branch_id === currentUser?.branchId).length} Staff
             </p>
             <p className="text-[9px] font-bold text-zinc-400 mt-1">
-              {isAdmin ? branchUsers.length : branchUsers.filter(u => u.branch_id === currentUser?.branchId).length} Portal Credentials Provisioned
+              {isAdmin ? branchUsers.length : branchUsers.filter(u => u.branch_id === currentUser?.branchId).length} Logins Provisioned
             </p>
           </div>
         </div>
 
         <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shadow-inner">
             <ShieldCheck size={24} />
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Data & Stock Isolation</p>
-            <p className="text-2xl font-black text-[#2d8d9b] leading-none mt-1">Enforced</p>
-            <p className="text-[9px] font-bold text-zinc-400 mt-1">Strict multi-tenant security per branch</p>
+            <p className="text-2xl font-black text-purple-700 leading-none mt-1">Enforced</p>
+            <p className="text-[9px] font-bold text-zinc-400 mt-1">Multi-tenant security per branch</p>
           </div>
         </div>
       </div>
@@ -284,6 +389,7 @@ export default function BranchOutletsPage() {
           {visibleBranches.map(branch => {
             const users = branchUsers.filter(u => u.branch_id === branch.id);
             const assignedEmployees = branchEmployees.filter(e => e.branch_id === branch.id || e.temp_branch_id === branch.id);
+            const branchZones = zones.filter(z => Number(z.branch_id) === Number(branch.id));
             return (
               <div 
                 key={branch.id} 
@@ -412,6 +518,83 @@ export default function BranchOutletsPage() {
                     )}
                   </div>
 
+                  {/* Branch Assigned Zones */}
+                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-[#fce4d4] space-y-2">
+                    <div className="flex justify-between items-center text-xs font-black text-[#3a525d]">
+                      <span className="flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-[#8b6b5a]">
+                        <MapPin className="w-3.5 h-3.5 text-[#2d8d9b]" />
+                        Regional Zones ({branchZones.length})
+                      </span>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => openAddZoneModal(branch)}
+                          className="text-[10px] text-[#2d8d9b] hover:text-[#236e7a] flex items-center gap-1 font-black uppercase tracking-wider cursor-pointer"
+                          title="Add new zone to this branch"
+                        >
+                          <Plus size={11} className="stroke-[3]" /> Add Zone
+                        </button>
+                      )}
+                    </div>
+
+                    {branchZones.length > 0 ? (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {branchZones.map(zone => (
+                          <div key={zone.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-zinc-100 text-xs hover:border-[#2d8d9b]/30 transition-colors">
+                            <div className="min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-bold text-[#3a525d] truncate">{zone.name}</p>
+                                {zone.code && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#2d8d9b]/10 text-[#2d8d9b] font-black">
+                                    {zone.code}
+                                  </span>
+                                )}
+                              </div>
+                              {zone.description && (
+                                <p className="text-zinc-400 text-[10px] font-medium truncate mt-0.5" title={zone.description}>
+                                  {zone.description}
+                                </p>
+                              )}
+                            </div>
+                            {isAdmin && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditZoneModal(zone)}
+                                  className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition cursor-pointer"
+                                  title="Edit Zone"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteZone(zone)}
+                                  className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  title="Delete Zone"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center py-1">
+                        <p className="text-[11px] text-zinc-400 italic">No zones assigned to this branch yet.</p>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => openAddZoneModal(branch)}
+                            className="text-[10px] text-[#2d8d9b] font-bold underline hover:text-[#236e7a] cursor-pointer"
+                          >
+                            + Add Zone
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Branch Credentials Preview */}
                   <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-[#fce4d4] space-y-2">
                     <div className="flex justify-between items-center text-xs font-black text-[#3a525d]">
@@ -455,23 +638,36 @@ export default function BranchOutletsPage() {
                 </div>
 
                 {/* Card Footer */}
-                <div className="p-4 bg-zinc-50/70 border-t border-zinc-100 flex justify-between items-center">
+                <div className="p-4 bg-zinc-50/70 border-t border-zinc-100 flex flex-wrap gap-2 justify-between items-center">
                   <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     Active Outlet
                   </span>
                   {isAdmin && (
-                    <button
-                      onClick={() => {
-                        setSelectedBranch(branch);
-                        setUserRole(branch.tier === 'Factory' ? 'Factory PO Handler' : 'Branch Manager');
-                        setShowUserModal(true);
-                      }}
-                      className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#2d8d9b] hover:text-white hover:bg-[#2d8d9b] px-3.5 py-1.5 rounded-xl transition border border-[#2d8d9b]/30 shadow-xs cursor-pointer"
-                    >
-                      <Key className="w-3.5 h-3.5" />
-                      + Add Account
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openAddZoneModal(branch)}
+                        className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-[#2d8d9b] hover:text-white hover:bg-[#2d8d9b] px-3 py-1.5 rounded-xl transition border border-[#2d8d9b]/30 shadow-xs cursor-pointer"
+                        title="Add Zone to this branch"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        + Add Zone
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedBranch(branch);
+                          setUserRole(branch.tier === 'Factory' ? 'Factory PO Handler' : 'Branch Manager');
+                          setShowUserModal(true);
+                        }}
+                        className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-slate-700 hover:text-white hover:bg-slate-700 px-3 py-1.5 rounded-xl transition border border-slate-300 shadow-xs cursor-pointer"
+                        title="Add portal login account"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                        + Account
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -606,6 +802,124 @@ export default function BranchOutletsPage() {
                 >
                   <Key size={14} />
                   {submittingUser ? 'Generating...' : 'Generate Credentials'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Regional Zone Modal */}
+      {showZoneModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2.5rem] border border-[#fce4d4] max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner">
+                  <MapPin size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-[#3a525d] tracking-tight">
+                    {editingZone ? 'Edit Regional Zone' : 'Add Regional Zone'}
+                  </h3>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                    Branch Coverage & Territory Mapping
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setShowZoneModal(false); setEditingZone(null); }} 
+                className="w-9 h-9 rounded-full bg-zinc-100 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveZone} className="space-y-4">
+              {/* Branch Outlet Selection */}
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
+                  <Building2 size={13} className="text-[#2d8d9b]" />
+                  Assigned Branch Outlet *
+                </label>
+                <select
+                  required
+                  value={zoneBranchId ? String(zoneBranchId) : ''}
+                  onChange={e => setZoneBranchId(parseInt(e.target.value, 10))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                >
+                  <option value="">Select Branch Outlet</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code}) - {b.tier}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Zone Name */}
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
+                  <Compass size={13} className="text-[#2d8d9b]" />
+                  Zone / Sector Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Zone 1 (Downtown / Commercial Hub)"
+                  value={zoneName}
+                  onChange={e => setZoneName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                />
+              </div>
+
+              {/* Zone Code */}
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
+                  <Tag size={13} className="text-[#2d8d9b]" />
+                  Zone Code / Short Identifier
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Z1-HQ, BLR-NORTH"
+                  value={zoneCode}
+                  onChange={e => setZoneCode(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] uppercase"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#2d8d9b]" />
+                  Coverage Localities / Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Covers institutional clients, retail outlets, and university campus belt."
+                  value={zoneDescription}
+                  onChange={e => setZoneDescription(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => { setShowZoneModal(false); setEditingZone(null); }}
+                  className="px-5 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-500 hover:bg-zinc-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingZone}
+                  className="px-6 py-2.5 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#2d8d9b]/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  <MapPin size={14} />
+                  {submittingZone ? 'Saving...' : editingZone ? 'Update Zone' : 'Save Zone'}
                 </button>
               </div>
             </form>
