@@ -1916,8 +1916,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     }
   }, [editingLead, prefillData, isOpen, userBranchId, intakeRole, currentUser, employees]);
 
-  if (!isOpen) return null;
-
   // Live dynamic intake stage calculation for preview and submission
   const derivedTargetBranchId = isEditing
     ? branchId
@@ -1945,6 +1943,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     if (!effectiveBranchId) return [];
     return (zones || []).filter(z => String(z.branch_id) === String(effectiveBranchId));
   }, [zones, effectiveBranchId]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
