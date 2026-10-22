@@ -290,7 +290,7 @@ export default function QuotationWizard({
         setStatus(fullQuote.status || 'Pending');
 
         if (fullQuote.metrics_summary?.sales_type) {
-          setSalesType(fullQuote.metrics_summary.sales_type);
+          setSalesType(fullQuote.metrics_summary.sales_type === 'B2B' ? 'WHOLESALE' : fullQuote.metrics_summary.sales_type);
         }
         if (fullQuote.metrics_summary?.customer_type) {
           setCustomerType(fullQuote.metrics_summary.customer_type);
@@ -577,7 +577,7 @@ export default function QuotationWizard({
       setManualItems(mapped);
       setQuoteTitle(`${fullQuote.title} (Copy)`);
       if (fullQuote.metrics_summary?.sales_type) {
-        setSalesType(fullQuote.metrics_summary.sales_type);
+        setSalesType(fullQuote.metrics_summary.sales_type === 'B2B' ? 'WHOLESALE' : fullQuote.metrics_summary.sales_type);
       }
       if (fullQuote.metrics_summary?.customer_type) {
         setCustomerType(fullQuote.metrics_summary.customer_type);
@@ -602,16 +602,15 @@ export default function QuotationWizard({
     const orgName = org?.name || 'Customer';
     setQuoteTitle(`Uniform Contract for ${orgName}`);
 
-    // Automatic B2B & GST Provisioning:
-    // When GST details are registered for a customer, sales to them automatically becomes B2B
+    // Automatic GST Provisioning:
+    // When GST details are registered for a customer, enable GST quotation
     const isB2bCustomer = Boolean(org?.is_b2b || (org?.gst_number && String(org.gst_number).trim() !== ''));
     if (isB2bCustomer) {
-      setSalesType('B2B');
-      setIsTaxInclusive(false); // B2B quotations use Tax Exclusive pricing with distinct GST breakdown
+      setIsTaxInclusive(false); // GST quotations use Tax Exclusive pricing with distinct GST breakdown
       if (!gstPercent || gstPercent === '0') {
         setGstPercent('5'); // Default standard textile/apparel GST slab
       }
-      toast.info(`B2B Customer detected (${org?.gst_number}). Sales mode set to B2B with GST quotation.`);
+      toast.info(`Commercial / GST Customer detected (${org?.gst_number}). GST quotation active.`);
     }
 
     try {
@@ -864,10 +863,20 @@ export default function QuotationWizard({
   };
 
   const computeItemUnitCost = (item: ManualItem) => {
-    const productSAMCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
-    const mainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-    const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-    const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+    const productSAMCost = isFabric ? 0 : (
+      (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+        ? parseFloat(item.final_sam_price)
+        : calculateProductSAMCost(item.sam_value, item.quantity)
+    );
+    const mainFabricCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
+      ? parseFloat(item.main_fabric_cost)
+      : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+    const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
+      ? parseFloat(item.attachment_fabric1_cost)
+      : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+    const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
+      ? parseFloat(item.attachment_fabric2_cost)
+      : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
     return productSAMCost + mainFabricCost + att1Cost + att2Cost;
   };
 
@@ -1006,14 +1015,24 @@ export default function QuotationWizard({
         const items = departmentItems[deptId] || [];
         items.forEach(item => {
           const qty = parseInt(item.quantity) || 0;
-          const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-          const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-          const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+          const mainCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
+            ? parseFloat(item.main_fabric_cost)
+            : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+          const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
+            ? parseFloat(item.attachment_fabric1_cost)
+            : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+          const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
+            ? parseFloat(item.attachment_fabric2_cost)
+            : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
           totalFabricExpense += (mainCost + att1Cost + att2Cost) * qty;
 
           totalAccExpense += 0;
 
-          const productSAMCost = calculateProductSAMCost(item.sam_value, item.quantity);
+          const productSAMCost = isFabric ? 0 : (
+            (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+              ? parseFloat(item.final_sam_price)
+              : calculateProductSAMCost(item.sam_value, item.quantity)
+          );
           totalLaborExpense += productSAMCost * qty;
         });
       });
@@ -1031,14 +1050,24 @@ export default function QuotationWizard({
       // Manual items: sum per-item computed costs
       manualItems.forEach(item => {
         const qty = parseInt(item.quantity) || 0;
-        const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-        const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-        const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+        const mainCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
+          ? parseFloat(item.main_fabric_cost)
+          : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+        const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
+          ? parseFloat(item.attachment_fabric1_cost)
+          : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+        const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
+          ? parseFloat(item.attachment_fabric2_cost)
+          : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
         totalFabricExpense += (mainCost + att1Cost + att2Cost) * qty;
 
         totalAccExpense += 0;
 
-        const productSAMCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
+        const productSAMCost = isFabric ? 0 : (
+          (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+            ? parseFloat(item.final_sam_price)
+            : calculateProductSAMCost(item.sam_value, item.quantity)
+        );
         totalLaborExpense += productSAMCost * qty;
       });
     }
@@ -1217,11 +1246,17 @@ export default function QuotationWizard({
               selected_size: item.size_breakdown?.selected_size || null,
               is_accessory: isAccessory
             },
-            fabric_cost_per_item: isAccessory ? 0 : (calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
-                                  calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
-                                  calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id)),
+            fabric_cost_per_item: isAccessory ? 0 : (
+              ((item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost))) ? parseFloat(item.main_fabric_cost) : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id)) +
+              ((item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost))) ? parseFloat(item.attachment_fabric1_cost) : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id)) +
+              ((item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost))) ? parseFloat(item.attachment_fabric2_cost) : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id))
+            ),
             accessories_cost_per_item: isAccessory ? price : 0,
-            labor_cost_per_item: isAccessory ? 0 : calculateProductSAMCost(item.sam_value, item.quantity)
+            labor_cost_per_item: isAccessory ? 0 : (
+              (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+                ? parseFloat(item.final_sam_price)
+                : calculateProductSAMCost(item.sam_value, item.quantity)
+            )
           });
         });
       });
@@ -1325,11 +1360,17 @@ export default function QuotationWizard({
               computed_unit_cost: unitCost,
               class_name: item.size_breakdown?.class_name || null
             },
-            fabric_cost_per_item: calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id) +
-                                  calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id) +
-                                  calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id),
+            fabric_cost_per_item: isFabric ? 0 : (
+              ((item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost))) ? parseFloat(item.main_fabric_cost) : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id)) +
+              ((item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost))) ? parseFloat(item.attachment_fabric1_cost) : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id)) +
+              ((item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost))) ? parseFloat(item.attachment_fabric2_cost) : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id))
+            ),
             accessories_cost_per_item: 0,
-            labor_cost_per_item: isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity)
+            labor_cost_per_item: isFabric ? 0 : (
+              (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+                ? parseFloat(item.final_sam_price)
+                : calculateProductSAMCost(item.sam_value, item.quantity)
+            )
           };
         });
     }

@@ -154,6 +154,10 @@ export interface ManualItem {
   thread_count: string;
   // SAM & meta
   sam_value: string;
+  final_sam_price?: string;
+  main_fabric_cost?: string;
+  attachment_fabric1_cost?: string;
+  attachment_fabric2_cost?: string;
   design_number: string;
   art_number?: string;
   quantity: string;

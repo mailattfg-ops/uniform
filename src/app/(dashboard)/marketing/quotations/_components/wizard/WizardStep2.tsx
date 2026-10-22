@@ -1088,12 +1088,65 @@ export default function WizardStep2({
         id: g.id,
         code: g.code,
         name: g.name,
-        value: (g.name || g.code || '').toLowerCase(),
+        value: (g.name || g.code || '').toLowerCase().trim(),
         label: g.name ? `${g.name}${g.code ? ` (${g.code})` : ''}` : g.code,
       }));
     }
-    return [];
-  }, [dbGenders]);
+    return [
+      { id: 'male', code: '1', name: isSchool ? 'Boys' : 'Men', value: 'male', label: isSchool ? 'Boys / Male' : 'Men / Male' },
+      { id: 'female', code: '2', name: isSchool ? 'Girls' : 'Women', value: 'female', label: isSchool ? 'Girls / Female' : 'Women / Female' },
+      { id: 'unisex', code: '3', name: 'Unisex', value: 'unisex', label: 'Unisex / All' },
+    ];
+  }, [dbGenders, isSchool]);
+
+  const normalizeGender = React.useCallback((g?: string | null): string => {
+    if (!g) return '';
+    const s = String(g).trim().toLowerCase();
+    if (!s) return '';
+
+    // Direct match against availableGenders
+    const directMatch = availableGenders.find((opt: any) =>
+      opt.value.toLowerCase() === s ||
+      (opt.name && opt.name.toLowerCase() === s) ||
+      (opt.code && String(opt.code).toLowerCase() === s)
+    );
+    if (directMatch) return directMatch.value;
+
+    // Semantic matching for male / boys / men
+    if (s === 'male' || s === 'm' || s === 'boy' || s === 'boys' || s === 'men' || s === 'man' || s === '1') {
+      const maleOpt = availableGenders.find((opt: any) => {
+        const v = opt.value.toLowerCase();
+        const n = (opt.name || '').toLowerCase();
+        return v.includes('boy') || v.includes('male') || v.includes('men') || n.includes('boy') || n.includes('male') || n.includes('men') || opt.code === '1';
+      });
+      if (maleOpt) return maleOpt.value;
+      return 'male';
+    }
+
+    // Semantic matching for female / girls / women
+    if (s === 'female' || s === 'f' || s === 'girl' || s === 'girls' || s === 'women' || s === 'woman' || s === '2') {
+      const femaleOpt = availableGenders.find((opt: any) => {
+        const v = opt.value.toLowerCase();
+        const n = (opt.name || '').toLowerCase();
+        return v.includes('girl') || v.includes('female') || v.includes('women') || n.includes('girl') || n.includes('female') || n.includes('women') || opt.code === '2';
+      });
+      if (femaleOpt) return femaleOpt.value;
+      return 'female';
+    }
+
+    // Semantic matching for unisex / all
+    if (s === 'unisex' || s === 'all' || s === '3') {
+      const unisexOpt = availableGenders.find((opt: any) => {
+        const v = opt.value.toLowerCase();
+        const n = (opt.name || '').toLowerCase();
+        return v.includes('unisex') || v.includes('all') || n.includes('unisex') || n.includes('all') || opt.code === '3';
+      });
+      if (unisexOpt) return unisexOpt.value;
+      return 'unisex';
+    }
+
+    return s;
+  }, [availableGenders]);
 
   const getQty = (item: TemplateLineItem) => (orgAnalysis?.entities || []).filter((ent: any) => {
     if (ent.measurement_status !== 'Completed') return false;
@@ -1360,16 +1413,37 @@ export default function WizardStep2({
 
   // Compute costs for a single item
   const getItemCosts = (item: ManualItem) => {
-    const mainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-    const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-    const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+    const calcMainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+    const calcAtt1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+    const calcAtt2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+
+    const mainFabricCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
+      ? parseFloat(item.main_fabric_cost)
+      : calcMainFabricCost;
+
+    const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
+      ? parseFloat(item.attachment_fabric1_cost)
+      : calcAtt1Cost;
+
+    const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
+      ? parseFloat(item.attachment_fabric2_cost)
+      : calcAtt2Cost;
+
     const buttonCost = 0; // included in product price
     const threadCost = 0; // included in product price
-    const samCost = calculateProductSAMCost(item.sam_value, item.quantity);
+
+    const calcSamCost = calculateProductSAMCost(item.sam_value, item.quantity);
+    const samCost = (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+      ? parseFloat(item.final_sam_price)
+      : calcSamCost;
+
     const unitTotal = mainFabricCost + att1Cost + att2Cost + buttonCost + threadCost + samCost;
     const btnPrice = buttonsList.find((b: any) => String(b.id) === String(item.button_id))?.unit_price || 0;
     const thrPrice = threadsList.find((t: any) => String(t.id) === String(item.thread_id))?.unit_price || 0;
-    return { mainFabricCost, att1Cost, att2Cost, buttonCost, threadCost, samCost, unitTotal, btnPrice, thrPrice };
+    return {
+      mainFabricCost, att1Cost, att2Cost, buttonCost, threadCost, samCost, unitTotal, btnPrice, thrPrice,
+      calcMainFabricCost, calcAtt1Cost, calcAtt2Cost, calcSamCost
+    };
   };
 
   // Check backend for existing DNS match based on (ART # + Fabrics + Trims)
@@ -1483,7 +1557,7 @@ export default function WizardStep2({
           product_id: String(matchedProd.id),
           product_type_id: String(matchedProd.product_type_id || currentItem.product_type_id || ''),
           design_number: matchedProd.design_number || 'ACC-STANDARD',
-          gender: matchedProd.gender || 'Unisex',
+          gender: normalizeGender(matchedProd.gender) || currentItem.gender || 'unisex',
           price: basePrice > 0 ? basePrice.toFixed(2) : (currentItem.price || '0.00'),
           size_breakdown: {
             ...(currentItem.size_breakdown || {}),
@@ -1511,10 +1585,17 @@ export default function WizardStep2({
         product_name: matchedProd.name || '',
         name: matchedProd.name || '',
         design_number: '',
+        final_sam_price: undefined,
+        main_fabric_cost: undefined,
+        attachment_fabric1_cost: undefined,
+        attachment_fabric2_cost: undefined,
       };
 
       if (matchedProd.gender) {
-        updates.gender = matchedProd.gender;
+        const normG = normalizeGender(matchedProd.gender);
+        if (!currentItem.gender || (normG && normG !== 'unisex')) {
+          updates.gender = normG;
+        }
       }
 
       if (autoDefaults) {
@@ -1692,7 +1773,11 @@ export default function WizardStep2({
   const inputCls = "px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] focus:ring-1 focus:ring-[#2d8d9b]/20 text-center transition-all w-full disabled:opacity-40 disabled:cursor-not-allowed";
 
   const renderManualItemCard = (item: ManualItem, index: number) => {
-    const { mainFabricCost, att1Cost, att2Cost, buttonCost, threadCost, samCost, unitTotal: calculatedUnitTotal, btnPrice, thrPrice } = getItemCosts(item);
+    const {
+      mainFabricCost, att1Cost, att2Cost, buttonCost, threadCost, samCost,
+      unitTotal: calculatedUnitTotal, btnPrice, thrPrice,
+      calcMainFabricCost, calcAtt1Cost, calcAtt2Cost, calcSamCost
+    } = getItemCosts(item);
     const unitTotal = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
 
     const matchedProduct = (allProducts || []).find((p: any) => {
@@ -1882,18 +1967,26 @@ export default function WizardStep2({
                 )}
               </div>
 
-              <div className="flex items-center gap-6 ml-auto">
+              <div className="flex items-center gap-4 ml-auto">
                 {/* Unit Cost Display */}
                 <div className="text-right self-center">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</p>
-                  <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                  <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
                     ₹{unitTotal.toFixed(2)}
                   </p>
-                  {parseInt(item.quantity) > 1 && (
-                    <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-                      × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
-                    </p>
-                  )}
+                </div>
+
+                {/* Highlighted Total Product Price */}
+                <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
+                    Total Product Price
+                  </p>
+                  <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
+                    ₹{totalItemCost.toFixed(2)}
+                  </p>
+                  <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
+                    ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
+                  </p>
                 </div>
 
                 {/* Delete */}
@@ -2001,23 +2094,15 @@ export default function WizardStep2({
                 <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
                 <select
                   className={selectCls}
-                  value={item.gender || ''}
+                  value={normalizeGender(item.gender)}
                   onChange={(e) => updateItem(index, { gender: e.target.value })}
                 >
                   <option value="">Select Gender...</option>
-                  {availableGenders.length > 0 ? (
-                    availableGenders.map((g: any) => (
-                      <option key={g.id || g.code || g.value} value={g.value}>
-                        {g.label}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="male">{isSchool ? 'Boys / Male' : 'Men / Male'}</option>
-                      <option value="female">{isSchool ? 'Girls / Female' : 'Women / Female'}</option>
-                      <option value="unisex">Unisex / All</option>
-                    </>
-                  )}
+                  {availableGenders.map((g: any) => (
+                    <option key={g.id || g.code || g.value} value={g.value}>
+                      {g.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -2062,7 +2147,7 @@ export default function WizardStep2({
                           product_id: val,
                           product_type_id: String(prod.product_type_id || item.product_type_id || ''),
                           art_number: prod.art_number || item.art_number || '',
-                          gender: prod.gender || 'Unisex',
+                          gender: normalizeGender(prod.gender) || item.gender || 'unisex',
                           price: basePrice > 0 ? basePrice.toFixed(2) : (item.price || '0.00'),
                           size_breakdown: {
                             ...(item.size_breakdown || {}),
@@ -2103,11 +2188,22 @@ export default function WizardStep2({
                         updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
                         updates.design_number = '';
                         updates.art_number = prod.art_number || autoDefaults.art_number || item.art_number || '';
+                        updates.final_sam_price = undefined;
+                        updates.main_fabric_cost = undefined;
+                        updates.attachment_fabric1_cost = undefined;
+                        updates.attachment_fabric2_cost = undefined;
                       } else {
                         updates.art_number = prod.art_number || item.art_number || '';
+                        updates.final_sam_price = undefined;
+                        updates.main_fabric_cost = undefined;
+                        updates.attachment_fabric1_cost = undefined;
+                        updates.attachment_fabric2_cost = undefined;
                       }
                       if (prod.gender) {
-                        updates.gender = prod.gender;
+                        const normG = normalizeGender(prod.gender);
+                        if (!item.gender || (normG && normG !== 'unisex')) {
+                          updates.gender = normG;
+                        }
                       }
                     } else {
                       updates.sam_value = '';
@@ -2122,6 +2218,10 @@ export default function WizardStep2({
                       updates.attachment_fabric2_sam = '';
                       updates.design_number = '';
                       updates.art_number = '';
+                      updates.final_sam_price = undefined;
+                      updates.main_fabric_cost = undefined;
+                      updates.attachment_fabric1_cost = undefined;
+                      updates.attachment_fabric2_cost = undefined;
                     }
                     updateItem(index, updates);
                   }}
@@ -2174,26 +2274,39 @@ export default function WizardStep2({
                 </div>
               )}
 
-              {/* Product SAM */}
+              {/* Product SAM (Read-Only) */}
               {quotationType !== 'READYMADE' && !isAccessoryType && (
                 <div className="w-24">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
                   <input
-                    type="number" step="any" min="0" placeholder="0"
-                    value={item.sam_value}
-                    onChange={(e) => updateItem(index, { sam_value: e.target.value })}
-                    className={inputCls}
+                    type="text"
+                    readOnly
+                    value={item.sam_value || '0'}
+                    className={`${inputCls} bg-zinc-100/90 text-zinc-500 cursor-not-allowed font-mono select-none`}
+                    title="Product SAM is read-only. Edit Final SAM Price to override calculation."
                   />
                 </div>
               )}
 
-              {/* Final SAM Price */}
+              {/* Final SAM Price (Editable) */}
               {quotationType !== 'READYMADE' && !isAccessoryType && (
-                <div className="w-28 text-right self-center">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Final SAM Price</p>
-                  <p className="text-sm font-black text-[#8b6b5a] font-mono mt-2">
-                    ₹{samCost.toFixed(2)}
-                  </p>
+                <div className="w-32">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-[#8b6b5a] mb-1.5 font-bold">Final SAM Price (₹)</p>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={calcSamCost.toFixed(2)}
+                    value={item.final_sam_price !== undefined ? item.final_sam_price : ((item.product_id || item.sam_value) ? calcSamCost.toFixed(2) : '')}
+                    onChange={(e) => updateItem(index, { final_sam_price: e.target.value })}
+                    onBlur={() => {
+                      if (item.final_sam_price === '') {
+                        updateItem(index, { final_sam_price: undefined });
+                      }
+                    }}
+                    className={`${inputCls} font-mono font-bold text-[#8b6b5a] border-[#8b6b5a]/30 focus:border-[#8b6b5a] focus:ring-[#8b6b5a]/20`}
+                    title="Enter custom final SAM price or leave empty to use auto-calculated SAM cost"
+                  />
                 </div>
               )}
 
@@ -2314,19 +2427,27 @@ export default function WizardStep2({
                 )}
               </div>
 
-              {/* Unit Cost Display */}
-              <div className="ml-auto text-right self-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                  {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
-                </p>
-                <p className="text-2xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
-                  ₹{unitTotal.toFixed(2)}
-                </p>
-                {parseInt(item.quantity) > 1 && (
-                  <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-                    × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
+              {/* Highlighted Total Product Price (Unit Price * No of Products) */}
+              <div className="ml-auto flex items-center gap-3">
+                <div className="text-right self-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                    {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
                   </p>
-                )}
+                  <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
+                    ₹{unitTotal.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
+                    Total Product Price
+                  </p>
+                  <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
+                    ₹{totalItemCost.toFixed(2)}
+                  </p>
+                  <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
+                    ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
+                  </p>
+                </div>
               </div>
 
               {/* Delete */}
@@ -2374,7 +2495,11 @@ export default function WizardStep2({
                       value={item.fabric_id}
                       onChange={(e) => {
                         const val = e.target.value;
-                        const updates: Partial<ManualItem> = { fabric_id: val, main_fabric_rate: '0.00' };
+                        const updates: Partial<ManualItem> = {
+                          fabric_id: val,
+                          main_fabric_rate: '0.00',
+                          main_fabric_cost: undefined
+                        };
                         if (val && !item.main_fabric_sam) {
                           updates.main_fabric_sam = '6.777';
                         }
@@ -2412,23 +2537,29 @@ export default function WizardStep2({
                   </td>
                   <td className="p-3">
                     {item.fabric_id ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 font-bold text-[10px]">₹</span>
-                        <input
-                          type="number" step="any" min="0" placeholder="0.00"
-                          value={item.main_fabric_sam}
-                          onChange={(e) => updateItem(index, { main_fabric_sam: e.target.value })}
-                          className={`${inputCls} w-24 px-2 py-1 text-left`}
-                        />
-                      </div>
+                      <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
+                        {item.main_fabric_sam ? `₹${parseFloat(item.main_fabric_sam).toFixed(2)}` : '—'}
+                      </span>
                     ) : (
                       <span className="text-zinc-300 italic text-[10px]">—</span>
                     )}
                   </td>
                   <td className="p-3 text-right">
-                    <span className={`font-mono font-black ${mainFabricCost > 0 ? 'text-[#3a525d]' : 'text-zinc-300'}`}>
-                      ₹{mainFabricCost.toFixed(2)}
-                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={calcMainFabricCost.toFixed(2)}
+                      value={item.main_fabric_cost !== undefined ? item.main_fabric_cost : (item.fabric_id ? calcMainFabricCost.toFixed(2) : '')}
+                      onChange={(e) => updateItem(index, { main_fabric_cost: e.target.value })}
+                      onBlur={() => {
+                        if (item.main_fabric_cost === '') {
+                          updateItem(index, { main_fabric_cost: undefined });
+                        }
+                      }}
+                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                      title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
+                    />
                   </td>
                 </tr>
 
@@ -2446,7 +2577,11 @@ export default function WizardStep2({
                       value={item.attachment_fabric1_id}
                       onChange={(e) => {
                         const val = e.target.value;
-                        const updates: Partial<ManualItem> = { attachment_fabric1_id: val, attachment_fabric1_rate: '0.00' };
+                        const updates: Partial<ManualItem> = {
+                          attachment_fabric1_id: val,
+                          attachment_fabric1_rate: '0.00',
+                          attachment_fabric1_cost: undefined
+                        };
                         if (val && !item.attachment_fabric1_sam) {
                           updates.attachment_fabric1_sam = '6.777';
                         }
@@ -2484,23 +2619,29 @@ export default function WizardStep2({
                   </td>
                   <td className="p-3">
                     {item.attachment_fabric1_id ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 font-bold text-[10px]">₹</span>
-                        <input
-                          type="number" step="any" min="0" placeholder="0.00"
-                          value={item.attachment_fabric1_sam}
-                          onChange={(e) => updateItem(index, { attachment_fabric1_sam: e.target.value })}
-                          className={`${inputCls} w-24 px-2 py-1 text-left`}
-                        />
-                      </div>
+                      <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
+                        {item.attachment_fabric1_sam ? `₹${parseFloat(item.attachment_fabric1_sam).toFixed(2)}` : '—'}
+                      </span>
                     ) : (
                       <span className="text-zinc-300 italic text-[10px]">—</span>
                     )}
                   </td>
                   <td className="p-3 text-right">
-                    <span className={`font-mono font-black ${att1Cost > 0 ? 'text-[#3a525d]' : 'text-zinc-300'}`}>
-                      ₹{att1Cost.toFixed(2)}
-                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={calcAtt1Cost.toFixed(2)}
+                      value={item.attachment_fabric1_cost !== undefined ? item.attachment_fabric1_cost : (item.attachment_fabric1_id ? calcAtt1Cost.toFixed(2) : '')}
+                      onChange={(e) => updateItem(index, { attachment_fabric1_cost: e.target.value })}
+                      onBlur={() => {
+                        if (item.attachment_fabric1_cost === '') {
+                          updateItem(index, { attachment_fabric1_cost: undefined });
+                        }
+                      }}
+                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                      title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
+                    />
                   </td>
                 </tr>
 
@@ -2518,7 +2659,11 @@ export default function WizardStep2({
                       value={item.attachment_fabric2_id}
                       onChange={(e) => {
                         const val = e.target.value;
-                        const updates: Partial<ManualItem> = { attachment_fabric2_id: val, attachment_fabric2_rate: '0.00' };
+                        const updates: Partial<ManualItem> = {
+                          attachment_fabric2_id: val,
+                          attachment_fabric2_rate: '0.00',
+                          attachment_fabric2_cost: undefined
+                        };
                         if (val && !item.attachment_fabric2_sam) {
                           updates.attachment_fabric2_sam = '6.777';
                         }
@@ -2556,23 +2701,29 @@ export default function WizardStep2({
                   </td>
                   <td className="p-3">
                     {item.attachment_fabric2_id ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 font-bold text-[10px]">₹</span>
-                        <input
-                          type="number" step="any" min="0" placeholder="0.00"
-                          value={item.attachment_fabric2_sam}
-                          onChange={(e) => updateItem(index, { attachment_fabric2_sam: e.target.value })}
-                          className={`${inputCls} w-24 px-2 py-1 text-left`}
-                        />
-                      </div>
+                      <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
+                        {item.attachment_fabric2_sam ? `₹${parseFloat(item.attachment_fabric2_sam).toFixed(2)}` : '—'}
+                      </span>
                     ) : (
                       <span className="text-zinc-300 italic text-[10px]">—</span>
                     )}
                   </td>
                   <td className="p-3 text-right">
-                    <span className={`font-mono font-black ${att2Cost > 0 ? 'text-[#3a525d]' : 'text-zinc-300'}`}>
-                      ₹{att2Cost.toFixed(2)}
-                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={calcAtt2Cost.toFixed(2)}
+                      value={item.attachment_fabric2_cost !== undefined ? item.attachment_fabric2_cost : (item.attachment_fabric2_id ? calcAtt2Cost.toFixed(2) : '')}
+                      onChange={(e) => updateItem(index, { attachment_fabric2_cost: e.target.value })}
+                      onBlur={() => {
+                        if (item.attachment_fabric2_cost === '') {
+                          updateItem(index, { attachment_fabric2_cost: undefined });
+                        }
+                      }}
+                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                      title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
+                    />
                   </td>
                 </tr>
 
@@ -3334,7 +3485,7 @@ export default function WizardStep2({
                                 </td>
                                 <td className="p-2 align-middle">
                                   <select
-                                    value={rowItem.gender || ''}
+                                    value={normalizeGender(rowItem.gender || '')}
                                     onChange={(e) => updateDeptAuditRow(deptId, rIdx, { gender: e.target.value })}
                                     className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer"
                                   >
@@ -3453,7 +3604,7 @@ export default function WizardStep2({
                           <td className="p-3 text-zinc-800 align-middle">{item.product_name}</td>
                                                     <td className="p-2 align-middle min-w-[130px]">
                             <select
-                              value={item.gender || ''}
+                              value={normalizeGender(item.gender || '')}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 const updated = [...templateLineItems];
@@ -3861,7 +4012,7 @@ export default function WizardStep2({
                                     <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
                                       <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Gender:</label>
                                       <select
-                                        value={dept.gender || ''}
+                                        value={normalizeGender(dept.gender || '')}
                                         onChange={(e) => {
                                           const val = e.target.value;
                                           if (setOrgDepartments) {
@@ -4050,10 +4201,26 @@ export default function WizardStep2({
                                       </div>
                                     )}
 
-                                    <div className="text-right min-w-[90px] border-l border-zinc-200 pl-4">
-                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Units</p>
-                                      <p className="text-xs font-mono font-black text-[#2d8d9b]">{totalUnits} Units</p>
-                                    </div>
+                                    {(() => {
+                                      const deptTotalPrice = (deptItems || []).reduce((acc: number, it: ManualItem) => {
+                                        const costs = getItemCosts(it);
+                                        const uPrice = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(it.price) || 0) : costs.unitTotal;
+                                        return acc + (uPrice * (parseInt(it.quantity) || 0));
+                                      }, 0);
+                                      return (
+                                        <>
+                                          <div className="text-right min-w-[90px] border-l border-zinc-200 pl-4">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Units</p>
+                                            <p className="text-xs font-mono font-black text-[#2d8d9b]">{totalUnits} Units</p>
+                                          </div>
+                                          <div className="text-right min-w-[130px] border-l border-zinc-200 pl-4 bg-emerald-50/90 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">Total Dept Price</p>
+                                            <p className="text-base font-mono font-black text-emerald-700">₹{deptTotalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                            <p className="text-[9px] text-emerald-600 font-bold">{totalUnits} Products total</p>
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
 
@@ -4068,7 +4235,10 @@ export default function WizardStep2({
                                     <div className="space-y-4">
                                       {deptItems.map((item: ManualItem, idx: number) => {
                                         // Inline render adapted for department items
-                                        const { mainFabricCost, att1Cost, att2Cost, samCost, unitTotal: calculatedUnitTotal } = getItemCosts(item);
+                                        const {
+                                          mainFabricCost, att1Cost, att2Cost, samCost, unitTotal: calculatedUnitTotal,
+                                          calcMainFabricCost, calcAtt1Cost, calcAtt2Cost, calcSamCost
+                                        } = getItemCosts(item);
                                         const unitTotal = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
                                         const totalItemCost = unitTotal * (parseInt(item.quantity) || 0);
 
@@ -4135,17 +4305,24 @@ export default function WizardStep2({
                                                   </div>
 
                                                   <div className="flex items-center gap-6 ml-auto">
-                                                    {/* Unit Cost Display */}
                                                     <div className="text-right self-center">
                                                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</p>
-                                                      <p className="text-xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                                                      <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
                                                         ₹{unitTotal.toFixed(2)}
                                                       </p>
-                                                      {parseInt(item.quantity) > 1 && (
-                                                        <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-                                                          × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
-                                                        </p>
-                                                      )}
+                                                    </div>
+
+                                                    {/* Highlighted Total Product Price */}
+                                                    <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
+                                                      <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
+                                                        Total Product Price
+                                                      </p>
+                                                      <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
+                                                        ₹{totalItemCost.toFixed(2)}
+                                                      </p>
+                                                      <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
+                                                        ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
+                                                      </p>
                                                     </div>
 
                                                     {/* Delete */}
@@ -4219,6 +4396,23 @@ export default function WizardStep2({
                                                 </div>
 
                                                 <div className="flex items-start gap-4 flex-wrap">
+                                                  {/* Gender Dropdown */}
+                                                  <div className="min-w-[130px]">
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
+                                                    <select
+                                                      className={selectCls}
+                                                      value={normalizeGender(item.gender || dept.gender || '')}
+                                                      onChange={(e) => updateDeptItem(idx, { gender: e.target.value })}
+                                                    >
+                                                      <option value="">Select Gender...</option>
+                                                      {availableGenders.map((g: any) => (
+                                                        <option key={g.id || g.code || g.value} value={g.value}>
+                                                          {g.label}
+                                                        </option>
+                                                      ))}
+                                                    </select>
+                                                  </div>
+
                                                   {/* Product Type */}
                                                   <div className="min-w-[140px]">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
@@ -4257,6 +4451,7 @@ export default function WizardStep2({
                                                               product_id: val,
                                                               product_type_id: String(prod.product_type_id || item.product_type_id || ''),
                                                               art_number: prod.art_number || item.art_number || '',
+                                                              gender: normalizeGender(prod.gender) || item.gender || dept.gender || 'unisex',
                                                               price: basePrice > 0 ? basePrice.toFixed(2) : (item.price || '0.00'),
                                                               size_breakdown: {
                                                                 ...(item.size_breakdown || {}),
@@ -4300,8 +4495,22 @@ export default function WizardStep2({
                                                             updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
                                                             updates.design_number = '';
                                                             updates.art_number = prod.art_number || autoDefaults.art_number || item.art_number || '';
+                                                            updates.final_sam_price = undefined;
+                                                            updates.main_fabric_cost = undefined;
+                                                            updates.attachment_fabric1_cost = undefined;
+                                                            updates.attachment_fabric2_cost = undefined;
                                                           } else {
                                                             updates.art_number = prod.art_number || item.art_number || '';
+                                                            updates.final_sam_price = undefined;
+                                                            updates.main_fabric_cost = undefined;
+                                                            updates.attachment_fabric1_cost = undefined;
+                                                            updates.attachment_fabric2_cost = undefined;
+                                                          }
+                                                          if (prod.gender) {
+                                                            const normG = normalizeGender(prod.gender);
+                                                            if (!item.gender || (normG && normG !== 'unisex')) {
+                                                              updates.gender = normG;
+                                                            }
                                                           }
                                                         } else {
                                                           updates.sam_value = '';
@@ -4316,6 +4525,10 @@ export default function WizardStep2({
                                                           updates.attachment_fabric2_sam = '';
                                                           updates.design_number = '';
                                                           updates.art_number = '';
+                                                          updates.final_sam_price = undefined;
+                                                          updates.main_fabric_cost = undefined;
+                                                          updates.attachment_fabric1_cost = undefined;
+                                                          updates.attachment_fabric2_cost = undefined;
                                                         }
                                                         updateDeptItem(idx, updates);
                                                       }}
@@ -4380,15 +4593,36 @@ export default function WizardStep2({
                                                       />
                                                     </div>
                                                   ) : (
-                                                    <div className="w-24">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
-                                                      <input
-                                                        type="number" step="any" min="0" placeholder="0"
-                                                        value={item.sam_value}
-                                                        onChange={(e) => updateDeptItem(idx, { sam_value: e.target.value })}
-                                                        className={inputCls}
-                                                      />
-                                                    </div>
+                                                    <>
+                                                      <div className="w-24">
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
+                                                        <input
+                                                          type="text"
+                                                          readOnly
+                                                          value={item.sam_value || '0'}
+                                                          className={`${inputCls} bg-zinc-100/90 text-zinc-500 cursor-not-allowed font-mono select-none`}
+                                                          title="Product SAM is read-only. Edit Final SAM Price to override calculation."
+                                                        />
+                                                      </div>
+                                                      <div className="w-32">
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#8b6b5a] mb-1.5 font-bold">Final SAM Price (₹)</p>
+                                                        <input
+                                                          type="number"
+                                                          step="0.01"
+                                                          min="0"
+                                                          placeholder={calcSamCost.toFixed(2)}
+                                                          value={item.final_sam_price !== undefined ? item.final_sam_price : ((item.product_id || item.sam_value) ? calcSamCost.toFixed(2) : '')}
+                                                          onChange={(e) => updateDeptItem(idx, { final_sam_price: e.target.value })}
+                                                          onBlur={() => {
+                                                            if (item.final_sam_price === '') {
+                                                              updateDeptItem(idx, { final_sam_price: undefined });
+                                                            }
+                                                          }}
+                                                          className={`${inputCls} font-mono font-bold text-[#8b6b5a] border-[#8b6b5a]/30 focus:border-[#8b6b5a] focus:ring-[#8b6b5a]/20`}
+                                                          title="Enter custom final SAM price or leave empty to use auto-calculated SAM cost"
+                                                        />
+                                                      </div>
+                                                    </>
                                                   )}
 
                                                   {/* Quantity */}
@@ -4402,19 +4636,27 @@ export default function WizardStep2({
                                                     />
                                                   </div>
 
-                                                  {/* Unit Cost Display */}
-                                                  <div className="ml-auto text-right self-center">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                                                      {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
-                                                    </p>
-                                                    <p className="text-xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
-                                                      ₹{unitTotal.toFixed(2)}
-                                                    </p>
-                                                    {parseInt(item.quantity) > 1 && (
-                                                      <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-                                                        × {item.quantity} = <span className="text-[#3a525d] font-black">₹{totalItemCost.toFixed(2)}</span>
+                                                  {/* Highlighted Total Product Price (Unit Price * No of Products) */}
+                                                  <div className="ml-auto flex items-center gap-3">
+                                                    <div className="text-right self-center">
+                                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                                                        {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
                                                       </p>
-                                                    )}
+                                                      <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
+                                                        ₹{unitTotal.toFixed(2)}
+                                                      </p>
+                                                    </div>
+                                                    <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
+                                                      <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
+                                                        Total Product Price
+                                                      </p>
+                                                      <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
+                                                        ₹{totalItemCost.toFixed(2)}
+                                                      </p>
+                                                      <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
+                                                        ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
+                                                      </p>
+                                                    </div>
                                                   </div>
 
                                                   {/* Delete */}
@@ -4464,7 +4706,11 @@ export default function WizardStep2({
                                                                 value={item.fabric_id}
                                                                 onChange={(e) => {
                                                                   const val = e.target.value;
-                                                                  const updates: Partial<ManualItem> = { fabric_id: val, main_fabric_rate: '0.00' };
+                                                                  const updates: Partial<ManualItem> = {
+                                                                    fabric_id: val,
+                                                                    main_fabric_rate: '0.00',
+                                                                    main_fabric_cost: undefined
+                                                                  };
                                                                   if (val && !item.main_fabric_sam) updates.main_fabric_sam = '6.777';
                                                                   updateDeptItem(idx, updates);
                                                                 }}
@@ -4500,23 +4746,29 @@ export default function WizardStep2({
                                                             </td>
                                                             <td className="p-3">
                                                               {item.fabric_id ? (
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-zinc-400 font-bold text-[10px]">₹</span>
-                                                                  <input
-                                                                    type="number" step="any" min="0" placeholder="0.00"
-                                                                    value={item.main_fabric_sam}
-                                                                    onChange={(e) => updateDeptItem(idx, { main_fabric_sam: e.target.value })}
-                                                                    className={`${inputCls} w-24 px-2 py-1 text-left`}
-                                                                  />
-                                                                </div>
+                                                                <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
+                                                                  {item.main_fabric_sam ? `₹${parseFloat(item.main_fabric_sam).toFixed(2)}` : '—'}
+                                                                </span>
                                                               ) : (
                                                                 <span className="text-zinc-300 italic text-[10px]">—</span>
                                                               )}
                                                             </td>
                                                             <td className="p-3 text-right">
-                                                              <span className={`font-mono font-black ${mainFabricCost > 0 ? 'text-[#3a525d]' : 'text-zinc-300'}`}>
-                                                                ₹{mainFabricCost.toFixed(2)}
-                                                              </span>
+                                                              <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                placeholder={calcMainFabricCost.toFixed(2)}
+                                                                value={item.main_fabric_cost !== undefined ? item.main_fabric_cost : (item.fabric_id ? calcMainFabricCost.toFixed(2) : '')}
+                                                                onChange={(e) => updateDeptItem(idx, { main_fabric_cost: e.target.value })}
+                                                                onBlur={() => {
+                                                                  if (item.main_fabric_cost === '') {
+                                                                    updateDeptItem(idx, { main_fabric_cost: undefined });
+                                                                  }
+                                                                }}
+                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                                                                title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
+                                                              />
                                                             </td>
                                                           </tr>
                                                         );
@@ -4525,7 +4777,6 @@ export default function WizardStep2({
                                                       {/* ── Attachment Fabric 1 (OPTIONAL) ── */}
                                                       {(() => {
                                                         const att1Fab = fabricsList.find((f: any) => String(f.id) === item.attachment_fabric1_id);
-                                                        const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
                                                         return (
                                                           <tr className="hover:bg-zinc-50/50">
                                                             <td className="p-3">
@@ -4540,7 +4791,11 @@ export default function WizardStep2({
                                                                 value={item.attachment_fabric1_id}
                                                                 onChange={(e) => {
                                                                   const val = e.target.value;
-                                                                  const updates: Partial<ManualItem> = { attachment_fabric1_id: val, attachment_fabric1_rate: '0.00' };
+                                                                  const updates: Partial<ManualItem> = {
+                                                                    attachment_fabric1_id: val,
+                                                                    attachment_fabric1_rate: '0.00',
+                                                                    attachment_fabric1_cost: undefined
+                                                                  };
                                                                   if (val && !item.attachment_fabric1_sam) updates.attachment_fabric1_sam = '6.777';
                                                                   updateDeptItem(idx, updates);
                                                                 }}
@@ -4576,23 +4831,29 @@ export default function WizardStep2({
                                                             </td>
                                                             <td className="p-3">
                                                               {item.attachment_fabric1_id ? (
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-zinc-400 font-bold text-[10px]">₹</span>
-                                                                  <input
-                                                                    type="number" step="any" min="0" placeholder="0.00"
-                                                                    value={item.attachment_fabric1_sam}
-                                                                    onChange={(e) => updateDeptItem(idx, { attachment_fabric1_sam: e.target.value })}
-                                                                    className={`${inputCls} w-24 px-2 py-1 text-left`}
-                                                                  />
-                                                                </div>
+                                                                <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
+                                                                  {item.attachment_fabric1_sam ? `₹${parseFloat(item.attachment_fabric1_sam).toFixed(2)}` : '—'}
+                                                                </span>
                                                               ) : (
                                                                 <span className="text-zinc-300 italic text-[10px]">—</span>
                                                               )}
                                                             </td>
                                                             <td className="p-3 text-right">
-                                                              <span className={`font-mono font-black ${att1Cost > 0 ? 'text-[#3a525d]' : 'text-zinc-300'}`}>
-                                                                ₹{att1Cost.toFixed(2)}
-                                                              </span>
+                                                              <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                placeholder={calcAtt1Cost.toFixed(2)}
+                                                                value={item.attachment_fabric1_cost !== undefined ? item.attachment_fabric1_cost : (item.attachment_fabric1_id ? calcAtt1Cost.toFixed(2) : '')}
+                                                                onChange={(e) => updateDeptItem(idx, { attachment_fabric1_cost: e.target.value })}
+                                                                onBlur={() => {
+                                                                  if (item.attachment_fabric1_cost === '') {
+                                                                    updateDeptItem(idx, { attachment_fabric1_cost: undefined });
+                                                                  }
+                                                                }}
+                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                                                                title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
+                                                              />
                                                             </td>
                                                           </tr>
                                                         );
@@ -4601,7 +4862,6 @@ export default function WizardStep2({
                                                       {/* ── Attachment Fabric 2 (OPTIONAL) ── */}
                                                       {(() => {
                                                         const att2Fab = fabricsList.find((f: any) => String(f.id) === item.attachment_fabric2_id);
-                                                        const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
                                                         return (
                                                           <tr className="hover:bg-zinc-50/50">
                                                             <td className="p-3">
@@ -4616,7 +4876,11 @@ export default function WizardStep2({
                                                                 value={item.attachment_fabric2_id}
                                                                 onChange={(e) => {
                                                                   const val = e.target.value;
-                                                                  const updates: Partial<ManualItem> = { attachment_fabric2_id: val, attachment_fabric2_rate: '0.00' };
+                                                                  const updates: Partial<ManualItem> = {
+                                                                    attachment_fabric2_id: val,
+                                                                    attachment_fabric2_rate: '0.00',
+                                                                    attachment_fabric2_cost: undefined
+                                                                  };
                                                                   if (val && !item.attachment_fabric2_sam) updates.attachment_fabric2_sam = '6.777';
                                                                   updateDeptItem(idx, updates);
                                                                 }}
@@ -4652,23 +4916,29 @@ export default function WizardStep2({
                                                             </td>
                                                             <td className="p-3">
                                                               {item.attachment_fabric2_id ? (
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-zinc-400 font-bold text-[10px]">₹</span>
-                                                                  <input
-                                                                    type="number" step="any" min="0" placeholder="0.00"
-                                                                    value={item.attachment_fabric2_sam}
-                                                                    onChange={(e) => updateDeptItem(idx, { attachment_fabric2_sam: e.target.value })}
-                                                                    className={`${inputCls} w-24 px-2 py-1 text-left`}
-                                                                  />
-                                                                </div>
+                                                                <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
+                                                                  {item.attachment_fabric2_sam ? `₹${parseFloat(item.attachment_fabric2_sam).toFixed(2)}` : '—'}
+                                                                </span>
                                                               ) : (
                                                                 <span className="text-zinc-300 italic text-[10px]">—</span>
                                                               )}
                                                             </td>
                                                             <td className="p-3 text-right">
-                                                              <span className={`font-mono font-black ${att2Cost > 0 ? 'text-[#3a525d]' : 'text-zinc-300'}`}>
-                                                                ₹{att2Cost.toFixed(2)}
-                                                              </span>
+                                                              <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                placeholder={calcAtt2Cost.toFixed(2)}
+                                                                value={item.attachment_fabric2_cost !== undefined ? item.attachment_fabric2_cost : (item.attachment_fabric2_id ? calcAtt2Cost.toFixed(2) : '')}
+                                                                onChange={(e) => updateDeptItem(idx, { attachment_fabric2_cost: e.target.value })}
+                                                                onBlur={() => {
+                                                                  if (item.attachment_fabric2_cost === '') {
+                                                                    updateDeptItem(idx, { attachment_fabric2_cost: undefined });
+                                                                  }
+                                                                }}
+                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                                                                title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
+                                                              />
                                                             </td>
                                                           </tr>
                                                         );

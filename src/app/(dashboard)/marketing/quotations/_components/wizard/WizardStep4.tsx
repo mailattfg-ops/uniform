@@ -681,12 +681,14 @@ export default function WizardStep4({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
-                      <p className="text-xs font-black text-[#3a525d] mt-1 uppercase">
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymade Set'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC_SET' && 'Fabric Set'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' && 'Readymade Normal'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC' && 'Fabric Normal'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'MANUAL' && 'Manual'}
+                      <p className="text-xs font-black text-[#3a525d] mt-1">
+                        {(selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' || selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE' || !selectedQuoteDetail.metrics_summary?.quotation_type) && 'Readymades'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC' && 'fabrics'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'ACCESSORIES' && 'accessories'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymades ( with departments)'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC_SET' && 'fabrics ( with departments)'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'ACCESSORIES_SET' && 'accessories ( with departments)'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'MANUAL' && 'Custom quotation'}
                       </p>
                     </div>
 

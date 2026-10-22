@@ -1025,9 +1025,14 @@ export default function QuotationDetails({
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
                 <p className="text-base font-black text-[#3a525d] mt-1">
-                  {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'HOLD') && 'Readymade'}
+                  {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'STANDARD' || !selectedQuotation.metrics_summary?.quotation_type) && 'Readymades'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'FABRIC' && 'fabrics'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'ACCESSORIES' && 'accessories'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymades ( with departments)'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'FABRIC_SET' && 'fabrics ( with departments)'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'ACCESSORIES_SET' && 'accessories ( with departments)'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'MANUAL' && 'Custom quotation'}
                   {selectedQuotation.metrics_summary?.quotation_type === 'SET_TYPE' && 'Set Type'}
-                  {(!selectedQuotation.metrics_summary?.quotation_type || selectedQuotation.metrics_summary.quotation_type === 'STANDARD') && 'Standard'}
                 </p>
               </Card>
             </div>

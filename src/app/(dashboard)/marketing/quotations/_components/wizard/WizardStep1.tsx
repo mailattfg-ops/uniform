@@ -133,7 +133,6 @@ export default function WizardStep1({
           <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Sales Channel Type</label>
           <Select
             options={[
-              { label: 'B2B Commercial (GST Tax Invoice)', value: 'B2B' },
               { label: 'Wholesale', value: 'WHOLESALE' },
               { label: 'Retail', value: 'RETAIL' }
             ]}
@@ -161,13 +160,13 @@ export default function WizardStep1({
           <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Type</label>
           <Select
             options={[
-              { label: 'Fabric Set (with Departments)', value: 'FABRIC_SET' },
-              { label: 'Readymade Set (with Departments)', value: 'READYMADE_SET' },
-              { label: 'Accessories Set (with Departments)', value: 'ACCESSORIES_SET' },
-              { label: 'Fabric Normal', value: 'FABRIC' },
-              { label: 'Readymade Normal', value: 'STANDARD' },
-              { label: 'Accessories Normal', value: 'ACCESSORIES' },
-              { label: 'Manual (Individual-wise)', value: 'MANUAL' }
+              { label: 'Readymades', value: 'STANDARD' },
+              { label: 'fabrics', value: 'FABRIC' },
+              { label: 'accessories', value: 'ACCESSORIES' },
+              { label: 'Readymades ( with departments)', value: 'READYMADE_SET' },
+              { label: 'fabrics ( with departments)', value: 'FABRIC_SET' },
+              { label: 'accessories ( with departments)', value: 'ACCESSORIES_SET' },
+              { label: 'Custom quotation', value: 'MANUAL' }
             ]}
             value={quotationType}
             onChange={setQuotationType}
