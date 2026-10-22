@@ -279,7 +279,7 @@ export default function RoleManagementPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Top Banner */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white p-8 md:p-10 rounded-[3rem] border border-zinc-100 shadow-sm overflow-hidden relative group gap-6">
         <div className="absolute right-0 top-0 w-72 h-72 bg-[#2d8d9b]/5 rounded-full -mr-36 -mt-36 transition-all group-hover:scale-110" />
@@ -299,7 +299,7 @@ export default function RoleManagementPage() {
         </div>
         <button
           onClick={() => openModal()}
-          className="relative px-8 py-4 bg-[#2d8d9b] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[#2d8d9b]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 shrink-0"
+          className="relative h-14 px-8 bg-[#2d8d9b] hover:bg-[#236e7a] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#2d8d9b]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <Plus size={18} strokeWidth={3} />
           Define New Role

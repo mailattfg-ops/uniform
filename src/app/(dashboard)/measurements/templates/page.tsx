@@ -924,8 +924,8 @@ export default function IndustryTemplatesPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Industry Templates</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
@@ -934,9 +934,9 @@ export default function IndustryTemplatesPage() {
         </div>
         <Button 
           onClick={() => setIsAdding(true)}
-          className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+          className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          <Plus size={20} strokeWidth={3} />
+          <Plus size={18} strokeWidth={3} />
           Architect New Set
         </Button>
       </div>

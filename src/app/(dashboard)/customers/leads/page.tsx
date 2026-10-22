@@ -9,7 +9,8 @@ import {
   Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus, 
   CheckCircle2, PauseCircle, Building2, FileSpreadsheet, Sparkles, User, 
   Compass, UserCheck, ExternalLink, Flame, Snowflake, ArrowRight,
-  Filter, Layers, Send, ChevronRight, CheckCircle, Navigation, AlertCircle, Lock
+  Filter, Layers, Send, ChevronRight, CheckCircle, Navigation, AlertCircle, Lock,
+  ShoppingBag, Search, ChevronDown
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -142,7 +143,7 @@ export interface Zone {
 }
 
 export interface LeadActivity {
-  id: number;
+  id: number | string;
   lead_id: number;
   stage: string;
   activity_type: string;
@@ -173,6 +174,10 @@ export default function LeadsRegistryPage() {
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
     if (selectedBranch === 'ALL') return zones;
+    if (selectedBranch === 'HQ') {
+      const hqZones = zones.filter(z => !z.branch_id);
+      return hqZones.length > 0 ? hqZones : zones;
+    }
     return zones.filter(z => String(z.branch_id) === selectedBranch);
   }, [zones, selectedBranch]);
 
@@ -193,6 +198,7 @@ export default function LeadsRegistryPage() {
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
 
   // Context Actions
+  const [editingFeed, setEditingFeed] = useState<Lead | null>(null);
   const [feedOutcomeLead, setFeedOutcomeLead] = useState<Lead | null>(null);
   const [assignBranchLead, setAssignBranchLead] = useState<Lead | null>(null);
   const [assignStaffLead, setAssignStaffLead] = useState<Lead | null>(null);
@@ -471,6 +477,26 @@ export default function LeadsRegistryPage() {
     }
   };
 
+  // Handle Update Existing Field Feed Profile
+  const handleUpdateFeed = async (feedData: any) => {
+    if (!editingFeed) return;
+    const loadingToast = toast.loading('Updating feed profile...');
+    try {
+      const res = await api.put(`/leads/${editingFeed.id}`, {
+        ...feedData,
+        status: 'Feeds'
+      });
+      toast.success('Feed profile updated successfully!', { id: loadingToast });
+      setEditingFeed(null);
+      if (viewingLead && viewingLead.id === editingFeed.id) {
+        setViewingLead(res.data || { ...viewingLead, ...feedData });
+      }
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update feed profile', { id: loadingToast });
+    }
+  };
+
   // Convert Feed to Full Lead (Prefills Modal)
   const handleConvertFeedToLead = (feed: Lead) => {
     setPrefillFeedData({
@@ -481,12 +507,14 @@ export default function LeadsRegistryPage() {
       contact_designation: feed.contact_designation,
       phone: feed.phone,
       address: feed.address,
+      area: feed.area,
       city: feed.city,
       state: feed.state,
       pincode: feed.pincode,
       country: feed.country || 'India',
-      area: feed.area,
       google_maps_link: feed.google_maps_link,
+      zone_id: feed.zone_id,
+      industry_id: feed.industry_id,
       branch_id: feed.branch_id,
       status: feed.branch_id ? 'New Leads' : 'Open Leads',
       remarks: typeof feed.remarks === 'string' ? feed.remarks : ''
@@ -522,8 +550,13 @@ export default function LeadsRegistryPage() {
       }
       // 1. Branch filter
       if (selectedBranch !== 'ALL') {
-        const bId = String(l.branch_id || l.employees?.branch_id || '');
-        if (bId !== selectedBranch) return false;
+        if (selectedBranch === 'HQ') {
+          const isHq = !l.branch_id || l.origin === 'HQ';
+          if (!isHq) return false;
+        } else {
+          const bId = String(l.branch_id || l.employees?.branch_id || '');
+          if (bId !== selectedBranch) return false;
+        }
       }
       // 2. Zone filter
       if (selectedZone !== 'ALL') {
@@ -652,6 +685,7 @@ export default function LeadsRegistryPage() {
         </div>
       )
     },
+
     {
       header: 'Contact Person',
       className: 'min-w-[130px] max-w-[200px] whitespace-nowrap',
@@ -736,8 +770,9 @@ export default function LeadsRegistryPage() {
               type="button"
               onClick={() => setFeedOutcomeLead(l)}
               className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 rounded-lg transition-all cursor-pointer"
+              title="Record feed follow-up outcome"
             >
-              Log Response
+              Follow-up
             </button>
           ) : (
             <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_feeds">
@@ -946,25 +981,12 @@ export default function LeadsRegistryPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Page Title & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Leads</h1>
-            {canViewAllLeads ? (
-              <span className="px-3 py-1 bg-teal-50 border border-teal-200 text-teal-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
-                <ShieldCheck size={13} className="text-teal-600" /> Global Scope: All Leads
-              </span>
-            ) : isBranchManager ? (
-              <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
-                <Building2 size={13} className="text-amber-600" /> Branch Scope: {currentUser?.branchName || 'Branch Outlet'}
-              </span>
-            ) : isSalesperson ? (
-              <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
-                <UserCheck size={13} className="text-blue-600" /> My Assigned Leads
-              </span>
-            ) : null}
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             Active Commercial Intake, Follow-ups &amp; Qualified Pipeline
@@ -1002,10 +1024,21 @@ export default function LeadsRegistryPage() {
             {/* 1. Branch Dropdown Filter */}
             <select
               value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              onChange={(e) => {
+                setSelectedBranch(e.target.value);
+                setSelectedZone('ALL');
+              }}
               className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Branches ({leads.length})</option>
+              {(() => {
+                const hqCount = leads.filter(l => !l.branch_id || l.origin === 'HQ').length;
+                return (
+                  <option value="HQ">
+                    Headquarters (HQ Central) ({hqCount})
+                  </option>
+                );
+              })()}
               {branches.map((b) => {
                 const count = leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length;
                 return (
@@ -1151,9 +1184,13 @@ export default function LeadsRegistryPage() {
         }}
         onEdit={() => {
           if (viewingLead) {
-            setEditingLead(viewingLead);
-            setPrefillFeedData(null);
-            setIsAddingLead(true);
+            if (viewingLead.status === 'Feeds') {
+              setEditingFeed(viewingLead);
+            } else {
+              setEditingLead(viewingLead);
+              setPrefillFeedData(null);
+              setIsAddingLead(true);
+            }
           }
         }}
         onDelete={() => {
@@ -1189,12 +1226,31 @@ export default function LeadsRegistryPage() {
         onSubmit={handleCreateFeed}
         branches={branches}
         zones={zones}
+        industries={industries}
         authorName={authorName}
         authorDesignation={authorDesignation}
         authorDepartment={authorDepartment}
         userBranchId={currentUser?.branchId}
         userBranchName={currentUser?.branchName}
       />
+
+      {/* Edit Feed Profile Modal */}
+      {editingFeed && (
+        <NewFeedModal
+          isOpen={Boolean(editingFeed)}
+          onClose={() => setEditingFeed(null)}
+          onSubmit={handleUpdateFeed}
+          editingFeed={editingFeed}
+          branches={branches}
+          zones={zones}
+          industries={industries}
+          authorName={authorName}
+          authorDesignation={authorDesignation}
+          authorDepartment={authorDepartment}
+          userBranchId={currentUser?.branchId}
+          userBranchName={currentUser?.branchName}
+        />
+      )}
 
       {/* Full Lead Registry / Edit Modal */}
       <LeadFormModal
@@ -1302,11 +1358,13 @@ interface NewFeedModalProps {
   onSubmit: (data: any) => Promise<void>;
   branches: Branch[];
   zones?: Zone[];
+  industries?: Industry[];
   authorName: string;
   authorDesignation: string;
   authorDepartment: string;
   userBranchId?: number | null;
   userBranchName?: string | null;
+  editingFeed?: Lead | null;
 }
 
 export const NewFeedModal: React.FC<NewFeedModalProps> = ({
@@ -1315,13 +1373,16 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   onSubmit,
   branches,
   zones = [],
+  industries = [],
   authorName,
   authorDesignation,
   authorDepartment,
   userBranchId,
-  userBranchName
+  userBranchName,
+  editingFeed
 }) => {
   const [name, setName] = useState('');
+  const [industryId, setIndustryId] = useState('');
   const [contactTitle, setContactTitle] = useState('Mr.');
   const [contactPerson, setContactPerson] = useState('');
   const [contactDesignation, setContactDesignation] = useState('');
@@ -1336,38 +1397,121 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   const [remarks, setRemarks] = useState('');
   const [hqBranchId, setHqBranchId] = useState('');
   const [zoneId, setZoneId] = useState('');
-  const [responseType, setResponseType] = useState<'positive' | 'negative'>('positive');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Searchable Zone State
+  const [zoneSearchQuery, setZoneSearchQuery] = useState('');
+  const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false);
+  const zoneDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (zoneDropdownRef.current && !zoneDropdownRef.current.contains(event.target as Node)) {
+        setIsZoneDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const isBranchUser = Boolean(userBranchId);
   const effectiveOrigin = isBranchUser ? 'BRANCH' : (hqBranchId ? 'BRANCH' : 'HQ');
   const effectiveBranchId = isBranchUser ? userBranchId : (hqBranchId ? parseInt(hqBranchId, 10) : null);
 
+  const selectableBranches = useMemo(() => {
+    return (branches || []).filter(b => {
+      const tier = ((b as any).tier || (b as any).type || '').toLowerCase();
+      if (tier === 'corporate' || tier === 'factory' || tier === 'headquarters') return false;
+      const name = (b.name || '').toLowerCase();
+      const code = ((b as any).code || '').toLowerCase();
+      if (
+        name.includes('headquarter') ||
+        name.includes('corporate') ||
+        name.includes('factory') ||
+        name.includes('hq central') ||
+        name.trim() === 'hq'
+      ) return false;
+      if (code.startsWith('corp') || code.startsWith('fact')) return false;
+      return true;
+    });
+  }, [branches]);
+
+  const branchMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (branches || []).forEach(b => map.set(String(b.id), b.name));
+    return map;
+  }, [branches]);
+
   const availableZones = useMemo(() => {
-    if (!effectiveBranchId) return [];
+    if (!effectiveBranchId) {
+      const selectableBranchIds = new Set(selectableBranches.map(b => String(b.id)));
+      const filtered = (zones || []).filter(z => !z.branch_id || selectableBranchIds.has(String(z.branch_id)));
+      return filtered.length > 0 ? filtered : (zones || []);
+    }
     return (zones || []).filter(z => String(z.branch_id) === String(effectiveBranchId));
-  }, [zones, effectiveBranchId]);
+  }, [zones, effectiveBranchId, selectableBranches]);
+
+  const selectedZone = useMemo(() => {
+    if (!zoneId) return null;
+    return (zones || []).find(z => String(z.id) === String(zoneId)) || null;
+  }, [zoneId, zones]);
+
+  const displayedZones = useMemo(() => {
+    const q = zoneSearchQuery.trim().toLowerCase();
+    if (!q) return availableZones;
+    return availableZones.filter(z => {
+      const nameMatch = (z.name || '').toLowerCase().includes(q);
+      const codeMatch = (z.code || '').toLowerCase().includes(q);
+      const descMatch = (z.description || '').toLowerCase().includes(q);
+      const branchMatch = (branchMap.get(String(z.branch_id)) || '').toLowerCase().includes(q);
+      return nameMatch || codeMatch || descMatch || branchMatch;
+    });
+  }, [availableZones, zoneSearchQuery, branchMap]);
 
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setContactTitle('Mr.');
-      setContactPerson('');
-      setContactDesignation('');
-      setPhone('');
-      setAddress('');
-      setArea('');
-      setGoogleMapsLink('');
-      setCity('');
-      setState('');
-      setPincode('');
-      setCountry('India');
-      setRemarks('');
-      setHqBranchId('');
-      setZoneId('');
-      setResponseType('positive');
+      setZoneSearchQuery('');
+      setIsZoneDropdownOpen(false);
+      if (editingFeed) {
+        setName(editingFeed.name || '');
+        setIndustryId(editingFeed.industry_id ? String(editingFeed.industry_id) : '');
+        setContactTitle(editingFeed.contact_title || 'Mr.');
+        setContactPerson(editingFeed.contact_person || '');
+        setContactDesignation(editingFeed.contact_designation || '');
+        setPhone(editingFeed.phone || '');
+        setAddress(editingFeed.address || '');
+        setArea(editingFeed.area || '');
+        setGoogleMapsLink(editingFeed.google_maps_link || '');
+        setCity(editingFeed.city || '');
+        setState(editingFeed.state || '');
+        setPincode(editingFeed.pincode || '');
+        setCountry(editingFeed.country || 'India');
+        setRemarks(typeof editingFeed.remarks === 'string' ? editingFeed.remarks : '');
+        const initialBranchId = editingFeed.branch_id
+          ? String(editingFeed.branch_id)
+          : (editingFeed.zone_id ? String(zones?.find(z => String(z.id) === String(editingFeed.zone_id))?.branch_id || '') : '');
+        setHqBranchId(initialBranchId);
+        setZoneId(editingFeed.zone_id ? String(editingFeed.zone_id) : '');
+      } else {
+        setName('');
+        setIndustryId('');
+        setContactTitle('Mr.');
+        setContactPerson('');
+        setContactDesignation('');
+        setPhone('');
+        setAddress('');
+        setArea('');
+        setGoogleMapsLink('');
+        setCity('');
+        setState('');
+        setPincode('');
+        setCountry('India');
+        setRemarks('');
+        setHqBranchId('');
+        setZoneId('');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingFeed]);
 
   if (!isOpen) return null;
 
@@ -1385,11 +1529,14 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
     setIsSubmitting(true);
     try {
       await onSubmit({
+        ...(editingFeed ? { id: editingFeed.id } : {}),
         name: name.trim(),
+        industry_id: industryId ? parseInt(industryId, 10) : null,
         contact_title: contactTitle,
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
+        contact_number: phone.trim(),
         address: address.trim() || null,
         area: area.trim() || null,
         city: city.trim() || null,
@@ -1400,8 +1547,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         remarks: remarks.trim() || null,
         origin: effectiveOrigin,
         branch_id: effectiveBranchId,
-        zone_id: zoneId ? parseInt(zoneId, 10) : null,
-        response_type: responseType
+        zone_id: zoneId ? parseInt(zoneId, 10) : null
       });
     } finally {
       setIsSubmitting(false);
@@ -1416,17 +1562,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         {/* Header */}
         <div className="bg-gradient-to-r from-[#2d8d9b] to-[#1c6670] px-8 py-6 text-white relative flex justify-between items-start shrink-0">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-black uppercase tracking-wider">
-                Stage 01 • Raw Field Data
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/30 text-emerald-100 text-[9px] font-black uppercase tracking-wider">
-                Field Agent Intake
-              </span>
-            </div>
-            <h3 className="text-2xl font-black italic tracking-tight">Capture Raw Field Feed</h3>
+            <h3 className="text-2xl font-black italic tracking-tight">
+              {editingFeed ? 'Edit Feed Profile' : 'Add New Feed'}
+            </h3>
             <p className="text-xs text-white/80 font-medium mt-0.5">
-              Standardized prospect intake with automatic session branch binding and complete address.
+              {editingFeed ? `Update scouting prospect details for ${editingFeed.name}` : 'Add new feed to the dataset.'}
             </p>
           </div>
           <button
@@ -1469,20 +1609,40 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Customer Name */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              Customer Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(capitalizeWords(e.target.value))}
-              autoCapitalize="words"
-              placeholder="e.g. Apex Hospital, Greenfield High"
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-            />
+          {/* Customer Name & Industry Sector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                Customer Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(capitalizeWords(e.target.value))}
+                autoCapitalize="words"
+                placeholder="e.g. Apex Hospital, Greenfield High"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#2d8d9b]" />
+                Industry Sector
+              </label>
+              <select
+                value={industryId}
+                onChange={(e) => setIndustryId(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white cursor-pointer"
+              >
+                <option value="">Select Sector / Category</option>
+                {industries.map((ind) => (
+                  <option key={ind.id} value={String(ind.id)}>
+                    {ind.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Contact Person: Title + Full Name + Designation */}
@@ -1669,95 +1829,160 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             ) : (
               <div className="space-y-2 pt-1">
                 <p className="text-[11px] text-zinc-600 font-medium">
-                  Central intake originates as <span className="font-black text-blue-700">HQ</span>. You can optionally route this prospect directly to a branch:
+                  Select a branch or pick a zone to automatically assign the branch:
                 </p>
                 <select
                   value={hqBranchId}
                   onChange={(e) => {
-                    setHqBranchId(e.target.value);
-                    setZoneId('');
+                    const newBranchId = e.target.value;
+                    setHqBranchId(newBranchId);
+                    if (zoneId) {
+                      const currentZone = zones.find(z => String(z.id) === String(zoneId));
+                      if (!newBranchId || String(currentZone?.branch_id) !== String(newBranchId)) {
+                        setZoneId('');
+                        setZoneSearchQuery('');
+                      }
+                    }
                   }}
                   className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] text-xs font-bold text-zinc-800 bg-white"
                 >
-                  <option value="">Unassigned (HQ Central - Open Leads)</option>
-                  {branches.map(b => (
+                  <option value="">Select Branch (Optional / Auto-assigned)</option>
+                  {selectableBranches.map(b => (
                     <option key={b.id} value={String(b.id)}>{b.name}</option>
                   ))}
                 </select>
               </div>
             )}
 
-            {/* Zone Selection within NewFeedModal */}
-            <div className="space-y-1.5 pt-2 border-t border-zinc-200/70">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
-                <MapPin size={13} className="text-[#2d8d9b]" />
-                Assigned Zone {effectiveBranchId ? `(${availableZones.length})` : ''}
-              </label>
-              <select
-                value={zoneId}
-                onChange={(e) => setZoneId(e.target.value)}
-                disabled={!effectiveBranchId}
-                className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] text-xs font-bold text-zinc-800 bg-white disabled:bg-zinc-100 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
-              >
-                <option value="">{effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}</option>
-                {availableZones.map(z => (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} {z.code ? `(${z.code})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            {/* Searchable Zone Selection within NewFeedModal */}
+            <div className="space-y-1.5 pt-2 border-t border-zinc-200/70" ref={zoneDropdownRef}>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#2d8d9b]" />
+                  Assigned Zone {availableZones.length > 0 ? `(${availableZones.length})` : ''}
+                </label>
+                {!effectiveBranchId && availableZones.length > 0 && (
+                  <span className="text-[9px] font-semibold text-zinc-400">
+                    Auto-assigns branch
+                  </span>
+                )}
+              </div>
 
-          {/* Initial Contact Response Outcome Toggle */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
-              Field Contact Response Outcome *
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setResponseType('positive')}
-                className={`p-3.5 rounded-2xl border-2 text-left transition-all ${
-                  responseType === 'positive'
-                    ? 'border-emerald-500 bg-emerald-50/60 shadow-sm'
-                    : 'border-zinc-200 hover:border-zinc-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    responseType === 'positive' ? 'border-emerald-600 bg-emerald-600' : 'border-zinc-300'
-                  }`}>
-                    {responseType === 'positive' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                  </div>
-                  <span className="text-xs font-black text-emerald-800">Positive Response</span>
+              <div className="relative">
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={
+                    isZoneDropdownOpen
+                      ? zoneSearchQuery
+                      : selectedZone
+                      ? `${selectedZone.name}${selectedZone.code ? ` (${selectedZone.code})` : ''}`
+                      : zoneSearchQuery
+                  }
+                  onChange={(e) => {
+                    setZoneSearchQuery(e.target.value);
+                    if (!isZoneDropdownOpen) setIsZoneDropdownOpen(true);
+                  }}
+                  onFocus={() => {
+                    setIsZoneDropdownOpen(true);
+                  }}
+                  placeholder={
+                    availableZones.length > 0
+                      ? 'Type to search zone (e.g. Indiranagar, South)...'
+                      : 'No zones available'
+                  }
+                  disabled={availableZones.length === 0}
+                  className="w-full pl-9 pr-16 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-2 focus:ring-[#2d8d9b]/15 text-xs font-bold text-zinc-800 bg-white disabled:bg-zinc-100 disabled:text-zinc-400 placeholder:text-zinc-400 placeholder:font-normal cursor-pointer"
+                />
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {(zoneId || zoneSearchQuery) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoneId('');
+                        setZoneSearchQuery('');
+                      }}
+                      className="p-1 text-zinc-400 hover:text-zinc-700 rounded-full hover:bg-zinc-100 transition cursor-pointer"
+                      title="Clear zone"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsZoneDropdownOpen(prev => !prev)}
+                    className="p-1 text-zinc-400 hover:text-zinc-700 transition cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isZoneDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
-                <p className="text-[10px] text-emerald-700/80 font-medium mt-1">
-                  {origin === 'Branch' ? 'Directly converts to New Leads queue' : 'Converts to Open Leads queue'}
-                </p>
-              </button>
 
-              <button
-                type="button"
-                onClick={() => setResponseType('negative')}
-                className={`p-3.5 rounded-2xl border-2 text-left transition-all ${
-                  responseType === 'negative'
-                    ? 'border-amber-500 bg-amber-50/60 shadow-sm'
-                    : 'border-zinc-200 hover:border-zinc-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    responseType === 'negative' ? 'border-amber-600 bg-amber-600' : 'border-zinc-300'
-                  }`}>
-                    {responseType === 'negative' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                {/* Dropdown Menu */}
+                {isZoneDropdownOpen && availableZones.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-zinc-200 shadow-2xl max-h-56 overflow-y-auto z-50 py-1 divide-y divide-zinc-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-1.5 bg-zinc-50 text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center justify-between sticky top-0 z-10 border-b border-zinc-100">
+                      <span>{zoneSearchQuery.trim() ? `Matching Zones (${displayedZones.length})` : `All Zones (${availableZones.length})`}</span>
+                      {!effectiveBranchId && <span className="text-[9px] text-[#2d8d9b] font-bold normal-case">Auto-assigns branch</span>}
+                    </div>
+
+                    {displayedZones.length > 0 ? (
+                      displayedZones.map((z) => {
+                        const isSelected = String(z.id) === String(zoneId);
+                        const bName = branchMap.get(String(z.branch_id));
+                        return (
+                          <button
+                            key={z.id}
+                            type="button"
+                            onClick={() => {
+                              const newZoneId = String(z.id);
+                              setZoneId(newZoneId);
+                              setZoneSearchQuery('');
+                              setIsZoneDropdownOpen(false);
+                              if (z.branch_id && !isBranchUser) {
+                                setHqBranchId(String(z.branch_id));
+                              }
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                              isSelected 
+                                ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] font-black' 
+                                : 'hover:bg-zinc-50 text-zinc-800'
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold">{z.name}</span>
+                                {z.code && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 font-bold">
+                                    {z.code}
+                                  </span>
+                                )}
+                                {!effectiveBranchId && bName && (
+                                  <span className="text-[10px] font-medium text-zinc-400">
+                                    — [{bName}]
+                                  </span>
+                                )}
+                              </div>
+                              {z.description && (
+                                <p className="text-[10px] text-zinc-400 truncate mt-0.5">{z.description}</p>
+                              )}
+                            </div>
+                            {isSelected && <Check size={14} className="text-[#2d8d9b] shrink-0 stroke-[3]" />}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 text-center space-y-1">
+                        <p className="text-xs font-bold text-zinc-600">No zones found</p>
+                        <p className="text-[10px] text-zinc-400">
+                          No zones match "{zoneSearchQuery}"
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs font-black text-amber-800">Negative / Pending</span>
-                </div>
-                <p className="text-[10px] text-amber-700/80 font-medium mt-1">
-                  Retains raw lead at Feeds stage for future retry
-                </p>
-              </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -2509,7 +2734,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
       }));
 
       if (mapped.length === 0 && Array.isArray(lead.remarks) && lead.remarks.length > 0) {
-        const derived: LeadActivity[] = lead.remarks
+        let derived: LeadActivity[] = lead.remarks
           .filter(r => {
             if (selectedStageTab === 'ALL') return true;
             if (selectedStageTab === 'Follow-ups') {
@@ -2517,6 +2742,23 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                      String(r.response_type || '').toLowerCase().includes('cold') || 
                      String(r.outcome || '').toLowerCase().includes('cold') ||
                      String(r.stage || '').toLowerCase().includes('cold');
+            }
+            if (selectedStageTab === 'Deals') {
+              return r.stage === 'Deals' || 
+                     String(r.response_type || '').toLowerCase().includes('deal') || 
+                     String(r.outcome || '').toLowerCase().includes('deal') ||
+                     String(r.activity_type || '').toLowerCase().includes('deal') ||
+                     String(r.activity_type || '').toLowerCase().includes('payment') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('initial payment') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('deal');
+            }
+            if (selectedStageTab === 'SO Converted Deals') {
+              return r.stage === 'SO Converted Deals' || 
+                     String(r.response_type || '').toLowerCase().includes('so_converted') || 
+                     String(r.outcome || '').toLowerCase().includes('so_converted') ||
+                     String(r.activity_type || '').toLowerCase().includes('order') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('sales order') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('converted');
             }
             return r.stage === selectedStageTab;
           })
@@ -2534,9 +2776,97 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
+
+        if (derived.length === 0 && selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
+          derived = [{
+            id: 'milestone_deal',
+            lead_id: lead.id,
+            stage: 'Deals',
+            activity_type: 'Deal Milestone',
+            response_type: 'deal_won',
+            remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
+            staff_name: lead.employees?.full_name || 'Commercial Team',
+            staff_employee_id: lead.employees?.employee_id || 'SALES',
+            staff_designation: 'Commercial Manager',
+            staff_department: 'Sales & Marketing',
+            created_at: lead.updated_at || lead.created_at
+          }];
+        } else if (derived.length === 0 && selectedStageTab === 'SO Converted Deals' && lead.status === 'SO Converted Deals') {
+          derived = [{
+            id: 'milestone_so',
+            lead_id: lead.id,
+            stage: 'SO Converted Deals',
+            activity_type: 'Order Conversion',
+            response_type: 'so_converted',
+            remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
+            staff_name: lead.employees?.full_name || 'Production Lead',
+            staff_employee_id: lead.employees?.employee_id || 'OPS',
+            staff_designation: 'Production Executive',
+            staff_department: 'Operations',
+            created_at: lead.updated_at || lead.created_at
+          }];
+        } else if (derived.length === 0 && selectedStageTab === 'Feeds' && lead.requirements) {
+          derived = [{
+            id: 'milestone_feed',
+            lead_id: lead.id,
+            stage: 'Feeds',
+            activity_type: 'Raw Feed Intake',
+            response_type: 'feed_recorded',
+            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
+            staff_name: 'Field Scout',
+            staff_employee_id: 'FIELD',
+            staff_designation: 'Field Agent',
+            staff_department: 'Field Scouting',
+            created_at: lead.created_at
+          }];
+        }
         setStageActivities(derived);
       } else {
-        setStageActivities(mapped);
+        if (mapped.length === 0 && selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
+          setStageActivities([{
+            id: 'milestone_deal',
+            lead_id: lead.id,
+            stage: 'Deals',
+            activity_type: 'Deal Milestone',
+            response_type: 'deal_won',
+            remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
+            staff_name: lead.employees?.full_name || 'Commercial Team',
+            staff_employee_id: lead.employees?.employee_id || 'SALES',
+            staff_designation: 'Commercial Manager',
+            staff_department: 'Sales & Marketing',
+            created_at: lead.updated_at || lead.created_at
+          }]);
+        } else if (mapped.length === 0 && selectedStageTab === 'SO Converted Deals' && lead.status === 'SO Converted Deals') {
+          setStageActivities([{
+            id: 'milestone_so',
+            lead_id: lead.id,
+            stage: 'SO Converted Deals',
+            activity_type: 'Order Conversion',
+            response_type: 'so_converted',
+            remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
+            staff_name: lead.employees?.full_name || 'Production Lead',
+            staff_employee_id: lead.employees?.employee_id || 'OPS',
+            staff_designation: 'Production Executive',
+            staff_department: 'Operations',
+            created_at: lead.updated_at || lead.created_at
+          }]);
+        } else if (mapped.length === 0 && selectedStageTab === 'Feeds' && lead.requirements) {
+          setStageActivities([{
+            id: 'milestone_feed',
+            lead_id: lead.id,
+            stage: 'Feeds',
+            activity_type: 'Raw Feed Intake',
+            response_type: 'feed_recorded',
+            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
+            staff_name: 'Field Scout',
+            staff_employee_id: 'FIELD',
+            staff_designation: 'Field Agent',
+            staff_department: 'Field Scouting',
+            created_at: lead.created_at
+          }]);
+        } else {
+          setStageActivities(mapped);
+        }
       }
     } catch (e) {
       console.error('Failed to load stage-specific activities', e);
@@ -2552,6 +2882,23 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                      String(r.outcome || '').toLowerCase().includes('cold') ||
                      String(r.stage || '').toLowerCase().includes('cold');
             }
+            if (selectedStageTab === 'Deals') {
+              return r.stage === 'Deals' || 
+                     String(r.response_type || '').toLowerCase().includes('deal') || 
+                     String(r.outcome || '').toLowerCase().includes('deal') ||
+                     String(r.activity_type || '').toLowerCase().includes('deal') ||
+                     String(r.activity_type || '').toLowerCase().includes('payment') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('initial payment') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('deal');
+            }
+            if (selectedStageTab === 'SO Converted Deals') {
+              return r.stage === 'SO Converted Deals' || 
+                     String(r.response_type || '').toLowerCase().includes('so_converted') || 
+                     String(r.outcome || '').toLowerCase().includes('so_converted') ||
+                     String(r.activity_type || '').toLowerCase().includes('order') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('sales order') ||
+                     String(r.notes || r.remarks || r.text || '').toLowerCase().includes('converted');
+            }
             return r.stage === selectedStageTab;
           })
           .map((r: any, i: number) => ({
@@ -2568,6 +2915,50 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
+      }
+
+      if (derived.length === 0 && selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
+        derived = [{
+          id: 'milestone_deal',
+          lead_id: lead.id,
+          stage: 'Deals',
+          activity_type: 'Deal Milestone',
+          response_type: 'deal_won',
+          remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
+          staff_name: lead.employees?.full_name || 'Commercial Team',
+          staff_employee_id: lead.employees?.employee_id || 'SALES',
+          staff_designation: 'Commercial Manager',
+          staff_department: 'Sales & Marketing',
+          created_at: lead.updated_at || lead.created_at
+        }];
+      } else if (derived.length === 0 && selectedStageTab === 'SO Converted Deals' && lead.status === 'SO Converted Deals') {
+        derived = [{
+          id: 'milestone_so',
+          lead_id: lead.id,
+          stage: 'SO Converted Deals',
+          activity_type: 'Order Conversion',
+          response_type: 'so_converted',
+          remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
+          staff_name: lead.employees?.full_name || 'Production Lead',
+          staff_employee_id: lead.employees?.employee_id || 'OPS',
+          staff_designation: 'Production Executive',
+          staff_department: 'Operations',
+          created_at: lead.updated_at || lead.created_at
+        }];
+      } else if (derived.length === 0 && selectedStageTab === 'Feeds' && lead.requirements) {
+        derived = [{
+          id: 'milestone_feed',
+          lead_id: lead.id,
+          stage: 'Feeds',
+          activity_type: 'Raw Feed Intake',
+          response_type: 'feed_recorded',
+          remarks: `Inquired Feed Requirements: ${lead.requirements}`,
+          staff_name: 'Field Scout',
+          staff_employee_id: 'FIELD',
+          staff_designation: 'Field Agent',
+          staff_department: 'Field Scouting',
+          created_at: lead.created_at
+        }];
       }
       setStageActivities(derived);
     } finally {
@@ -2650,21 +3041,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             <div className="flex items-center gap-2">
               {lead.status === 'Feeds' && (
                 perms.canManageFeeds ? (
-                  <>
-                    <button
-                      onClick={onConvertFeed}
-                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white text-[#3a525d] hover:bg-teal-50 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <ArrowRight size={13} />
-                      Convert to Lead
-                    </button>
-                    <button
-                      onClick={onFeedOutcome}
-                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white hover:bg-[#257a87] transition-all shadow-md cursor-pointer"
-                    >
-                      Log Feed Response
-                    </button>
-                  </>
+                  <button
+                    onClick={onFeedOutcome}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white hover:bg-[#257a87] transition-all shadow-md cursor-pointer"
+                  >
+                    Follow-up
+                  </button>
                 ) : (
                   <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_feeds">
                     <Lock size={12} /> Feed Processing Locked
@@ -2745,6 +3127,42 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     <Lock size={12} /> Quotation Creation Locked
                   </span>
                 )
+              )}
+              {lead.status === 'Deals' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onFollowUp}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-teal-500 hover:bg-teal-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageSquarePlus size={13} />
+                    Log Deal Note
+                  </button>
+                  <a
+                    href={`/marketing/order-placement?lead_id=${lead.id}`}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ShoppingBag size={13} />
+                    Create Sales Order
+                  </a>
+                </div>
+              )}
+              {lead.status === 'SO Converted Deals' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onFollowUp}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-teal-500 hover:bg-teal-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageSquarePlus size={13} />
+                    Log Order Note
+                  </button>
+                  <a
+                    href={`/marketing/order-placement?lead_id=${lead.id}`}
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-700 hover:bg-emerald-800 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 size={13} />
+                    Production Orders Hub
+                  </a>
+                </div>
               )}
             </div>
           </div>
@@ -2912,9 +3330,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
               )}
             </div>
 
-            {/* Area & Location */}
+            {/* Location & 5-Part Address */}
             <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 md:col-span-2">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Location & 5-Part Address</label>
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Location &amp; 5-Part Address</label>
               <div className="flex items-start gap-2">
                 <MapPin size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -2922,6 +3340,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     {[lead.city, lead.state].filter(Boolean).join(', ') || lead.area || 'Location unlisted'}
                   </p>
                   {lead.address && <p className="text-[11px] text-zinc-600 font-medium mt-0.5">{lead.address}</p>}
+                  {lead.area && <p className="text-[11px] text-[#2d8d9b] font-bold mt-0.5">Area: {lead.area}</p>}
                   {(lead.pincode || lead.country) && (
                     <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
                       {[lead.pincode ? `PIN: ${lead.pincode}` : null, lead.country || 'India'].filter(Boolean).join(' • ')}
@@ -2986,6 +3405,33 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Feed & Commercial Stage Summary Banner for Deals, SO Converted Deals, and Feeds */}
+            {(selectedStageTab === 'Deals' || selectedStageTab === 'SO Converted Deals' || selectedStageTab === 'Feeds') && (
+              <div className="p-4 bg-gradient-to-r from-teal-50/80 via-emerald-50/50 to-slate-50 rounded-2xl border border-teal-200/70 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-teal-900">
+                      {selectedStageTab === 'Feeds' ? 'Raw Intake Feed Prospect' : selectedStageTab === 'Deals' ? 'Deals Commercial Stage & Feeds' : 'SO Converted Production Stage & Feeds'}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-zinc-500">
+                    Lead Status: <strong className="text-[#3a525d]">{lead.status}</strong>
+                  </span>
+                </div>
+                {lead.requirements ? (
+                  <p className="text-xs font-semibold text-zinc-700">
+                    <span className="font-bold text-[#2d8d9b]">Origin Feed Requirements: </span>
+                    {lead.requirements}
+                  </p>
+                ) : (
+                  <p className="text-xs text-zinc-500 italic">
+                    Origin Feed: Field scout prospect registered for {lead.area || lead.city || 'commercial uniforms'}.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Logs List */}
             {isLoadingLogs ? (
@@ -3110,7 +3556,7 @@ interface FeedOutcomeModalProps {
   branches: Branch[];
   onClose: () => void;
   onSuccess: (updatedLead?: Lead) => void;
-  onConvertToLead: () => void;
+  onConvertToLead?: () => void;
 }
 
 export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
@@ -3155,7 +3601,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
               Stage: Feeds
             </span>
             <h3 className="text-xl font-black text-[#3a525d] italic mt-1.5">
-              Log Field Feed Contact Outcome
+              Feed Follow-up &amp; Contact Outcome
             </h3>
             <p className="text-xs text-zinc-400 font-bold mt-0.5">
               Prospect: <span className="text-[#3a525d]">{lead.name}</span>
@@ -3166,40 +3612,54 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           </button>
         </div>
 
-        <div className="p-3 bg-sky-50 rounded-2xl border border-sky-100 text-xs text-sky-800">
-          <p className="font-semibold">
-            • A <span className="font-black">Positive</span> response will advance this prospect to{' '}
-            <span className="font-black">{lead.branch_id ? 'New Leads (Branch Assigned)' : 'Open Leads (Headquarters)'}</span>.
-          </p>
-          <p className="font-semibold mt-1">
-            • A <span className="font-black">Negative</span> response keeps the prospect in Feeds.
-          </p>
-        </div>
-
+        {/* Field Contact Response Outcome Options */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Response Outcome *</label>
-          <div className="grid grid-cols-2 gap-3">
+          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
+            Field Contact Response Outcome *
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setResponseType('positive')}
-              className={`p-3 rounded-2xl border-2 text-center transition-all ${
+              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 responseType === 'positive'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-black'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+                  ? 'border-emerald-500 bg-emerald-50/60 shadow-sm'
+                  : 'border-zinc-200 hover:border-zinc-300'
               }`}
             >
-              Positive Response
+              <div className="flex items-center gap-2">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  responseType === 'positive' ? 'border-emerald-600 bg-emerald-600' : 'border-zinc-300'
+                }`}>
+                  {responseType === 'positive' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+                <span className="text-xs font-black text-emerald-800">Positive Response</span>
+              </div>
+              <p className="text-[10px] text-emerald-700/80 font-medium mt-1">
+                {lead.branch_id || lead.origin === 'BRANCH' ? 'Directly converts to New Leads queue' : 'Converts to Open Leads queue'}
+              </p>
             </button>
+
             <button
               type="button"
               onClick={() => setResponseType('negative')}
-              className={`p-3 rounded-2xl border-2 text-center transition-all ${
+              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 responseType === 'negative'
-                  ? 'border-amber-500 bg-amber-50 text-amber-800 font-black'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+                  ? 'border-amber-500 bg-amber-50/60 shadow-sm'
+                  : 'border-zinc-200 hover:border-zinc-300'
               }`}
             >
-              Negative / Retry Later
+              <div className="flex items-center gap-2">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  responseType === 'negative' ? 'border-amber-600 bg-amber-600' : 'border-zinc-300'
+                }`}>
+                  {responseType === 'negative' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+                <span className="text-xs font-black text-amber-800">Negative / Pending</span>
+              </div>
+              <p className="text-[10px] text-amber-700/80 font-medium mt-1">
+                Retains raw lead at Feeds stage for future retry
+              </p>
             </button>
           </div>
         </div>
@@ -3219,17 +3679,17 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
         <div className="flex gap-3 pt-2">
           <Button
             variant="outline"
-            onClick={onConvertToLead}
-            className="flex-1 py-3 text-[10px] font-black uppercase border-[#2d8d9b] text-[#2d8d9b]"
+            onClick={onClose}
+            className="flex-1 py-3 text-[10px] font-black uppercase text-zinc-500 hover:bg-zinc-100"
           >
-            Prefill Full Lead
+            Cancel
           </Button>
           <Button
             disabled={isSubmitting}
             onClick={handleSubmit}
             className="flex-1 py-3 text-[10px] font-black uppercase bg-[#2d8d9b] hover:bg-[#257a87] text-white"
           >
-            Submit Outcome
+            {isSubmitting ? 'Recording...' : 'Submit Outcome'}
           </Button>
         </div>
       </div>

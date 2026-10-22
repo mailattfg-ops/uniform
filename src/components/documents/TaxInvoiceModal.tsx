@@ -20,6 +20,7 @@ export interface TaxInvoiceItem {
 export interface TaxInvoiceData {
   id?: number | string;
   invoice_no: string;
+  order_no?: string;
   invoice_date?: string | Date;
   created_at?: string | Date;
   due_date?: string | Date;
@@ -330,6 +331,12 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                     <span className="text-zinc-500">Invoice No</span>
                     <span className="font-mono font-bold text-zinc-900">: {data.invoice_no}</span>
                   </div>
+                  {(data.order_no || data.raw?.order_no || data.raw?.order_ref) && (data.order_no !== '—' && data.raw?.order_no !== '—') && (
+                    <div className="flex justify-between gap-3 text-[11px]">
+                      <span className="text-zinc-500">Order No</span>
+                      <span className="font-mono font-bold text-zinc-900">: {data.order_no || data.raw?.order_no || data.raw?.order_ref}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between gap-3 text-[11px]">
                     <span className="text-zinc-500">Date</span>
                     <span className="font-bold text-zinc-900">: {formatDateDoc(invDate)}</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { DynamicForm } from '@/components/ui/DynamicForm';
@@ -387,90 +387,292 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     }
   };
 
-  const columns: Column<Item>[] = [
+  // Fabrics filters state
+  const [garmentCategoryFilter, setGarmentCategoryFilter] = useState<string>('ALL');
+  const [brandTypeFilter, setBrandTypeFilter] = useState<string>('ALL');
+  const [brandFilter, setBrandFilter] = useState<string>('ALL');
+  const [qualityFilter, setQualityFilter] = useState<string>('ALL');
+  const [shadeFilter, setShadeFilter] = useState<string>('ALL');
+  const [colourFilter, setColourFilter] = useState<string>('ALL');
+  const [widthFilter, setWidthFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const uniqueGarmentCategories = useMemo(() => {
+    const set = new Set<string>();
+    ['BOTTOM', 'SHIRTING', 'SUITING'].forEach(c => set.add(c));
+    items.forEach(i => {
+      if (i.garment_category) set.add(i.garment_category);
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const uniqueBrandTypes = useMemo(() => {
+    const set = new Set<string>();
+    ['Branded', 'Semi-Branded', 'Non-Branded'].forEach(b => set.add(b));
+    items.forEach(i => {
+      if (i.brand_type) set.add(i.brand_type);
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const uniqueBrands = useMemo(() => {
+    return Array.from(new Set(items.map(i => i.brand_name).filter(Boolean))).sort();
+  }, [items]);
+
+  const uniqueQualities = useMemo(() => {
+    return Array.from(new Set(items.map(i => i.quality).filter(Boolean))).sort();
+  }, [items]);
+
+  const uniqueShades = useMemo(() => {
+    return Array.from(new Set(items.map(i => i.shade).filter(Boolean))).sort();
+  }, [items]);
+
+  const uniqueColours = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => {
+      const descMatch = (i.description || '').match(/(?:color|colour)\s*:\s*([^,;|\n]+)/i);
+      if (descMatch && descMatch[1]) {
+        set.add(descMatch[1].trim());
+      }
+      if (i.shade && isNaN(Number(i.shade))) {
+        set.add(i.shade.trim());
+      }
+      const text = `${i.name || ''} ${i.description || ''}`;
+      const colorKeywords = [
+        'White', 'Black', 'Navy Blue', 'Navy', 'Royal Blue', 'Sky Blue', 
+        'Grey', 'Heather Grey', 'Maroon', 'Red', 'Bottle Green', 'Green', 
+        'Beige', 'Khaki', 'Yellow', 'Pink', 'Purple', 'Orange', 'Brown'
+      ];
+      colorKeywords.forEach(col => {
+        const regex = new RegExp(`\\b${col}\\b`, 'i');
+        if (regex.test(text)) {
+          set.add(col);
+        }
+      });
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const uniqueWidths = useMemo(() => {
+    return Array.from(new Set(items.map(i => i.width).filter(Boolean))).sort();
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (type !== 'fabrics') return items;
+    return items.filter(item => {
+      if (garmentCategoryFilter !== 'ALL' && (item.garment_category || '').toLowerCase() !== garmentCategoryFilter.toLowerCase()) {
+        return false;
+      }
+      if (brandTypeFilter !== 'ALL' && (item.brand_type || '').toLowerCase() !== brandTypeFilter.toLowerCase()) {
+        return false;
+      }
+      if (brandFilter !== 'ALL' && (item.brand_name || '').toLowerCase() !== brandFilter.toLowerCase()) {
+        return false;
+      }
+      if (qualityFilter !== 'ALL' && (item.quality || '').toLowerCase() !== qualityFilter.toLowerCase()) {
+        return false;
+      }
+      if (shadeFilter !== 'ALL' && (item.shade || '').toLowerCase() !== shadeFilter.toLowerCase()) {
+        return false;
+      }
+      if (colourFilter !== 'ALL') {
+        const itemText = `${item.shade || ''} ${item.description || ''} ${item.name || ''}`.toLowerCase();
+        if (!itemText.includes(colourFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      if (widthFilter !== 'ALL' && String(item.width || '') !== String(widthFilter)) {
+        return false;
+      }
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matches =
+          (item.name || '').toLowerCase().includes(term) ||
+          (item.code || '').toLowerCase().includes(term) ||
+          (item.brand_name || '').toLowerCase().includes(term) ||
+          (item.garment_category || '').toLowerCase().includes(term) ||
+          (item.brand_type || '').toLowerCase().includes(term) ||
+          (item.quality || '').toLowerCase().includes(term) ||
+          (item.shade || '').toLowerCase().includes(term) ||
+          (item.description || '').toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [items, type, garmentCategoryFilter, brandTypeFilter, brandFilter, qualityFilter, shadeFilter, colourFilter, widthFilter, searchTerm]);
+
+  const handlePrintFabrics = (sortedData: Item[]) => {
+    const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
+    const rowsHtml = dataToPrint.map((item, idx) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.garment_category || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600;">${item.brand_type || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'} ${item.shade ? `(${item.shade})` : ''}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.width ? `${item.width}"` : '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m</td>
+      </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Fabric Catalog</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
+    h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
+    p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
+    td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Fabric Catalog</h1>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">#</th>
+        <th>Garment Category</th>
+        <th>Brand Type</th>
+        <th>Item Name</th>
+        <th style="text-align: center;">Width</th>
+        <th style="text-align: right;">Quantity</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="6" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(html);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 250);
+    }
+  };
+
+  const columns: Column<Item>[] = type === 'fabrics' ? [
+    {
+      header: 'Garment Category',
+      accessor: (item: Item) => (
+        <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-xl text-xs font-black text-amber-700 uppercase tracking-wider inline-block">
+          {item.garment_category || '—'}
+        </span>
+      ),
+      sortValue: (item) => item.garment_category || ''
+    },
+    {
+      header: 'Brand Type',
+      accessor: (item: Item) => (
+        <span className="px-2.5 py-1 bg-teal-50 border border-teal-100 rounded-xl text-xs font-black text-teal-700 uppercase tracking-wider inline-block">
+          {item.brand_type || '—'}
+        </span>
+      ),
+      sortValue: (item) => item.brand_type || ''
+    },
+    {
+      header: 'Item Name',
+      accessor: (item: Item) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {item.image ? (
+              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
+            )}
+          </div>
+          <div>
+            <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              {item.brand_name && (
+                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+                  {item.brand_name} {item.quality ? `• ${item.quality}` : ''}
+                </span>
+              )}
+              {item.shade && (
+                <span className="text-[10px] font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 px-1.5 py-0.5 rounded">
+                  Shade: {item.shade}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+      sortValue: (item) => item.name
+    },
+    {
+      header: 'Width',
+      accessor: (item: Item) => (
+        item.width
+          ? <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-xs font-black text-[#2d8d9b] font-mono">{item.width}&quot;</span>
+          : <span className="text-xs italic text-zinc-350">—</span>
+      ),
+      sortValue: (item) => item.width || ''
+    },
+    {
+      header: 'Quantity',
+      accessor: (item: Item) => (
+        <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-xs font-black text-green-700 font-mono">
+          {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m
+        </span>
+      ),
+      sortValue: (item) => item.quantity || 0
+    },
+    {
+      header: 'Actions',
+      accessor: (item) => (
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              setEditingItem(item);
+              setView('edit');
+            }}
+            variant="secondary"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            title="Edit Item"
+          >
+            <Edit2 size={16} />
+          </Button>
+          <Button
+            onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
+            variant="secondary"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            title="Delete Item"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      ),
+      className: 'w-28'
+    }
+  ] : [
     { 
-      header: type === 'fabrics' 
-        ? 'Fabric Number' 
-        : type === 'buttons'
-          ? 'Button Number'
-          : 'Thread Number', 
+      header: type === 'buttons' ? 'Button Number' : 'Thread Number', 
       accessor: 'code', 
       className: 'font-black text-[#2d8d9b]' 
     },
     { 
-      header: type === 'fabrics' 
-        ? 'Fabric Name' 
-        : type === 'buttons'
-          ? 'Button Name'
-          : 'Thread Name', 
+      header: type === 'buttons' ? 'Button Name' : 'Thread Name', 
       accessor: ((item: Item) => (
-        <div className="flex items-center gap-3">
-          {type === 'fabrics' && (
-            <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {item.image ? (
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
-              )}
-            </div>
+        <div>
+          <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
+          {item.description && (
+            <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 max-w-[200px]">{item.description}</p>
           )}
-          <div>
-            <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
-            {item.description && (
-              <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 max-w-[200px]">{item.description}</p>
-            )}
-          </div>
         </div>
       )) as any
     },
-    ...(type === 'fabrics' ? [
-      {
-        header: 'Brand Details',
-        accessor: ((item: Item) => (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs font-bold text-[#3a525d]">{item.brand_name || '—'}</span>
-            {item.brand_type && (
-              <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider leading-none mt-0.5">{item.brand_type}</span>
-            )}
-          </div>
-        )) as any
-      },
-      {
-        header: 'Garment Category',
-        accessor: ((item: Item) => (
-          item.garment_category ? (
-            <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-xl text-[11px] font-black text-amber-700">
-              {item.garment_category}
-            </span>
-          ) : (
-            <span className="text-[10px] italic text-zinc-350">—</span>
-          )
-        )) as any
-      },
-
-      {
-        header: 'Quantity',
-        accessor: ((item: Item) => (
-          <span className="px-2.5 py-1 bg-green-50 border border-green-100 rounded-xl text-[11px] font-black text-green-700 font-mono">
-            {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'}
-          </span>
-        )) as any
-      },
-      {
-        header: 'Shade',
-        accessor: ((item: Item) => (
-          <span className="text-xs font-bold text-zinc-600">{item.shade || '—'}</span>
-        )) as any
-      },
-      {
-        header: 'Width',
-        accessor: ((item: Item) => (
-          item.width
-            ? <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-[11px] font-black text-[#2d8d9b]">{item.width}&quot;</span>
-            : <span className="text-[10px] italic text-zinc-300">—</span>
-        )) as any
-      },
-    ] : []),
     ...(type === 'threads' ? [
       {
         header: 'Thread Type',
@@ -525,14 +727,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               setView('edit');
             }}
             variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
           >
             <Edit2 size={16} />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
             variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
           >
             <Trash2 size={16} />
           </Button>
@@ -788,21 +990,159 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   }
 
   return (
-    <>
-      <DataTable
-        title={title}
-        subtitle={subtitle}
-        columns={columns}
-        data={items}
-        isLoading={isLoading}
-        headerAction={
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Top Page Header - Matching Readymades Standard */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">{title}</h1>
+            <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] rounded-full text-[10px] font-black uppercase tracking-wider">
+              {type === 'fabrics' ? 'Material Grade & Coding' : 'Specification Hub'}
+            </span>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            {type === 'fabrics' ? 'Fabric Specification Hub & Vendor Registry' : subtitle}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
           <Button
-            onClick={() => setView('add')}
-            className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20"
+            onClick={() => {
+              setEditingItem(null);
+              setView('add');
+            }}
+            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Plus size={14} strokeWidth={3} />
-            Add {title}
+            <Plus size={18} strokeWidth={3} />
+            Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
           </Button>
+        </div>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={filteredItems}
+        isLoading={isLoading}
+        searchPlaceholder={type === 'fabrics' ? 'Search' : 'Search...'}
+        onSearch={type === 'fabrics' ? setSearchTerm : undefined}
+        onPrint={type === 'fabrics' ? handlePrintFabrics : undefined}
+        headerAction={
+          <div className="flex items-center gap-2 flex-wrap">
+            {type === 'fabrics' && (
+              <>
+                {/* Garment Category Filter */}
+                <select
+                  value={garmentCategoryFilter}
+                  onChange={(e) => setGarmentCategoryFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Garment Category"
+                >
+                  <option value="ALL">All Garment Categories</option>
+                  {uniqueGarmentCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+
+                {/* Brand Type Filter */}
+                <select
+                  value={brandTypeFilter}
+                  onChange={(e) => setBrandTypeFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Brand Type"
+                >
+                  <option value="ALL">All Brand Types</option>
+                  {uniqueBrandTypes.map(bt => (
+                    <option key={bt} value={bt}>{bt}</option>
+                  ))}
+                </select>
+
+                {/* Brand Filter */}
+                <select
+                  value={brandFilter}
+                  onChange={(e) => setBrandFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Brand"
+                >
+                  <option value="ALL">All Brands</option>
+                  {uniqueBrands.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+
+                {/* Quality Name Filter */}
+                <select
+                  value={qualityFilter}
+                  onChange={(e) => setQualityFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Quality Name"
+                >
+                  <option value="ALL">All Quality Names</option>
+                  {uniqueQualities.map(q => (
+                    <option key={q} value={q}>{q}</option>
+                  ))}
+                </select>
+
+                {/* Shade Filter */}
+                <select
+                  value={shadeFilter}
+                  onChange={(e) => setShadeFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Shade"
+                >
+                  <option value="ALL">All Shades</option>
+                  {uniqueShades.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+
+                {/* Width Filter */}
+                <select
+                  value={widthFilter}
+                  onChange={(e) => setWidthFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Width"
+                >
+                  <option value="ALL">All Widths</option>
+                  {uniqueWidths.map(w => (
+                    <option key={w} value={w}>{w}&quot;</option>
+                  ))}
+                </select>
+
+                {/* Colour Filter */}
+                <select
+                  value={colourFilter}
+                  onChange={(e) => setColourFilter(e.target.value)}
+                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  title="Filter by Colour"
+                >
+                  <option value="ALL">All Colours</option>
+                  {uniqueColours.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+
+                {/* Reset Filters button if any filter is active */}
+                {(garmentCategoryFilter !== 'ALL' || brandTypeFilter !== 'ALL' || brandFilter !== 'ALL' || qualityFilter !== 'ALL' || shadeFilter !== 'ALL' || colourFilter !== 'ALL' || widthFilter !== 'ALL') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGarmentCategoryFilter('ALL');
+                      setBrandTypeFilter('ALL');
+                      setBrandFilter('ALL');
+                      setQualityFilter('ALL');
+                      setShadeFilter('ALL');
+                      setColourFilter('ALL');
+                      setWidthFilter('ALL');
+                    }}
+                    className="h-10 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                    title="Clear all active filters"
+                  >
+                    Reset
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         }
       />
 
@@ -814,6 +1154,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
         variant="danger"
       />
-    </>
+    </div>
   );
 }

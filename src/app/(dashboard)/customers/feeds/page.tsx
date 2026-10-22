@@ -6,7 +6,7 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { 
   Plus, Compass, MapPin, Phone, Mail, User, ShieldCheck, 
-  ExternalLink, Building2, Trash2, ArrowRight, MessageSquarePlus, Eye
+  ExternalLink, Building2, ArrowRight, MessageSquarePlus
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -39,6 +39,7 @@ export default function FeedsRegistryPage() {
 
   // Modal States
   const [isAddingFeed, setIsAddingFeed] = useState(false);
+  const [editingFeed, setEditingFeed] = useState<Lead | null>(null);
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [feedOutcomeLead, setFeedOutcomeLead] = useState<Lead | null>(null);
   const [convertingFeed, setConvertingFeed] = useState<Lead | null>(null);
@@ -114,7 +115,7 @@ export default function FeedsRegistryPage() {
   const authorDesignation = currentUser?.designation || currentUser?.role || 'Field Scouting Agent';
   const authorDepartment = currentUser?.department || 'Commercial Sales';
 
-  // Feeds ONLY: filter all leads where status === 'Feeds'
+  // Feeds list: raw field prospect scouting feeds
   const feedsList = useMemo(() => {
     return leads.filter(l => l.status === 'Feeds');
   }, [leads]);
@@ -122,6 +123,10 @@ export default function FeedsRegistryPage() {
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
     if (selectedBranch === 'ALL') return zones;
+    if (selectedBranch === 'HQ') {
+      const hqZones = zones.filter(z => !z.branch_id);
+      return hqZones.length > 0 ? hqZones : zones;
+    }
     return zones.filter(z => String(z.branch_id) === selectedBranch);
   }, [zones, selectedBranch]);
 
@@ -130,8 +135,13 @@ export default function FeedsRegistryPage() {
     return feedsList.filter(l => {
       // 1. Branch filter
       if (selectedBranch !== 'ALL') {
-        const bId = String(l.branch_id || l.employees?.branch_id || '');
-        if (bId !== selectedBranch) return false;
+        if (selectedBranch === 'HQ') {
+          const isHq = !l.branch_id || l.origin === 'HQ';
+          if (!isHq) return false;
+        } else {
+          const bId = String(l.branch_id || l.employees?.branch_id || '');
+          if (bId !== selectedBranch) return false;
+        }
       }
       // 2. Zone filter
       if (selectedZone !== 'ALL') {
@@ -160,6 +170,27 @@ export default function FeedsRegistryPage() {
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to submit field feed', { id: loadingToast });
+      throw err;
+    }
+  };
+
+  // Handle Edit Feed Profile
+  const handleUpdateFeed = async (feedData: any) => {
+    if (!editingFeed) return;
+    const loadingToast = toast.loading('Updating feed profile...');
+    try {
+      const res = await api.put(`/leads/${editingFeed.id}`, {
+        ...feedData,
+        status: 'Feeds'
+      });
+      toast.success('Feed profile updated successfully!', { id: loadingToast });
+      setEditingFeed(null);
+      if (viewingLead && viewingLead.id === editingFeed.id) {
+        setViewingLead(res.data || { ...viewingLead, ...feedData });
+      }
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update feed profile', { id: loadingToast });
       throw err;
     }
   };
@@ -216,9 +247,13 @@ export default function FeedsRegistryPage() {
 
     const activeBranchName = selectedBranch === 'ALL'
       ? 'All Branches'
-      : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
+      : selectedBranch === 'HQ'
+        ? 'Headquarters (HQ Central)'
+        : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
-    const rowsHtml = sortedData.map((l, idx) => `
+    const rowsHtml = sortedData.map((l, idx) => {
+      const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+      return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
@@ -231,9 +266,10 @@ export default function FeedsRegistryPage() {
         </td>
         <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${l.phone || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Scouting Agent'}</td>
-        <td style="font-size: 10px; color: #4a5568;">${l.city || l.area || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568;">${l.city || l.area || (zoneName ? `Zone: ${zoneName}` : '—')}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     const html = `<!DOCTYPE html>
 <html>
@@ -322,12 +358,26 @@ export default function FeedsRegistryPage() {
               <ExternalLink size={13.5} />
             </button>
           </div>
-          {l.area && (
-            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5 flex items-center gap-1">
-              <MapPin size={10} className="shrink-0" />
-              <span>{l.area}</span>
-            </p>
-          )}
+          {(() => {
+            const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
+            const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+            if (!industryName && !zoneName) return null;
+            return (
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                {industryName && (
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/60 rounded">
+                    {industryName}
+                  </span>
+                )}
+                {zoneName && (
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-0.5">
+                    <MapPin size={9} className="shrink-0 text-zinc-400" />
+                    <span>Zone: {zoneName}</span>
+                  </span>
+                )}
+              </div>
+            );
+          })()}
           {l.requirements && (
             <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
               {l.requirements}
@@ -335,6 +385,34 @@ export default function FeedsRegistryPage() {
           )}
         </div>
       )
+    },
+    {
+      header: 'Area',
+      className: 'min-w-[120px] max-w-[180px] whitespace-nowrap',
+      sortValue: (l) => l.area || l.city || '',
+      accessor: (l) => {
+        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+        return (
+          l.area ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#3a525d] truncate" title={l.area}>
+              <MapPin size={12} className="text-[#2d8d9b] shrink-0" />
+              <span className="truncate">{l.area}</span>
+            </div>
+          ) : l.city ? (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 truncate" title={l.city}>
+              <MapPin size={12} className="text-zinc-400 shrink-0" />
+              <span className="truncate">{l.city}</span>
+            </div>
+          ) : zoneName ? (
+            <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 truncate" title={`Zone: ${zoneName}`}>
+              <MapPin size={10} className="text-zinc-400 shrink-0" />
+              <span className="truncate">Zone: {zoneName}</span>
+            </div>
+          ) : (
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          )
+        );
+      }
     },
     {
       header: 'Contact Person',
@@ -359,7 +437,7 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Contact Phone',
-      className: 'w-[145px] whitespace-nowrap font-mono',
+      className: 'w-[145px] whitespace-nowrap',
       sortValue: (l) => l.phone || '',
       accessor: (l) => (
         l.phone ? (
@@ -378,7 +456,7 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Follow-up',
-      className: 'min-w-[220px] whitespace-nowrap',
+      className: 'min-w-[190px] whitespace-nowrap',
       accessor: (l) => (
         <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
           <div className="min-w-0 flex-1">
@@ -388,53 +466,21 @@ export default function FeedsRegistryPage() {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Convert Feed to Lead */}
-            <button
-              type="button"
-              onClick={() => handleConvertFeedToLead(l)}
-              className="px-2.5 py-1.5 bg-[#2d8d9b] hover:bg-[#1b5b64] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
-              title="Convert raw feed to active pipeline lead"
-            >
-              <ArrowRight size={11} />
-              <span>To Lead</span>
-            </button>
-
-            {/* Quick Outcome */}
+            {/* Feed Follow-up Outcome */}
             <button
               type="button"
               onClick={() => setFeedOutcomeLead(l)}
-              className="p-1.5 bg-zinc-100 hover:bg-[#fce4d4]/50 text-[#3a525d] hover:text-[#2d8d9b] rounded-lg transition-all cursor-pointer"
-              title="Log outcome / response"
+              className="px-3 py-1.5 bg-[#2d8d9b] hover:bg-[#257a87] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              title="Record follow-up response outcome for feed"
             >
-              <MessageSquarePlus size={14} />
+              <MessageSquarePlus size={12} />
+              <span>Follow-up</span>
             </button>
-
-            {/* View Details */}
-            <button
-              type="button"
-              onClick={() => setViewingLead(l)}
-              className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg transition-all cursor-pointer"
-              title="View details"
-            >
-              <Eye size={14} />
-            </button>
-
-            {/* Delete */}
-            {canManageLeads && (
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm({ isOpen: true, id: l.id })}
-                className="p-1.5 bg-zinc-100 hover:bg-rose-50 text-zinc-400 hover:text-rose-600 rounded-lg transition-all cursor-pointer"
-                title="Delete feed"
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
           </div>
         </div>
       )
     }
-  ], [canManageLeads]);
+  ], [zones, industries]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -443,12 +489,9 @@ export default function FeedsRegistryPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Feeds</h1>
-            <span className="px-3 py-1 bg-sky-50 border border-sky-200 text-sky-800 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-2xs">
-              <Compass size={13} className="text-sky-600" /> Raw Field Prospect Intake ({feedsList.length})
-            </span>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
-            Pre-Pipeline Field Prospect Scouting &amp; Agent Logs
+            Pre-Pipeline Field Prospect Scouting &amp; Commercial Feeds
           </p>
         </div>
 
@@ -458,8 +501,8 @@ export default function FeedsRegistryPage() {
               onClick={() => setIsAddingFeed(true)}
               className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
             >
-              <Compass size={18} strokeWidth={2.5} />
-              + New Field Feed
+              <Plus size={18} strokeWidth={2.5} />
+              New Feed
             </Button>
           )}
         </div>
@@ -484,6 +527,14 @@ export default function FeedsRegistryPage() {
               className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Branches ({feedsList.length})</option>
+              {(() => {
+                const hqCount = feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length;
+                return (
+                  <option value="HQ">
+                    Headquarters (HQ Central) ({hqCount})
+                  </option>
+                );
+              })()}
               {branches.map((b) => {
                 const count = feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length;
                 return (
@@ -538,12 +589,31 @@ export default function FeedsRegistryPage() {
         onSubmit={handleCreateFeed}
         branches={branches}
         zones={zones}
+        industries={industries}
         authorName={authorName}
         authorDesignation={authorDesignation}
         authorDepartment={authorDepartment}
         userBranchId={currentUser?.branchId}
         userBranchName={currentUser?.branchName}
       />
+
+      {/* Edit Feed Profile Modal */}
+      {editingFeed && (
+        <NewFeedModal
+          isOpen={Boolean(editingFeed)}
+          onClose={() => setEditingFeed(null)}
+          onSubmit={handleUpdateFeed}
+          editingFeed={editingFeed}
+          branches={branches}
+          zones={zones}
+          industries={industries}
+          authorName={authorName}
+          authorDesignation={authorDesignation}
+          authorDepartment={authorDepartment}
+          userBranchId={currentUser?.branchId}
+          userBranchName={currentUser?.branchName}
+        />
+      )}
 
       {feedOutcomeLead && (
         <FeedOutcomeModal
@@ -594,7 +664,11 @@ export default function FeedsRegistryPage() {
             canManageMeetings: canManageLeads,
             canManageHotLeads: canManageLeads
           }}
-          onEdit={() => {}}
+          onEdit={() => {
+            if (viewingLead) {
+              setEditingFeed(viewingLead);
+            }
+          }}
           onDelete={() => {
             setDeleteConfirm({ isOpen: true, id: viewingLead.id });
           }}

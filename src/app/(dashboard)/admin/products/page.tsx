@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers, FolderTree, Bookmark, Sparkles } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers, FolderTree, Bookmark, Sparkles, X, AlertTriangle, CheckCircle2, Info, ExternalLink, Scissors, FileText, MoreHorizontal } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -41,6 +41,7 @@ interface Product {
   design_number?: string | null;
   gender: string;
   category: string;
+  description?: string | null;
   measurements: string[];
   materials: string;
   images?: string[];
@@ -726,6 +727,22 @@ export default function ProductManagement() {
     id: null
   });
 
+  // Product Details Modal & Action Dropdown states
+  const [selectedProductForDetails, setSelectedProductForDetails] = useState<Product | null>(null);
+  const [isDetailsActionsOpen, setIsDetailsActionsOpen] = useState(false);
+  const detailsActionsRef = useRef<HTMLDivElement>(null);
+
+  // Top header More Options dropdown state
+  const [isMoreHubsOpen, setIsMoreHubsOpen] = useState(false);
+  const moreHubsRef = useRef<HTMLDivElement>(null);
+
+  // Double verification states
+  const [editVerificationProduct, setEditVerificationProduct] = useState<Product | null>(null);
+  const [deleteVerification, setDeleteVerification] = useState<{ step: 1 | 2; product: Product | null }>({
+    step: 1,
+    product: null
+  });
+
   // Variant design number states
 
 
@@ -772,7 +789,7 @@ export default function ProductManagement() {
         api.get('/inventory/trims').catch(() => ({ data: [] }))
       ]);
       const allProds: Product[] = prodRes.data || [];
-      // Accessories and Readymade (Trade) are managed exclusively in the Accessories & Trade Hub
+      // Accessories and Readymade (Trade) are managed exclusively in the Accessories Hub
       const isAccessoryOrTrade = (p: Product) => {
         const cat = (p.category || '').toLowerCase();
         const pType = (p.product_type_id || (p as any).product_type || (p as any).productType || '').toString().toLowerCase();
@@ -843,6 +860,33 @@ export default function ProductManagement() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (detailsActionsRef.current && !detailsActionsRef.current.contains(e.target as Node)) {
+        setIsDetailsActionsOpen(false);
+      }
+      if (moreHubsRef.current && !moreHubsRef.current.contains(e.target as Node)) {
+        setIsMoreHubsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Auto-open product details modal if requested via URL query param (?product=ID or ?id=ID)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && products.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const prodId = urlParams.get('product') || urlParams.get('id');
+      if (prodId) {
+        const found = products.find(p => String(p.id) === String(prodId));
+        if (found) {
+          setSelectedProductForDetails(found);
+        }
+      }
+    }
+  }, [products]);
 
   // Additional states for new fields
   const [otherSizes, setOtherSizes] = useState('');
@@ -1053,18 +1097,27 @@ export default function ProductManagement() {
     },
     {
       name: 'name',
-      label: 'Product Name',
+      label: 'Item Name',
       type: 'text',
       placeholder: 'e.g. Cotton Shirt',
       required: true,
       defaultValue: editingProduct?.name
     },
     {
-      name: 'materials',
-      label: 'Specification',
+      name: 'description',
+      label: 'Description',
       type: 'textarea',
-      placeholder: 'e.g. Cotton shirt with chest pocket',
-      defaultValue: parseMaterialsField(editingProduct?.materials).materials
+      placeholder: 'Enter product description, styling details, care instructions...',
+      defaultValue: editingProduct?.description || '',
+      className: 'md:col-span-2'
+    },
+    {
+      name: 'materials',
+      label: 'Specifications',
+      type: 'textarea',
+      placeholder: 'e.g. 100% Combed Cotton, 180 GSM, Single Jersey Knit',
+      defaultValue: parseMaterialsField(editingProduct?.materials).materials,
+      className: 'md:col-span-2'
     },
     {
       name: 'base_size',
@@ -1502,6 +1555,7 @@ export default function ProductManagement() {
 
     data.measurements = normalize(data.measurements);
     data.entry_methods = normalize(data.entry_methods);
+    data.description = data.description ? data.description.trim() : null;
 
     if (!data.size_chart_id) data.size_chart_id = null;
     if (!data.main_fabric_id || data.main_fabric_id === '') data.main_fabric_id = null;
@@ -1619,191 +1673,273 @@ export default function ProductManagement() {
 
   const handleConfirmedDelete = async () => {
     if (!deleteConfirm.id) return;
+    executeConfirmedDelete(deleteConfirm.id);
+  };
+
+  const executeConfirmedDelete = async (productId?: number | null) => {
+    if (!productId) return;
     const loadingToast = toast.loading('Deleting product...');
     try {
-      await api.delete(`/products/${deleteConfirm.id}`);
-      toast.success('Product removed', { id: loadingToast });
+      await api.delete(`/products/${productId}`);
+      toast.success('Product permanently removed', { id: loadingToast });
+      setSelectedProductForDetails(null);
       fetchData();
-    } catch (err) {
-      toast.error('Failed to delete', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete product', { id: loadingToast });
     } finally {
+      setDeleteVerification({ step: 1, product: null });
       setDeleteConfirm({ isOpen: false, id: null });
+    }
+  };
+
+  const getFabricDetails = (fabricId?: string | number | null) => {
+    if (!fabricId) return null;
+    return fabrics.find(f => String(f.id) === String(fabricId));
+  };
+
+  const getResolvedProductTypeName = (product: Product) => {
+    if (product.product_types?.name) return product.product_types.name;
+    if (product.product_type_id) {
+      const pt = productTypes.find(t => String(t.id) === String(product.product_type_id));
+      if (pt) return pt.name;
+    }
+    const parsed = parseMaterialsField(product.materials);
+    if (parsed.type) return parsed.type;
+    return product.category ? product.category.replace(/_/g, ' ') : '—';
+  };
+
+  // Readymades table filters sourced strictly from database
+  const [filterGender, setFilterGender] = useState<string>('ALL');
+  const [filterItemName, setFilterItemName] = useState<string>('ALL');
+  const [filterSpec, setFilterSpec] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const uniqueGenders = useMemo(() => {
+    const set = new Set<string>();
+    // Master genders from database art_genders table
+    (genders || []).forEach(g => {
+      if (g.name) set.add(g.name);
+    });
+    // Distinct genders from database products table
+    (products || []).forEach(p => {
+      if (p.gender) set.add(p.gender);
+    });
+    return Array.from(set).sort();
+  }, [genders, products]);
+
+  const uniqueItemNames = useMemo(() => {
+    const set = new Set<string>();
+    // Distinct item names from database products table
+    (products || []).forEach(p => {
+      if (p.name) set.add(p.name);
+    });
+    // Distinct dress items from database art_dresses table
+    (dresses || []).forEach(d => {
+      if (d.name) set.add(d.name);
+    });
+    return Array.from(set).sort();
+  }, [dresses, products]);
+
+  const uniqueSpecs = useMemo(() => {
+    const specs = new Set<string>();
+    // Distinct product types from database product_types table
+    (productTypes || []).forEach(pt => {
+      if (pt.name) specs.add(pt.name);
+    });
+    // Distinct categories and specifications from database products table
+    (products || []).forEach(p => {
+      if (p.product_types?.name) specs.add(p.product_types.name);
+      if (p.category) specs.add(p.category.replace('_', ' '));
+    });
+    return Array.from(specs).sort();
+  }, [productTypes, products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      if (filterGender !== 'ALL') {
+        const targetGender = filterGender.toLowerCase();
+        const pGender = (p.gender || '').toLowerCase();
+        const matchedGenderObj = (genders || []).find(g => 
+          (g.name && g.name.toLowerCase() === targetGender) || 
+          (g.code && g.code.toLowerCase() === targetGender)
+        );
+        const matchCode = matchedGenderObj?.code?.toLowerCase();
+        const matchName = matchedGenderObj?.name?.toLowerCase();
+
+        const matches = pGender === targetGender || 
+          (matchCode && pGender === matchCode) || 
+          (matchName && pGender === matchName);
+
+        if (!matches) return false;
+      }
+      if (filterItemName !== 'ALL') {
+        const targetName = filterItemName.toLowerCase();
+        const pName = (p.name || '').toLowerCase();
+        if (!pName.includes(targetName) && targetName !== pName) {
+          return false;
+        }
+      }
+      if (filterSpec !== 'ALL') {
+        const specText = `${p.product_types?.name || ''} ${p.category || ''} ${p.materials || ''} ${p.description || ''}`.toLowerCase();
+        if (!specText.includes(filterSpec.toLowerCase())) {
+          return false;
+        }
+      }
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matches =
+          (p.name || '').toLowerCase().includes(term) ||
+          (p.art_number || '').toLowerCase().includes(term) ||
+          (p.description || '').toLowerCase().includes(term) ||
+          (p.materials || '').toLowerCase().includes(term) ||
+          (p.base_size || '').toLowerCase().includes(term) ||
+          (p.gender || '').toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [products, genders, filterGender, filterItemName, filterSpec, searchTerm]);
+
+  const handlePrintReadymades = (sortedData: Product[]) => {
+    const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredProducts;
+    const rowsHtml = dataToPrint.map((p, idx) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${p.name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${p.gender || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-family: monospace; font-weight: 800; color: #2d8d9b;">${p.art_number || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${p.description || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${parseMaterialsField(p.materials).materials || p.materials || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${p.base_size || '—'}</td>
+      </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Readymades Catalog</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
+    h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
+    p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
+    td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Readymades Catalog</h1>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">#</th>
+        <th>Item Name</th>
+        <th style="text-align: center;">Gender</th>
+        <th>Art No.</th>
+        <th>Description</th>
+        <th>Specifications</th>
+        <th style="text-align: center;">Base Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="7" style="text-align:center; padding: 20px;">No readymades found</td></tr>'}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(html);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 250);
     }
   };
 
   const columns: Column<Product>[] = [
     {
-      header: 'Product Details',
+      header: 'Item Name',
       accessor: (p) => (
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-[#3a525d] border border-zinc-100 shadow-inner overflow-hidden flex-shrink-0">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 bg-zinc-50 rounded-2xl flex items-center justify-center text-[#3a525d] border border-zinc-100 shadow-inner overflow-hidden flex-shrink-0">
             {p.images && p.images.length > 0 ? (
               <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
             ) : (
-              <Box size={24} />
+              <Box size={20} className="text-[#2d8d9b]" />
             )}
           </div>
           <div>
             <p className="font-black text-sm tracking-tight text-[#3a525d]">{p.name}</p>
-            <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest mt-1">
-              ART #: {p.art_number || '—'}
-            </p>
-            {(p.base_size || p.fit || p.allowance) && (
-              <div className="grid items-center gap-1.5 mt-1 text-[9px] font-bold text-zinc-400 uppercase">
-                {p.base_size && (
-                  <span>Size: <span className="text-[#3a525d] font-black">{p.base_size}</span></span>
-                )}
-                {p.fit && (
-                  <span>Fit: <span className="text-[#3a525d] font-black">{p.fit}</span></span>
-                )}
-                {p.allowance && (
-                  <span>Allowance: <span className="text-[#3a525d] font-black">{p.allowance}&quot;</span></span>
-                )}
-              </div>
-            )}
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+              {p.product_types?.name || p.category?.replace('_', ' ') || ''}
+            </span>
           </div>
         </div>
       ),
+      sortValue: (p) => p.name
     },
     {
-      header: 'Category & Type',
+      header: 'Gender',
+      accessor: (p) => (
+        <span className="px-2.5 py-1 bg-zinc-100 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d]">
+          {p.gender || '—'}
+        </span>
+      ),
+      sortValue: (p) => p.gender || ''
+    },
+    {
+      header: 'Art No.',
+      accessor: (p) => (
+        <span className="px-2.5 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/25 rounded-xl text-xs font-mono font-black text-[#2d8d9b] tracking-wider inline-block">
+          {p.art_number || '—'}
+        </span>
+      ),
+      sortValue: (p) => p.art_number
+    },
+    {
+      header: 'Description',
+      accessor: (p) => (
+        <div className="max-w-xs">
+          <p className="text-xs font-medium text-zinc-600 line-clamp-2" title={p.description || ''}>
+            {p.description || '—'}
+          </p>
+        </div>
+      ),
+      sortValue: (p) => p.description || ''
+    },
+    {
+      header: 'Specifications',
       accessor: (p) => {
-        const { type: parsedType } = parseMaterialsField(p.materials);
-        const typeLabels: Record<string, string> = {
-          readymade: 'Readymade',
-          accessories: 'Accessories',
-          trade_readymade: 'Trade Readymade'
-        };
+        const spec = parseMaterialsField(p.materials).materials || p.materials || '—';
         return (
-          <div className="flex flex-col gap-1.5">
-            <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border w-fit ${p.category === 'top_wear' ? 'bg-green-50 text-green-600 border-green-100' :
-              p.category === 'bottom_wear' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                'bg-zinc-50 text-zinc-600 border-zinc-100'
-              }`}>
-              {p.category?.replace('_', ' ') || 'top wear'}
-            </span>
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded border border-blue-100 w-fit">
-              {p.product_types?.name || 'Standard'}
-            </span>
-            {parsedType && (
-              <span className="px-2 py-0.5 bg-teal-50 text-teal-600 text-[8px] font-black uppercase rounded border border-teal-100 w-fit">
-                {typeLabels[parsedType] || parsedType}
-              </span>
-            )}
+          <div className="max-w-xs">
+            <p className="text-xs font-medium text-zinc-600 line-clamp-2" title={spec}>
+              {spec}
+            </p>
           </div>
         );
-      }
+      },
+      sortValue: (p) => parseMaterialsField(p.materials).materials || p.materials || ''
     },
     {
-      header: 'Technical Specs',
+      header: 'Base Size',
       accessor: (p) => (
-        <div className="flex flex-col gap-1 text-[11px]">
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-[#3a525d]">Main:</span>
-            <span className="px-1.5 py-0.5 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-md font-medium text-[#2d8d9b]">
-              {p.main_fabric !== null && p.main_fabric !== undefined ? `${p.main_fabric}m` : 'Not Set'}
-            </span>
-          </div>
-          {(p.attachment_fabric1 !== null && p.attachment_fabric1 !== undefined ||
-            p.attachment_fabric2 !== null && p.attachment_fabric2 !== undefined) && (
-              <div className="flex flex-col gap-0.5 pl-3 border-l border-zinc-100 mt-0.5">
-                {p.attachment_fabric1 !== null && p.attachment_fabric1 !== undefined && (
-                  <div className="flex items-center gap-1 text-[10px]">
-                    <span className="font-bold text-zinc-400">Att 1:</span>
-                    <span className="text-zinc-600 font-medium">{p.attachment_fabric1}m</span>
-                  </div>
-                )}
-                {p.attachment_fabric2 !== null && p.attachment_fabric2 !== undefined && (
-                  <div className="flex items-center gap-1 text-[10px]">
-                    <span className="font-bold text-zinc-400">Att 2:</span>
-                    <span className="text-zinc-600 font-medium">{p.attachment_fabric2}m</span>
-                  </div>
-                )}
-              </div>
-            )}
-          <div className="grid items-center gap-1 mt-1 text-[10px] text-zinc-500 font-medium">
-            <span className="flex items-center gap-1">
-              <span className="font-bold text-zinc-400">Buttons:</span>
-              <span className="text-zinc-700 font-semibold">{p.button_count !== null && p.button_count !== undefined ? `${p.button_count} pcs` : '—'}</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="font-bold text-zinc-400">Thread:</span>
-              <span className="text-zinc-700 font-semibold">{p.thread_count !== null && p.thread_count !== undefined ? `${p.thread_count} unit(s)` : '—'}</span>
-            </span>
-          </div>
-        </div>
-      )
-    },
-    {
-      header: 'Strategy',
-      accessor: (p) => (
-        <div className="flex flex-col gap-1">
-          {p.entry_methods?.includes('manual') && (
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded border border-blue-100 w-fit">Manual</span>
-          )}
-          {p.entry_methods?.includes('us_size_chart') && (
-            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-black uppercase rounded border border-purple-100 w-fit">US Size Chart</span>
-          )}
-        </div>
-      )
-    },
-    {
-      header: 'Metrics',
-      accessor: (p) => (
-        <div className="flex flex-wrap gap-1 max-w-[200px]">
-          {p.measurements?.map((m, i) => (
-            <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#f2994a] text-[8px] font-black uppercase rounded-md border border-orange-100/50">
-              {m}
-            </span>
-          )) || <span className="text-zinc-300 italic text-[10px]">Standard</span>}
-        </div>
-      )
-    },
-    // {
-    //   header: 'Materials',
-    //   accessor: (p) => (
-    //     <div className="flex items-center gap-2 text-zinc-500">
-    //       <Layers size={14} className="text-[#2d8d9b]" />
-    //       <span className="text-xs font-bold truncate max-w-[150px]">{p.materials || 'Not Set'}</span>
-    //     </div>
-    //   )
-    // },
-    {
-      header: 'SAM Value',
-      accessor: (p) => (
-        p.sam_value !== null && p.sam_value !== undefined ? (
-          <span className="px-2 py-0.5 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-lg text-[10px] font-black text-[#2d8d9b] font-mono">
-            {Number(p.sam_value).toFixed(2)}
+        p.base_size ? (
+          <span className="px-3 py-1 bg-zinc-100 border border-zinc-200 rounded-xl text-xs font-black text-[#3a525d]">
+            {p.base_size}
           </span>
         ) : (
-          <span className="text-[10px] italic text-zinc-300">—</span>
+          <span className="text-xs text-zinc-350 italic">—</span>
         )
-      )
-    },
-    {
-      header: 'Actions',
-      accessor: (p) => (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setEditingProduct(p);
-              setIsAdding(true);
-            }}
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20"
-            title="Edit Product"
-          >
-            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
-          </button>
-
-          <button
-            onClick={() => setDeleteConfirm({ isOpen: true, id: p.id })}
-            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-200"
-            title="Delete Product"
-          >
-            <Trash2 size={16} className="text-red-500 shrink-0" />
-          </button>
-        </div>
-      )
+      ),
+      sortValue: (p) => p.base_size || ''
     }
   ];
 
@@ -1827,77 +1963,577 @@ export default function ProductManagement() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Products</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Readymades</h1>
             <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] rounded-full text-[10px] font-black uppercase tracking-wider">
               In-House Manufactured Only
             </span>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Inventory & Specification Hub</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Readymades Specification Hub</p>
         </div>
         
         {/* Catalog Navigation & Actions */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link
-            href="/admin/product-types"
-            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
-          >
-            <FolderTree size={16} className="text-[#2d8d9b]" />
-            Product Types
-          </Link>
-          <Link
-            href="/admin/art-number-hub"
-            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#CC9448] text-[#3a525d] hover:text-[#CC9448] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
-          >
-            <Bookmark size={16} className="text-[#CC9448]" />
-            ART Number Hub
-          </Link>
-          <Link
-            href="/admin/design-numbers"
-            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
-          >
-            <Sparkles size={16} className="text-[#2d8d9b]" />
-            Design Numbers (DNS/DNG)
-          </Link>
-          <Link
-            href="/admin/accessories"
-            className="h-14 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#3a525d] text-[#3a525d] rounded-2xl font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2 transition-all"
-          >
-            <Tag size={16} className="text-[#3a525d]" />
-            Accessories Hub
-          </Link>
+          {/* More Options Dropdown (Product Categories, ART Number Hub, Design Numbers) */}
+          <div className="relative" ref={moreHubsRef}>
+            <button
+              type="button"
+              onClick={() => setIsMoreHubsOpen(prev => !prev)}
+              className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] rounded-[1.25rem] font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2.5 transition-all cursor-pointer"
+            >
+              <Layers size={16} className="text-[#2d8d9b]" />
+              <span>More Options</span>
+              <ChevronDown size={14} className={`transition-transform duration-200 ${isMoreHubsOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isMoreHubsOpen && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-zinc-200 p-2 z-30 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-2 border-b border-zinc-100 mb-1">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Catalog Management</p>
+                </div>
+                <Link
+                  href="/admin/product-types"
+                  onClick={() => setIsMoreHubsOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#2d8d9b]/10 text-[#3a525d] hover:text-[#2d8d9b] transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b] transition-colors">
+                    <FolderTree size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black">Product Categories</p>
+                    <p className="text-[10px] text-zinc-400 font-medium">Garment & Product Types</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/art-number-hub"
+                  onClick={() => setIsMoreHubsOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#CC9448]/10 text-[#3a525d] hover:text-[#CC9448] transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#CC9448]/20 flex items-center justify-center text-[#CC9448] transition-colors">
+                    <Bookmark size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black">ART Number Hub</p>
+                    <p className="text-[10px] text-zinc-400 font-medium">Prefixes, Patterns & Fits</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/design-numbers"
+                  onClick={() => setIsMoreHubsOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#2d8d9b]/10 text-[#3a525d] hover:text-[#2d8d9b] transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b] transition-colors">
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black">Design Numbers</p>
+                    <p className="text-[10px] text-zinc-400 font-medium">DNS & DNG Configs</p>
+                  </div>
+                </Link>
+              </div>
+            )}
+          </div>
+
           <Button
             onClick={() => {
               setEditingProduct(null);
               setIsAdding(true);
               fetchData();
             }}
-            className="h-14 px-7 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2.5"
+            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
           >
             <Plus size={18} strokeWidth={3} />
-            Add New
+            New Readymade
           </Button>
         </div>
       </div>
 
       <DataTable
+        title="Readymades"
+        subtitle="Manufactured Apparel & Readymade Articles"
         columns={columns}
-        data={products}
+        data={filteredProducts}
         isLoading={isLoading}
-        searchPlaceholder="Filter articles by name or SN..."
+        searchPlaceholder="Search"
+        onSearch={setSearchTerm}
+        onPrint={handlePrintReadymades}
+        onRowClick={(product) => setSelectedProductForDetails(product)}
+        headerAction={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Gender Filter */}
+            <select
+              value={filterGender}
+              onChange={(e) => setFilterGender(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Genders</option>
+              {uniqueGenders.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+
+            {/* Item Name Filter */}
+            <select
+              value={filterItemName}
+              onChange={(e) => setFilterItemName(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs max-w-[200px]"
+            >
+              <option value="ALL">All Items</option>
+              {uniqueItemNames.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            {/* Specification Filter */}
+            <select
+              value={filterSpec}
+              onChange={(e) => setFilterSpec(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs max-w-[200px]"
+            >
+              <option value="ALL">All Specifications</option>
+              {uniqueSpecs.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        }
       />
 
+      {/* Product Details Modal */}
+      {selectedProductForDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl border border-zinc-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-zinc-150 flex items-start justify-between gap-4 bg-gradient-to-r from-zinc-50/80 to-white">
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/25 rounded-xl text-xs font-mono font-black text-[#2d8d9b] tracking-wider">
+                    {selectedProductForDetails.art_number || 'NO ART NUMBER'}
+                  </span>
+                  <span className="px-2.5 py-1 bg-[#fce4d4]/60 border border-[#fce4d4] text-[#3a525d] rounded-xl text-[10px] font-black uppercase tracking-wider">
+                    {selectedProductForDetails.gender || 'Universal'}
+                  </span>
+                  <span className="px-2.5 py-1 bg-zinc-100 border border-zinc-200 text-[#3a525d] rounded-xl text-[10px] font-black uppercase tracking-wider">
+                    {getResolvedProductTypeName(selectedProductForDetails)}
+                  </span>
+                  {selectedProductForDetails.base_size && (
+                    <span className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                      Base Size: {selectedProductForDetails.base_size}
+                    </span>
+                  )}
+                  {selectedProductForDetails.fit && (
+                    <span className="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                      Fit: {selectedProductForDetails.fit}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-2xl font-black italic tracking-tight text-[#3a525d]">
+                  {selectedProductForDetails.name}
+                </h2>
+              </div>
+
+              {/* Action Dropdown & Close Button */}
+              <div className="flex items-center gap-2">
+                <div className="relative" ref={detailsActionsRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDetailsActionsOpen(prev => !prev)}
+                    className="h-10 px-4 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+                  >
+                    <span>Actions</span>
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isDetailsActionsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isDetailsActionsOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDetailsActionsOpen(false);
+                          setEditVerificationProduct(selectedProductForDetails);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-xs font-bold text-[#3a525d] hover:bg-[#2d8d9b]/10 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
+                      >
+                        <Edit2 size={15} />
+                        <span>Edit Article</span>
+                      </button>
+
+                      <div className="h-px bg-zinc-150 my-1" />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDetailsActionsOpen(false);
+                          setDeleteVerification({ step: 1, product: selectedProductForDetails });
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={15} />
+                        <span>Delete Article</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProductForDetails(null);
+                    setIsDetailsActionsOpen(false);
+                  }}
+                  className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Close Details"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* General Information Grid */}
+              <div>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mb-3">
+                  Specification Overview
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">ART Number</p>
+                    <p className="text-xs font-mono font-black text-[#2d8d9b] mt-0.5">{selectedProductForDetails.art_number || '—'}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Design Number</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.design_number || 'Standard'}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Gender</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.gender || '—'}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Garment Category</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{getResolvedProductTypeName(selectedProductForDetails)}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Base Size</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.base_size || '—'}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Fit</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.fit || '—'}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Allowance</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5">
+                      {selectedProductForDetails.allowance !== null && selectedProductForDetails.allowance !== undefined && selectedProductForDetails.allowance !== ''
+                        ? `${selectedProductForDetails.allowance}"`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Measurement Type</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5 uppercase">{selectedProductForDetails.measurement_type || 'Both'}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Standard SAM</p>
+                    <p className="text-xs font-black text-[#2d8d9b] mt-0.5">
+                      {selectedProductForDetails.sam_value ? `${selectedProductForDetails.sam_value} mins` : '—'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Retail SAM</p>
+                    <p className="text-xs font-black text-[#2d8d9b] mt-0.5">
+                      {selectedProductForDetails.retail_sam_value ? `${selectedProductForDetails.retail_sam_value} mins` : '—'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Other Sizes</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5 truncate" title={selectedProductForDetails.other_sizes || 'None'}>
+                      {selectedProductForDetails.other_sizes || '—'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Other Fits</p>
+                    <p className="text-xs font-black text-[#3a525d] mt-0.5 truncate" title={selectedProductForDetails.other_fits || 'None'}>
+                      {selectedProductForDetails.other_fits || '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description & Specifications Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
+                    <FileText size={14} className="text-[#2d8d9b]" />
+                    Product Description
+                  </h4>
+                  <p className="text-xs text-zinc-600 leading-relaxed font-medium">
+                    {selectedProductForDetails.description || <span className="italic text-zinc-400">No description entered.</span>}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
+                    <Scissors size={14} className="text-[#2d8d9b]" />
+                    Specifications / Materials
+                  </h4>
+                  <p className="text-xs text-zinc-600 leading-relaxed font-medium">
+                    {parseMaterialsField(selectedProductForDetails.materials).materials || selectedProductForDetails.materials || (
+                      <span className="italic text-zinc-400">No specifications provided.</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Fabrics & BOM Consumption Section */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
+                  Fabrics & Consumption
+                </h4>
+                
+                {/* Main Fabric */}
+                {(() => {
+                  const mFab = getFabricDetails(selectedProductForDetails.main_fabric || selectedProductForDetails.main_fabric_id);
+                  return (
+                    <div className="p-4 bg-white rounded-2xl border border-zinc-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                      <div>
+                        <span className="px-2 py-0.5 bg-[#2d8d9b]/10 text-[#2d8d9b] rounded-md text-[9px] font-black uppercase tracking-wider">
+                          Primary Shell Fabric
+                        </span>
+                        <h5 className="text-xs font-black text-[#3a525d] mt-1">
+                          {mFab?.item_name || mFab?.name || 'Primary Fabric Assigned'}
+                        </h5>
+                        <p className="text-[10px] text-zinc-400 font-medium">
+                          {[
+                            mFab?.fabric_type && `Type: ${mFab.fabric_type}`,
+                            mFab?.brand && `Brand: ${mFab.brand}`,
+                            mFab?.quality_name && `Quality: ${mFab.quality_name}`,
+                            mFab?.shade && `Shade: ${mFab.shade}`,
+                            mFab?.width && `Width: ${mFab.width}"`
+                          ].filter(Boolean).join(' • ') || 'No extra fabric specs'}
+                        </p>
+                      </div>
+                      {mFab?.colour && (
+                        <span className="px-2.5 py-1 bg-zinc-100 rounded-xl text-xs font-bold text-zinc-600 border border-zinc-200">
+                          Colour: {mFab.colour}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Attachment Fabrics List */}
+                {selectedProductForDetails.attachment_fabrics && selectedProductForDetails.attachment_fabrics.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Attachment & Contrast Fabrics
+                    </p>
+                    <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-2xl overflow-hidden bg-white">
+                      {selectedProductForDetails.attachment_fabrics.map((att, idx) => {
+                        const attFab = getFabricDetails(att.fabric_id);
+                        return (
+                          <div key={att.id || idx} className="p-3 flex items-center justify-between gap-4 text-xs">
+                            <div>
+                              <p className="font-bold text-[#3a525d]">{att.role || `Attachment #${idx + 1}`}</p>
+                              <p className="text-[10px] text-zinc-400">{attFab?.item_name || attFab?.name || 'Assigned Fabric'}</p>
+                            </div>
+                            <span className="px-3 py-1 bg-zinc-100 rounded-xl text-xs font-black text-[#2d8d9b] border border-zinc-200">
+                              {att.meters} meters
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Class Fabric Consumption Table */}
+                {selectedProductForDetails.class_fabric_consumption && Object.keys(selectedProductForDetails.class_fabric_consumption).length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Class-wise Fabric Consumption Breakdown
+                    </p>
+                    <div className="border border-zinc-200 rounded-2xl overflow-x-auto bg-white">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-400">
+                          <tr>
+                            <th className="p-2.5">Class</th>
+                            <th className="p-2.5">Main Fabric</th>
+                            <th className="p-2.5">Attachment 1</th>
+                            <th className="p-2.5">Attachment 2</th>
+                            <th className="p-2.5">Button Count</th>
+                            <th className="p-2.5">Thread Count</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-medium">
+                          {Object.entries(selectedProductForDetails.class_fabric_consumption).map(([cls, values]: [string, any]) => (
+                            <tr key={cls} className="hover:bg-zinc-50/60">
+                              <td className="p-2.5 font-bold text-[#3a525d]">{cls}</td>
+                              <td className="p-2.5">{values.main_fabric ? `${values.main_fabric}m` : '—'}</td>
+                              <td className="p-2.5">{values.attachment_fabric1 ? `${values.attachment_fabric1}m` : '—'}</td>
+                              <td className="p-2.5">{values.attachment_fabric2 ? `${values.attachment_fabric2}m` : '—'}</td>
+                              <td className="p-2.5">{values.button_count || '—'}</td>
+                              <td className="p-2.5">{values.thread_count || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Trims & Accessories Section */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
+                  Trims & Accessories Specification
+                </h4>
+                {selectedProductForDetails.trims && selectedProductForDetails.trims.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {selectedProductForDetails.trims.map((trim, idx) => (
+                      <div key={trim.id || idx} className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">{trim.category || 'Trim'}</p>
+                          <p className="text-xs font-bold text-[#3a525d] mt-0.5">{trim.name || `${trim.category} spec`}</p>
+                        </div>
+                        <span className="px-2.5 py-1 bg-white border border-zinc-200 rounded-xl text-xs font-black text-[#3a525d] shadow-2xs">
+                          {trim.count} {trim.uom}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
+                    <p className="text-xs text-zinc-400 italic">No specific trims or accessories configured.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Reference Images */}
+              {selectedProductForDetails.images && selectedProductForDetails.images.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
+                    Visual References & Photos
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {selectedProductForDetails.images.map((imgUrl, idx) => (
+                      <a
+                        key={idx}
+                        href={imgUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group aspect-square rounded-2xl overflow-hidden border border-zinc-200 relative bg-zinc-50 block"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Product reference ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                          <ExternalLink size={14} /> View
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Modification History / Remarks */}
+              {selectedProductForDetails.remarks && selectedProductForDetails.remarks.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
+                    Revision History & Remarks
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedProductForDetails.remarks.map((r, idx) => (
+                      <div key={idx} className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 text-xs">
+                        <p className="font-bold text-[#3a525d]">{r.title || `Revision #${idx + 1}`}</p>
+                        {r.changes && <p className="text-zinc-600 mt-1"><span className="font-bold">Changes:</span> {r.changes}</p>}
+                        {r.added && <p className="text-zinc-600"><span className="font-bold">Added:</span> {r.added}</p>}
+                        {r.removed && <p className="text-zinc-600"><span className="font-bold">Removed:</span> {r.removed}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 px-6 border-t border-zinc-150 bg-zinc-50/60 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-zinc-400">
+                Registered on: {selectedProductForDetails.created_at ? new Date(selectedProductForDetails.created_at).toLocaleDateString('en-GB') : '—'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedProductForDetails(null);
+                  setIsDetailsActionsOpen(false);
+                }}
+                className="px-5 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-100 text-[#3a525d] text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Double verify: Edit Confirmation */}
       <ConfirmModal
-        isOpen={deleteConfirm.isOpen}
-        title="Delete Product?"
-        message="This action will remove the product from the catalog database permanently."
-        onConfirm={handleConfirmedDelete}
-        onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
-        confirmLabel="Confirm Deletion"
+        isOpen={!!editVerificationProduct}
+        title="Edit Product Specification?"
+        message={`Are you sure you want to edit "${editVerificationProduct?.name}" (${editVerificationProduct?.art_number})? Any changes will update the catalog specification and standard BOM parameters.`}
+        confirmLabel="Yes, Proceed to Edit"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={() => {
+          if (editVerificationProduct) {
+            setEditingProduct(editVerificationProduct);
+            setIsAdding(true);
+            setEditVerificationProduct(null);
+            setSelectedProductForDetails(null);
+          }
+        }}
+        onCancel={() => setEditVerificationProduct(null)}
+      />
+
+      {/* Double verify: Delete Confirmation Step 1 */}
+      <ConfirmModal
+        isOpen={deleteVerification.step === 1 && !!deleteVerification.product}
+        title="Verify Deletion (1 of 2)"
+        message={`Are you sure you want to delete "${deleteVerification.product?.name}" (${deleteVerification.product?.art_number})? Please confirm to proceed to final verification.`}
+        confirmLabel="Continue to Final Confirmation"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={() => {
+          setDeleteVerification(prev => ({ ...prev, step: 2 }));
+        }}
+        onCancel={() => {
+          setDeleteVerification({ step: 1, product: null });
+        }}
+      />
+
+      {/* Double verify: Delete Confirmation Step 2 */}
+      <ConfirmModal
+        isOpen={deleteVerification.step === 2 && !!deleteVerification.product}
+        title="Final Confirmation (2 of 2)"
+        message={`FINAL WARNING: This action cannot be undone. Product "${deleteVerification.product?.name}" (${deleteVerification.product?.art_number}) and all linked specifications will be permanently deleted from the database.`}
+        confirmLabel="Permanently Delete Product"
+        cancelLabel="Cancel & Keep Product"
         variant="danger"
+        onConfirm={() => {
+          if (deleteVerification.product) {
+            executeConfirmedDelete(deleteVerification.product.id);
+          }
+        }}
+        onCancel={() => {
+          setDeleteVerification({ step: 1, product: null });
+        }}
       />
 
 
