@@ -285,7 +285,7 @@ export default function QuotationWizard({
         setProjectStartDate(fullQuote.metrics_summary?.project_start_date || new Date().toISOString().split('T')[0]);
         setProfitMargin(String(fullQuote.profit_margin_percent));
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
-        setGstPercent(fullQuote.metrics_summary?.gst_percent != null ? String(fullQuote.metrics_summary.gst_percent) : '0');
+        setGstPercent(fullQuote.metrics_summary?.gst_percent != null ? String(fullQuote.metrics_summary.gst_percent) : '5');
         setIsTaxInclusive(Boolean(fullQuote.metrics_summary?.is_tax_inclusive));
         setStatus(fullQuote.status || 'Pending');
 
@@ -1553,7 +1553,7 @@ Forma Apparels Co.`;
     setQuotationType('STANDARD');
     setTemplateLineItems([]);
     setCoverLetter('');
-    setGstPercent('18');
+    setGstPercent('5');
     setIsTaxInclusive(false);
     setOrgAnalysis({
       total_entities: 0,
