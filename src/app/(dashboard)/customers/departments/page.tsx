@@ -306,9 +306,9 @@ export default function DepartmentManagement() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Top Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Departments</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
@@ -318,40 +318,30 @@ export default function DepartmentManagement() {
 
         <Button 
           onClick={() => setIsAdding(true)}
-          className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+          className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
         >
-          <Plus size={20} strokeWidth={3} />
+          <Plus size={18} strokeWidth={3} />
           Setup Department
         </Button>
       </div>
 
-      {/* Organization Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-100">
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="p-3 bg-[#3a525d]/5 rounded-2xl">
-            <Filter size={20} className="text-[#3a525d]" />
-          </div>
-          <div className="min-w-[260px]">
-            <Select 
-              placeholder="All Organizations"
-              value={selectedOrg}
-              options={[
-                { label: 'All Organizations', value: '' },
-                ...organizations.map(o => ({ label: o.name, value: o.id.toString() }))
-              ]}
-              onChange={(val: string) => setSelectedOrg(val)}
-            />
-          </div>
-        </div>
-      </div>
-
       <DataTable 
-        title="Department Management"
-        subtitle="Organize functional groups per organization"
         columns={columns}
         data={departments}
         isLoading={isLoading}
         searchPlaceholder="Filter departments..."
+        headerAction={
+          <select
+            value={selectedOrg}
+            onChange={(e) => setSelectedOrg(e.target.value)}
+            className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+          >
+            <option value="">All Organizations ({departments.length})</option>
+            {organizations.map(o => (
+              <option key={o.id} value={o.id.toString()}>{o.name}</option>
+            ))}
+          </select>
+        }
       />
 
       <ConfirmModal 

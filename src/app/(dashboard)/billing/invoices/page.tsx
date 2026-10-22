@@ -172,9 +172,9 @@ export default function InvoicesPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition shadow-md"
+          className="flex items-center gap-2 h-14 px-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.15em] text-[11px] rounded-[1.25rem] shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus size={18} strokeWidth={3} />
           Create Invoice / Counter Sale
         </button>
       </div>

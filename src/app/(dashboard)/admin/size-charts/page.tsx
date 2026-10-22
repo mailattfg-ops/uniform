@@ -375,9 +375,9 @@ export default function SizeChartPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
+    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">US Size Chart</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
@@ -583,16 +583,16 @@ export default function SizeChartPage() {
           </div>
         )}
 
-        <div className="flex justify-center pt-10">
+        <div className="flex justify-center pt-6">
           <Button
             onClick={() => {
               setNewChart({ ...newChart, category: activeTab, metric_groups: getInitialMetrics(activeTab) });
               setEditingId(null);
               setIsAdding(true);
             }}
-            className="h-16 px-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#2d8d9b]/20 gap-3"
+            className="h-14 px-8 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#2d8d9b]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Plus size={20} strokeWidth={3} />
+            <Plus size={18} strokeWidth={3} />
             Register New Size Chart
           </Button>
         </div>

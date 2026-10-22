@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { 
   Building2, Plus, Key, Users, RefreshCw, CheckCircle2, ShieldCheck, 
   Mail, Phone, MapPin, Copy, Check, ExternalLink, History,
-  X, Store, Edit2, Trash2, Tag, Compass
+  X, Store, Edit2, Trash2, Tag, Compass, Search
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import { AddBranchModal } from '@/app/(dashboard)/employees/_components/AddBranchModal';
@@ -94,6 +94,10 @@ export default function BranchOutletsPage() {
 
   // Copy state
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState<'ALL' | 'Branch' | 'Factory' | 'Corporate'>('ALL');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -265,6 +269,41 @@ export default function BranchOutletsPage() {
   const factoryCount = visibleBranches.filter(b => b.tier === 'Factory').length;
   const outletCount = visibleBranches.filter(b => b.tier === 'Branch').length;
 
+  const filteredBranches = useMemo(() => {
+    let list = visibleBranches;
+
+    if (tierFilter !== 'ALL') {
+      list = list.filter(b => b.tier === tierFilter);
+    }
+
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return list;
+
+    return list.filter(branch => {
+      // 1. Branch direct fields: name, code, tier, address, contact_number, email
+      const nameMatch = (branch.name || '').toLowerCase().includes(q);
+      const codeMatch = (branch.code || '').toLowerCase().includes(q);
+      const tierMatch = (branch.tier || '').toLowerCase().includes(q);
+      const addressMatch = (branch.address || '').toLowerCase().includes(q);
+      const phoneMatch = (branch.contact_number || '').toLowerCase().includes(q);
+      const emailMatch = (branch.email || '').toLowerCase().includes(q);
+
+      if (nameMatch || codeMatch || tierMatch || addressMatch || phoneMatch || emailMatch) {
+        return true;
+      }
+
+      // 2. Zone fields under this branch: name, code, description
+      const branchZones = zones.filter(z => Number(z.branch_id) === Number(branch.id));
+      const zoneMatch = branchZones.some(z =>
+        (z.name || '').toLowerCase().includes(q) ||
+        (z.code || '').toLowerCase().includes(q) ||
+        (z.description || '').toLowerCase().includes(q)
+      );
+
+      return zoneMatch;
+    });
+  }, [visibleBranches, tierFilter, searchQuery, zones]);
+
   return (
     <div className="space-y-6">
       {/* Forma Header Banner */}
@@ -294,7 +333,7 @@ export default function BranchOutletsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={fetchData}
-            className="w-11 h-11 rounded-2xl border border-[#3a525d]/20 text-[#3a525d] hover:bg-[#3a525d]/5 flex items-center justify-center transition shadow-xs cursor-pointer"
+            className="w-14 h-14 rounded-[1.25rem] border border-zinc-200/80 bg-white hover:bg-zinc-50 text-[#3a525d] flex items-center justify-center transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer"
             title="Refresh Data"
           >
             <RefreshCw className={`w-4 h-4 text-[#3a525d] ${loading ? 'animate-spin' : ''}`} />
@@ -303,9 +342,9 @@ export default function BranchOutletsPage() {
           {isAdmin && (
             <button
               onClick={() => setShowAddBranchModal(true)}
-              className="flex items-center gap-2 px-6 h-11 bg-[#2d8d9b] hover:bg-[#236e7a] rounded-2xl text-xs font-black uppercase tracking-wider text-white transition shadow-lg shadow-[#2d8d9b]/20 cursor-pointer"
+              className="flex items-center gap-2 h-14 px-8 bg-[#2d8d9b] hover:bg-[#236e7a] rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#2d8d9b]/20 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
+              <Plus size={18} strokeWidth={3} />
               Add New Branch
             </button>
           )}
@@ -373,23 +412,110 @@ export default function BranchOutletsPage() {
         </div>
       </div>
 
+      {/* Search & Category Filter Bar */}
+      <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-[#2d8d9b] absolute left-4 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search branches, factory, zones, codes or locations..."
+            className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b] transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 rounded-full hover:bg-zinc-200 transition cursor-pointer"
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Tier Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          <button
+            onClick={() => setTierFilter('ALL')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+              tierFilter === 'ALL'
+                ? 'bg-[#2d8d9b] text-white shadow-sm'
+                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+            }`}
+          >
+            All Units ({visibleBranches.length})
+          </button>
+          <button
+            onClick={() => setTierFilter('Branch')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              tierFilter === 'Branch'
+                ? 'bg-[#2d8d9b] text-white shadow-sm'
+                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+            }`}
+          >
+            🏪 Outlets ({outletCount})
+          </button>
+          <button
+            onClick={() => setTierFilter('Factory')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              tierFilter === 'Factory'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+            }`}
+          >
+            🏭 Factories ({factoryCount})
+          </button>
+          <button
+            onClick={() => setTierFilter('Corporate')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              tierFilter === 'Corporate'
+                ? 'bg-purple-700 text-white shadow-sm'
+                : 'bg-purple-50 text-purple-800 hover:bg-purple-100'
+            }`}
+          >
+            🏢 Headquarters ({corporateCount})
+          </button>
+        </div>
+      </div>
+
       {/* Outlets Grid */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-base font-black text-[#3a525d] uppercase tracking-wider flex items-center gap-2">
             <Store className="w-4 h-4 text-[#2d8d9b]" />
             {isAdmin ? 'Registered Units & Showrooms' : 'My Branch Details'}
           </h2>
-          <span className="text-[10px] font-bold text-[#8b6b5a] uppercase tracking-widest">
-            {visibleBranches.length} {visibleBranches.length === 1 ? 'Location' : 'Locations'} Listed
-          </span>
+          <div className="flex items-center gap-2">
+            {(searchQuery || tierFilter !== 'ALL') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setTierFilter('ALL');
+                }}
+                className="text-[10px] font-bold text-rose-600 hover:underline flex items-center gap-1 cursor-pointer mr-2"
+              >
+                Reset Filters
+              </button>
+            )}
+            <span className="text-[10px] font-bold text-[#8b6b5a] uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-[#fce4d4]">
+              Showing {filteredBranches.length} of {visibleBranches.length} {visibleBranches.length === 1 ? 'Location' : 'Locations'}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visibleBranches.map(branch => {
+          {filteredBranches.map(branch => {
             const users = branchUsers.filter(u => u.branch_id === branch.id);
             const assignedEmployees = branchEmployees.filter(e => e.branch_id === branch.id || e.temp_branch_id === branch.id);
             const branchZones = zones.filter(z => Number(z.branch_id) === Number(branch.id));
+            const q = searchQuery.trim().toLowerCase();
+            const matchingZones = q ? branchZones.filter(z => 
+              (z.name || '').toLowerCase().includes(q) ||
+              (z.code || '').toLowerCase().includes(q) ||
+              (z.description || '').toLowerCase().includes(q)
+            ) : [];
             return (
               <div 
                 key={branch.id} 
@@ -524,6 +650,11 @@ export default function BranchOutletsPage() {
                       <span className="flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-[#8b6b5a]">
                         <MapPin className="w-3.5 h-3.5 text-[#2d8d9b]" />
                         Regional Zones ({branchZones.length})
+                        {matchingZones.length > 0 && (
+                          <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-[#2d8d9b] text-white">
+                            {matchingZones.length} Matched
+                          </span>
+                        )}
                       </span>
                       {isAdmin && (
                         <button
@@ -539,14 +670,34 @@ export default function BranchOutletsPage() {
 
                     {branchZones.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                        {branchZones.map(zone => (
-                          <div key={zone.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-zinc-100 text-xs hover:border-[#2d8d9b]/30 transition-colors">
+                        {branchZones.map(zone => {
+                          const isZoneMatch = Boolean(
+                            q && (
+                              (zone.name || '').toLowerCase().includes(q) ||
+                              (zone.code || '').toLowerCase().includes(q) ||
+                              (zone.description || '').toLowerCase().includes(q)
+                            )
+                          );
+                          return (
+                          <div 
+                            key={zone.id} 
+                            className={`flex justify-between items-center bg-white p-2.5 rounded-xl border text-xs transition-colors ${
+                              isZoneMatch 
+                                ? 'border-[#2d8d9b] bg-[#2d8d9b]/5 ring-1 ring-[#2d8d9b]/30' 
+                                : 'border-zinc-100 hover:border-[#2d8d9b]/30'
+                            }`}
+                          >
                             <div className="min-w-0 pr-2">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-bold text-[#3a525d] truncate">{zone.name}</p>
+                                <p className={`font-bold truncate ${isZoneMatch ? 'text-[#2d8d9b]' : 'text-[#3a525d]'}`}>{zone.name}</p>
                                 {zone.code && (
                                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#2d8d9b]/10 text-[#2d8d9b] font-black">
                                     {zone.code}
+                                  </span>
+                                )}
+                                {isZoneMatch && (
+                                  <span className="text-[8px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white px-1.5 py-0.5 rounded">
+                                    Match
                                   </span>
                                 )}
                               </div>
@@ -556,28 +707,29 @@ export default function BranchOutletsPage() {
                                 </p>
                               )}
                             </div>
-                            {isAdmin && (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => openEditZoneModal(zone)}
-                                  className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition cursor-pointer"
-                                  title="Edit Zone"
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteZone(zone)}
-                                  className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                  title="Delete Zone"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              {isAdmin && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditZoneModal(zone)}
+                                    className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition cursor-pointer"
+                                    title="Edit Zone"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteZone(zone)}
+                                    className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                    title="Delete Zone"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="flex justify-between items-center py-1">
@@ -674,13 +826,30 @@ export default function BranchOutletsPage() {
             );
           })}
 
-          {visibleBranches.length === 0 && !loading && (
+          {filteredBranches.length === 0 && !loading && (
             <div className="col-span-full bg-white p-12 rounded-[2.5rem] border border-[#fce4d4] text-center space-y-3">
               <Building2 size={36} className="text-[#2d8d9b] mx-auto opacity-50" />
-              <h3 className="text-base font-black text-[#3a525d]">No Branches Configured</h3>
+              <h3 className="text-base font-black text-[#3a525d]">
+                {searchQuery ? `No matches found for "${searchQuery}"` : 'No Units Found'}
+              </h3>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                No branch outlets found. Click "Add New Branch" above to register your first corporate headquarters, factory unit, or retail showroom.
+                {searchQuery 
+                  ? 'No branch outlet, factory unit, or zone matched your search query. Try searching with a different name, code, or location keyword.'
+                  : 'No units found in this category.'
+                }
               </p>
+              {(searchQuery || tierFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setTierFilter('ALL');
+                  }}
+                  className="px-4 py-2 bg-[#2d8d9b] text-white rounded-xl text-xs font-bold hover:bg-[#236e7a] transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <RefreshCw size={12} /> Clear Search & Filters
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -48,7 +48,7 @@ const modules: ModuleItem[] = [
     subsections: [
       { label: 'Feeds', href: '/customers/feeds' },
       { label: 'Leads', href: '/customers/leads' },
-      { label: 'New Deals', href: '/customers/deals' },
+      { label: 'Deals', href: '/customers/deals' },
       { label: 'Quotations', href: '/marketing/quotations' },
       { label: 'Customers', href: '/customers' },
     ]
@@ -56,7 +56,7 @@ const modules: ModuleItem[] = [
   {
     icon: Tag, label: 'Items', href: '/items',
     subsections: [
-      { label: 'Products', href: '/admin/products' },
+      { label: 'Readymades', href: '/admin/products' },
       { label: 'Fabrics', href: '/admin/inventory/fabrics' },
       { label: 'Trims', href: '/admin/inventory/trims' },
       { label: 'Accessories', href: '/admin/accessories' }
@@ -186,6 +186,7 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Organization': ['view_schools', 'manage_schools', 'view_organizations'],
 
   // Items
+  'Readymades': ['manage_products', 'view_products'],
   'Products': ['manage_products', 'view_products'],
   'Product Types': ['manage_products', 'view_products'],
   'Group Designs': ['manage_products', 'view_products', 'manage_group_designs'],
@@ -575,12 +576,10 @@ export const Sidebar: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const leaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Expands on hover (or when pinned on desktop/tablet, or on mobile when sidebar drawer is open)
   const isExpanded = isPinned || isHovered || (isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 768);
@@ -603,11 +602,6 @@ export const Sidebar: React.FC = () => {
     leaveTimerRef.current = setTimeout(() => {
       setIsHovered(false);
       setIsDropdownOpen(false);
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-        hoverTimeoutRef.current = null;
-      }
-      setHoveredMenu(null);
     }, 150);
   };
 
@@ -625,7 +619,6 @@ export const Sidebar: React.FC = () => {
     return () => {
       window.removeEventListener('storage', loadUser);
       if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, []);
 
@@ -650,12 +643,19 @@ export const Sidebar: React.FC = () => {
 
   const handleModuleClick = (item: ModuleItem) => {
     if (item.subsections.length > 0) {
-      setActiveMenu(activeMenu === item.label && pathname === item.href ? null : item.label);
+      const isCurrentlyOpen = activeMenu !== null
+        ? activeMenu === item.label
+        : (
+          item.subsections.some(sub => pathname === sub.href || (sub.href !== '/' && (pathname.startsWith(sub.href + '/') || pathname.startsWith(sub.href + '?')))) ||
+          (item.href !== '/' && (pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?')))
+        );
+      setActiveMenu(isCurrentlyOpen ? '__CLOSED__' : item.label);
       router.push(item.href);
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setIsSidebarOpen(false);
       }
     } else {
+      setActiveMenu(null);
       router.push(item.href);
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setIsSidebarOpen(false);
@@ -773,35 +773,14 @@ export const Sidebar: React.FC = () => {
                 (item.href !== '/' && (pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?'))) ||
                 (item.label === 'Home' && pathname === '/dashboard');
               const Icon = item.icon;
-              const isOpen = hoveredMenu !== null
-                ? hoveredMenu === item.label
-                : (activeMenu === item.label || (isPathActive && activeMenu === null));
+              const isOpen = activeMenu !== null
+                ? activeMenu === item.label
+                : isPathActive;
 
               return (
                 <div 
                   key={item.label} 
                   className="transition-all duration-300 px-1.5"
-                  onMouseEnter={() => {
-                    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-                      if (hoverTimeoutRef.current) {
-                        clearTimeout(hoverTimeoutRef.current);
-                        hoverTimeoutRef.current = null;
-                      }
-                      if (item.subsections.length > 0) {
-                        setHoveredMenu(item.label);
-                      } else {
-                        setHoveredMenu(null);
-                      }
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-                      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                      hoverTimeoutRef.current = setTimeout(() => {
-                        setHoveredMenu(current => (current === item.label ? null : current));
-                      }, 100);
-                    }
-                  }}
                 >
                   <div
                     onClick={() => handleModuleClick(item)}
@@ -846,7 +825,12 @@ export const Sidebar: React.FC = () => {
                           <Link
                             key={idx}
                             href={sub.href}
-                            onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
+                            onClick={() => {
+                              setActiveMenu(item.label);
+                              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                                setIsSidebarOpen(false);
+                              }
+                            }}
                             className={`relative flex items-center gap-2.5 group text-[12.5px] transition-all py-1.5 px-3 rounded-xl whitespace-nowrap ${isSubActive
                               ? 'text-white bg-[#CC9448]/20 font-bold shadow-inner'
                               : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'

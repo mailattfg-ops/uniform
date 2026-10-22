@@ -22,7 +22,16 @@ export interface JobCardPrintData {
     quotations?: {
       quotation_no: string;
       title?: string;
-      organizations?: { name: string };
+      delivery_address?: string;
+      metrics_summary?: any;
+      organizations?: {
+        name: string;
+        address?: string;
+        delivery_address?: string;
+        delivery_city?: string;
+        delivery_state?: string;
+        delivery_pincode?: string;
+      };
     };
   };
   child_pieces?: ChildJobCardData[];
@@ -1124,6 +1133,15 @@ export function compileGarmentStickersHTML(
     jc.orders?.quotations?.organizations?.name ||
     jc.orders?.quotations?.title ||
     'Institutional Client';
+  const orgDeliveryAddress =
+    jc.orders?.quotations?.organizations?.delivery_address ||
+    jc.orders?.quotations?.metrics_summary?.delivery_address ||
+    jc.orders?.quotations?.organizations?.address ||
+    '';
+  const orgDeliveryCity =
+    jc.orders?.quotations?.organizations?.delivery_city ||
+    jc.orders?.quotations?.metrics_summary?.delivery_city ||
+    '';
   const orderNo = jc.orders?.order_no || `ORD-${jc.order_id}`;
   const totalCards = childCards.length;
 
@@ -1206,8 +1224,8 @@ export function compileGarmentStickersHTML(
         </div>
 
         <div class="item-name-row">
-          <div class="item-title">${jc.item_name}</div>
-          <div class="order-ref">${orderNo} • ${orgName}</div>
+          <div class="item-title">${jc.item_name}${jc.art_number ? ` • Art #${jc.art_number}` : ''}${jc.design_number ? ` (${jc.design_number})` : ''}</div>
+          <div class="order-ref">${orderNo} • ${orgName}${orgDeliveryCity ? ` • Ship: ${orgDeliveryCity}` : orgDeliveryAddress ? ` • Ship: ${orgDeliveryAddress.slice(0, 30)}` : ''}</div>
         </div>
 
         ${

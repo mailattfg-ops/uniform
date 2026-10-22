@@ -139,19 +139,19 @@ export default function BranchTransfersPage() {
             Dispatch, track, and acknowledge inventory movements between retail branches and factory hubs.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={fetchData}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition"
+            className="w-14 h-14 bg-slate-800 hover:bg-slate-700 rounded-[1.25rem] text-slate-300 flex items-center justify-center transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             title="Refresh Data"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30"
+            className="flex items-center gap-2 h-14 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-indigo-600/30 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus size={18} strokeWidth={3} />
             New Stock Transfer Dispatch
           </button>
         </div>

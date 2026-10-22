@@ -34,6 +34,18 @@ interface Organization {
   id: number;
   name: string;
   address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+  delivery_address?: string;
+  delivery_city?: string;
+  delivery_state?: string;
+  delivery_pincode?: string;
+  delivery_country?: string;
+  contact_person?: string;
+  contact_title?: string;
+  contact_designation?: string;
   email?: string;
   phone?: string;
 }
@@ -61,8 +73,14 @@ interface QuotationItem {
   unit_price: number;
   total_price: number;
   product_name?: string;
+  art_number?: string;
   main_fabric?: string;
+  fabric_name?: string;
+  fabric_code?: string;
+  fabric_color?: string;
   attachment_fabrics?: string;
+  size_breakdown?: any;
+  notes?: string;
 }
 
 interface Order {
@@ -89,6 +107,7 @@ interface Order {
     final_quote_value: number;
     paid_amount: number;
     expected_delivery_date: string | null;
+    metrics_summary?: any;
     organizations: Organization;
   };
 }
@@ -391,10 +410,11 @@ export default function OrderPlacementPage() {
     doc.write(`
       <html>
         <head>
-          <title>Print Label</title>
+          <title>Print Label - ${printOrder?.order_no || 'Order'}</title>
           ${headHtml}
           <style>
             @page { size: 4in 3in; margin: 0; }
+            * { box-sizing: border-box; }
             body {
               margin: 0;
               padding: 0.1in;
@@ -402,8 +422,9 @@ export default function OrderPlacementPage() {
               width: 4in;
               height: 3in;
               background-color: white;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
           </style>
         </head>
@@ -425,6 +446,66 @@ export default function OrderPlacementPage() {
       </html>
     `);
     doc.close();
+  };
+
+  // Helper to extract customer delivery address for label tag
+  const getLabelDeliveryAddress = (order: Order | PrintOrderDetails) => {
+    const org = order.quotations?.organizations;
+    const metrics = (order.quotations as any)?.metrics_summary;
+
+    const orgName = org?.name || order.quotations?.title || 'Institutional Client';
+    const address = org?.delivery_address || metrics?.delivery_address || org?.address || 'Registered Address';
+    const city = org?.delivery_city || metrics?.delivery_city || org?.city || '';
+    const state = org?.delivery_state || metrics?.delivery_state || org?.state || '';
+    const pincode = org?.delivery_pincode || metrics?.delivery_pincode || org?.pincode || '';
+    
+    const cityStatePin = [city, state].filter(Boolean).join(', ') + (pincode ? ` - ${pincode}` : '');
+    const contactPerson = org?.contact_person ? `${org?.contact_title ? org.contact_title + ' ' : ''}${org.contact_person}` : '';
+    const phone = org?.phone || '';
+
+    return {
+      orgName,
+      address,
+      cityStatePin,
+      contactPerson,
+      phone
+    };
+  };
+
+  // Helper to extract product specifications for label tag
+  const getLabelItemSpecs = (item: QuotationItem) => {
+    const title = item.product_name || item.product_types?.name || item.product_type_name || 'Uniform Item';
+    const artOrDesign = item.size_breakdown?.product_design_number || item.size_breakdown?.art_number || item.art_number || '';
+    
+    // Format size breakdown
+    let sizeStr = '';
+    if (item.size_breakdown?.selected_size) {
+      sizeStr = `Size: ${item.size_breakdown.selected_size}`;
+    } else if (item.size_breakdown && typeof item.size_breakdown === 'object') {
+      const breakdown = item.size_breakdown.sizes || item.size_breakdown;
+      if (typeof breakdown === 'object') {
+        const parts: string[] = [];
+        for (const [k, v] of Object.entries(breakdown)) {
+          if (['product_name', 'product_id', 'fabric_id', 'fabric_name', 'department_name', 'class_name', 'is_set', 'set_name', 'products', 'selected_size'].includes(k)) continue;
+          if (typeof v === 'number' && v > 0) parts.push(`${k}:${v}`);
+          else if (typeof v === 'string' && Number(v) > 0) parts.push(`${k}:${v}`);
+        }
+        if (parts.length > 0) {
+          sizeStr = parts.slice(0, 4).join(' ');
+          if (parts.length > 4) sizeStr += ` +${parts.length - 4} sizes`;
+        }
+      }
+    }
+
+    const fabric = item.fabric_name || item.fabric_code || item.main_fabric || item.size_breakdown?.fabric_name || '';
+
+    return {
+      title,
+      artOrDesign,
+      sizeStr,
+      fabric,
+      qty: item.quantity
+    };
   };
 
   // Helper to render PRD compliant status badges
@@ -1287,53 +1368,107 @@ export default function OrderPlacementPage() {
                   <div className="border border-dashed border-[#8b6b5a]/30 rounded-3xl p-4 bg-white shadow-inner flex flex-col items-center justify-center">
                     <span className="text-[9px] font-black tracking-widest text-zinc-300 uppercase mb-2">Print Area Boundary</span>
 
-                    <div id="print-label-container" className="w-[3.8in] h-[2.8in] border border-zinc-900 p-2 bg-white text-zinc-900 box-sizing-border-box flex flex-col justify-between select-none">
-                      <div className="flex justify-between items-start">
+                    <div id="print-label-container" className="w-[3.8in] h-[2.8in] border-2 border-zinc-900 p-2.5 bg-white text-zinc-900 box-sizing-border-box flex flex-col justify-between select-none font-sans text-left">
+                      {/* Top Header */}
+                      <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-1.5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-black uppercase tracking-widest leading-none text-[#2d8d9b]">FORMA APPARELS</span>
-                          <span className="text-[6px] text-zinc-500 font-bold mt-0.5">ORDER FULFILLMENT LABEL</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-[#2d8d9b]">FORMA APPARELS</span>
+                            <span className="text-[6.5px] font-black bg-zinc-900 text-white px-1 py-0.5 rounded uppercase">ORDER DISPATCH TAG</span>
+                          </div>
+                          <span className="text-[6px] text-zinc-500 font-bold uppercase mt-0.5">Commercial Fulfillment • Logistics Barcode Tag</span>
                         </div>
                         <div className="text-right flex flex-col items-end">
-                          <span className="font-mono text-[9px] font-black leading-none">{printOrder.order_no}</span>
-                          <span className="text-[6px] text-zinc-400 font-bold uppercase mt-0.5">Status: {printOrder.status}</span>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-b border-zinc-200 py-1 flex justify-between gap-2">
-                        <div className="flex flex-col flex-1">
-                          <span className="text-[5px] text-zinc-400 font-bold uppercase leading-none">Customer Profile</span>
-                          <span className="text-[8px] font-black text-zinc-800 leading-tight mt-0.5 truncate max-w-[140px]">{printOrder.quotations?.organizations?.name}</span>
-                          <span className="text-[6px] text-zinc-500 leading-none mt-0.5 truncate max-w-[140px]">{printOrder.quotations?.organizations?.address || 'No address added'}</span>
-                        </div>
-                        <div className="flex flex-col text-right shrink-0">
-                          <span className="text-[5px] text-zinc-400 font-bold uppercase leading-none">Expected Delivery</span>
-                          <span className="text-[8px] font-black text-zinc-800 leading-none mt-0.5">
-                            {formatDate(printOrder.quotations?.expected_delivery_date)}
+                          <span className="font-mono text-[11px] font-black leading-none text-zinc-900">{printOrder.order_no}</span>
+                          <span className="text-[6px] font-bold text-zinc-600 uppercase mt-0.5">
+                            Status: <strong className="text-[#2d8d9b]">{printOrder.status}</strong>
                           </span>
-                          <span className="text-[6px] font-mono text-[#2d8d9b] font-bold mt-0.5">Quote: {printOrder.quotations?.quotation_no}</span>
                         </div>
                       </div>
 
-                      <div className="flex-1 overflow-hidden py-1">
-                        <span className="text-[5px] text-zinc-400 font-bold uppercase leading-none block mb-0.5">Fulfillment Items</span>
-                        <div className="max-h-[0.7in] overflow-hidden">
-                          <table className="w-full text-left text-[6px]">
+                      {/* Customer Delivery Address */}
+                      {(() => {
+                        const del = getLabelDeliveryAddress(printOrder);
+                        return (
+                          <div className="border-b border-zinc-300 py-1.5 flex justify-between gap-2 bg-zinc-50/90 px-2 rounded mt-1">
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-[5.5px] text-[#2d8d9b] font-black uppercase tracking-widest">DELIVERY ADDRESS (SHIP TO)</span>
+                              <span className="text-[9px] font-black text-zinc-900 leading-tight mt-0.5 truncate" title={del.orgName}>
+                                {del.orgName}
+                              </span>
+                              <span className="text-[7px] text-zinc-700 leading-tight mt-0.5 font-medium line-clamp-2" title={del.address}>
+                                {del.address}
+                              </span>
+                              {del.cityStatePin && (
+                                <span className="text-[7px] font-bold text-zinc-800 leading-tight">
+                                  {del.cityStatePin}
+                                </span>
+                              )}
+                              {(del.contactPerson || del.phone) && (
+                                <span className="text-[6.5px] text-zinc-600 font-semibold mt-0.5 truncate">
+                                  Attn: {del.contactPerson || 'Store In-charge'}{del.phone ? ` • Tel: ${del.phone}` : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-col text-right shrink-0 border-l border-zinc-200 pl-2 justify-center">
+                              <span className="text-[5.5px] text-zinc-400 font-black uppercase tracking-wider">TARGET DELIVERY</span>
+                              <span className="text-[8px] font-black text-zinc-900 leading-none mt-0.5">
+                                {formatDate(printOrder.quotations?.expected_delivery_date)}
+                              </span>
+                              <span className="text-[6px] font-mono text-[#2d8d9b] font-bold mt-1">Quote: {printOrder.quotations?.quotation_no}</span>
+                              <span className="text-[6px] font-bold text-zinc-700 mt-0.5">
+                                Units: {printOrder.items?.reduce((s, it) => s + (Number(it.quantity) || 0), 0) || 0} Pcs
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Product Details Section */}
+                      <div className="flex-1 overflow-hidden py-1 flex flex-col justify-start">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="text-[5.5px] text-zinc-500 font-black uppercase tracking-wider">PRODUCT DETAILS &amp; LOT SPECIFICATIONS</span>
+                          <span className="text-[5.5px] font-bold text-zinc-400">{printOrder.items?.length || 0} Item(s)</span>
+                        </div>
+                        <div className="border border-zinc-200 rounded overflow-hidden">
+                          <table className="w-full text-left text-[6.5px] border-collapse">
                             <thead>
-                              <tr className="border-b border-zinc-100 font-black text-zinc-500 uppercase">
-                                <th className="pb-0.5">Product Category</th>
-                                <th className="text-right pb-0.5">Qty</th>
+                              <tr className="bg-zinc-100/90 font-black text-zinc-600 uppercase border-b border-zinc-200">
+                                <th className="py-0.5 px-1.5">Product &amp; Style</th>
+                                <th className="py-0.5 px-1.5">Specifications / Sizing</th>
+                                <th className="text-right py-0.5 px-1.5">Qty</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {printOrder.items?.slice(0, 3).map((item) => (
-                                <tr key={item.id} className="font-bold border-b border-zinc-50/50">
-                                  <td className="py-0.5 truncate max-w-[150px]">{item.product_types?.name || item.product_type_name || 'Item'}</td>
-                                  <td className="text-right py-0.5">{item.quantity}</td>
-                                </tr>
-                              ))}
-                              {printOrder.items?.length > 3 && (
-                                <tr className="font-bold italic text-zinc-400 text-[5px]">
-                                  <td colSpan={2} className="py-0.5">+ {printOrder.items.length - 3} additional product types</td>
+                              {printOrder.items?.slice(0, 3).map((item) => {
+                                const specs = getLabelItemSpecs(item);
+                                return (
+                                  <tr key={item.id} className="border-b border-zinc-100 last:border-b-0">
+                                    <td className="py-0.5 px-1.5 truncate max-w-[140px]">
+                                      <div className="font-bold text-zinc-900 truncate">{specs.title}</div>
+                                      {specs.artOrDesign && (
+                                        <div className="text-[5.5px] font-mono text-[#2d8d9b]">Style/Art: {specs.artOrDesign}</div>
+                                      )}
+                                    </td>
+                                    <td className="py-0.5 px-1.5 text-zinc-600 truncate max-w-[130px]">
+                                      {specs.sizeStr && (
+                                        <div className="font-semibold text-zinc-800 truncate">{specs.sizeStr}</div>
+                                      )}
+                                      {specs.fabric && (
+                                        <div className="text-[5.5px] text-zinc-500 truncate">Fabric: {specs.fabric}</div>
+                                      )}
+                                    </td>
+                                    <td className="text-right py-0.5 px-1.5 font-mono font-bold text-zinc-900 whitespace-nowrap">
+                                      {specs.qty} pcs
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              {printOrder.items && printOrder.items.length > 3 && (
+                                <tr className="bg-zinc-50 font-bold text-zinc-500 text-[5.5px]">
+                                  <td colSpan={3} className="py-0.5 px-1.5 text-center italic">
+                                    + {printOrder.items.length - 3} additional product types enclosed in shipment
+                                  </td>
                                 </tr>
                               )}
                             </tbody>
@@ -1341,8 +1476,15 @@ export default function OrderPlacementPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-center justify-center border-t border-zinc-100 pt-1">
-                        <Barcode value={printOrder.barcode} height={25} showText={true} barWidth={1.2} className="p-0 shadow-none bg-transparent" />
+                      {/* Barcode & Footer */}
+                      <div className="flex items-center justify-between border-t-2 border-zinc-900 pt-1 shrink-0 mt-auto">
+                        <div className="flex flex-col items-center flex-1">
+                          <Barcode value={printOrder.barcode || printOrder.order_no} height={20} showText={true} barWidth={1.1} className="p-0 shadow-none bg-transparent" />
+                        </div>
+                        <div className="text-right text-[5.5px] text-zinc-500 font-semibold pl-2 border-l border-zinc-300">
+                          <div className="font-bold text-emerald-700">QC VERIFIED</div>
+                          <div className="font-mono text-zinc-700 mt-0.5">PKG LOT #01</div>
+                        </div>
                       </div>
                     </div>
                   </div>

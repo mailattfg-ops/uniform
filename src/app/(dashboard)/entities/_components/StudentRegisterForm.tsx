@@ -97,9 +97,9 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
       name: 'class_id', 
       label: 'Department / Unit', 
       type: 'select', 
-      options: departments.length > 0 ? departments : [{ label: 'Select Organization First', value: '' }], 
-      required: true,
-      defaultValue: initialData?.department_id || initialData?.class_id
+      options: departments.length > 0 ? departments : [{ label: 'Main (Default)', value: '' }], 
+      required: false,
+      defaultValue: initialData?.department_id || initialData?.class_id || departments.find((d: any) => d.label?.toLowerCase() === 'main')?.value || departments[0]?.value
     },
     { 
         name: 'contact_mobile', label: 'Contact Mobile', type: 'tel', 
@@ -130,14 +130,18 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
   const handleSubmit = async (data: any) => {
     const isEditing = !!initialData;
     const loadingToast = toast.loading(isEditing ? 'Updating record...' : 'Registering member and creating account...');
+    const resolvedData = {
+      ...data,
+      class_id: data.class_id || departments.find((d: any) => d.label?.toLowerCase() === 'main')?.value || departments[0]?.value || undefined
+    };
     
     try {
       if (isEditing) {
-        await api.put(`/students/${initialData.id}`, data);
+        await api.put(`/students/${initialData.id}`, resolvedData);
         toast.success('Profile updated!', { id: loadingToast });
         if (onCancel) onCancel();
       } else {
-        const response = await api.post('/students/register', data);
+        const response = await api.post('/students/register', resolvedData);
         toast.success('Registration complete!', { id: loadingToast });
         setGeneratedCreds({
             ...response.data.credentials,

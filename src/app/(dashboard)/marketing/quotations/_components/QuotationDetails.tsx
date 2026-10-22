@@ -27,13 +27,14 @@ interface QuotationDetailsProps {
   selectedQuotation: Quotation;
   fabricsList: any[];
   onBack: () => void;
-  onStartEdit: (q: Quotation) => void;
+  onStartEdit?: (q: Quotation) => void;
   onSubmitToOps?: (q: Quotation) => void;
   onSubmitToBm?: (q: Quotation) => void;
   onBmApprove?: (q: Quotation) => void;
   onBmReject?: (q: Quotation) => void;
   onDeleteCandidate?: (q: Quotation) => void;
   currentUser?: any;
+  readOnly?: boolean;
 }
 
 // Helpers for department and division cleanup
@@ -59,7 +60,8 @@ export default function QuotationDetails({
   onBmApprove,
   onBmReject,
   onDeleteCandidate,
-  currentUser
+  currentUser,
+  readOnly = false
 }: QuotationDetailsProps) {
 
   const [companySettings, setCompanySettings] = useState<any>({
@@ -690,11 +692,11 @@ export default function QuotationDetails({
               className="flex items-center gap-1.5 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 h-9"
             >
               <ArrowLeft size={14} />
-              Back
+              {readOnly ? 'Close' : 'Back'}
             </Button>
 
             {/* Branch Manager Review Actions */}
-            {(selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision)) && canSubmitToOps && (
+            {!readOnly && (selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision)) && canSubmitToOps && (
               <>
                 {onBmApprove && (
                   <Button
@@ -718,7 +720,7 @@ export default function QuotationDetails({
             )}
 
             {/* Marketing Resubmit to Branch Manager (after revision) */}
-            {selectedQuotation.status === 'Draft' && isBmRevision && canSubmitToBm && onSubmitToBm && (
+            {!readOnly && selectedQuotation.status === 'Draft' && isBmRevision && canSubmitToBm && onSubmitToBm && (
               <Button
                 onClick={() => onSubmitToBm(selectedQuotation)}
                 className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-600/10 border-none h-9"
@@ -729,7 +731,7 @@ export default function QuotationDetails({
             )}
 
             {/* Direct Branch Manager / Admin Submit to Ops */}
-            {selectedQuotation.status === 'Draft' && isBmRevision && canSubmitToOps && onSubmitToOps && (
+            {!readOnly && selectedQuotation.status === 'Draft' && isBmRevision && canSubmitToOps && onSubmitToOps && (
               <Button
                 onClick={() => onSubmitToOps(selectedQuotation)}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-9"
@@ -750,7 +752,7 @@ export default function QuotationDetails({
             )}
 
             {/* Edit button (disabled once finalized) */}
-            {selectedQuotation.status !== 'Approved' && (
+            {!readOnly && onStartEdit && selectedQuotation.status !== 'Approved' && (
               <Button
                 variant="outline"
                 onClick={() => onStartEdit(selectedQuotation)}
@@ -762,7 +764,7 @@ export default function QuotationDetails({
             )}
 
             {/* Delete button */}
-            {onDeleteCandidate && (
+            {!readOnly && onDeleteCandidate && (
               <Button
                 variant="outline"
                 onClick={() => onDeleteCandidate(selectedQuotation)}
@@ -810,9 +812,11 @@ export default function QuotationDetails({
               <p className="text-xs md:text-sm font-semibold text-rose-950 mt-1 whitespace-pre-wrap leading-relaxed">
                 "{selectedQuotation.metrics_summary.bm_rejection_reason}"
               </p>
-              <p className="text-[10px] text-rose-700 font-medium mt-2">
-                Click &quot;Edit&quot; above to update specifications and resubmit to the Branch Manager for sign-off.
-              </p>
+              {!readOnly && (
+                <p className="text-[10px] text-rose-700 font-medium mt-2">
+                  Click &quot;Edit&quot; above to update specifications and resubmit to the Branch Manager for sign-off.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -1021,9 +1025,14 @@ export default function QuotationDetails({
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
                 <p className="text-base font-black text-[#3a525d] mt-1">
-                  {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'HOLD') && 'Readymade'}
+                  {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'STANDARD' || !selectedQuotation.metrics_summary?.quotation_type) && 'Readymades'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'FABRIC' && 'fabrics'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'ACCESSORIES' && 'accessories'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymades ( with departments)'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'FABRIC_SET' && 'fabrics ( with departments)'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'ACCESSORIES_SET' && 'accessories ( with departments)'}
+                  {selectedQuotation.metrics_summary?.quotation_type === 'MANUAL' && 'Custom quotation'}
                   {selectedQuotation.metrics_summary?.quotation_type === 'SET_TYPE' && 'Set Type'}
-                  {(!selectedQuotation.metrics_summary?.quotation_type || selectedQuotation.metrics_summary.quotation_type === 'STANDARD') && 'Standard'}
                 </p>
               </Card>
             </div>

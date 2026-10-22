@@ -19,6 +19,7 @@ export interface ProFormaItem {
 export interface ProFormaInvoiceData {
   id?: number | string;
   pi_no: string;
+  order_no?: string;
   quote_no?: string;
   date?: string | Date;
   valid_until?: string | Date;
@@ -411,6 +412,12 @@ export default function ProFormaInvoiceModal({ isOpen, onClose, data }: ProForma
                     <span className="text-zinc-500">Pro Forma No</span>
                     <span className="font-mono font-bold text-zinc-900">: {data.pi_no}</span>
                   </div>
+                  {(data.order_no || data.raw?.order_no) && (data.order_no !== '—' && data.raw?.order_no !== '—') && (
+                    <div className="flex justify-between gap-3 text-[11px]">
+                      <span className="text-zinc-500">Order No</span>
+                      <span className="font-mono font-bold text-zinc-900">: {data.order_no || data.raw?.order_no}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between gap-3 text-[11px]">
                     <span className="text-zinc-500">Date</span>
                     <span className="font-bold text-zinc-900">: {formatDateDoc(issueDate)}</span>

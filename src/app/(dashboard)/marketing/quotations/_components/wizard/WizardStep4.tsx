@@ -105,7 +105,35 @@ export default function WizardStep4({
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
   const [selectedQuoteDetail, setSelectedQuoteDetail] = useState<any | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
+  const [isScheduleOpen, setIsScheduleOpen] = useState<boolean>(false);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 300);
+  };
+
+  const isScheduleVisible = isScheduleOpen || isHovered || !!selectedQuoteDetail;
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gstPercent) {
+      setGstPercent('5');
+    }
+  }, [gstPercent, setGstPercent]);
 
   useEffect(() => {
     if (selectedQuoteDetail) {
@@ -299,7 +327,16 @@ export default function WizardStep4({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Expected Delivery Target Date</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Expected Delivery Target Date</label>
+                <button
+                  type="button"
+                  onClick={() => setIsScheduleOpen((prev) => !prev)}
+                  className="text-[9px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Calendar size={11} /> Check Schedule Registry
+                </button>
+              </div>
               <Input
                 type="date"
                 value={deliveryDate}
@@ -351,7 +388,7 @@ export default function WizardStep4({
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">GST Tax Slab (%)</label>
               <Select
-                value={gstPercent}
+                value={gstPercent || '5'}
                 onChange={setGstPercent}
                 options={gstOptions}
                 placeholder="Select GST..."
@@ -564,62 +601,6 @@ export default function WizardStep4({
         </Card>
       </div>
 
-      <div className="space-y-4 pt-6 border-t border-zinc-100">
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Delivery Schedule Registry</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <div>
-            {renderCalendar()}
-          </div>
-          <div>
-            {selectedDateQuotes ? (
-              <div className="bg-emerald-50/40 border border-[#bbf7d0] rounded-[2rem] p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
-                    Deliveries on {selectedDateStr}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDateQuotes(null)}
-                    className="text-[9px] font-black uppercase text-zinc-400 hover:text-zinc-650"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-                <div className="space-y-3 max-h-[260px] overflow-y-auto custom-scrollbar">
-                  {selectedDateQuotes.map((q, idx) => (
-                    <div
-                      key={q.id || idx}
-                      onClick={() => q.id && handleOpenDetailModal(q.id)}
-                      className="bg-white border border-zinc-100 rounded-2xl p-4 flex justify-between items-center text-xs shadow-sm transition-all hover:border-[#2d8d9b] hover:shadow-md cursor-pointer active:scale-[0.99] select-none"
-                    >
-                      <div>
-                        <p className="font-black text-[#3a525d] text-sm truncate max-w-[280px]">{q.title}</p>
-                        <p className="text-[10px] font-bold text-zinc-400 mt-0.5">
-                          Client: {q.organizations?.name || q.organization?.name || 'Unknown'}
-                        </p>
-                      </div>
-                      <div className="text-right flex flex-col items-end">
-                        <p className="font-black text-emerald-600 text-sm font-mono">₹{parseFloat(q.final_quote_value || 0).toFixed(0)}</p>
-                        <span className="px-2 py-0.5 mt-1 rounded text-[8px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-150">
-                          {q.status || 'Pending'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-zinc-50 border border-zinc-200 border-dashed rounded-[2rem] p-10 text-center text-zinc-400 flex flex-col justify-center items-center min-h-[220px]">
-                <Calendar className="text-zinc-300 mb-3" size={28} />
-                <p className="text-[10px] font-black uppercase tracking-wider">Select a highlighted date</p>
-                <p className="text-[9px] font-semibold text-zinc-400 mt-1 max-w-[240px] mx-auto">
-                  Click on dates marked with green dots to view scheduled delivery orders.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
       <div className="flex justify-between pt-6 border-t border-zinc-100 mt-10">
         <Button
           variant="secondary"
@@ -681,12 +662,14 @@ export default function WizardStep4({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
-                      <p className="text-xs font-black text-[#3a525d] mt-1 uppercase">
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymade Set'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC_SET' && 'Fabric Set'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' && 'Readymade Normal'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC' && 'Fabric Normal'}
-                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'MANUAL' && 'Manual'}
+                      <p className="text-xs font-black text-[#3a525d] mt-1">
+                        {(selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' || selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE' || !selectedQuoteDetail.metrics_summary?.quotation_type) && 'Readymades'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC' && 'fabrics'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'ACCESSORIES' && 'accessories'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE_SET' && 'Readymades ( with departments)'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC_SET' && 'fabrics ( with departments)'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'ACCESSORIES_SET' && 'accessories ( with departments)'}
+                        {selectedQuoteDetail.metrics_summary?.quotation_type === 'MANUAL' && 'Custom quotation'}
                       </p>
                     </div>
 
@@ -888,6 +871,127 @@ export default function WizardStep4({
           </div>
         </div>
       )}
+
+      {/* ── FLOATING RIGHT-SIDE HOVER TRIGGER TAB ── */}
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={() => setIsScheduleOpen((prev) => !prev)}
+        className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 cursor-pointer ${
+          isScheduleVisible ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'
+        }`}
+        title="Hover to view Delivery Schedule Registry"
+      >
+        <div className="bg-[#3a525d] hover:bg-[#2d8d9b] text-white shadow-2xl rounded-l-2xl py-4 px-2.5 flex flex-col items-center gap-2.5 border-y border-l border-white/20 transition-all select-none group">
+          <div className="relative">
+            <Calendar size={18} className="text-emerald-300 group-hover:scale-110 transition-transform" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-100 [writing-mode:vertical-rl] rotate-180 py-1">
+            Delivery Schedule
+          </span>
+          <ChevronLeft size={14} className="text-zinc-300 group-hover:-translate-x-0.5 transition-transform" />
+        </div>
+      </div>
+
+      {/* ── SLIDE-OUT DELIVERY SCHEDULE REGISTRY PANEL (APPEARS ON HOVER FROM RIGHT) ── */}
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`fixed top-0 right-0 h-full z-40 transition-transform duration-300 ease-out ${
+          isScheduleVisible ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="h-full w-[760px] max-w-[95vw] bg-white/98 backdrop-blur-md border-l border-zinc-200 shadow-2xl flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="p-4 px-6 border-b border-zinc-150 flex items-center justify-between bg-zinc-50/90">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                <Calendar size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                  Delivery Schedule Registry
+                </h4>
+                <p className="text-[10px] text-zinc-400 font-semibold">
+                  Hover or click dates with green dots to view scheduled delivery orders
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsScheduleOpen(false);
+                  setIsHovered(false);
+                }}
+                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-all cursor-pointer"
+                title="Close Schedule Panel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+              <div>
+                {renderCalendar()}
+              </div>
+              <div>
+                {selectedDateQuotes ? (
+                  <div className="bg-emerald-50/40 border border-[#bbf7d0] rounded-[2rem] p-5 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                        Deliveries on {selectedDateStr}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDateQuotes(null)}
+                        className="text-[9px] font-black uppercase text-zinc-400 hover:text-zinc-650 cursor-pointer"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                    <div className="space-y-3 max-h-[380px] overflow-y-auto custom-scrollbar">
+                      {selectedDateQuotes.map((q, idx) => (
+                        <div
+                          key={q.id || idx}
+                          onClick={() => q.id && handleOpenDetailModal(q.id)}
+                          className="bg-white border border-zinc-150 rounded-2xl p-3.5 flex justify-between items-center text-xs shadow-sm transition-all hover:border-[#2d8d9b] hover:shadow-md cursor-pointer active:scale-[0.99] select-none"
+                        >
+                          <div className="pr-2">
+                            <p className="font-black text-[#3a525d] text-xs truncate max-w-[180px]">{q.title}</p>
+                            <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
+                              Client: {q.organizations?.name || q.organization?.name || 'Unknown'}
+                            </p>
+                          </div>
+                          <div className="text-right flex flex-col items-end shrink-0">
+                            <p className="font-black text-emerald-600 text-xs font-mono">₹{parseFloat(q.final_quote_value || 0).toFixed(0)}</p>
+                            <span className="px-2 py-0.5 mt-1 rounded text-[8px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-150">
+                              {q.status || 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-50/80 border border-zinc-200 border-dashed rounded-[2rem] p-8 text-center text-zinc-400 flex flex-col justify-center items-center min-h-[260px]">
+                    <Calendar className="text-zinc-300 mb-3" size={28} />
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-600">Select a highlighted date</p>
+                    <p className="text-[9px] font-semibold text-zinc-400 mt-1 max-w-[220px] mx-auto">
+                      Click on dates marked with green dots to view scheduled delivery orders.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Loading overlay for fetching details */}
       {isLoadingDetail && (

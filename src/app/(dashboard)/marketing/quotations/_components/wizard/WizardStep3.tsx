@@ -137,11 +137,26 @@ export default function WizardStep3({
                           const qty = parseInt(item.quantity) || 0;
 
                           // Dynamic breakdowns
-                          const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-                          const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-                          const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+                          const calcMainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+                          const calcAtt1 = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+                          const calcAtt2 = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+
+                          const mainCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
+                            ? parseFloat(item.main_fabric_cost)
+                            : calcMainCost;
+                          const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
+                            ? parseFloat(item.attachment_fabric1_cost)
+                            : calcAtt1;
+                          const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
+                            ? parseFloat(item.attachment_fabric2_cost)
+                            : calcAtt2;
+
                           const itemFabricCost = mainCost + att1Cost + att2Cost;
-                          const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
+                          const itemLaborCost = isFabric ? 0 : (
+                            (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+                              ? parseFloat(item.final_sam_price)
+                              : calculateProductSAMCost(item.sam_value, item.quantity)
+                          );
                           const unitPrice = parseFloat(item.price) || 0;
                           const unitExpense = isAccessory ? unitPrice : (itemFabricCost + itemLaborCost);
 
@@ -230,11 +245,26 @@ export default function WizardStep3({
                           const qty = parseInt(item.quantity) || 0;
 
                           // Dynamic breakdowns
-                          const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-                          const att1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-                          const att2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+                          const calcMainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+                          const calcAtt1 = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+                          const calcAtt2 = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+
+                          const mainCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
+                            ? parseFloat(item.main_fabric_cost)
+                            : calcMainCost;
+                          const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
+                            ? parseFloat(item.attachment_fabric1_cost)
+                            : calcAtt1;
+                          const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
+                            ? parseFloat(item.attachment_fabric2_cost)
+                            : calcAtt2;
+
                           const itemFabricCost = mainCost + att1Cost + att2Cost;
-                          const itemLaborCost = isFabric ? 0 : calculateProductSAMCost(item.sam_value, item.quantity);
+                          const itemLaborCost = isFabric ? 0 : (
+                            (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+                              ? parseFloat(item.final_sam_price)
+                              : calculateProductSAMCost(item.sam_value, item.quantity)
+                          );
                           const unitPrice = parseFloat(item.price) || 0;
                           const unitExpense = isAccessory ? unitPrice : (itemFabricCost + itemLaborCost);
 

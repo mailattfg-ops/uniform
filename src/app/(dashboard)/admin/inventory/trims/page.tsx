@@ -417,21 +417,169 @@ export default function TrimsCatalogPage() {
     }
   };
 
-  // Filter trims by category pill if selected
+  // Trims filters state
+  const [filterSize, setFilterSize] = useState<string>('ALL');
+  const [filterColour, setFilterColour] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // Helper: Extract Colour strictly from database trim fields (type, description, or remarks)
+  const extractTrimColor = (t: TrimItem): string => {
+    const desc = t.description || '';
+    const colorMatch = desc.match(/(?:color|shade)\s*:\s*([^,;|\n]+)/i);
+    if (colorMatch && colorMatch[1]) return colorMatch[1].trim();
+
+    if (t.type && !t.type.toLowerCase().includes('button') && !t.type.toLowerCase().includes('thread') && !t.type.toLowerCase().includes('trim')) {
+      return t.type.trim();
+    }
+    return '';
+  };
+
+  const uniqueSizes = useMemo(() => {
+    const set = new Set<string>();
+    trims.forEach(t => {
+      const text = `${t.name} ${t.description || ''} ${t.type || ''}`;
+      const sizeMatch = (t.description || '').match(/(?:size|dimensions?|width|length)\s*:\s*([^,;|\n]+)/i);
+      if (sizeMatch && sizeMatch[1]) {
+        set.add(sizeMatch[1].trim());
+      }
+      const matches = text.match(/\b(\d+(?:\.\d+)?(?:["']|L|mm|cm|m)\b|#\d+|XS|S|M|L|XL|2XL|3XL|4XL|Free Size)/gi);
+      if (matches) {
+        matches.forEach(m => {
+          if (m && isNaN(Number(m))) set.add(m.trim());
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [trims]);
+
+  const uniqueColours = useMemo(() => {
+    const set = new Set<string>();
+    const commonColors = [
+      'White', 'Black', 'Gold', 'Silver', 'Brass', 'Navy Blue', 'Navy', 
+      'Royal Blue', 'Sky Blue', 'Grey', 'Heather Grey', 'Maroon', 'Red', 
+      'Bottle Green', 'Green', 'Beige', 'Khaki', 'Yellow', 'Brown', 'Bronze'
+    ];
+    trims.forEach(t => {
+      const col = extractTrimColor(t);
+      if (col) {
+        set.add(col);
+      }
+      const descMatch = (t.description || '').match(/(?:color|shade)\s*:\s*([^,;|\n]+)/i);
+      if (descMatch && descMatch[1]) {
+        set.add(descMatch[1].trim());
+      }
+      const text = `${t.name || ''} ${t.description || ''} ${t.type || ''}`;
+      commonColors.forEach(cc => {
+        const regex = new RegExp(`\\b${cc}\\b`, 'i');
+        if (regex.test(text)) {
+          set.add(cc);
+        }
+      });
+    });
+    return Array.from(set).sort();
+  }, [trims]);
+
+  // Filter trims by category, size, colour, and search
   const filteredTrims = useMemo(() => {
-    if (selectedCategoryId === 'ALL') return trims;
-    return trims.filter(t => t.category_id === selectedCategoryId);
-  }, [trims, selectedCategoryId]);
+    return trims.filter(t => {
+      if (selectedCategoryId !== 'ALL' && t.category_id !== selectedCategoryId) {
+        return false;
+      }
+      if (filterSize !== 'ALL') {
+        const text = `${t.name} ${t.description || ''} ${t.type || ''}`.toLowerCase();
+        if (!text.includes(filterSize.toLowerCase())) return false;
+      }
+      if (filterColour !== 'ALL') {
+        const text = `${t.name} ${t.description || ''} ${t.type || ''}`.toLowerCase();
+        if (!text.includes(filterColour.toLowerCase())) return false;
+      }
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matches =
+          (t.name || '').toLowerCase().includes(term) ||
+          (t.code || '').toLowerCase().includes(term) ||
+          (t.description || '').toLowerCase().includes(term) ||
+          (t.type || '').toLowerCase().includes(term) ||
+          (t.uom || '').toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [trims, selectedCategoryId, filterSize, filterColour, searchTerm]);
+
+  const handlePrintTrims = (sortedData: TrimItem[]) => {
+    const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredTrims;
+    const rowsHtml = dataToPrint.map((item, idx) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-family: monospace; font-weight: 800; color: #2d8d9b;">${item.code || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${item.description || item.type || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${item.uom || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700;">${item.unit_price ? formatCurrency(item.unit_price) : '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity)} ${item.uom}</td>
+      </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Trim Catalog</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
+    h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
+    p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
+    td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Trim Catalog</h1>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">#</th>
+        <th>Trim No.</th>
+        <th>Item Name</th>
+        <th>Description</th>
+        <th style="text-align: center;">UOM</th>
+        <th style="text-align: right;">Unit Price</th>
+        <th style="text-align: right;">Quantity</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="7" style="text-align:center; padding: 20px;">No trims found</td></tr>'}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(html);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 250);
+    }
+  };
 
   // Columns styled identically to Fabric CatalogManager
   const columns: Column<TrimItem>[] = [
     { 
-      header: 'Trim Number', 
+      header: 'Trim No.', 
       accessor: 'code', 
-      className: 'font-black text-[#2d8d9b]' 
+      className: 'font-black text-[#2d8d9b]',
+      sortValue: (item) => item.code
     },
     { 
-      header: 'Trim Name', 
+      header: 'Item Name', 
       accessor: ((item: TrimItem) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -443,35 +591,30 @@ export default function TrimsCatalogPage() {
           </div>
           <div>
             <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
-            {item.description && (
-              <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 max-w-[200px]">{item.description}</p>
+            {item.category?.name && (
+              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">{item.category.name}</span>
             )}
           </div>
         </div>
-      )) as any
+      )) as any,
+      sortValue: (item) => item.name
     },
     {
-      header: 'Category',
+      header: 'Description',
       accessor: ((item: TrimItem) => (
-        <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-xl text-[11px] font-black text-amber-700">
-          {item.category?.name || 'Trim'}
-        </span>
-      )) as any
-    },
-    {
-      header: 'Type / Variant',
-      accessor: ((item: TrimItem) => (
-        item.type ? (
-          <span className="text-xs font-bold text-[#3a525d]">{item.type}</span>
-        ) : (
-          <span className="text-[10px] italic text-zinc-350">—</span>
-        )
-      )) as any
+        <div className="max-w-xs">
+          <p className="text-xs font-medium text-zinc-600 line-clamp-2">
+            {item.description || item.type || '—'}
+          </p>
+        </div>
+      )) as any,
+      sortValue: (item) => item.description || item.type || ''
     },
     {
       header: 'UOM',
       accessor: 'uom',
-      className: 'font-bold text-xs text-zinc-600'
+      className: 'font-bold text-xs text-zinc-600',
+      sortValue: (item) => item.uom
     },
     {
       header: 'Unit Price',
@@ -479,15 +622,17 @@ export default function TrimsCatalogPage() {
         <span className="font-bold text-xs text-[#3a525d]">
           {item.unit_price ? formatCurrency(item.unit_price) : '—'}
         </span>
-      )) as any
+      )) as any,
+      sortValue: (item) => item.unit_price || 0
     },
     {
-      header: 'Stock Quantity',
+      header: 'Quantity',
       accessor: ((item: TrimItem) => (
         <span className="font-black text-sm text-[#3a525d]">
           {formatQuantity(item.quantity)} {item.uom}
         </span>
-      )) as any
+      )) as any,
+      sortValue: (item) => item.quantity || 0
     },
     {
       header: 'Action',
@@ -500,6 +645,7 @@ export default function TrimsCatalogPage() {
             }}
             variant="secondary"
             className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            title="Edit Trim"
           >
             <Edit2 size={16} />
           </Button>
@@ -507,12 +653,13 @@ export default function TrimsCatalogPage() {
             onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
             variant="secondary"
             className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            title="Delete Trim"
           >
             <Trash2 size={16} />
           </Button>
         </div>
       )) as any,
-      className: 'w-32'
+      className: 'w-28'
     }
   ];
 
@@ -652,9 +799,9 @@ export default function TrimsCatalogPage() {
   // View: Main List View matching Fabric CatalogManager
   return (
     <>
-      <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="space-y-6 animate-in fade-in duration-500">
         {/* Top Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative">
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Trim Catalog</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
@@ -666,9 +813,9 @@ export default function TrimsCatalogPage() {
             <Button
               onClick={() => setIsCategoryModalOpen(true)}
               variant="secondary"
-              className="h-16 px-8 rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[11px] bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200 shadow-sm"
+              className="h-14 px-5 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200/80 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <FolderPlus size={18} className="text-[#2d8d9b]" />
+              <FolderPlus size={16} className="text-[#2d8d9b]" />
               Manage Categories
             </Button>
             <Button
@@ -676,64 +823,28 @@ export default function TrimsCatalogPage() {
                 setEditingItem(null);
                 setView('add');
               }}
-              className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#3a525d]/20 gap-3"
+              className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Plus size={20} strokeWidth={3} />
-              Add Trim Article
+              <Plus size={18} strokeWidth={3} />
+              New Trim
             </Button>
           </div>
         </div>
 
-        {/* Category Pill Filters Bar */}
-        {categories.length > 0 && (
-          <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
-            <button
-              onClick={() => setSelectedCategoryId('ALL')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                selectedCategoryId === 'ALL'
-                  ? 'bg-[#3a525d] text-white shadow-md'
-                  : 'text-zinc-500 hover:text-zinc-800'
-              }`}
-            >
-              All Trims ({trims.length})
-            </button>
-            {categories.map(cat => {
-              const count = trims.filter(t => t.category_id === cat.id).length;
-              const isSelected = selectedCategoryId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategoryId(cat.id)}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-[#3a525d] text-white shadow-md'
-                      : 'text-zinc-500 hover:text-zinc-800'
-                  }`}
-                >
-                  <span>{cat.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
         <DataTable
-          title="Trim Catalog"
-          subtitle="Thread, Buttons, Zippers, Labels & Finishing Accessories"
           columns={columns}
           data={filteredTrims}
           isLoading={isLoading}
           searchPlaceholder="Search"
+          onSearch={setSearchTerm}
+          onPrint={handlePrintTrims}
           headerAction={
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Category Filter Dropdown */}
               <select
                 value={selectedCategoryId}
                 onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="h-11 px-3 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-sm"
+                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Categories ({trims.length})</option>
                 {categories.map(c => {
@@ -744,6 +855,30 @@ export default function TrimsCatalogPage() {
                     </option>
                   );
                 })}
+              </select>
+
+              {/* Size Filter Dropdown */}
+              <select
+                value={filterSize}
+                onChange={(e) => setFilterSize(e.target.value)}
+                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              >
+                <option value="ALL">All Sizes</option>
+                {uniqueSizes.map(sz => (
+                  <option key={sz} value={sz}>{sz}</option>
+                ))}
+              </select>
+
+              {/* Colour Filter Dropdown */}
+              <select
+                value={filterColour}
+                onChange={(e) => setFilterColour(e.target.value)}
+                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              >
+                <option value="ALL">All Colours</option>
+                {uniqueColours.map(cl => (
+                  <option key={cl} value={cl}>{cl}</option>
+                ))}
               </select>
             </div>
           }

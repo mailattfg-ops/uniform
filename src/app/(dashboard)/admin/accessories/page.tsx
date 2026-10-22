@@ -28,7 +28,8 @@ import {
   Camera,
   Image as ImageIcon
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatQuantity } from '@/lib/formatters';
+import { DataTable, Column } from '@/components/ui/DataTable';
 
 export interface AccessoryCategory {
   id: string;
@@ -49,6 +50,8 @@ export interface AccessoryItem {
   base_size?: string | null;
   base_price?: number | null;
   retail_sam_value?: number | null; // Used for cost price / procurement price
+  uom?: string;
+  quantity?: number;
   images?: string[];
   remarks?: any[];
   is_active?: boolean;
@@ -347,6 +350,8 @@ export default function AccessoriesAndTradeCatalogPage() {
   const [activeCatalogTab, setActiveCatalogTab] = useState<'ALL' | 'ACCESSORIES' | 'TRADE_READYMADE'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [genderFilter, setGenderFilter] = useState('ALL');
+  const [filterSize, setFilterSize] = useState('ALL');
+  const [filterColour, setFilterColour] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -470,17 +475,22 @@ export default function AccessoriesAndTradeCatalogPage() {
     };
   };
 
-  // Helper: Extract Colour for any accessory or item
+  // Helper: Extract Colour strictly from database item data (materials tag or remarks)
   const extractItemColor = (item: AccessoryItem): string => {
     const mat = item.materials || '';
     const colorMatch = mat.match(/\[Color:\s*([^\]]+)\]/i);
     if (colorMatch && colorMatch[1]) return colorMatch[1].trim();
 
     const rawRemark = item.remarks?.[0]?.text || '';
-    const remarkColorMatch = rawRemark.match(/Color:\s*([^|\]]+)/i);
+    const remarkColorMatch = rawRemark.match(/Color:\s*([^|\]\n]+)/i);
     if (remarkColorMatch && remarkColorMatch[1]) return remarkColorMatch[1].trim();
 
     return '';
+  };
+
+  // Helper: Extract Size for any accessory or item strictly from database
+  const extractItemSize = (item: AccessoryItem): string => {
+    return item.base_size || 'Free Size';
   };
 
   // 1. Fetch Categories (Accessories & Trade)
@@ -524,12 +534,13 @@ export default function AccessoriesAndTradeCatalogPage() {
   const fetchCatalogData = async () => {
     setIsLoading(true);
     try {
-      const [prodsRes, typeRes, masterRes, nextPatternRes, chartRes] = await Promise.all([
+      const [prodsRes, typeRes, masterRes, nextPatternRes, chartRes, stockRes] = await Promise.all([
         api.get('/products'),
         api.get('/product-types').catch(() => ({ data: [] })),
         api.get('/art-number-hub/master-data').catch(() => ({ data: { dresses: [], genders: [], patterns: [], fits: [] } })),
         api.get('/art-number-hub/patterns/next').catch(() => ({ data: { nextCode: '001' } })),
         api.get('/size-charts').catch(() => ({ data: [] })),
+        api.get('/inventory/stock').catch(() => ({ data: { products: [] } })),
         fetchCategories()
       ]);
 
@@ -541,6 +552,15 @@ export default function AccessoriesAndTradeCatalogPage() {
       setSizeCharts(chartRes.data || []);
       setNextPatternCode(nextPatternRes.data?.nextCode || '001');
 
+      const stockProds: any[] = stockRes.data?.products || (Array.isArray(stockRes.data) ? stockRes.data : []);
+      const stockQtyMap: Record<number, number> = {};
+      stockProds.forEach((sp: any) => {
+        const qty = Array.isArray(sp.stocks) 
+          ? sp.stocks.reduce((acc: number, s: any) => acc + (Number(s.quantity) || 0), 0) 
+          : (Number(sp.quantity) || 0);
+        stockQtyMap[sp.id] = qty;
+      });
+
       const allProds: any[] = prodsRes.data || [];
       const relevantItems = allProds.filter((p: any) => {
         const mat = (p.materials || '').toLowerCase();
@@ -551,7 +571,11 @@ export default function AccessoriesAndTradeCatalogPage() {
         const isTrade = cat === 'trade_readymade' || cat === 'readymade_trade' || pType === 'trade_readymade' || pType === 'readymade_trade' || mat.includes('[producttype: trade_readymade]') || mat.includes('[producttype: readymade_trade]');
         
         return isAccessory || isTrade;
-      });
+      }).map((p: any) => ({
+        ...p,
+        quantity: stockQtyMap[p.id] ?? 0,
+        uom: p.uom || 'Pcs'
+      }));
 
       setItems(relevantItems);
     } catch (err: any) {
@@ -576,6 +600,16 @@ export default function AccessoriesAndTradeCatalogPage() {
     return counts;
   }, [items, categories]);
 
+  // Memoized categories list matching active tab selection
+  const displayedCategories = useMemo(() => {
+    if (activeCatalogTab === 'TRADE_READYMADE') return tradeCategories;
+    if (activeCatalogTab === 'ACCESSORIES') return categories;
+    return [
+      ...categories,
+      ...tradeCategories.filter(tc => !categories.some(ac => ac.name.toLowerCase() === tc.name.toLowerCase()))
+    ];
+  }, [activeCatalogTab, tradeCategories, categories]);
+
   // Overall metrics
   const stats = useMemo(() => {
     const accessoriesList = items.filter(i => getItemClassification(i) === 'ACCESSORY');
@@ -589,7 +623,45 @@ export default function AccessoriesAndTradeCatalogPage() {
     };
   }, [items, categories]);
 
-  // Filtered List based on tab, category, gender, search
+  // Unique Genders sourced strictly from database (art_genders master table + item catalog)
+  const uniqueGenders = useMemo(() => {
+    const set = new Set<string>();
+    // Master genders from database art_genders table
+    (genders || []).forEach(g => {
+      if (g.name) set.add(g.name);
+    });
+    // Genders from database items
+    (items || []).forEach(i => {
+      if (i.gender) set.add(i.gender);
+    });
+    return Array.from(set).sort();
+  }, [genders, items]);
+
+  const uniqueSizes = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => {
+      if (i.base_size) {
+        i.base_size.split(',').forEach(s => {
+          const trimmed = s.trim();
+          if (trimmed) set.add(trimmed);
+        });
+      } else {
+        set.add('Free Size');
+      }
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const uniqueColours = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => {
+      const col = extractItemColor(i);
+      if (col) set.add(col);
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  // Filtered List based on tab, category, gender, size, colour, search
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const classification = getItemClassification(item);
@@ -602,15 +674,44 @@ export default function AccessoriesAndTradeCatalogPage() {
         return false;
       }
 
-      // Gender filter
-      if (genderFilter !== 'ALL' && item.gender !== genderFilter) {
-        return false;
+      // Gender filter matching database genders
+      if (genderFilter !== 'ALL') {
+        const targetGender = genderFilter.toLowerCase();
+        const itemGender = (item.gender || '').toLowerCase();
+        const matchedGenderObj = (genders || []).find(g => 
+          (g.name && g.name.toLowerCase() === targetGender) || 
+          (g.code && g.code.toLowerCase() === targetGender)
+        );
+        const matchCode = matchedGenderObj?.code?.toLowerCase();
+        const matchName = matchedGenderObj?.name?.toLowerCase();
+
+        const matches = itemGender === targetGender || 
+          (matchCode && itemGender === matchCode) || 
+          (matchName && itemGender === matchName);
+
+        if (!matches) return false;
       }
 
       // Category filter
       if (selectedCategory !== 'ALL') {
         const itemCat = extractCategoryName(item);
         if (itemCat.toLowerCase() !== selectedCategory.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Size filter
+      if (filterSize !== 'ALL') {
+        const itemSizes = (item.base_size || 'Free Size').toLowerCase();
+        if (!itemSizes.includes(filterSize.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Colour filter
+      if (filterColour !== 'ALL') {
+        const itemColor = extractItemColor(item).toLowerCase();
+        if (!itemColor.includes(filterColour.toLowerCase())) {
           return false;
         }
       }
@@ -629,7 +730,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       }
       return true;
     });
-  }, [items, activeCatalogTab, selectedCategory, genderFilter, searchTerm, categories]);
+  }, [items, activeCatalogTab, selectedCategory, genderFilter, filterSize, filterColour, searchTerm, categories, genders]);
 
   // --- UNIFIED ARTICLE MODAL ACTIONS ---
   const getPrefixForCategory = (catName: string): string => {
@@ -724,6 +825,192 @@ export default function AccessoriesAndTradeCatalogPage() {
     }
     setIsArticleModalOpen(true);
   };
+
+  const handlePrintAccessories = (sortedData: AccessoryItem[]) => {
+    const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
+    const rowsHtml = dataToPrint.map((item, idx) => {
+      const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
+      const cleanMat = item.materials?.replace(/\[[^\]]+\]/g, '').trim();
+      const desc = rawRemark || cleanMat || 'Uniform Accessory';
+
+      const effectivePrice = (Number(item.base_price) > 0)
+        ? Number(item.base_price)
+        : (Number(item.retail_sam_value) > 0 ? Number(item.retail_sam_value) : null);
+
+      return `
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
+          <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${desc}</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${item.uom || 'Pcs'}</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700;">${effectivePrice !== null ? formatCurrency(effectivePrice) : 'Quote-Based'}</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity ?? 0)} ${item.uom || 'Pcs'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Accessories Catalog</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
+    h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
+    p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
+    td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Accessories Catalog</h1>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">#</th>
+        <th>Item Name</th>
+        <th>Description</th>
+        <th style="text-align: center;">UOM</th>
+        <th style="text-align: right;">Unit Price</th>
+        <th style="text-align: right;">Quantity</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(html);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => {
+        printWin.print();
+      }, 300);
+    }
+  };
+
+  const columns: Column<AccessoryItem>[] = [
+    {
+      header: 'Item Name',
+      accessor: (item) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
+            {item.images && item.images.length > 0 ? (
+              <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
+            ) : (
+              <Tag size={18} className="text-[#2d8d9b]" />
+            )}
+          </div>
+          <div>
+            <div className="font-bold text-[#3a525d] text-sm">{item.name}</div>
+            <div className="text-[11px] text-zinc-400 font-mono flex items-center gap-1.5">
+              <span>{item.art_number}</span>
+              {item.gender && (
+                <span className="px-1.5 py-0.2 bg-zinc-100 rounded text-[10px] text-zinc-600">
+                  {item.gender}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+      sortable: true,
+      sortValue: (item) => item.name || ''
+    },
+    {
+      header: 'Description',
+      accessor: (item) => {
+        const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
+        const cleanMat = item.materials?.replace(/\[[^\]]+\]/g, '').trim();
+        const desc = rawRemark || cleanMat || 'Uniform Accessory';
+        return (
+          <div className="max-w-xs truncate text-xs text-zinc-600 font-medium" title={desc}>
+            {desc}
+          </div>
+        );
+      },
+      sortable: true,
+      sortValue: (item) => {
+        const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
+        const cleanMat = item.materials?.replace(/\[[^\]]+\]/g, '').trim();
+        return rawRemark || cleanMat || 'Uniform Accessory';
+      }
+    },
+    {
+      header: 'UOM',
+      accessor: (item) => (
+        <span className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 font-bold text-xs uppercase">
+          {item.uom || 'Pcs'}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => item.uom || 'Pcs'
+    },
+    {
+      header: 'Unit Price',
+      accessor: (item) => {
+        const effectivePrice = (Number(item.base_price) > 0)
+          ? Number(item.base_price)
+          : (Number(item.retail_sam_value) > 0 ? Number(item.retail_sam_value) : null);
+
+        if (effectivePrice !== null) {
+          return (
+            <div className="flex flex-col">
+              <span className="font-bold text-emerald-600 text-sm">
+                {formatCurrency(effectivePrice)}
+              </span>
+              {!item.base_price && item.retail_sam_value ? (
+                <span className="text-[10px] text-zinc-400 font-medium">Cost Price</span>
+              ) : null}
+            </div>
+          );
+        }
+
+        return <span className="font-medium text-zinc-400 text-xs">Quote-Based</span>;
+      },
+      sortable: true,
+      sortValue: (item) => Number(item.base_price || item.retail_sam_value || 0)
+    },
+    {
+      header: 'Quantity',
+      accessor: (item) => (
+        <span className="font-bold text-zinc-700 text-xs font-mono">
+          {formatQuantity(item.quantity ?? 0)}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => item.quantity ?? 0
+    },
+    {
+      header: 'Actions',
+      accessor: (item) => (
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => handleOpenEditArticle(item)}
+            className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-500 hover:text-[#2d8d9b] transition-colors cursor-pointer"
+            title="Edit Article"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button 
+            onClick={() => setDeleteConfirm({ isOpen: true, item })}
+            className="p-2 hover:bg-red-50 rounded-xl text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
+            title="Delete Item"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )
+    }
+  ];
 
   const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     if (newType === articleType) return;
@@ -1088,19 +1375,16 @@ export default function AccessoriesAndTradeCatalogPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* Top Header */}
+      {/* Top Header - Matching Readymades, Fabric and Trim Standards */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <Tag size={20} />
-            </div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Accessories & Trade Hub</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Accessories</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-2 opacity-80">
-            Uniform Accessories (Ties, Belts, Badges) & Vendor Readymade (Trade) Articles
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            Accessories &amp; Readymade (Trade)
           </p>
         </div>
 
@@ -1108,411 +1392,111 @@ export default function AccessoriesAndTradeCatalogPage() {
           <button 
             onClick={fetchCatalogData}
             disabled={isLoading}
-            className="h-12 px-4 bg-white hover:bg-zinc-50 border border-[#fce4d4] rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             title="Refresh Catalog"
           >
-            <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
+            <RotateCw size={15} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
             Sync
           </button>
 
-          {/* + Category Button */}
-          <button 
-            onClick={() => {
-              setNewCatName('');
-              setNewCatPrefix('');
-              setIsAddCatModalOpen(true);
-            }}
-            className="h-12 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl font-black text-[11px] uppercase tracking-wider text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            <FolderPlus size={15} className="text-[#2d8d9b]" />
-            + Category
-          </button>
-
-          {/* Manage Categories */}
           <button 
             onClick={() => setIsManageCatModalOpen(true)}
-            className="h-12 px-4 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl font-black text-[11px] uppercase tracking-wider text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             title="Customize & Edit Categories"
           >
-            <SlidersHorizontal size={14} className="text-[#CC9448]" />
+            <FolderPlus size={16} className="text-[#2d8d9b]" />
             Categories
           </button>
 
-          {/* Single Add Article Button */}
           <button 
             onClick={() => handleOpenAddArticle()}
-            className="h-12 px-6 bg-[#2d8d9b] hover:bg-[#236f7a] text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-[#2d8d9b]/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <Plus size={16} />
-            + Add Article
+            <Plus size={18} strokeWidth={3} />
+            New Accessories
           </button>
         </div>
       </div>
 
-      {/* Catalog Main Tabs: All, Accessories, Readymade (Trade) */}
-      <div className="flex items-center gap-3 p-1.5 bg-zinc-100/80 rounded-2xl w-fit border border-zinc-200/60 shadow-inner">
-        <button
-          onClick={() => setActiveCatalogTab('ALL')}
-          className={`h-10 px-5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-            activeCatalogTab === 'ALL'
-              ? 'bg-white text-[#3a525d] shadow-md shadow-zinc-300/40'
-              : 'text-zinc-500 hover:text-[#3a525d]'
-          }`}
-        >
-          <span>All Articles</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${activeCatalogTab === 'ALL' ? 'bg-[#3a525d] text-white' : 'bg-zinc-200 text-zinc-600'}`}>
-            {stats.total}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveCatalogTab('ACCESSORIES')}
-          className={`h-10 px-5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-            activeCatalogTab === 'ACCESSORIES'
-              ? 'bg-[#2d8d9b] text-white shadow-md shadow-[#2d8d9b]/25'
-              : 'text-zinc-500 hover:text-[#2d8d9b]'
-          }`}
-        >
-          <Tag size={14} />
-          <span>Accessories</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${activeCatalogTab === 'ACCESSORIES' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-600'}`}>
-            {stats.accessoriesCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveCatalogTab('TRADE_READYMADE')}
-          className={`h-10 px-5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-            activeCatalogTab === 'TRADE_READYMADE'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-zinc-500 hover:text-indigo-600'
-          }`}
-        >
-          <ShoppingBag size={14} />
-          <span>Readymade (Trade)</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${activeCatalogTab === 'TRADE_READYMADE' ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-600'}`}>
-            {stats.tradeCount}
-          </span>
-        </button>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20 shrink-0">
-            <Package size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]/60">Total Catalog</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d] mt-0.5">{stats.total}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20 shrink-0">
-            <Tag size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]">Accessories</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#2d8d9b] mt-0.5">{stats.accessoriesCount}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] border border-indigo-100 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shrink-0">
-            <ShoppingBag size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">Readymade (Trade)</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-indigo-700 mt-0.5">{stats.tradeCount}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/70">Active Articles</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-emerald-600 mt-0.5">{stats.active}</h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Dynamic Context-Aware Category Pills */}
-      {(() => {
-        const displayedCats = activeCatalogTab === 'TRADE_READYMADE'
-          ? tradeCategories
-          : activeCatalogTab === 'ACCESSORIES'
-            ? categories
-            : [...categories, ...tradeCategories.filter(tc => !categories.some(ac => ac.name.toLowerCase() === tc.name.toLowerCase()))];
-
-        const accentColorClass = activeCatalogTab === 'TRADE_READYMADE'
-          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-          : activeCatalogTab === 'ACCESSORIES'
-            ? 'bg-[#2d8d9b] text-white shadow-md shadow-[#2d8d9b]/25'
-            : 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20';
-
-        const totalItemsInView = activeCatalogTab === 'TRADE_READYMADE'
-          ? stats.tradeCount
-          : activeCatalogTab === 'ACCESSORIES'
-            ? stats.accessoriesCount
-            : stats.total;
-
-        return (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-            <button
-              onClick={() => setSelectedCategory('ALL')}
-              className={`h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                selectedCategory === 'ALL'
-                  ? accentColorClass
-                  : 'bg-white text-zinc-500 hover:bg-zinc-50 border border-zinc-200'
-              }`}
+      {/* Table Content */}
+      <DataTable
+        columns={columns}
+        data={filteredItems}
+        isLoading={isLoading}
+        searchPlaceholder="Search"
+        onSearch={setSearchTerm}
+        onPrint={handlePrintAccessories}
+        headerAction={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Type Filter */}
+            <select
+              value={activeCatalogTab}
+              onChange={(e) => {
+                setActiveCatalogTab(e.target.value as any);
+                setSelectedCategory('ALL');
+              }}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
             >
-              <span>{activeCatalogTab === 'TRADE_READYMADE' ? 'All Readymade' : activeCatalogTab === 'ACCESSORIES' ? 'All Accessories' : 'All Categories'}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
-                {totalItemsInView}
-              </span>
-            </button>
+              <option value="ALL">All Types ({stats.total})</option>
+              <option value="ACCESSORIES">Accessories ({stats.accessoriesCount})</option>
+              <option value="TRADE_READYMADE">Readymade (Trade) ({stats.tradeCount})</option>
+            </select>
 
-            {displayedCats.map(cat => {
-              const count = categoryCounts[cat.name] || 0;
-              const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                    isSelected
-                      ? `${accentColorClass} font-black`
-                      : 'bg-white text-zinc-500 hover:bg-zinc-50 border border-zinc-200'
-                  }`}
-                >
-                  <span>{cat.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${isSelected ? 'bg-white/25 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+            {/* Category Filter */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs max-w-[200px]"
+            >
+              <option value="ALL">All Categories</option>
+              {displayedCategories.map(cat => {
+                const count = categoryCounts[cat.name] || 0;
+                return (
+                  <option key={cat.id || cat.name} value={cat.name}>
+                    {cat.name} {count > 0 ? `(${count})` : ''}
+                  </option>
+                );
+              })}
+            </select>
+
+            {/* Gender Filter */}
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Genders</option>
+              {uniqueGenders.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+
+            {/* Size Filter */}
+            <select
+              value={filterSize}
+              onChange={(e) => setFilterSize(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Sizes</option>
+              {uniqueSizes.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+
+            {/* Colour Filter */}
+            <select
+              value={filterColour}
+              onChange={(e) => setFilterColour(e.target.value)}
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Colours</option>
+              {uniqueColours.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
-        );
-      })()}
-
-      {/* Filters & Search */}
-      <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-96">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input 
-            type="text" 
-            placeholder="Search" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#2d8d9b] transition-all"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Gender Filter */}
-          <select
-            value={genderFilter}
-            onChange={(e) => setGenderFilter(e.target.value)}
-            className="h-11 px-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:border-[#2d8d9b] cursor-pointer"
-          >
-            <option value="ALL">All Genders</option>
-            <option value="Unisex">Unisex</option>
-            <option value="Boys">Boys</option>
-            <option value="Girls">Girls</option>
-            <option value="Men">Men</option>
-            <option value="Women">Women</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Catalog Grid */}
-      {isLoading ? (
-        <div className="py-20 text-center flex flex-col items-center gap-3">
-          <RotateCw size={32} className="animate-spin text-[#2d8d9b]" />
-          <p className="text-xs font-bold uppercase tracking-widest text-[#3a525d]/60">Loading catalog items...</p>
-        </div>
-      ) : filteredItems.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredItems.map(item => {
-            const classification = getItemClassification(item);
-            const isTrade = classification === 'TRADE_READYMADE';
-            const currentCat = extractCategoryName(item);
-            const tradeMeta = isTrade ? extractTradeMetadata(item) : null;
-
-            return (
-              <div 
-                key={item.id}
-                className={`bg-white rounded-[2rem] border p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group ${
-                  isTrade ? 'border-indigo-150 hover:border-indigo-300' : 'border-[#fce4d4] hover:border-[#2d8d9b]/40'
-                }`}
-              >
-                <div>
-                  {/* Top card header */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border ${
-                        isTrade ? 'bg-indigo-50/60 border-indigo-100 text-indigo-600' : 'bg-zinc-50 border-zinc-100 text-[#2d8d9b]'
-                      }`}>
-                        {item.images && item.images.length > 0 ? (
-                          <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
-                        ) : isTrade ? (
-                          <ShoppingBag size={22} className="text-indigo-500" />
-                        ) : (
-                          <Tag size={22} className="text-[#2d8d9b]/60" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {isTrade ? (
-                            <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-md text-[9px] font-black uppercase tracking-wider">
-                              Readymade (Trade)
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] rounded-md text-[9px] font-black uppercase tracking-wider">
-                              Accessory
-                            </span>
-                          )}
-                          <span className="px-2 py-0.5 bg-zinc-100 text-zinc-700 rounded-md text-[9px] font-bold">
-                            {currentCat}
-                          </span>
-                        </div>
-                        <h4 className="font-black text-base text-[#3a525d] line-clamp-1 mt-1">
-                          {item.name}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => handleOpenEditArticle(item)}
-                        className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-500 hover:text-[#2d8d9b] transition-colors cursor-pointer"
-                        title="Edit Article"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button 
-                        onClick={() => setDeleteConfirm({ isOpen: true, item })}
-                        className="p-2 hover:bg-red-50 rounded-xl text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
-                        title="Delete Item"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Attributes Section */}
-                  <div className="mt-4 pt-3 border-t border-zinc-100 space-y-2 text-xs">
-                    
-                    {/* Trader Name if Trade Product */}
-                    {isTrade && tradeMeta?.trader_name && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-400 font-bold">Trader / Vendor:</span>
-                        <span className="font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg text-[11px] border border-indigo-100">
-                          🏢 {tradeMeta.trader_name}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-400 font-bold">Category / Type:</span>
-                      <span className="font-bold text-[#3a525d] bg-zinc-100 px-2.5 py-0.5 rounded-lg text-[11px]">
-                        {currentCat}
-                      </span>
-                    </div>
-
-                    {/* Colour Tag */}
-                    {(tradeMeta?.colors || extractItemColor(item)) && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-400 font-bold">Colour:</span>
-                        <span className="font-bold text-[#3a525d] bg-zinc-50 border border-zinc-200 px-2.5 py-0.5 rounded-lg text-[11px] flex items-center gap-1">
-                          🎨 {tradeMeta?.colors || extractItemColor(item)}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-400 font-bold">Target Gender:</span>
-                      <span className="font-bold text-[#3a525d]">{item.gender || 'Unisex'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-400 font-bold">Sizes Available:</span>
-                      <span className="font-black text-[#2d8d9b] bg-[#2d8d9b]/5 px-2 py-0.5 rounded-md text-[11px]">
-                        {item.base_size || 'Free Size'}
-                      </span>
-                    </div>
-
-                    {/* Price and Margin */}
-                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-zinc-100">
-                      <span className="text-zinc-400 font-bold">Selling Price:</span>
-                      <div className="text-right">
-                        <span className="font-black text-emerald-600 text-sm">
-                          {item.base_price ? formatCurrency(item.base_price) : 'Quote-Based'}
-                        </span>
-                        {isTrade && item.retail_sam_value ? (
-                          <div className="text-[10px] text-zinc-400 font-medium">
-                            Cost: {formatCurrency(item.retail_sam_value)}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* Margin Tag if Trade Product */}
-                    {isTrade && item.base_price && item.retail_sam_value && (
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-zinc-400 font-bold">Gross Margin:</span>
-                        <span className="font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-200">
-                          +{(((item.base_price - item.retail_sam_value) / item.base_price) * 100).toFixed(0)}% ({formatCurrency(item.base_price - item.retail_sam_value)})
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer notes */}
-                <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-[10px] font-bold text-zinc-400">
-                  <span className="truncate max-w-[190px]">
-                    {item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim() || (isTrade ? 'Vendor Traded Article' : 'Uniform Accessory')}
-                  </span>
-                  <a 
-                    href={isTrade ? "/admin/inventory/product-stock" : "/admin/inventory/accessories-stock"}
-                    className="text-[#2d8d9b] hover:underline flex items-center gap-0.5 font-black uppercase tracking-wider text-[9px]"
-                  >
-                    View Stock <ChevronRight size={10} />
-                  </a>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-white border border-[#fce4d4] rounded-[3rem] p-16 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <ShoppingBag size={32} />
-            </div>
-            <p className="text-xl font-black italic text-[#3a525d]">
-              No Articles Found
-            </p>
-            <p className="text-xs font-bold max-w-md text-zinc-500 leading-relaxed">
-              Manage your ties, belts, badges, or vendor traded readymade products here.
-            </p>
-            <div className="flex items-center gap-3 mt-3">
-              <button 
-                onClick={() => handleOpenAddArticle()}
-                className="px-6 py-3 bg-[#2d8d9b] hover:bg-[#236f7a] text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-[#2d8d9b]/25 transition-all cursor-pointer flex items-center gap-2"
-              >
-                <Plus size={16} />
-                + Add Article
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        }
+      />
 
       {/* ========================================================================= */}
       {/* UNIFIED MODAL: ADD / EDIT ARTICLE (ACCESSORY & READYMADE TRADE)          */}
@@ -1690,11 +1674,9 @@ export default function AccessoriesAndTradeCatalogPage() {
                         articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
                       }`}
                     >
-                      <option value="Unisex">Unisex</option>
-                      <option value="Men">Men</option>
-                      <option value="Women">Women</option>
-                      <option value="Boys">Boys</option>
-                      <option value="Girls">Girls</option>
+                      {uniqueGenders.map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
                     </select>
                   </div>
 
