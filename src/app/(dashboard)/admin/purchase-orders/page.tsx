@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { 
   Layers, 
   Clock, 
@@ -833,7 +834,7 @@ export default function PurchaseOrdersPage() {
                           <option value="">Select a Fabric...</option>
                           {fabricList.map(f => (
                             <option key={f.id} value={f.id}>
-                              {f.name} ({f.code}) {f.brand_name ? `- ${f.brand_name}` : ''}
+                              {formatFabricDisplayName(f)} ({f.code})
                             </option>
                           ))}
                         </select>

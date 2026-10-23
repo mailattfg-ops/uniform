@@ -31,19 +31,35 @@ export default function ItemsDashboardPage() {
   const fetchItemsData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [prodRes, typeRes, fabRes, trimsRes, accRes] = await Promise.allSettled([
+      const [prodRes, typeRes, fabRes, trimsRes, accCatRes] = await Promise.allSettled([
         api.get('/products'),
         api.get('/product-types'),
-        api.get('/fabrics').catch(() => api.get('/inventory/fabrics')),
-        api.get('/trims').catch(() => api.get('/inventory/trims')),
-        api.get('/accessories')
+        api.get('/inventory/fabrics'),
+        api.get('/inventory/trims'),
+        api.get('/inventory/accessory-categories')
       ]);
 
-      if (prodRes.status === 'fulfilled') setProducts(prodRes.value.data || []);
+      let allProds: any[] = [];
+      if (prodRes.status === 'fulfilled') {
+        allProds = prodRes.value.data || [];
+        setProducts(allProds);
+      }
       if (typeRes.status === 'fulfilled') setProductTypes(typeRes.value.data || []);
       if (fabRes.status === 'fulfilled') setFabrics(fabRes.value.data || []);
       if (trimsRes.status === 'fulfilled') setTrims(trimsRes.value.data || []);
-      if (accRes.status === 'fulfilled') setAccessories(accRes.value.data || []);
+
+      const accItems = allProds.filter((p: any) => {
+        const mat = (p.materials || '').toLowerCase();
+        const cat = (p.category || '').toLowerCase();
+        const pType = (p.product_type || '').toLowerCase();
+        return cat === 'accessories' || pType === 'accessories' || mat.includes('[producttype: accessories]');
+      });
+
+      if (accItems.length > 0) {
+        setAccessories(accItems);
+      } else if (accCatRes.status === 'fulfilled') {
+        setAccessories(accCatRes.value.data || []);
+      }
     } catch (err) {
       console.error('Failed to load Items telemetry', err);
     } finally {

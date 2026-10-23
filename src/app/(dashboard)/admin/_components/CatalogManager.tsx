@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, ArrowLeft, X } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface Item {
   id: string;
@@ -359,6 +360,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       if (type === 'fabrics') {
         // Extract the first image from the images array if it exists
         data.image = data.images && data.images.length > 0 ? data.images[0] : null;
+        data.name = formatFabricDisplayName(data);
       }
       if (editingItem) {
         await api.put(`/inventory/${type}/${editingItem.id}`, data);
@@ -393,7 +395,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const [brandFilter, setBrandFilter] = useState<string>('ALL');
   const [qualityFilter, setQualityFilter] = useState<string>('ALL');
   const [shadeFilter, setShadeFilter] = useState<string>('ALL');
-  const [colourFilter, setColourFilter] = useState<string>('ALL');
   const [widthFilter, setWidthFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
@@ -427,31 +428,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     return Array.from(new Set(items.map(i => i.shade).filter(Boolean))).sort();
   }, [items]);
 
-  const uniqueColours = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach(i => {
-      const descMatch = (i.description || '').match(/(?:color|colour)\s*:\s*([^,;|\n]+)/i);
-      if (descMatch && descMatch[1]) {
-        set.add(descMatch[1].trim());
-      }
-      if (i.shade && isNaN(Number(i.shade))) {
-        set.add(i.shade.trim());
-      }
-      const text = `${i.name || ''} ${i.description || ''}`;
-      const colorKeywords = [
-        'White', 'Black', 'Navy Blue', 'Navy', 'Royal Blue', 'Sky Blue', 
-        'Grey', 'Heather Grey', 'Maroon', 'Red', 'Bottle Green', 'Green', 
-        'Beige', 'Khaki', 'Yellow', 'Pink', 'Purple', 'Orange', 'Brown'
-      ];
-      colorKeywords.forEach(col => {
-        const regex = new RegExp(`\\b${col}\\b`, 'i');
-        if (regex.test(text)) {
-          set.add(col);
-        }
-      });
-    });
-    return Array.from(set).sort();
-  }, [items]);
 
   const uniqueWidths = useMemo(() => {
     return Array.from(new Set(items.map(i => i.width).filter(Boolean))).sort();
@@ -475,12 +451,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       if (shadeFilter !== 'ALL' && (item.shade || '').toLowerCase() !== shadeFilter.toLowerCase()) {
         return false;
       }
-      if (colourFilter !== 'ALL') {
-        const itemText = `${item.shade || ''} ${item.description || ''} ${item.name || ''}`.toLowerCase();
-        if (!itemText.includes(colourFilter.toLowerCase())) {
-          return false;
-        }
-      }
       if (widthFilter !== 'ALL' && String(item.width || '') !== String(widthFilter)) {
         return false;
       }
@@ -499,7 +469,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       }
       return true;
     });
-  }, [items, type, garmentCategoryFilter, brandTypeFilter, brandFilter, qualityFilter, shadeFilter, colourFilter, widthFilter, searchTerm]);
+  }, [items, type, garmentCategoryFilter, brandTypeFilter, brandFilter, qualityFilter, shadeFilter, widthFilter, searchTerm]);
 
   const handlePrintFabrics = (sortedData: Item[]) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
@@ -593,7 +563,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             )}
           </div>
           <div>
-            <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
+            <p className="font-bold text-sm text-[#3a525d]">{formatFabricDisplayName(item)}</p>
             <div className="flex items-center gap-2 flex-wrap mt-0.5">
               {item.brand_name && (
                 <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
@@ -1108,21 +1078,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   ))}
                 </select>
 
-                {/* Colour Filter */}
-                <select
-                  value={colourFilter}
-                  onChange={(e) => setColourFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Colour"
-                >
-                  <option value="ALL">All Colours</option>
-                  {uniqueColours.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-
                 {/* Reset Filters button if any filter is active */}
-                {(garmentCategoryFilter !== 'ALL' || brandTypeFilter !== 'ALL' || brandFilter !== 'ALL' || qualityFilter !== 'ALL' || shadeFilter !== 'ALL' || colourFilter !== 'ALL' || widthFilter !== 'ALL') && (
+                {(garmentCategoryFilter !== 'ALL' || brandTypeFilter !== 'ALL' || brandFilter !== 'ALL' || qualityFilter !== 'ALL' || shadeFilter !== 'ALL' || widthFilter !== 'ALL') && (
                   <button
                     type="button"
                     onClick={() => {
@@ -1131,7 +1088,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                       setBrandFilter('ALL');
                       setQualityFilter('ALL');
                       setShadeFilter('ALL');
-                      setColourFilter('ALL');
                       setWidthFilter('ALL');
                     }}
                     className="h-10 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"

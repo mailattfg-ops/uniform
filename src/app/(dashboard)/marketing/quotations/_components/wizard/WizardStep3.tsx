@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Scale, ArrowRight } from 'lucide-react';
 import { ProductType, ManualItem, SeparateFabricItem } from '../../page';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface WizardStep3Props {
   hasMeasurements: boolean;
@@ -133,7 +134,7 @@ export default function WizardStep3({
                         return items.map((item, index) => {
                           const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
                           const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
-                          const fabricDisplayName = isFabric ? (fabric?.name || fabric?.brand_name || 'Fabric') : (fabric?.brand_name || fabric?.name || 'Fabric');
+                          const fabricDisplayName = formatFabricDisplayName(fabric) || 'Fabric';
                           const qty = parseInt(item.quantity) || 0;
 
                           // Dynamic breakdowns
@@ -199,10 +200,10 @@ export default function WizardStep3({
                                     <div className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                       <span><strong className="text-zinc-600 font-medium">Fabric:</strong> {fabricDisplayName}</span>
                                       {att1Fabric && (
-                                        <span>• <strong className="text-zinc-600 font-medium">Att 1:</strong> {att1Fabric.brand_name || att1Fabric.name}</span>
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 1:</strong> {formatFabricDisplayName(att1Fabric)}</span>
                                       )}
                                       {att2Fabric && (
-                                        <span>• <strong className="text-zinc-600 font-medium">Att 2:</strong> {att2Fabric.brand_name || att2Fabric.name}</span>
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 2:</strong> {formatFabricDisplayName(att2Fabric)}</span>
                                       )}
                                     </div>
                                   </div>
@@ -241,7 +242,7 @@ export default function WizardStep3({
                         .map((item, index) => {
                           const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
                           const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
-                          const fabricDisplayName = isFabric ? (fabric?.name || fabric?.brand_name || 'Fabric') : (fabric?.brand_name || fabric?.name || 'Fabric');
+                          const fabricDisplayName = formatFabricDisplayName(fabric) || 'Fabric';
                           const qty = parseInt(item.quantity) || 0;
 
                           // Dynamic breakdowns
@@ -309,10 +310,10 @@ export default function WizardStep3({
                                     <div className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                       <span><strong className="text-zinc-600 font-medium">Fabric:</strong> {fabricDisplayName}</span>
                                       {att1Fabric && (
-                                        <span>• <strong className="text-zinc-600 font-medium">Att 1:</strong> {att1Fabric.brand_name || att1Fabric.name}</span>
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 1:</strong> {formatFabricDisplayName(att1Fabric)}</span>
                                       )}
                                       {att2Fabric && (
-                                        <span>• <strong className="text-zinc-600 font-medium">Att 2:</strong> {att2Fabric.brand_name || att2Fabric.name}</span>
+                                        <span>• <strong className="text-zinc-600 font-medium">Att 2:</strong> {formatFabricDisplayName(att2Fabric)}</span>
                                       )}
                                     </div>
                                   </div>
@@ -371,16 +372,14 @@ export default function WizardStep3({
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
                     {separateFabrics.map((sf, idx) => {
                       const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-                      const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-                      const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
-                      const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
                       const meters = parseFloat(sf.meters) || 0;
                       const rate = parseFloat(sf.rate) || 0;
                       const total = meters * rate;
 
                       return (
                         <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                          <td className="p-3 font-black text-[#3a525d]">{fabricName}</td>
                           <td className="p-3 text-right text-zinc-800">{meters} m</td>
                           <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
                           <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{total.toFixed(2)}</td>

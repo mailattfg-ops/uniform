@@ -1,4 +1,5 @@
 import { formatDate } from '@/lib/formatters';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 export interface Organization {
   id: number;
@@ -217,17 +218,17 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           
           const fabricId = item.size_breakdown?.fabric_id;
           const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+          const fabricBrand = formatFabricDisplayName(fabric) || 'Custom Fabric';
           const mainFabricLine = fabricId ? `FAB(M) - ${fabricBrand}` : '';
           
           const att1Id = item.size_breakdown?.attachment_fabric1_id;
           const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
-          const att1Brand = att1Fabric ? (att1Fabric.brand_name || att1Fabric.name) : '';
+          const att1Brand = formatFabricDisplayName(att1Fabric);
           const att1Line = att1Id ? `FAB(A) - ${att1Brand}` : '';
           
           const att2Id = item.size_breakdown?.attachment_fabric2_id;
           const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
-          const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
+          const att2Brand = formatFabricDisplayName(att2Fabric);
           const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
           
           firstCellHtml = `

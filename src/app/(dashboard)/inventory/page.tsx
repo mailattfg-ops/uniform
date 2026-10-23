@@ -35,10 +35,10 @@ export default function InventoryDashboardPage() {
     try {
       const [stockRes, fabRes, trimsRes, accRes, trfRes, brRes] = await Promise.allSettled([
         api.get('/inventory/stock'),
-        api.get('/inventory/fabric-stock').catch(() => api.get('/fabrics')),
-        api.get('/inventory/trims-stock').catch(() => api.get('/trims')),
-        api.get('/inventory/accessories-stock').catch(() => api.get('/accessories')),
-        api.get('/inventory/transfers').catch(() => api.get('/transfers')),
+        api.get('/inventory/fabrics'),
+        api.get('/inventory/trims'),
+        api.get('/inventory/accessory-categories'),
+        api.get('/branches').catch(() => ({ data: [] })),
         api.get('/branches')
       ]);
 

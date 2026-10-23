@@ -637,9 +637,9 @@ const ClassConsumptionMatrixEditor: React.FC<{
               <thead className="sticky top-0 bg-zinc-100/90 backdrop-blur z-10">
                 <tr className="border-b border-zinc-200 text-left">
                   <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Grade / Division</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Main Fabric (m)</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Att 1 (m)</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Att 2 (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Main Fabric - 58" width (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Attachment 1 - 58" width (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Attachment 2 - 58" width (m)</th>
                   <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Buttons (pcs)</th>
                   <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Thread (cones)</th>
                 </tr>
@@ -2054,8 +2054,6 @@ export default function ProductManagement() {
       </div>
 
       <DataTable
-        title="Readymades"
-        subtitle="Manufactured Apparel & Readymade Articles"
         columns={columns}
         data={filteredProducts}
         isLoading={isLoading}

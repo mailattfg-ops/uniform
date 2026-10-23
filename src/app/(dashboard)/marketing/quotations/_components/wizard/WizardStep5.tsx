@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle } from 'lucide-react';
 import { Organization, ProductType, ManualItem } from '../../page';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface WizardStep5Props {
   hasMeasurements: boolean;
@@ -206,7 +207,7 @@ export default function WizardStep5({
                                     {items.map((item, idx) => {
                                       const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                                      const fabricName = fabric ? (fabric.name ? `${fabric.name}${fabric.brand_name ? ` (${fabric.brand_name})` : ''}` : fabric.brand_name || 'Custom Fabric') : 'Custom Fabric';
+                                      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
                                       const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                                       const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
                                       return (
@@ -316,7 +317,7 @@ export default function WizardStep5({
 
                       const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                       const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
-                      const fabricName = fabric?.name || fabric?.brand_name || 'Custom';
+                      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
                       const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
                       const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
                       return (
@@ -378,16 +379,14 @@ export default function WizardStep5({
                   <tbody className="divide-y divide-zinc-100 font-semibold text-[#3a525d]">
                     {separateFabrics.map((sf: any, idx: number) => {
                       const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-                      const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-                      const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
-                      const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
                       const meters = Number(sf.meters) || 0;
                       const rate = Number(sf.rate) || 0;
                       const total = meters * rate;
 
                       return (
                         <tr key={idx} className="hover:bg-zinc-50/50 bg-white transition-colors">
-                          <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                          <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}</td>
                           <td className="p-3 text-right">{meters} m</td>
                           <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
                           <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
