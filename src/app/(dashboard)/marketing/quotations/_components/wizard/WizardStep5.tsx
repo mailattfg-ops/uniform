@@ -7,6 +7,19 @@ import { AlertTriangle } from 'lucide-react';
 import { Organization, ProductType, ManualItem } from '../../page';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
+export function formatProductTypeAndName(pTypeName?: string | null, prodName?: string | null): string {
+  const typeStr = (pTypeName || '').trim();
+  const nameStr = (prodName || '').trim();
+
+  if (typeStr && nameStr) {
+    if (nameStr.toLowerCase().startsWith(typeStr.toLowerCase() + '-')) {
+      return nameStr;
+    }
+    return `${typeStr}-${nameStr}`;
+  }
+  return nameStr || typeStr || 'Uniform Item';
+}
+
 interface WizardStep5Props {
   hasMeasurements: boolean;
   quoteTitle: string;
@@ -119,7 +132,11 @@ export default function WizardStep5({
                 <p className="text-[9px] uppercase text-zinc-400">Product Model</p>
                 <p className="text-sm font-black text-[#3a525d] mt-1">
                   {hasMeasurements
-                    ? productTypes.find((p) => String(p.id) === String(selectedProductTypeId))?.name || 'Uniform Item'
+                    ? (() => {
+                        const pt = productTypes.find((p) => String(p.id) === String(selectedProductTypeId));
+                        const prod = allProducts?.find((p) => String(p.product_type_id) === String(selectedProductTypeId));
+                        return formatProductTypeAndName(pt?.name, prod?.name);
+                      })()
                     : isAccessory
                     ? 'Accessories Product Lines'
                     : 'Multiple Manual Garment Lines'}
@@ -185,8 +202,8 @@ export default function WizardStep5({
                                 <table className="w-full text-left border-collapse">
                                   <thead>
                                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                                      <th className="p-3">{isAccessory ? 'Category' : 'Product Type'}</th>
-                                      <th className="p-3">{isAccessory ? 'Accessory' : isFabric ? 'Fabric Option' : 'Product Line'}</th>
+                                      <th className="p-3">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
+                                      <th className="p-3">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
                                       {isAccessory ? (
                                         <>
                                           <th className="p-3">ART #</th>
@@ -206,16 +223,24 @@ export default function WizardStep5({
                                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
                                     {items.map((item, idx) => {
                                       const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
-                                      const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
+                                      const product = (allProducts || []).find((p) => String(p.id) === String(item.product_id)) ||
+                                                      (allProducts || []).find((p) => p.art_number && item.art_number && String(p.art_number).trim().toLowerCase() === String(item.art_number).trim().toLowerCase());
+                                      const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || product?.product_types?.name || (item as any).product_type_name || '';
+                                      const prodName = product?.name || (item as any).product_name || (item as any).name || (item.size_breakdown && item.size_breakdown.product_name) || '';
                                       const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
-                                      const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
-                                      const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
+
+                                      const unifiedProductDisplay = isFabric
+                                        ? (fabric?.garment_category || 'Garment')
+                                        : isAccessory
+                                        ? formatProductTypeAndName((item as any).category || pTypeName, prodName || item.design_number)
+                                        : formatProductTypeAndName(pTypeName, prodName);
+
                                       return (
                                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                                          <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
+                                          <td className="p-3 font-black text-[#3a525d]">{unifiedProductDisplay}</td>
                                           <td className="p-3 text-zinc-600 text-xs font-semibold">
                                             {isAccessory ? (
-                                              product?.name || item.design_number || 'Accessory Item'
+                                              item.size_breakdown?.selected_size || 'Free Size'
                                             ) : (
                                               item.fabric_id ? fabricName : '—'
                                             )}
@@ -264,8 +289,8 @@ export default function WizardStep5({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">{isAccessory ? 'Category' : 'Product Type'}</th>
-                      <th className="p-3">{isAccessory ? 'Accessory' : isFabric ? 'Fabric Option' : 'Product Name'}</th>
+                      <th className="p-3">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
+                      <th className="p-3">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
                       {isAccessory ? (
                         <>
                           <th className="p-3">ART #</th>
@@ -297,7 +322,7 @@ export default function WizardStep5({
                                 <ul className="list-disc list-inside pl-2 text-zinc-500 text-[10px] space-y-0.5 font-bold">
                                   {products.map((p: any, pIdx: number) => (
                                     <li key={pIdx}>
-                                      {p.product_type_name} {p.product_name ? `(${p.product_name})` : ''}
+                                      {formatProductTypeAndName(p.product_type_name, p.product_name)}
                                     </li>
                                   ))}
                                 </ul>
@@ -316,20 +341,28 @@ export default function WizardStep5({
                       }
 
                       const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
-                      const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Unknown';
+                      const product = (allProducts || []).find((p) => String(p.id) === String(item.product_id)) ||
+                                      (allProducts || []).find((p) => p.art_number && item.art_number && String(p.art_number).trim().toLowerCase() === String(item.art_number).trim().toLowerCase());
+                      const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || product?.product_types?.name || (item as any).product_type_name || '';
+                      const prodName = product?.name || (item as any).product_name || (item as any).name || (item.size_breakdown && item.size_breakdown.product_name) || '';
                       const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
-                      const displayName = isFabric ? (fabric?.garment_category || 'Garment') : pTypeName;
-                      const product = allProducts?.find((p) => String(p.id) === String(item.product_id));
+
+                      const unifiedProductDisplay = isFabric
+                        ? (fabric?.garment_category || 'Garment')
+                        : isAccessory
+                        ? formatProductTypeAndName((item as any).category || pTypeName, prodName || item.design_number)
+                        : formatProductTypeAndName(pTypeName, prodName);
+
                       return (
                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#3a525d]">{displayName}</td>
+                          <td className="p-3 font-black text-[#3a525d]">{unifiedProductDisplay}</td>
                           <td className="p-3 text-zinc-600 text-xs font-semibold">
                             {isAccessory ? (
-                              product?.name || item.design_number || 'Accessory Item'
+                              item.size_breakdown?.selected_size || 'Free Size'
                             ) : isFabric ? (
                               fabricName
                             ) : (
-                              'Ready-made Product'
+                              item.fabric_id ? fabricName : '—'
                             )}
                           </td>
                           {isAccessory ? (

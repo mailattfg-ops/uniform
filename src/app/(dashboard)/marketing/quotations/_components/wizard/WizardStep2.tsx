@@ -2563,7 +2563,12 @@ export default function WizardStep2({
 
         {/* ── Costing Breakdown Table ── */}
         <div className="p-5" style={{ display: (quotationType === 'READYMADE' || isAccessoryType) ? 'none' : 'block' }}>
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Material Cost Breakdown</p>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Material Cost Breakdown</p>
+            <span className="text-[10px] text-amber-700 font-bold bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
+              ℹ️ Base fabric length is calibrated for 58" width
+            </span>
+          </div>
           <div className="rounded-2xl border border-zinc-100 overflow-hidden">
             <table className="w-full text-xs border-collapse">
               <thead>
@@ -4837,7 +4842,12 @@ export default function WizardStep2({
                                             {/* Material Cost Breakdown (STANDARD only) */}
                                             {quotationType !== 'READYMADE' && !isAccessoryType && (
                                               <div className="p-5" style={{ display: 'block' }}>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Material Cost Breakdown</p>
+                                                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                                                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Material Cost Breakdown</p>
+                                                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
+                                                    ℹ️ Base fabric length is calibrated for 58" width
+                                                  </span>
+                                                </div>
                                                 <div className="rounded-2xl border border-zinc-100 overflow-hidden">
                                                   <table className="w-full text-xs border-collapse">
                                                     <thead>

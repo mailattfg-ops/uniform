@@ -266,7 +266,7 @@ const AttachmentFabricsEditor: React.FC<{
               Attachment Fabrics (Optional)
             </h4>
             <p className="text-[10px] text-zinc-400 font-bold">
-              Role & consumption for contrast collar/cuffs, pocketing, or lining fabrics (No inventory SKU required)
+              Role & consumption for contrast collar/cuffs, pocketing, or lining fabrics (Add fabric length based on standard 58" width)
             </p>
           </div>
         </div>
@@ -322,13 +322,13 @@ const AttachmentFabricsEditor: React.FC<{
               </div>
               <div className="w-32 shrink-0">
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
-                  Meters (m)
+                  Meters (58" width)
                 </label>
                 <input
                   type="number"
                   step="any"
                   min="0"
-                  placeholder="e.g. 0.25"
+                  placeholder="e.g. 0.25 (58&quot;)"
                   value={item.meters}
                   onChange={(e) => handleUpdate(index, { meters: e.target.value })}
                   className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
@@ -594,7 +594,7 @@ const ClassConsumptionMatrixEditor: React.FC<{
               </span>
             </div>
             <p className="text-[10px] text-zinc-400 font-bold mt-0.5">
-              Only required if fabric or trim consumption varies by student grade (e.g. Class 1 vs Class 12). If empty, quotations use base values.
+              Only required if fabric or trim consumption varies by student grade (e.g. Class 1 vs Class 12). Add fabric length assuming 58" width. If empty, quotations use base values.
             </p>
           </div>
         </div>
@@ -610,7 +610,7 @@ const ClassConsumptionMatrixEditor: React.FC<{
         <div className="p-5 space-y-4 animate-in fade-in duration-300">
           <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-zinc-100">
             <p className="text-[11px] font-bold text-zinc-500">
-              Customize consumption per student grade or corporate department:
+              Customize consumption per student grade or corporate department (all fabric lengths should be entered based on 58" width):
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -1220,13 +1220,14 @@ export default function ProductManagement() {
     },
     {
       name: 'main_fabric',
-      label: 'Main Fabric Consumption (meters)',
+      label: 'Main Fabric Consumption (meters) — Default 58" Width',
       type: 'number',
-      placeholder: 'e.g. 1.25',
+      placeholder: 'e.g. 1.25 (enter fabric length for 58" width)',
       defaultValue: editingProduct?.main_fabric !== null && editingProduct?.main_fabric !== undefined ? String(editingProduct.main_fabric) : '',
       required: true,
       step: 'any',
-      className: 'md:col-span-2'
+      className: 'md:col-span-2',
+      helperText: '⚠️ Note: Please add fabric length as the width is 58". If a fabric with a different width is selected in quotations, required length will be automatically converted.'
     },
     {
       name: 'attachment_fabrics',
