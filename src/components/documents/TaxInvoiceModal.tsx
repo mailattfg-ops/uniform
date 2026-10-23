@@ -49,6 +49,8 @@ export interface TaxInvoiceData {
   payment_status?: string;
   is_tax_inclusive?: boolean;
   notes?: string;
+  organizations?: any;
+  orders?: any;
   raw?: any;
 }
 
@@ -128,12 +130,15 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
   if (!isOpen || !data) return null;
 
   // Resolve customer details
-  const customer = data.customer || defaultCustomer || data.raw?.organizations || {};
+  const customer = data.customer || defaultCustomer || data.organizations || data.orders?.quotations?.organizations || data.raw?.organizations || {};
   const customerName = data.customer_name || customer.name || data.raw?.customer_name || 'Valued Customer';
-  const customerAddress = customer.address || '5th Floor, Medical Centre, NH Bypass';
+  const customerAddress = customer.address || customer.delivery_address || 'Plot / Street Details, Industrial Park';
   const locationParts = [customer.city, customer.state, customer.pincode, customer.country || 'India'].filter(Boolean);
   const locationString = locationParts.length > 0 ? locationParts.join(', ') : 'Kozhikode, Kerala – 673007, India';
   const deliveryAddress = customer.delivery_address || customerAddress;
+
+  // Order Number
+  const resolvedOrderNo = data.order_no || data.orders?.order_no || data.raw?.order_no || data.raw?.orders?.order_no || null;
 
   // Date & Supply
   const invDate = data.invoice_date || data.created_at || new Date();
@@ -147,9 +152,9 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
   if (Array.isArray(rawItemList) && rawItemList.length > 0) {
     lineItems = rawItemList.map((it: any, idx: number) => {
       const desc = it.item_description || it.description || `Uniform Apparel Specification #${idx + 1}`;
-      const sub = it.sub_details || it.design_number || 'Pattern 046 | Regular Fit';
+      const sub = it.sub_details || it.design_number || 'Pattern Fit · Regular';
       const hsn = it.hsn_sac || it.hsn_code || '620520';
-      const fab = it.fabric_details || 'Cotton - Blue Stripes on White';
+      const fab = it.fabric_details || 'Standard Specification';
       const qty = parseInt(it.quantity || 1, 10);
       const price = parseFloat(it.unit_price || 0);
       const total = it.total_price ? parseFloat(it.total_price) : (qty * price);
@@ -168,18 +173,18 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
     });
   } else {
     // If single lumped invoice
-    const totalAmount = parseFloat(String(data.total_amount || 102375));
-    const subtotal = data.subtotal ? parseFloat(String(data.subtotal)) : (totalAmount / 1.05);
-    const qty = 50;
+    const totalAmount = parseFloat(String(data.total_amount || 0));
+    const subtotal = data.subtotal ? parseFloat(String(data.subtotal)) : (totalAmount > 0 ? Number((totalAmount / 1.05).toFixed(2)) : 0);
+    const itemDesc = data.notes || (resolvedOrderNo ? `Commercial Order Execution: ${resolvedOrderNo}` : "Custom Uniform Apparel Order");
     lineItems = [
       {
         id: 1,
-        item_description: "Men's Full Sleeve Shirt",
-        sub_details: 'Pattern 046 | Regular Fit',
+        item_description: itemDesc,
+        sub_details: resolvedOrderNo ? `Sales Order ${resolvedOrderNo}` : 'Commercial Billing',
         hsn_sac: '620520',
-        fabric_details: 'Cotton - Blue Stripes on White',
-        quantity: qty,
-        unit_price: Math.round((subtotal / qty) * 100) / 100,
+        fabric_details: 'Standard Specification',
+        quantity: 1,
+        unit_price: subtotal,
         tax_rate: 5,
         total_price: subtotal
       }
@@ -318,11 +323,14 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
               {/* 2. Title Card (TAX INVOICE (GST) Banner) */}
               <div className="mt-4 p-4 rounded-xl bg-[#fff5f5] border border-[#fee2e2] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight uppercase">
-                    TAX INVOICE <span className="text-[#991b1b]">(GST)</span>
+                  <h1 className="text-xl sm:text-2xl font-black text-[#991b1b] tracking-tight uppercase">
+                    TAX INVOICE <span className="text-zinc-900">(GST)</span>
                   </h1>
                   <p className="text-[11px] text-zinc-600 font-medium mt-0.5">
-                    Supply of Goods – Tax Invoice as per GST Act
+                    Original for Recipient · Official GST Tax Invoice
+                  </p>
+                  <p className="text-[11px] text-zinc-500 font-medium">
+                    Issued under Section 31 of CGST / SGST Act
                   </p>
                 </div>
 
@@ -331,10 +339,10 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                     <span className="text-zinc-500">Invoice No</span>
                     <span className="font-mono font-bold text-zinc-900">: {data.invoice_no}</span>
                   </div>
-                  {(data.order_no || data.raw?.order_no || data.raw?.order_ref) && (data.order_no !== '—' && data.raw?.order_no !== '—') && (
+                  {resolvedOrderNo && resolvedOrderNo !== '—' && (
                     <div className="flex justify-between gap-3 text-[11px]">
-                      <span className="text-zinc-500">Order No</span>
-                      <span className="font-mono font-bold text-zinc-900">: {data.order_no || data.raw?.order_no || data.raw?.order_ref}</span>
+                      <span className="text-zinc-500">Sales Order</span>
+                      <span className="font-mono font-bold text-[#991b1b]">: {resolvedOrderNo}</span>
                     </div>
                   )}
                   <div className="flex justify-between gap-3 text-[11px]">

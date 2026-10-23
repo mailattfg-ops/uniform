@@ -5,6 +5,7 @@ interface DashboardHeaderProps {
   title: string;
   subtitle: string;
   badge?: string;
+  category?: string | null;
   icon?: LucideIcon;
   onRefresh?: () => void;
   isRefreshing?: boolean;
@@ -14,6 +15,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   title,
   subtitle,
   badge = 'FORMA APPARELS',
+  category,
   icon: Icon,
   onRefresh,
   isRefreshing,
@@ -22,12 +24,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
       <div>
         <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-          <span className="px-3 py-0.5 rounded-full bg-[#CC9448]/15 border border-[#CC9448]/30 text-[9px] font-black uppercase tracking-[0.2em] text-[#CC9448]">
-            {badge}
-          </span>
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#2d8d9b]">
-            Overview & Telemetry
-          </span>
+          {badge && (
+            <span className="px-3 py-0.5 rounded-full bg-[#CC9448]/15 border border-[#CC9448]/30 text-[9px] font-black uppercase tracking-[0.2em] text-[#CC9448]">
+              {badge}
+            </span>
+          )}
+          {category !== null && category !== '' && (
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#2d8d9b]">
+              {category !== undefined ? category : 'Overview & Telemetry'}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {Icon && (
