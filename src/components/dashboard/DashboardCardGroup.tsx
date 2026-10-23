@@ -6,8 +6,8 @@ interface DashboardCardGroupProps {
   title: string;
   description?: string;
   icon?: LucideIcon;
-  targetHref: string;
-  targetLabel: string;
+  targetHref?: string;
+  targetLabel?: string;
   children: React.ReactNode;
   columns?: '2' | '3' | '4' | '5';
   badge?: string;
@@ -59,14 +59,16 @@ export const DashboardCardGroup: React.FC<DashboardCardGroupProps> = ({
           </div>
         </div>
 
-        {/* Direct Link Button */}
-        <Link
-          href={targetHref}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#3a525d] text-[#3a525d] hover:text-white border border-[#fce4d4] hover:border-[#3a525d] text-xs font-black uppercase tracking-wider shadow-xs hover:shadow-md transition-all duration-200 shrink-0 group"
-        >
-          <span>{targetLabel}</span>
-          <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-        </Link>
+        {/* Direct Link Button (if targetHref provided) */}
+        {targetHref && (
+          <Link
+            href={targetHref}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#3a525d] text-[#3a525d] hover:text-white border border-[#fce4d4] hover:border-[#3a525d] text-xs font-black uppercase tracking-wider shadow-xs hover:shadow-md transition-all duration-200 shrink-0 group"
+          >
+            <span>{targetLabel || 'View Details'}</span>
+            <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        )}
       </div>
 
       {/* Cards Grid */}

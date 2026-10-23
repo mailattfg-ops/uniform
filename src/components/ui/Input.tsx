@@ -10,6 +10,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onlyLetters?: boolean;
   onlyNumbers?: boolean;
   capitalize?: 'first' | 'words' | 'none';
+  helperText?: React.ReactNode;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -21,6 +22,7 @@ export const Input: React.FC<InputProps> = ({
   onlyLetters,
   onlyNumbers,
   capitalize,
+  helperText,
   className = '',
   ...props
 }) => {
@@ -107,6 +109,11 @@ export const Input: React.FC<InputProps> = ({
         )}
       </div>
       {error && <span className="text-[10px] text-error font-black uppercase tracking-widest ml-1 animate-in shake duration-300">{error}</span>}
+      {helperText && !error && (
+        <span className="text-[11px] font-semibold text-amber-700/95 ml-1 flex items-center gap-1.5 mt-0.5">
+          {helperText}
+        </span>
+      )}
     </div>
   );
 };

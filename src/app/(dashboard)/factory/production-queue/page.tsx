@@ -23,6 +23,7 @@ import {
 import toast from '@/components/ui/toast';
 import { formatQuantity } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface JobCard {
   id: number;
@@ -990,7 +991,7 @@ export default function ProductionQueuePage() {
                               >
                                 {stockFabrics.map(sf => (
                                   <option key={sf.id} value={sf.id}>
-                                    {sf.name} {sf.code ? `(${sf.code})` : ''} — {sf.quantity || 0}m available {sf.shade ? `| Shade: ${sf.shade}` : ''}
+                                    {formatFabricDisplayName(sf)} {sf.code ? `(${sf.code})` : ''} — {sf.quantity || 0}m available
                                   </option>
                                 ))}
                               </select>

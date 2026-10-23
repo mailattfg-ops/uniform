@@ -26,7 +26,7 @@ export default function PurchaseDashboardPage() {
     try {
       const [venRes, poRes] = await Promise.allSettled([
         api.get('/vendors'),
-        api.get('/purchase-orders')
+        api.get('/inventory/purchase-orders')
       ]);
 
       if (venRes.status === 'fulfilled') setVendors(venRes.value.data || []);

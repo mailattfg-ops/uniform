@@ -6,6 +6,8 @@ import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, P
 import { ProductType, TemplateLineItem, ManualItem, SeparateFabricItem } from '../../page';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
+import { convertFabricMetersByWidth } from '../../_lib/fabricWidthConverter';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
   if (!rawText) return { type: '', materials: '' };
@@ -527,10 +529,28 @@ export const getAutoProductDefaults = ({
   const buttonUom = btnTrim?.uom || 'pcs';
   const threadUom = 'spools';
 
+  const defMainFab = fabricsList.find((f: any) => String(f.id) === String(mainFabricId));
+  const finalMainMeters = (defMainFab?.width && Number(defMainFab.width) !== 58)
+    ? convertFabricMetersByWidth(resolvedMain, defMainFab.width)
+    : resolvedMain;
+
+  const defAtt1Fab = fabricsList.find((f: any) => String(f.id) === String(att1FabricId));
+  const finalAtt1Meters = (defAtt1Fab?.width && Number(defAtt1Fab.width) !== 58)
+    ? convertFabricMetersByWidth(resolvedAtt1, defAtt1Fab.width)
+    : resolvedAtt1;
+
+  const defAtt2Fab = fabricsList.find((f: any) => String(f.id) === String(att2FabricId));
+  const finalAtt2Meters = (defAtt2Fab?.width && Number(defAtt2Fab.width) !== 58)
+    ? convertFabricMetersByWidth(resolvedAtt2, defAtt2Fab.width)
+    : resolvedAtt2;
+
   return {
-    main_fabric_meters: resolvedMain,
-    attachment_fabric1_meters: resolvedAtt1,
-    attachment_fabric2_meters: resolvedAtt2,
+    base_main_fabric_meters: resolvedMain,
+    main_fabric_meters: finalMainMeters,
+    base_attachment_fabric1_meters: resolvedAtt1,
+    attachment_fabric1_meters: finalAtt1Meters,
+    base_attachment_fabric2_meters: resolvedAtt2,
+    attachment_fabric2_meters: finalAtt2Meters,
     button_count: resolvedBtn,
     thread_count: resolvedThr || '1',
     button_uom: buttonUom,
@@ -973,9 +993,18 @@ export default function WizardStep2({
                     trimCategories
                   });
                   if (autoDefaults) {
-                    if (autoDefaults.main_fabric_meters) updatedItem.main_fabric_meters = autoDefaults.main_fabric_meters;
-                    if (autoDefaults.attachment_fabric1_meters) updatedItem.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
-                    if (autoDefaults.attachment_fabric2_meters) updatedItem.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
+                    if (autoDefaults.main_fabric_meters) {
+                      updatedItem.base_main_fabric_meters = autoDefaults.base_main_fabric_meters || autoDefaults.main_fabric_meters;
+                      updatedItem.main_fabric_meters = autoDefaults.main_fabric_meters;
+                    }
+                    if (autoDefaults.attachment_fabric1_meters) {
+                      updatedItem.base_attachment_fabric1_meters = autoDefaults.base_attachment_fabric1_meters || autoDefaults.attachment_fabric1_meters;
+                      updatedItem.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+                    }
+                    if (autoDefaults.attachment_fabric2_meters) {
+                      updatedItem.base_attachment_fabric2_meters = autoDefaults.base_attachment_fabric2_meters || autoDefaults.attachment_fabric2_meters;
+                      updatedItem.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
+                    }
                     if (autoDefaults.button_count) updatedItem.button_count = autoDefaults.button_count;
                     if (autoDefaults.thread_count) updatedItem.thread_count = autoDefaults.thread_count;
                     if (!updatedItem.fabric_id && autoDefaults.fabric_id) updatedItem.fabric_id = autoDefaults.fabric_id;
@@ -1473,7 +1502,70 @@ export default function WizardStep2({
   // Update an item and auto-recompute price
   const updateItem = (index: number, changes: Partial<ManualItem>) => {
     const updated = [...manualItems];
-    const newItem = { ...updated[index], ...changes };
+    const prevItem = updated[index] || {};
+    const newItem = { ...prevItem, ...changes };
+
+    // Auto-convert main fabric meters if fabric changed to a non-58" width
+    if ('fabric_id' in changes && !('main_fabric_meters' in changes)) {
+      const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.fabric_id));
+      const prod = allProducts.find((p: any) => String(p.id) === String(newItem.product_id));
+      const baseMeters = newItem.base_main_fabric_meters || (prod ? String(prod.main_fabric || prod.main_fabric_meters || '') : '') || newItem.main_fabric_meters;
+      if (baseMeters) {
+        newItem.base_main_fabric_meters = baseMeters;
+        if (selFab?.width && Number(selFab.width) !== 58) {
+          newItem.main_fabric_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
+        } else {
+          newItem.main_fabric_meters = baseMeters;
+        }
+      }
+    } else if ('main_fabric_meters' in changes && !('base_main_fabric_meters' in changes)) {
+      const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.fabric_id));
+      const fabWidth = selFab?.width ? Number(selFab.width) : 58;
+      newItem.base_main_fabric_meters = (fabWidth && fabWidth !== 58 && Number(changes.main_fabric_meters) > 0)
+        ? String(Number(changes.main_fabric_meters) * fabWidth / 58)
+        : String(changes.main_fabric_meters || '');
+    }
+
+    // Auto-convert attachment fabric 1 meters if fabric changed to a non-58" width
+    if ('attachment_fabric1_id' in changes && !('attachment_fabric1_meters' in changes)) {
+      const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric1_id));
+      const baseMeters = newItem.base_attachment_fabric1_meters || newItem.attachment_fabric1_meters;
+      if (baseMeters) {
+        newItem.base_attachment_fabric1_meters = baseMeters;
+        if (selFab?.width && Number(selFab.width) !== 58) {
+          newItem.attachment_fabric1_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
+        } else {
+          newItem.attachment_fabric1_meters = baseMeters;
+        }
+      }
+    } else if ('attachment_fabric1_meters' in changes && !('base_attachment_fabric1_meters' in changes)) {
+      const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric1_id));
+      const fabWidth = selFab?.width ? Number(selFab.width) : 58;
+      newItem.base_attachment_fabric1_meters = (fabWidth && fabWidth !== 58 && Number(changes.attachment_fabric1_meters) > 0)
+        ? String(Number(changes.attachment_fabric1_meters) * fabWidth / 58)
+        : String(changes.attachment_fabric1_meters || '');
+    }
+
+    // Auto-convert attachment fabric 2 meters if fabric changed to a non-58" width
+    if ('attachment_fabric2_id' in changes && !('attachment_fabric2_meters' in changes)) {
+      const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric2_id));
+      const baseMeters = newItem.base_attachment_fabric2_meters || newItem.attachment_fabric2_meters;
+      if (baseMeters) {
+        newItem.base_attachment_fabric2_meters = baseMeters;
+        if (selFab?.width && Number(selFab.width) !== 58) {
+          newItem.attachment_fabric2_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
+        } else {
+          newItem.attachment_fabric2_meters = baseMeters;
+        }
+      }
+    } else if ('attachment_fabric2_meters' in changes && !('base_attachment_fabric2_meters' in changes)) {
+      const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric2_id));
+      const fabWidth = selFab?.width ? Number(selFab.width) : 58;
+      newItem.base_attachment_fabric2_meters = (fabWidth && fabWidth !== 58 && Number(changes.attachment_fabric2_meters) > 0)
+        ? String(Number(changes.attachment_fabric2_meters) * fabWidth / 58)
+        : String(changes.attachment_fabric2_meters || '');
+    }
+
     const costs = getItemCosts(newItem);
     newItem.price = costs.unitTotal.toFixed(2);
     updated[index] = newItem;
@@ -1600,8 +1692,11 @@ export default function WizardStep2({
 
       if (autoDefaults) {
         updates.sam_value = autoDefaults.sam_value;
+        updates.base_main_fabric_meters = autoDefaults.base_main_fabric_meters || autoDefaults.main_fabric_meters;
         updates.main_fabric_meters = autoDefaults.main_fabric_meters;
+        updates.base_attachment_fabric1_meters = autoDefaults.base_attachment_fabric1_meters || autoDefaults.attachment_fabric1_meters;
         updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+        updates.base_attachment_fabric2_meters = autoDefaults.base_attachment_fabric2_meters || autoDefaults.attachment_fabric2_meters;
         updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
         updates.button_count = autoDefaults.button_count;
         updates.thread_count = autoDefaults.thread_count;
@@ -2172,8 +2267,11 @@ export default function WizardStep2({
                       });
                       if (autoDefaults) {
                         updates.sam_value = autoDefaults.sam_value;
+                        updates.base_main_fabric_meters = autoDefaults.base_main_fabric_meters || autoDefaults.main_fabric_meters;
                         updates.main_fabric_meters = autoDefaults.main_fabric_meters;
+                        updates.base_attachment_fabric1_meters = autoDefaults.base_attachment_fabric1_meters || autoDefaults.attachment_fabric1_meters;
                         updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+                        updates.base_attachment_fabric2_meters = autoDefaults.base_attachment_fabric2_meters || autoDefaults.attachment_fabric2_meters;
                         updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
                         updates.button_count = autoDefaults.button_count;
                         updates.thread_count = autoDefaults.thread_count;
@@ -2465,7 +2563,12 @@ export default function WizardStep2({
 
         {/* ── Costing Breakdown Table ── */}
         <div className="p-5" style={{ display: (quotationType === 'READYMADE' || isAccessoryType) ? 'none' : 'block' }}>
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Material Cost Breakdown</p>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Material Cost Breakdown</p>
+            <span className="text-[10px] text-amber-700 font-bold bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
+              ℹ️ Base fabric length is calibrated for 58" width
+            </span>
+          </div>
           <div className="rounded-2xl border border-zinc-100 overflow-hidden">
             <table className="w-full text-xs border-collapse">
               <thead>
@@ -2509,7 +2612,7 @@ export default function WizardStep2({
                       <option value="">Select fabric...</option>
                       {fabricsList.map((f: any) => (
                         <option key={f.id} value={String(f.id)}>
-                          {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                          {formatFabricDisplayName(f)}
                         </option>
                       ))}
                     </select>
@@ -2591,7 +2694,7 @@ export default function WizardStep2({
                       <option value="">Select Att. Fabric 1 (Optional)...</option>
                       {fabricsList.map((f: any) => (
                         <option key={f.id} value={String(f.id)}>
-                          {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                          {formatFabricDisplayName(f)}
                         </option>
                       ))}
                     </select>
@@ -2673,7 +2776,7 @@ export default function WizardStep2({
                       <option value="">Select Att. Fabric 2 (Optional)...</option>
                       {fabricsList.map((f: any) => (
                         <option key={f.id} value={String(f.id)}>
-                          {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                          {formatFabricDisplayName(f)}
                         </option>
                       ))}
                     </select>
@@ -3822,7 +3925,70 @@ export default function WizardStep2({
 
                             const updateDeptItem = (index: number, changes: Partial<ManualItem>) => {
                               const updated = [...deptItems];
-                              const newItem = { ...updated[index], ...changes };
+                              const prevItem = updated[index] || {};
+                              const newItem = { ...prevItem, ...changes };
+
+                              // Auto-convert main fabric meters if fabric changed to a non-58" width
+                              if ('fabric_id' in changes && !('main_fabric_meters' in changes)) {
+                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.fabric_id));
+                                const prod = allProducts.find((p: any) => String(p.id) === String(newItem.product_id));
+                                const baseMeters = newItem.base_main_fabric_meters || (prod ? String(prod.main_fabric || prod.main_fabric_meters || '') : '') || newItem.main_fabric_meters;
+                                if (baseMeters) {
+                                  newItem.base_main_fabric_meters = baseMeters;
+                                  if (selFab?.width && Number(selFab.width) !== 58) {
+                                    newItem.main_fabric_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
+                                  } else {
+                                    newItem.main_fabric_meters = baseMeters;
+                                  }
+                                }
+                              } else if ('main_fabric_meters' in changes && !('base_main_fabric_meters' in changes)) {
+                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.fabric_id));
+                                const fabWidth = selFab?.width ? Number(selFab.width) : 58;
+                                newItem.base_main_fabric_meters = (fabWidth && fabWidth !== 58 && Number(changes.main_fabric_meters) > 0)
+                                  ? String(Number(changes.main_fabric_meters) * fabWidth / 58)
+                                  : String(changes.main_fabric_meters || '');
+                              }
+
+                              // Auto-convert attachment fabric 1 meters if fabric changed to a non-58" width
+                              if ('attachment_fabric1_id' in changes && !('attachment_fabric1_meters' in changes)) {
+                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric1_id));
+                                const baseMeters = newItem.base_attachment_fabric1_meters || newItem.attachment_fabric1_meters;
+                                if (baseMeters) {
+                                  newItem.base_attachment_fabric1_meters = baseMeters;
+                                  if (selFab?.width && Number(selFab.width) !== 58) {
+                                    newItem.attachment_fabric1_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
+                                  } else {
+                                    newItem.attachment_fabric1_meters = baseMeters;
+                                  }
+                                }
+                              } else if ('attachment_fabric1_meters' in changes && !('base_attachment_fabric1_meters' in changes)) {
+                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric1_id));
+                                const fabWidth = selFab?.width ? Number(selFab.width) : 58;
+                                newItem.base_attachment_fabric1_meters = (fabWidth && fabWidth !== 58 && Number(changes.attachment_fabric1_meters) > 0)
+                                  ? String(Number(changes.attachment_fabric1_meters) * fabWidth / 58)
+                                  : String(changes.attachment_fabric1_meters || '');
+                              }
+
+                              // Auto-convert attachment fabric 2 meters if fabric changed to a non-58" width
+                              if ('attachment_fabric2_id' in changes && !('attachment_fabric2_meters' in changes)) {
+                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric2_id));
+                                const baseMeters = newItem.base_attachment_fabric2_meters || newItem.attachment_fabric2_meters;
+                                if (baseMeters) {
+                                  newItem.base_attachment_fabric2_meters = baseMeters;
+                                  if (selFab?.width && Number(selFab.width) !== 58) {
+                                    newItem.attachment_fabric2_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
+                                  } else {
+                                    newItem.attachment_fabric2_meters = baseMeters;
+                                  }
+                                }
+                              } else if ('attachment_fabric2_meters' in changes && !('base_attachment_fabric2_meters' in changes)) {
+                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric2_id));
+                                const fabWidth = selFab?.width ? Number(selFab.width) : 58;
+                                newItem.base_attachment_fabric2_meters = (fabWidth && fabWidth !== 58 && Number(changes.attachment_fabric2_meters) > 0)
+                                  ? String(Number(changes.attachment_fabric2_meters) * fabWidth / 58)
+                                  : String(changes.attachment_fabric2_meters || '');
+                              }
+
                               // For STANDARD (Readymade) auto-calc price from fabric/SAM
                               if (quotationType !== 'READYMADE') {
                                 const costs = getItemCosts(newItem);
@@ -4479,8 +4645,11 @@ export default function WizardStep2({
                                                             trimCategories
                                                           });
                                                           if (autoDefaults) {
+                                                            updates.base_main_fabric_meters = autoDefaults.base_main_fabric_meters || autoDefaults.main_fabric_meters;
                                                             updates.main_fabric_meters = autoDefaults.main_fabric_meters;
+                                                            updates.base_attachment_fabric1_meters = autoDefaults.base_attachment_fabric1_meters || autoDefaults.attachment_fabric1_meters;
                                                             updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
+                                                            updates.base_attachment_fabric2_meters = autoDefaults.base_attachment_fabric2_meters || autoDefaults.attachment_fabric2_meters;
                                                             updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
                                                             updates.button_count = autoDefaults.button_count;
                                                             updates.thread_count = autoDefaults.thread_count;
@@ -4673,7 +4842,12 @@ export default function WizardStep2({
                                             {/* Material Cost Breakdown (STANDARD only) */}
                                             {quotationType !== 'READYMADE' && !isAccessoryType && (
                                               <div className="p-5" style={{ display: 'block' }}>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Material Cost Breakdown</p>
+                                                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                                                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Material Cost Breakdown</p>
+                                                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
+                                                    ℹ️ Base fabric length is calibrated for 58" width
+                                                  </span>
+                                                </div>
                                                 <div className="rounded-2xl border border-zinc-100 overflow-hidden">
                                                   <table className="w-full text-xs border-collapse">
                                                     <thead>
@@ -4718,7 +4892,7 @@ export default function WizardStep2({
                                                                 <option value="">Select fabric...</option>
                                                                 {fabricsList.map((f: any) => (
                                                                   <option key={f.id} value={String(f.id)}>
-                                                                    {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                                                                    {formatFabricDisplayName(f)}
                                                                   </option>
                                                                 ))}
                                                               </select>
@@ -4803,7 +4977,7 @@ export default function WizardStep2({
                                                                 <option value="">Select Att. Fabric 1 (Optional)...</option>
                                                                 {fabricsList.map((f: any) => (
                                                                   <option key={f.id} value={String(f.id)}>
-                                                                    {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                                                                    {formatFabricDisplayName(f)}
                                                                   </option>
                                                                 ))}
                                                               </select>
@@ -4888,7 +5062,7 @@ export default function WizardStep2({
                                                                 <option value="">Select Att. Fabric 2 (Optional)...</option>
                                                                 {fabricsList.map((f: any) => (
                                                                   <option key={f.id} value={String(f.id)}>
-                                                                    {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                                                                    {formatFabricDisplayName(f)}
                                                                   </option>
                                                                 ))}
                                                               </select>
@@ -5270,7 +5444,7 @@ export default function WizardStep2({
                               <option value="">Select fabric...</option>
                               {fabricsList.map((f: any) => (
                                 <option key={f.id} value={String(f.id)}>
-                                  {f.name}{f.width ? ` (${f.width}")` : ''}{f.shade ? ` – ${f.shade}` : ''}
+                                  {formatFabricDisplayName(f)}
                                 </option>
                               ))}
                             </select>

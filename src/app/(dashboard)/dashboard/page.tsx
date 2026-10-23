@@ -29,11 +29,29 @@ import {
   Factory,
   RefreshCw,
   ExternalLink,
-  Briefcase
+  Briefcase,
+  CheckSquare,
+  Square,
+  Clock,
+  ArrowUpRight,
+  ShoppingBag,
+  ShoppingCart,
+  Scissors,
+  FileText,
+  AlertTriangle,
+  FolderTree,
+  DollarSign,
+  Check,
+  CheckCircle,
+  Pin,
+  PinOff
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { extractGarmentDisplayMetrics, formatDate } from '@/lib/formatters';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { DashboardCardGroup } from '@/components/dashboard/DashboardCardGroup';
+import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -41,6 +59,12 @@ export default function DashboardPage() {
   const [fabricsList, setFabricsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+
+  // User-specific Task Management states
+  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
+  const [taskFilter, setTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [isTaskDrawerPinned, setIsTaskDrawerPinned] = useState(false);
+  const [isTaskDrawerHovered, setIsTaskDrawerHovered] = useState(false);
 
   // Calendar states
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -67,13 +91,35 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    // Load user from localStorage
+    // Load user from localStorage and load their saved task progress
     if (typeof window !== 'undefined') {
       const u = localStorage.getItem('user');
-      if (u) setUser(JSON.parse(u));
+      if (u) {
+        try {
+          const parsed = JSON.parse(u);
+          setUser(parsed);
+          const savedTasks = localStorage.getItem(`forma_tasks_${parsed.id || parsed.username || 'user'}`);
+          if (savedTasks) {
+            setCompletedTaskIds(JSON.parse(savedTasks));
+          }
+        } catch (e) {
+          console.error('Failed to parse user session or tasks', e);
+        }
+      }
     }
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  const handleToggleTask = (taskId: string) => {
+    setCompletedTaskIds(prev => {
+      const next = prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId];
+      if (typeof window !== 'undefined') {
+        const uKey = user?.id || user?.username || 'user';
+        localStorage.setItem(`forma_tasks_${uKey}`, JSON.stringify(next));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (selectedQuoteDetail) {
@@ -668,6 +714,284 @@ export default function DashboardPage() {
   }
   // ── End Client Portal Dashboard ──────────────────────────────────────────────
 
+  // ── Role & Permission Isolation for Internal Users ─────────────────────────
+  const userRole = user?.role || 'Staff Member';
+  const userPermissions: string[] = user?.permissions || [];
+  const isAdmin = userRole === 'Admin' || userRole === 'Super Admin' || userRole === 'SuperAdmin' || userPermissions.includes('all');
+
+  const hasPerm = (required: string[]) => {
+    if (isAdmin) return true;
+    return required.some(p => userPermissions.includes(p));
+  };
+
+  const isSalesUser = isAdmin || roleLower.includes('sale') || roleLower.includes('market') || hasPerm(['manage_quotations', 'view_quotations', 'branch_sales']);
+  const isFactoryUser = isAdmin || roleLower.includes('factor') || roleLower.includes('production') || hasPerm(['factory_floor', 'factory_po_handler']);
+  const isInventoryUser = isAdmin || roleLower.includes('invent') || roleLower.includes('warehouse') || roleLower.includes('stock') || hasPerm(['manage_inventory', 'view_inventory', 'branch_inventory', 'branch_transfers']);
+  const isAccountsUser = isAdmin || roleLower.includes('account') || roleLower.includes('financ') || roleLower.includes('bill') || hasPerm(['manage_invoices', 'view_invoices', 'manage_payments']);
+  const isMeasurementUser = isAdmin || roleLower.includes('measur') || roleLower.includes('tailor') || hasPerm(['manage_measurements', 'view_measurements']);
+
+  // User-specific Authorized Workspaces
+  const allWorkspaces = [
+    {
+      id: 'crm',
+      title: 'CRM & Client Pipeline',
+      description: 'Institutional accounts, deals, pipeline feeds and client organizations',
+      icon: Users,
+      href: '/customers',
+      color: 'bg-amber-500/10 text-[#CC9448] border-amber-500/20 hover:border-[#CC9448]',
+      badge: `${stats?.totalOrganizations || 0} Organizations`,
+      allowed: isAdmin || hasPerm(['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales', 'view_leads'])
+    },
+    {
+      id: 'items',
+      title: 'Uniform Articles & Specs',
+      description: 'Standard uniform catalog, design numbers (DNS/DNG), and garment specs',
+      icon: Layers,
+      href: '/items',
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20 hover:border-teal-500',
+      badge: `${stats?.totalProducts || 0} Articles`,
+      allowed: isAdmin || hasPerm(['manage_products', 'view_products', 'manage_inventory', 'manage_design_numbers'])
+    },
+    {
+      id: 'measurements',
+      title: 'Biometric Measurements',
+      description: 'Capture individual body measurements, sizing profiles, and fitting tokens',
+      icon: Ruler,
+      href: '/measurements/entry',
+      color: 'bg-blue-500/10 text-blue-600 border-blue-500/20 hover:border-blue-500',
+      badge: `${stats?.measurementCompletionRate || 0}% Complete`,
+      allowed: isMeasurementUser
+    },
+    {
+      id: 'sam',
+      title: 'SAM Industrial Engineering',
+      description: 'Standard Allowed Minutes configurations, operations config, and fabric SAM',
+      icon: Scale,
+      href: '/sam-management',
+      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:border-indigo-500',
+      badge: 'Engineering',
+      allowed: isAdmin || hasPerm(['manage_sam', 'manage_system'])
+    },
+    {
+      id: 'inventory',
+      title: 'Inventory & Materials Hub',
+      description: '58" fabric stock rolls, trims, readymade garments, and branch transfers',
+      icon: Package,
+      href: '/inventory',
+      color: 'bg-orange-500/10 text-orange-600 border-orange-500/20 hover:border-orange-500',
+      badge: `${stats?.totalInventory || 0} Items`,
+      allowed: isInventoryUser
+    },
+    {
+      id: 'sales',
+      title: 'Sales & Quotations Hub',
+      description: 'Interactive quotation wizard, sales orders pipeline, and delivery challans',
+      icon: ShoppingBag,
+      href: '/sales',
+      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:border-emerald-500',
+      badge: `${stats?.activeOrdersCount || 0} Active Orders`,
+      allowed: isSalesUser
+    },
+    {
+      id: 'purchase',
+      title: 'Procurement & Purchase',
+      description: 'Vendor management, raw material purchase orders, and supplier bills',
+      icon: ShoppingCart,
+      href: '/purchase',
+      color: 'bg-purple-500/10 text-purple-600 border-purple-500/20 hover:border-purple-500',
+      badge: 'Procurement',
+      allowed: isAdmin || hasPerm(['manage_system', 'manage_inventory', 'view_vendors', 'manage_purchase_orders'])
+    },
+    {
+      id: 'factory',
+      title: 'Factory Operations Floor',
+      description: 'Production job cards, cutting, stitching and finishing lots, PO review gate',
+      icon: Factory,
+      href: '/factory/job-cards',
+      color: 'bg-slate-700/10 text-[#3a525d] border-slate-700/20 hover:border-[#3a525d]',
+      badge: `${stats?.jobCardsInProduction || 0} In Production`,
+      allowed: isFactoryUser
+    },
+    {
+      id: 'accounts',
+      title: 'Accounts & Receivables',
+      description: 'Customer invoices, payment collections, and institutional balance ledger',
+      icon: ReceiptText,
+      href: '/accounts',
+      color: 'bg-rose-500/10 text-rose-600 border-rose-500/20 hover:border-rose-500',
+      badge: `₹${(stats?.outstandingBalance || 0).toLocaleString('en-IN')}`,
+      allowed: isAccountsUser
+    },
+    {
+      id: 'reports',
+      title: 'Reports & Audits',
+      description: 'Production throughput telemetry, SAM analytics, and system audit logs',
+      icon: TrendingUp,
+      href: '/reports',
+      color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 hover:border-cyan-500',
+      badge: 'Telemetry',
+      allowed: isAdmin || hasPerm(['manage_system', 'view_audit_logs', 'view_sam_reports'])
+    },
+    {
+      id: 'admin',
+      title: 'Admin Master Settings',
+      description: 'Staff accounts, branch configurations, roles, permissions, and security',
+      icon: ShieldCheck,
+      href: '/admin',
+      color: 'bg-zinc-800/10 text-zinc-800 border-zinc-800/20 hover:border-zinc-800',
+      badge: 'Admin Only',
+      allowed: isAdmin
+    }
+  ];
+
+  const allowedWorkspaces = allWorkspaces.filter(ws => ws.allowed);
+
+  // User-specific Actionable Priority Tasks (Filtered to User's Role)
+  const allTasks = [
+    // Sales Tasks
+    {
+      id: 'task-pending-quotations',
+      title: 'Review Pending Quotations',
+      description: 'Draft proposals awaiting operational review or client sign-off before order generation.',
+      category: 'Sales',
+      priority: (stats?.pendingQuotationsCount || 0) > 0 ? 'Urgent' : 'Normal',
+      badge: `${stats?.pendingQuotationsCount || 0} Pending`,
+      metricValue: stats?.pendingQuotationsCount || 0,
+      actionText: 'Review Quotes',
+      actionHref: '/marketing/quotations',
+      allowed: isSalesUser
+    },
+    {
+      id: 'task-active-orders',
+      title: 'Track Active Sales Orders',
+      description: 'Monitor pipeline delivery milestones and order status for active institutional contracts.',
+      category: 'Sales',
+      priority: (stats?.activeOrdersCount || 0) > 0 ? 'High' : 'Normal',
+      badge: `${stats?.activeOrdersCount || 0} Active Orders`,
+      metricValue: stats?.activeOrdersCount || 0,
+      actionText: 'Order Pipeline',
+      actionHref: '/marketing/order-placement',
+      allowed: isSalesUser
+    },
+    // Factory Tasks
+    {
+      id: 'task-held-jobcards',
+      title: 'Clear Stalled Job Cards',
+      description: 'Address materials hold, approval flags, or note revisions on paused production job cards.',
+      category: 'Factory Floor',
+      priority: (stats?.jobCardsHeld || 0) > 0 ? 'Urgent' : 'Normal',
+      badge: `${stats?.jobCardsHeld || 0} Held Cards`,
+      metricValue: stats?.jobCardsHeld || 0,
+      actionText: 'Resolve Job Cards',
+      actionHref: '/factory/job-cards',
+      allowed: isFactoryUser
+    },
+    {
+      id: 'task-floor-production',
+      title: 'Supervise Floor Production Batches',
+      description: 'Ensure ongoing cutting, stitching, and finishing stages stay aligned with batch SAM schedules.',
+      category: 'Factory Floor',
+      priority: 'Normal',
+      badge: `${stats?.jobCardsInProduction || 0} In Progress`,
+      metricValue: stats?.jobCardsInProduction || 0,
+      actionText: 'Floor Queue',
+      actionHref: '/factory/production-queue',
+      allowed: isFactoryUser
+    },
+    // Inventory Tasks
+    {
+      id: 'task-fabric-audit',
+      title: 'Audit 58" Fabric Stock & Trims',
+      description: 'Confirm raw fabric rolls and trim inventory counts match upcoming cutting requirements.',
+      category: 'Inventory',
+      priority: 'Normal',
+      badge: `${stats?.totalFabrics || 0} Fabric Rolls`,
+      metricValue: stats?.totalFabrics || 0,
+      actionText: 'Fabric Stock',
+      actionHref: '/admin/inventory/fabric-stock',
+      allowed: isInventoryUser
+    },
+    {
+      id: 'task-readymade-stock',
+      title: 'Audit Readymade Garment Stock',
+      description: 'Inspect finished standard uniform inventory articles available for immediate branch delivery.',
+      category: 'Inventory',
+      priority: 'Normal',
+      badge: `${stats?.totalProducts || 0} Uniform SKUs`,
+      metricValue: stats?.totalProducts || 0,
+      actionText: 'Article Stock',
+      actionHref: '/admin/inventory/product-stock',
+      allowed: isInventoryUser
+    },
+    // Accounts Tasks
+    {
+      id: 'task-outstanding-receivables',
+      title: (stats?.overdueOrdersCount || 0) > 0 ? 'Collect Overdue Sales Receivables' : 'Follow-up on Customer Receivables',
+      description: (stats?.overdueOrdersCount || 0) > 0
+        ? `Immediate action required: ${stats.overdueOrdersCount} sales orders past scheduled delivery date with pending balance.`
+        : 'Collect outstanding payments on confirmed sales orders awaiting customer settlement.',
+      category: 'Accounts',
+      priority: (stats?.overdueOrdersCount || 0) > 0 ? 'Urgent' : (stats?.outstandingBalance || 0) > 0 ? 'High' : 'Normal',
+      badge: (stats?.overdueAmount || 0) > 0
+        ? `₹${(stats.overdueAmount).toLocaleString('en-IN')} Overdue`
+        : `₹${(stats?.outstandingBalance || 0).toLocaleString('en-IN')} Due`,
+      metricValue: stats?.overdueAmount || stats?.outstandingBalance || 0,
+      actionText: 'Invoices Due',
+      actionHref: '/billing/invoices',
+      allowed: isAccountsUser
+    },
+    {
+      id: 'task-reconcile-payments',
+      title: 'Reconcile Order Advances',
+      description: 'Confirm initial token receipts and verify ledger entries for authorized contracts.',
+      category: 'Accounts',
+      priority: 'Normal',
+      badge: `${stats?.paidQuotationsCount || 0} Settled`,
+      metricValue: stats?.paidQuotationsCount || 0,
+      actionText: 'Payments Ledger',
+      actionHref: '/marketing/initial-payment',
+      allowed: isAccountsUser
+    },
+    // Measurement Tasks
+    {
+      id: 'task-pending-fittings',
+      title: 'Log Unfitted Member Biometrics',
+      description: 'Capture standardized measurements for registered students and staff awaiting tailor fitting.',
+      category: 'Tailoring & Fitting',
+      priority: (stats?.pendingMeasurements || 0) > 0 ? 'High' : 'Normal',
+      badge: `${stats?.pendingMeasurements || 0} Pending Fits`,
+      metricValue: stats?.pendingMeasurements || 0,
+      actionText: 'Record Measurements',
+      actionHref: '/measurements/entry',
+      allowed: isMeasurementUser
+    },
+    // Admin Tasks
+    {
+      id: 'task-system-audit',
+      title: 'Review System Activity & Audit Trail',
+      description: 'Inspect multi-branch transfers, staff role assignments, and operator log entries.',
+      category: 'Executive Oversight',
+      priority: 'Normal',
+      badge: `${stats?.totalOrganizations || 0} Accounts`,
+      metricValue: stats?.totalOrganizations || 0,
+      actionText: 'Audit Trail',
+      actionHref: '/admin/audit',
+      allowed: isAdmin
+    }
+  ];
+
+  const allowedTasks = allTasks.filter(t => t.allowed);
+  const completedCount = allowedTasks.filter(t => completedTaskIds.includes(t.id)).length;
+  const pendingCount = allowedTasks.length - completedCount;
+  const progressPercent = allowedTasks.length > 0 ? Math.round((completedCount / allowedTasks.length) * 100) : 100;
+
+  const filteredTasks = allowedTasks.filter(task => {
+    const isCompleted = completedTaskIds.includes(task.id);
+    if (taskFilter === 'pending') return !isCompleted;
+    if (taskFilter === 'completed') return isCompleted;
+    return true;
+  });
+
   const totalMembers = stats?.totalMembers || 0;
   const totalOrgs = stats?.totalOrganizations || 0;
   const totalProducts = stats?.totalProducts || 0;
@@ -676,320 +1000,249 @@ export default function DashboardPage() {
   const reach = stats?.measurementCompletionRate || stats?.reach || 0;
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in duration-1000 pb-10">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12 relative">
       
-      {/* Dashboard Heading */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-[32px] font-semibold text-[#030303] leading-none">Dashboard</h1>
-        <button
-          type="button"
-          onClick={fetchDashboardData}
-          disabled={loading}
-          className="text-xs font-semibold text-zinc-400 hover:text-[#CC9448] flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-xl hover:bg-zinc-100/60"
-          title="Refresh Data"
-        >
-          <RefreshCw size={13} className={loading ? "animate-spin text-[#CC9448]" : ""} />
-          <span>Sync</span>
-        </button>
-      </div>
+      {/* ── 1. PAGE HEADER (MATCHES OTHER HUBS) ─────────────────────────────── */}
+      <DashboardHeader
+        title="Home / Dashboard"
+        subtitle="Overview of your sales orders, receivables, daily operations, and deliveries."
+        icon={Building2}
+        badge="Home"
+        category={null}
+        onRefresh={fetchDashboardData}
+        isRefreshing={loading}
+      />
 
-      {/* TOP ROW: Large Welcomer Stat Banner & Deployment Reach Sidepanel */}
-      <div className="grid grid-cols-12 gap-6">
-        
-        {/* Left Side: Massive Gold welcome stat card (8 columns) */}
-        <div className="col-span-12 lg:col-span-8 bg-[#CC9448] rounded-[2.5rem] p-8 md:p-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-          <div className="flex-1 space-y-8 z-10">
+      {/* ── HIGH VISIBILITY DUE / OVERDUE RECEIVABLES ALERT ─────────────────── */}
+      {Boolean((stats?.overdueOrdersCount || 0) > 0) ? (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-[2rem] p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-500/20">
+              <AlertTriangle size={22} className="animate-pulse" />
+            </div>
             <div>
-              <p className="text-[12px] font-semibold text-white/80 uppercase tracking-widest leading-none">
-                Total Registered Members
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-rose-600 text-white">
+                  Payment Overdue
+                </span>
+                <h3 className="text-base font-black text-rose-950">
+                  {stats?.overdueOrdersCount} Sales Order{(stats?.overdueOrdersCount || 0) > 1 ? 's' : ''} Past Scheduled Delivery
+                </h3>
+              </div>
+              <p className="text-xs font-semibold text-rose-800 mt-1">
+                Outstanding overdue receivables: <span className="font-mono font-black text-rose-950">₹{(stats?.overdueAmount || 0).toLocaleString('en-IN')}</span> requiring urgent follow-up.
               </p>
-              <h2 className="text-8xl font-bold tracking-tight text-white mt-3 drop-shadow-md">
-                {totalMembers}
-              </h2>
-            </div>
-            
-            <div className="space-y-4 pt-2">
-              <Link 
-                href="/customers"
-                className="flex items-center justify-between gap-4 p-2 -ml-2 rounded-2xl hover:bg-white/10 transition-colors group"
-                title="View client organizations"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-105 transition-transform">
-                    <Star size={16} fill="white" className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] opacity-75 font-semibold tracking-wider uppercase leading-none">
-                      Member Organizations
-                    </p>
-                    <p className="font-bold text-base mt-1 leading-none">{totalOrgs}</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-lg">
-                  View <ChevronRight size={11} />
-                </span>
-              </Link>
-              
-              <Link 
-                href="/measurements/entry"
-                className="flex items-center justify-between gap-4 p-2 -ml-2 rounded-2xl hover:bg-white/10 transition-colors group"
-                title="Open measurement entry module"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-105 transition-transform">
-                    <Activity size={16} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] opacity-75 font-semibold tracking-wider uppercase leading-none">
-                      Measurements Captured
-                    </p>
-                    <p className="font-bold text-base mt-1 leading-none">{totalMeasurements}</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-lg">
-                  Log <ChevronRight size={11} />
-                </span>
-              </Link>
             </div>
           </div>
 
-          {/* Right Side: Cartoon Illustration Mockup */}
-          <div className="relative shrink-0 z-10 w-full md:w-[320px] h-[240px] flex items-center justify-center overflow-hidden rounded-[2rem] bg-white/10 p-2">
-            <img 
-              src="/images/dashboard_illustration_1776147777937-1.png" 
-              alt="Dashboard Illustration" 
-              className="object-contain max-h-full max-w-full opacity-95 rounded-2xl"
-            />
-            <Link 
-              href="/marketing/order-placement" 
-              className="absolute bottom-4 right-4 bg-[#b88036] hover:bg-[#a6712d] transition-all px-4 py-2 rounded-xl flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider shadow-lg text-white"
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/billing/invoices"
+              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5"
             >
-              Order Pipeline
-              <ChevronRight size={12} strokeWidth={2.5} />
+              <span>Follow-up Invoices</span>
+              <ArrowRight size={13} />
             </Link>
           </div>
         </div>
-
-        {/* Right Side: Deployment Reach Card (4 columns) */}
-        <div className="col-span-12 lg:col-span-4 bg-[#F7EBE1] rounded-[2.5rem] p-8 flex flex-col justify-between shadow-md relative border border-[#CC9448]/10">
-          <div className="flex justify-between items-start w-full">
+      ) : Boolean((stats?.outstandingBalance || 0) > 0) ? (
+        <div className="bg-amber-50/80 border border-amber-300/80 rounded-[2rem] p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Clock size={18} />
+            </div>
             <div>
-              <p className="text-sm font-semibold text-zinc-500 tracking-wide">Deployment Reach</p>
-              <h2 className="text-[64px] font-bold text-[#030303] leading-tight mt-1">{reach}<span className="text-xl align-top relative top-3 ml-0.5">%</span></h2>
-            </div>
-            
-            <div className="w-16 h-16 relative">
-              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                <circle cx="18" cy="18" r="16" fill="none" stroke="white" strokeWidth="4" />
-                <circle cx="18" cy="18" r="16" fill="none" stroke="#CC9448" strokeWidth="4" strokeDasharray={`${Math.min(Math.max(reach, 8), 100)} 100`} strokeLinecap="round" />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[#CC9448] font-bold text-[10px]">+{reach}</span>
-              </div>
+              <p className="text-xs font-black text-amber-950">
+                Payment Collection Due: <span className="font-mono font-black">₹{(stats?.outstandingBalance || 0).toLocaleString('en-IN')}</span>
+              </p>
+              <p className="text-[10px] font-bold text-amber-800">
+                Calculated across {stats?.dueOrdersCount || 0} active sales orders awaiting full settlement.
+              </p>
             </div>
           </div>
-
-          <div className="bg-[#3a525d] text-white rounded-[2rem] p-6 shadow-xl space-y-4 mt-6">
-            <p className="text-[12px] opacity-90 leading-relaxed font-medium">
-              Real-time analytics monitor <span className="text-[#CC9448] font-bold">Enterprise Expansion</span> and regional deployment efficiency across all nodes.
-            </p>
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#CC9448]" />
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[#CC9448]">Live Intelligence</span>
-              </div>
-              <Link
-                href="/measurements/entry"
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[#CC9448] hover:text-white text-[9.5px] font-bold uppercase tracking-wider transition-all"
-              >
-                <span>Fitting Log</span>
-                <ChevronRight size={10} />
-              </Link>
-            </div>
-          </div>
+          <Link
+            href="/marketing/initial-payment"
+            className="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-white hover:bg-amber-100/60 border border-amber-300 text-amber-900 text-[10px] font-black uppercase tracking-wider transition-all"
+          >
+            Record Payment
+          </Link>
         </div>
+      ) : null}
 
-      </div>
+      {/* ── 2. FINANCIAL PERFORMANCE & RECEIVABLES (CALCULATED FROM SALES ORDERS) ── */}
+      <DashboardCardGroup
+        title="Sales Orders Receivables & Financials"
+        description="Calculated directly against placed commercial sales orders (not draft quotations)."
+        icon={ReceiptText}
+        targetHref="/billing/invoices"
+        targetLabel="Customer Invoices"
+        badge="Order Cashflow"
+        columns="4"
+      >
+        <DashboardStatCard
+          label="Total Sales Orders Value"
+          value={`₹${(stats?.totalContractValue || 0).toLocaleString('en-IN')}`}
+          subValue={`${stats?.paidOrdersCount || 0} orders fully settled`}
+          icon={DollarSign}
+          variant="emerald"
+        />
+        <DashboardStatCard
+          label="Sales Order Receivables"
+          value={`₹${(stats?.outstandingBalance || 0).toLocaleString('en-IN')}`}
+          subValue={
+            (stats?.overdueOrdersCount || 0) > 0
+              ? `${stats.overdueOrdersCount} orders overdue past delivery`
+              : `${stats?.dueOrdersCount || 0} orders with pending balance`
+          }
+          icon={CreditCard}
+          variant={(stats?.overdueOrdersCount || 0) > 0 ? "rose" : (stats?.outstandingBalance || 0) > 0 ? "amber" : "default"}
+          badge={(stats?.overdueOrdersCount || 0) > 0 ? "OVERDUE" : (stats?.outstandingBalance || 0) > 0 ? "PAYMENT DUE" : "SETTLED"}
+        />
+        <DashboardStatCard
+          label="Collected Revenue"
+          value={`₹${(stats?.collectedRevenue || 0).toLocaleString('en-IN')}`}
+          subValue="Realized on placed sales orders"
+          icon={ReceiptText}
+          variant="teal"
+        />
+        {(stats?.overdueAmount || 0) > 0 ? (
+          <DashboardStatCard
+            label="Overdue Receivables"
+            value={`₹${(stats.overdueAmount).toLocaleString('en-IN')}`}
+            subValue={`${stats.overdueOrdersCount} orders past delivery deadline`}
+            icon={AlertTriangle}
+            variant="rose"
+            badge="OVERDUE"
+          />
+        ) : (
+          <DashboardStatCard
+            label="Settlement Ratio"
+            value={`${stats?.totalContractValue > 0 ? Math.round(((stats?.collectedRevenue || 0) / stats?.totalContractValue) * 100) : 0}%`}
+            subValue={`${stats?.partialOrdersCount || 0} partial · ${stats?.unpaidOrdersCount || 0} unpaid orders`}
+            icon={TrendingUp}
+            variant="gold"
+            badge="On Track"
+          />
+        )}
+      </DashboardCardGroup>
 
-      {/* MIDDLE ROW: Products, Global Metrics, and Deployment Status (3 Columns) */}
-      <div className="grid grid-cols-12 gap-6">
-        
-        {/* 1. Products Card */}
-        <div className="col-span-12 md:col-span-4 bg-white border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <Link 
-              href="/admin/products"
-              className="text-lg font-bold text-[#030303] tracking-tight hover:text-[#CC9448] transition-colors"
-              title="Open Products"
-            >
-              Products
-            </Link>
-            <Link 
-              href="/admin/products" 
-              className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
-              title="Manage products"
-            >
-              <span>Manage</span>
-              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-          
-          <div className="space-y-4 my-auto">
-            <Link 
-              href="/admin/products" 
-              className="flex items-center justify-between gap-4 bg-[#F5F4F2]/50 hover:bg-[#F5F4F2] p-4 rounded-2xl border border-zinc-100/55 hover:border-teal-300 transition-all group"
-              title="View uniform articles in products"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-teal-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                  P
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-[#030303] leading-none">{totalProducts}</p>
-                  <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 leading-none">
-                    Total Uniform Articles
-                  </p>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold uppercase text-teal-600 opacity-60 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
-                Catalog <ChevronRight size={12} />
-              </span>
-            </Link>
-            
-            <Link 
-              href="/admin/inventory/fabric-stock" 
-              className="flex items-center justify-between gap-4 bg-[#F5F4F2]/50 hover:bg-[#F5F4F2] p-4 rounded-2xl border border-zinc-100/55 hover:border-orange-300 transition-all group"
-              title="View fabric inventory stock"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-base font-bold shadow-md shadow-orange-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                  I
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-[#030303] leading-none">{totalInventory}</p>
-                  <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 leading-none">
-                    Inventory Items
-                  </p>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold uppercase text-orange-600 opacity-60 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
-                Fabrics <ChevronRight size={12} />
-              </span>
-            </Link>
-          </div>
-        </div>
+      {/* ── 3. SALES ORDERS & COMMERCIAL PIPELINE ────────────────────────────── */}
+      <DashboardCardGroup
+        title="Sales Orders & Commercial Pipeline"
+        description="Active client purchase orders, pending proposal reviews, and institutional accounts."
+        icon={ShoppingBag}
+        targetHref="/marketing/order-placement"
+        targetLabel="Manage Orders"
+        badge="Commercial Pipeline"
+        columns="4"
+      >
+        <DashboardStatCard
+          label="Active Orders Queue"
+          value={stats?.activeOrdersCount || 0}
+          subValue={`${stats?.totalOrders || 0} placed customer orders`}
+          icon={ShoppingBag}
+          variant="emerald"
+          badge="Active"
+        />
+        <DashboardStatCard
+          label="Pending Quotations"
+          value={stats?.pendingQuotationsCount || 0}
+          subValue="Drafts awaiting client or ops approval"
+          icon={FileText}
+          variant="amber"
+          badge={(stats?.pendingQuotationsCount || 0) > 0 ? "Pending" : undefined}
+        />
+        <DashboardStatCard
+          label="Client Organizations"
+          value={stats?.totalOrganizations || 0}
+          subValue="Active institutional client accounts"
+          icon={Building2}
+          variant="teal"
+        />
+        <DashboardStatCard
+          label="Registered Members"
+          value={stats?.totalMembers || 0}
+          subValue={`${stats?.measurementCompletionRate || 0}% uniform fits completed`}
+          icon={Users}
+          variant="gold"
+        />
+      </DashboardCardGroup>
 
-        {/* 2. Global Metrics Card */}
-        <div className="col-span-12 md:col-span-4 bg-white border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-[#030303] tracking-tight">Global Metrics</h3>
-            <Link 
-              href="/customers" 
-              className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
-            >
-              <span>Directory</span>
-              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-          
-          <div className="space-y-4">
-            {[
-              { label: 'Member Onboarding', status: 'ACTIVE', value: totalMembers, href: '/customers' },
-              { label: 'Measurement Log', status: 'HEALTHY', value: totalMeasurements, href: '/measurements/entry' },
-              { label: 'Organization Sync', status: 'OPTIMIZED', value: totalOrgs, href: '/customers' }
-            ].map((metric, i) => (
-              <Link 
-                key={i} 
-                href={metric.href}
-                className="flex items-center justify-between p-2.5 bg-[#F5F4F2]/20 hover:bg-[#F5F4F2]/70 rounded-2xl transition-all group"
-                title={`Open ${metric.label}`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="relative">
-                    <div className="w-11 h-11 rounded-xl bg-white border border-zinc-150 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                      <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-                      </svg>
-                    </div>
-                    <span className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#030303] leading-none mb-1 group-hover:text-[#CC9448] transition-colors">{metric.label}</h4>
-                    <p className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">{metric.status}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-zinc-400 font-mono group-hover:text-zinc-700">{metric.value}</span>
-                  <ChevronRight size={13} className="text-zinc-300 group-hover:text-[#CC9448] group-hover:translate-x-0.5 transition-all" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+      {/* ── 4. PRODUCTION FLOOR & OPERATIONS STATUS ─────────────────────────── */}
+      <DashboardCardGroup
+        title="Production Floor & Inventory Status"
+        description="Manufacturing job cards, cutting and stitching lots, and raw materials stock."
+        icon={Factory}
+        targetHref="/factory/job-cards"
+        targetLabel="Factory Floor"
+        badge="Production & Lots"
+        columns="4"
+      >
+        <DashboardStatCard
+          label="Job Cards In Production"
+          value={stats?.jobCardsInProduction || 0}
+          subValue="Active floor cutting & sewing"
+          icon={Factory}
+          variant="default"
+        />
+        <DashboardStatCard
+          label="Held / Awaiting Action"
+          value={stats?.jobCardsHeld || 0}
+          subValue="Material or specification holds"
+          icon={AlertTriangle}
+          variant="rose"
+          badge={(stats?.jobCardsHeld || 0) > 0 ? "Priority" : undefined}
+        />
+        <DashboardStatCard
+          label="Ready for Dispatch"
+          value={stats?.jobCardsReady || 0}
+          subValue="Finished uniform lots ready to deliver"
+          icon={CheckCircle2}
+          variant="emerald"
+        />
+        <DashboardStatCard
+          label={'58" Fabric Rolls & Trims'}
+          value={stats?.totalInventory || 0}
+          subValue={`${stats?.totalFabrics || 0} fabrics · ${stats?.totalTrims || 0} trims`}
+          icon={Package}
+          variant="amber"
+        />
+      </DashboardCardGroup>
 
-        {/* 3. Deployment Status Card */}
-        <div className="col-span-12 md:col-span-4 bg-[#fdfbf7] border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 hover:shadow-lg transition-all flex flex-col justify-between gap-6 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-[#030303] tracking-tight">Deployment Status</h3>
-              <p className="text-[9px] text-[#8b6b5a]/60 font-bold uppercase tracking-[0.2em] mt-1">Instance Health</p>
+      {/* ── 5. DELIVERY SCHEDULE REGISTRY & CALENDAR ─────────────────────────── */}
+      <div className="bg-white/80 backdrop-blur-xs rounded-[2rem] border border-[#fce4d4] p-6 shadow-xs hover:border-[#CC9448]/30 transition-all duration-300 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#fce4d4]/60">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#3a525d]/5 text-[#3a525d] flex items-center justify-center shrink-0 border border-[#3a525d]/10">
+              <Calendar size={20} strokeWidth={2.2} />
             </div>
-            <Link 
-              href="/factory/job-cards" 
-              className="text-[10px] font-bold text-[#CC9448] hover:text-[#b88036] uppercase tracking-wider flex items-center gap-1 group"
-            >
-              <span>Floor</span>
-              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-          
-          <div className="flex-1 flex flex-col items-center justify-center py-2">
-            <div className="bg-white px-5 py-3.5 rounded-2xl shadow-xl shadow-zinc-200/50 border border-zinc-50 flex items-center gap-3.5 scale-105 hover:scale-110 transition-transform duration-300">
-              <div className="w-7 h-4 bg-teal-600 rounded" />
-              <div>
-                <span className="text-xs font-bold block text-[#030303] leading-tight">Production Node</span>
-                <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide leading-none mt-1 block">
-                  Operational
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-black italic tracking-tight text-[#3a525d]">
+                  Delivery Schedule Registry
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                  Timeline & Dispatch
                 </span>
               </div>
-            </div>
-
-            {/* Direct Quick Action Buttons */}
-            <div className="flex items-center gap-2.5 mt-5">
-              <Link 
-                href="/marketing/order-placement"
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 text-[10px] font-bold shadow-xs hover:border-[#CC9448]/50 flex items-center gap-1 transition-all"
-              >
-                <span>Orders Queue</span>
-                <ChevronRight size={11} className="text-zinc-400" />
-              </Link>
-              <Link 
-                href="/factory/job-cards"
-                className="px-3 py-1.5 rounded-xl bg-[#3a525d] hover:bg-[#2c3e47] text-white text-[10px] font-bold shadow-xs flex items-center gap-1 transition-all"
-              >
-                <span>Job Cards</span>
-                <ChevronRight size={11} className="text-white/60" />
-              </Link>
+              <p className="text-[11px] font-semibold text-zinc-400 mt-0.5 truncate">
+                Calendar view of scheduled order delivery deadlines and customer fulfillment dates.
+              </p>
             </div>
           </div>
+
+          <span className="px-3.5 py-1.5 rounded-xl bg-white border border-[#fce4d4] text-[10px] font-black uppercase tracking-wider text-[#3a525d] shadow-xs">
+            {allQuotations.length} Orders Tracked
+          </span>
         </div>
 
-      </div>
-
-      {/* BOTTOM ROW: Delivery Schedule Registry Section */}
-      <div className="bg-white border border-zinc-100 rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-lg transition-all space-y-6">
-        <div>
-          <h3 className="text-lg font-bold text-[#030303] tracking-tight">Delivery Schedule Registry</h3>
-          <p className="text-[10px] text-zinc-450 font-bold uppercase tracking-wider mt-1 block">Timeline & Delivery Calendar</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start pt-2">
           <div>
             {renderCalendar()}
           </div>
           <div>
             {selectedDateQuotes ? (
-              <div className="bg-emerald-50/40 border border-[#bbf7d0] rounded-[2rem] p-6 space-y-4">
+              <div className="bg-emerald-50/40 border border-[#bbf7d0] rounded-3xl p-6 space-y-4 shadow-xs">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
                     Deliveries on {selectedDateStr}
@@ -1007,7 +1260,7 @@ export default function DashboardPage() {
                     <div
                       key={q.id || idx}
                       onClick={() => q.id && handleOpenDetailModal(q.id)}
-                      className="bg-white border border-zinc-100 rounded-2xl p-4 flex justify-between items-center text-xs shadow-sm transition-all hover:border-[#2d8d9b] hover:shadow-md cursor-pointer active:scale-[0.99] select-none"
+                      className="bg-white border border-zinc-150 rounded-2xl p-4 flex justify-between items-center text-xs shadow-xs transition-all hover:border-[#2d8d9b] hover:shadow-md cursor-pointer active:scale-[0.99] select-none"
                     >
                       <div>
                         <p className="font-black text-[#3a525d] text-sm truncate max-w-[280px]">{q.title}</p>
@@ -1026,13 +1279,213 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-zinc-50 border border-zinc-200 border-dashed rounded-[2rem] p-10 text-center text-zinc-400 flex flex-col justify-center items-center min-h-[220px]">
-                <Calendar className="text-zinc-300 mb-3" size={28} />
-                <p className="text-[10px] font-black uppercase tracking-wider">Select a highlighted date</p>
-                <p className="text-[9px] font-semibold text-zinc-455 mt-1.5 max-w-[240px] mx-auto leading-relaxed">
-                  Click on dates marked with green dots to view scheduled delivery orders.
+              <div className="bg-zinc-50/80 border border-[#fce4d4] border-dashed rounded-3xl p-10 text-center text-zinc-400 flex flex-col justify-center items-center min-h-[260px]">
+                <Calendar className="text-zinc-300 mb-3" size={32} />
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#3a525d]">Select a highlighted date</p>
+                <p className="text-[11px] font-medium text-zinc-400 mt-1.5 max-w-[260px] mx-auto leading-relaxed">
+                  Click on calendar dates marked with green dots to view scheduled delivery orders.
                 </p>
               </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 6. SIDE DOCK FLOATING TASK DRAWER (APPEARS ON HOVER FROM SIDE) ── */}
+      <div
+        className={`fixed right-0 top-24 bottom-6 z-50 flex items-start transition-transform duration-300 ease-in-out ${
+          isTaskDrawerPinned || isTaskDrawerHovered
+            ? 'translate-x-0'
+            : 'translate-x-[calc(100%-48px)]'
+        }`}
+        onMouseEnter={() => setIsTaskDrawerHovered(true)}
+        onMouseLeave={() => setIsTaskDrawerHovered(false)}
+      >
+        {/* Edge Handle Tab */}
+        <button
+          type="button"
+          onClick={() => setIsTaskDrawerPinned(prev => !prev)}
+          className={`w-12 py-5 rounded-l-2xl shadow-xl flex flex-col items-center gap-3 transition-colors border-l border-y ${
+            isTaskDrawerPinned || isTaskDrawerHovered
+              ? 'bg-[#3a525d] text-white border-[#3a525d]'
+              : 'bg-[#CC9448] text-white border-[#CC9448] hover:bg-[#b88036]'
+          }`}
+          title="My Priority Tasks (Hover or Click to toggle)"
+        >
+          <CheckSquare size={18} strokeWidth={2.5} />
+          <span className="[writing-mode:vertical-rl] text-[10px] font-black uppercase tracking-widest rotate-180">
+            My Tasks
+          </span>
+          {pendingCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-white text-[#CC9448] font-black text-[10px] flex items-center justify-center shadow-xs">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+
+        {/* Slide-out Drawer Panel */}
+        <div className="w-[360px] sm:w-[420px] h-full bg-white/95 backdrop-blur-md border-l border-y border-[#fce4d4] rounded-l-3xl shadow-2xl flex flex-col overflow-hidden">
+          {/* Drawer Header */}
+          <div className="p-5 border-b border-[#fce4d4] bg-[#fdfbf7] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#CC9448]/15 text-[#CC9448] flex items-center justify-center">
+                <CheckSquare size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black italic tracking-tight text-[#3a525d]">
+                  My Priority Tasks
+                </h3>
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+                  Role: {userRole}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTaskDrawerPinned(prev => !prev)}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  isTaskDrawerPinned 
+                    ? 'bg-[#3a525d] text-white border-[#3a525d]' 
+                    : 'bg-white text-zinc-400 border-zinc-200 hover:text-zinc-700'
+                }`}
+                title={isTaskDrawerPinned ? "Unpin drawer" : "Pin drawer open"}
+              >
+                {isTaskDrawerPinned ? <PinOff size={14} /> : <Pin size={14} />}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTaskDrawerPinned(false);
+                  setIsTaskDrawerHovered(false);
+                }}
+                className="p-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-400 hover:text-zinc-700 transition-all"
+                title="Close drawer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Progress & Filters */}
+          <div className="p-4 bg-white border-b border-zinc-100 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                Completion Rate
+              </span>
+              <span className="text-xs font-black font-mono text-[#CC9448]">
+                {completedCount}/{allowedTasks.length} ({progressPercent}%)
+              </span>
+            </div>
+            <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
+              <div 
+                className="bg-[#CC9448] h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            <div className="flex items-center gap-1 pt-1">
+              <button
+                type="button"
+                onClick={() => setTaskFilter('all')}
+                className={`flex-1 py-1 text-[9px] font-black uppercase rounded-lg transition-all ${
+                  taskFilter === 'all' 
+                    ? 'bg-[#3a525d] text-white' 
+                    : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                }`}
+              >
+                All ({allowedTasks.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaskFilter('pending')}
+                className={`flex-1 py-1 text-[9px] font-black uppercase rounded-lg transition-all ${
+                  taskFilter === 'pending' 
+                    ? 'bg-[#3a525d] text-white' 
+                    : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                }`}
+              >
+                Action ({pendingCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaskFilter('completed')}
+                className={`flex-1 py-1 text-[9px] font-black uppercase rounded-lg transition-all ${
+                  taskFilter === 'completed' 
+                    ? 'bg-[#3a525d] text-white' 
+                    : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                }`}
+              >
+                Done ({completedCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Task List Items */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            {filteredTasks.length === 0 ? (
+              <div className="py-12 text-center text-zinc-400">
+                <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2 opacity-70" />
+                <p className="text-xs font-bold text-[#3a525d]">All Caught Up!</p>
+                <p className="text-[10px] text-zinc-400 mt-0.5">No tasks match this filter.</p>
+              </div>
+            ) : (
+              filteredTasks.map(task => {
+                const isDone = completedTaskIds.includes(task.id);
+                return (
+                  <div
+                    key={task.id}
+                    className={`p-3.5 rounded-2xl border transition-all ${
+                      isDone 
+                        ? 'bg-zinc-50/70 border-zinc-200 opacity-65' 
+                        : 'bg-white border-[#fce4d4] hover:border-[#CC9448] shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTask(task.id)}
+                        className="mt-0.5 shrink-0 transition-transform active:scale-90"
+                      >
+                        {isDone ? (
+                          <div className="w-4 h-4 rounded-md bg-emerald-500 text-white flex items-center justify-center">
+                            <Check size={11} strokeWidth={3} />
+                          </div>
+                        ) : (
+                          <div className="w-4 h-4 rounded-md border-2 border-zinc-300 hover:border-[#CC9448] bg-white transition-colors" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                            {task.category}
+                          </span>
+                          <span className="text-[9px] font-bold font-mono text-[#CC9448]">
+                            {task.badge}
+                          </span>
+                        </div>
+                        <h4 className={`text-xs font-bold text-[#3a525d] leading-snug ${isDone ? 'line-through text-zinc-400' : ''}`}>
+                          {task.title}
+                        </h4>
+                        <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-2">
+                          {task.description}
+                        </p>
+                        <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-end">
+                          <Link
+                            href={task.actionHref}
+                            className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-[#2d8d9b] hover:text-[#3a525d] group"
+                          >
+                            <span>{task.actionText}</span>
+                            <ArrowUpRight size={10} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

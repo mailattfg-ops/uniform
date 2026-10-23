@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Check, ChevronRight } from 'lucide-react';
 import { Organization, ProductType, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 // Steps imports
 import WizardStep1 from './wizard/WizardStep1';
@@ -1378,15 +1379,13 @@ export default function QuotationWizard({
     // Append separate fabrics as standard items in the quotation payload
     separateFabrics.forEach(sf => {
       const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-      const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-      const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
-      const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
       const qty = parseFloat(sf.meters) || 0;
       const rate = parseFloat(sf.rate) || 0;
 
       payloadItems.push({
         product_type_id: null,
-        product_type_name: `Fabric: ${fabricName}${shade}${width}`,
+        product_type_name: `Fabric: ${fabricName}`,
         quantity: qty,
         unit_price: rate,
         total_price: qty * rate,

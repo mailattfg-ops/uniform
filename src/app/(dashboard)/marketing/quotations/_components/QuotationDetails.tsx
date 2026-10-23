@@ -22,6 +22,7 @@ import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
 import { formatDate } from '@/lib/formatters';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface QuotationDetailsProps {
   selectedQuotation: Quotation;
@@ -193,17 +194,17 @@ export default function QuotationDetails({
             
             const fabricId = item.size_breakdown?.fabric_id;
             const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-            const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+            const fabricBrand = formatFabricDisplayName(fabric) || 'Custom Fabric';
             const mainFabricLine = fabricId ? `FAB(M) - ${fabricBrand}` : '';
             
             const att1Id = item.size_breakdown?.attachment_fabric1_id;
             const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
-            const att1Brand = att1Fabric ? (att1Fabric.brand_name || att1Fabric.name) : '';
+            const att1Brand = formatFabricDisplayName(att1Fabric);
             const att1Line = att1Id ? `FAB(A) - ${att1Brand}` : '';
             
             const att2Id = item.size_breakdown?.attachment_fabric2_id;
             const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
-            const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
+            const att2Brand = formatFabricDisplayName(att2Fabric);
             const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
             
             firstCellHtml = `
@@ -234,7 +235,7 @@ export default function QuotationDetails({
           const pTypeName = item.product_types?.name || item.product_type_name || 'Uniform Item';
           const fabricId = item.size_breakdown?.fabric_id;
           const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-          const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+          const fabricBrand = formatFabricDisplayName(fabric) || 'Custom Fabric';
           const firstCellHtml = `<span class="font-bold text-gray-800 text-xs">${pTypeName}</span>`;
 
           const price = Number(item.unit_price) || 0;
@@ -259,16 +260,14 @@ export default function QuotationDetails({
       let sfRowsHtml = '';
       separateFabricsList.forEach((sf: any) => {
         const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-        const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-        const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
-        const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+        const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
         const meters = Number(sf.meters) || 0;
         const rate = Number(sf.rate) || 0;
         const total = meters * rate;
         
         sfRowsHtml += `
           <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="py-3.5 px-4">${fabricName}${shade}${width}</td>
+            <td class="py-3.5 px-4">${fabricName}</td>
             <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${meters} m</td>
             <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${rate.toFixed(2)}</td>
             <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
@@ -1115,25 +1114,22 @@ export default function QuotationDetails({
                               
                               const fabricId = item.size_breakdown?.fabric_id;
                               const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
-                              const fabricBrand = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
+                              const fabricBrand = formatFabricDisplayName(fabric) || 'Custom Fabric';
                               const mainFabricLine = fabricId ? `FAB(M) - ${fabricBrand}` : '';
                               
                               const att1Id = item.size_breakdown?.attachment_fabric1_id;
                               const att1Fabric = fabricsList.find((f: any) => String(f.id) === String(att1Id));
-                              const att1Brand = att1Fabric ? (att1Fabric.brand_name || att1Fabric.name) : '';
+                              const att1Brand = formatFabricDisplayName(att1Fabric);
                               const att1Line = att1Id ? `FAB(A) - ${att1Brand}` : '';
                               
                               const att2Id = item.size_breakdown?.attachment_fabric2_id;
                               const att2Fabric = fabricsList.find((f: any) => String(f.id) === String(att2Id));
-                              const att2Brand = att2Fabric ? (att2Fabric.brand_name || att2Fabric.name) : '';
+                              const att2Brand = formatFabricDisplayName(att2Fabric);
                               const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
 
                               const getFabricTitle = (f: any) => {
                                 if (!f) return 'Custom Fabric';
-                                const n = f.name || '';
-                                const b = f.brand_name ? ` (${f.brand_name})` : '';
-                                const s = f.shade ? ` - ${f.shade}` : '';
-                                return `${n}${b}${s}`.trim() || f.brand_name || 'Custom Fabric';
+                                return formatFabricDisplayName(f) || 'Custom Fabric';
                               };
 
                               const firstCellJSX = (
@@ -1202,10 +1198,7 @@ export default function QuotationDetails({
                             const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
                             const getFabricTitle = (f: any) => {
                               if (!f) return 'Custom Fabric';
-                              const n = f.name || '';
-                              const b = f.brand_name ? ` (${f.brand_name})` : '';
-                              const s = f.shade ? ` - ${f.shade}` : '';
-                              return `${n}${b}${s}`.trim() || f.brand_name || 'Custom Fabric';
+                              return formatFabricDisplayName(f) || 'Custom Fabric';
                             };
 
                             const className = item.size_breakdown?.class_name;
@@ -1283,16 +1276,14 @@ export default function QuotationDetails({
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
                       {selectedQuotation.metrics_summary.separate_fabrics.map((sf: any, idx: number) => {
                         const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-                        const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-                        const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
-                        const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                        const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
                         const meters = Number(sf.meters) || 0;
                         const rate = Number(sf.rate) || 0;
                         const total = meters * rate;
 
                         return (
                           <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
-                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}</td>
                             <td className="p-3 text-right">{meters} m</td>
                             <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
                             <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>

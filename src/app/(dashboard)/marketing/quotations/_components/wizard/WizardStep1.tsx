@@ -71,7 +71,7 @@ export default function WizardStep1({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Customer Organization</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Customer Name</label>
           <Select
             options={organizations.map(o => ({
               label: `${o.name}${o.gst_number ? ' [B2B / GST]' : ''}`,
@@ -84,7 +84,7 @@ export default function WizardStep1({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Contract Title</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Title</label>
           <Input
             placeholder="e.g. Formal Uniform Proposal"
             value={quoteTitle}

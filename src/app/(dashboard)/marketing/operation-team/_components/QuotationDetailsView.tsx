@@ -11,6 +11,7 @@ import {
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { Quotation, QuotationItem, Fabric, getSelectedQuotePricing, compileQuotationHTML } from '../_lib/compileQuotationHTML';
 
 // Helpers for department, division, and fabric cleanup
@@ -1080,16 +1081,14 @@ Forma Apparels Co.`;
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
                       {selectedQuotation.metrics_summary.separate_fabrics.map((sf: any, idx: number) => {
                         const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-                        const fabricName = fabric ? (fabric.brand_name || fabric.name || 'Custom Fabric') : 'Custom Fabric';
-                        const shade = fabric?.shade ? ` (Shade: ${fabric.shade})` : '';
-                        const width = fabric?.width ? ` - Width: ${fabric.width}"` : '';
+                        const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
                         const meters = Number(sf.meters) || 0;
                         const rate = Number(sf.rate) || 0;
                         const total = meters * rate;
 
                         return (
                           <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
-                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}{shade}{width}</td>
+                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}</td>
                             <td className="p-3 text-right">{meters} m</td>
                             <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
                             <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>

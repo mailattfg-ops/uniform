@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { 
   Layers, 
   Clock, 
@@ -22,7 +23,10 @@ import {
   RotateCw,
   CornerDownRight,
   FileText,
-  Scissors
+  Scissors,
+  Package,
+  Box,
+  Tag
 } from 'lucide-react';
 
 interface POItemFabric {
@@ -41,6 +45,7 @@ interface POItem {
   fabric_id?: string;
   trim_id?: string;
   quantity: number;
+  unit?: string;
   unit_price?: number;
   status: string;
   created_at: string;
@@ -51,6 +56,13 @@ interface POItem {
     name: string;
     code: string;
     uom?: string;
+  };
+  products?: {
+    id: number | string;
+    name: string;
+    art_number: string;
+    size: string;
+    category?: string;
   };
 }
 
@@ -75,9 +87,37 @@ interface Fabric {
   width: string | null;
 }
 
+interface TrimItem {
+  id: string;
+  code: string;
+  name: string;
+  uom?: string;
+}
+
+interface ProductItem {
+  id: number | string;
+  name: string;
+  art_number: string;
+  base_size?: string | null;
+  category?: string;
+}
+
+interface FormPOItem {
+  item_type: 'fabric' | 'trim' | 'product';
+  fabric_id?: string;
+  trim_id?: string;
+  product_id?: string | number;
+  size?: string;
+  name?: string;
+  art_number?: string;
+  quantity: number;
+}
+
 export default function PurchaseOrdersPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [fabricList, setFabricList] = useState<Fabric[]>([]);
+  const [trimsList, setTrimsList] = useState<TrimItem[]>([]);
+  const [productsList, setProductsList] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'Draft' | 'Ordered' | 'Received' | 'Cancelled'>('ALL');
@@ -91,8 +131,8 @@ export default function PurchaseOrdersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [supplierName, setSupplierName] = useState('');
   const [notes, setNotes] = useState('');
-  const [newItems, setNewItems] = useState<{ fabric_id: string; quantity: number }[]>([
-    { fabric_id: '', quantity: 50.00 }
+  const [newItems, setNewItems] = useState<FormPOItem[]>([
+    { item_type: 'fabric', fabric_id: '', quantity: 50.00 }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -118,12 +158,14 @@ export default function PurchaseOrdersPage() {
     }
   };
 
-  const fetchFabrics = async () => {
+  const fetchInventoryData = async () => {
     try {
       const res = await api.get('/inventory/stock');
       setFabricList(res.data?.fabrics || []);
+      setTrimsList(res.data?.trims || []);
+      setProductsList(res.data?.products || []);
     } catch (err) {
-      console.error('Failed to fetch fabrics for selector:', err);
+      console.error('Failed to fetch inventory stock records for selector:', err);
     }
   };
 
@@ -148,7 +190,7 @@ export default function PurchaseOrdersPage() {
 
   useEffect(() => {
     fetchPurchaseOrders();
-    fetchFabrics();
+    fetchInventoryData();
   }, []);
 
   const handleOpenDetails = async (poId: number) => {
@@ -169,7 +211,12 @@ export default function PurchaseOrdersPage() {
     const loadingToast = toast.loading(`Transitioning PO state to ${targetStatus}...`);
     try {
       const res = await api.put(`/inventory/purchase-orders/${poId}/status`, { status: targetStatus });
-      toast.success(`Purchase order successfully marked as ${targetStatus}!`, { id: loadingToast });
+      toast.success(
+        targetStatus === 'Received' 
+          ? 'Shipment received! Respective product, fabric, or trim inventory has been automatically credited.' 
+          : `Purchase order successfully marked as ${targetStatus}!`,
+        { id: loadingToast }
+      );
       setSelectedPO(res.data); // Update modal contents
       fetchPurchaseOrders(); // Sync list
     } catch (err: any) {
@@ -180,7 +227,7 @@ export default function PurchaseOrdersPage() {
 
   // Manual PO Form Actions
   const handleAddItemRow = () => {
-    setNewItems(prev => [...prev, { fabric_id: '', quantity: 50.00 }]);
+    setNewItems(prev => [...prev, { item_type: 'fabric', fabric_id: '', quantity: 50.00 }]);
   };
 
   const handleRemoveItemRow = (idx: number) => {
@@ -188,13 +235,34 @@ export default function PurchaseOrdersPage() {
     setNewItems(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleItemChange = (idx: number, field: 'fabric_id' | 'quantity', value: any) => {
+  const handleItemTypeChange = (idx: number, newType: 'fabric' | 'trim' | 'product') => {
     setNewItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
-      return {
-        ...item,
-        [field]: value
-      };
+      if (newType === 'fabric') {
+        return { item_type: 'fabric', fabric_id: '', quantity: 50.00 };
+      } else if (newType === 'trim') {
+        return { item_type: 'trim', trim_id: '', quantity: 100 };
+      } else {
+        return { item_type: 'product', product_id: '', size: 'M', quantity: 10 };
+      }
+    }));
+  };
+
+  const handleItemFieldChange = (idx: number, field: keyof FormPOItem, value: any) => {
+    setNewItems(prev => prev.map((item, i) => {
+      if (i !== idx) return item;
+      const updated = { ...item, [field]: value };
+      if (field === 'product_id') {
+        const prod = productsList.find(p => String(p.id) === String(value));
+        if (prod) {
+          updated.name = prod.name;
+          updated.art_number = prod.art_number;
+          if (prod.base_size && !item.size) {
+            updated.size = prod.base_size;
+          }
+        }
+      }
+      return updated;
     }));
   };
 
@@ -202,20 +270,52 @@ export default function PurchaseOrdersPage() {
     e.preventDefault();
     
     // Validation
-    const invalidItem = newItems.some(i => !i.fabric_id || i.quantity <= 0);
+    const invalidItem = newItems.some(i => {
+      if (!i.quantity || i.quantity <= 0) return true;
+      if (i.item_type === 'fabric' && !i.fabric_id) return true;
+      if (i.item_type === 'trim' && !i.trim_id) return true;
+      if (i.item_type === 'product' && !i.product_id) return true;
+      return false;
+    });
+
     if (invalidItem) {
-      toast.error('Please ensure all items have a valid fabric selected and quantity > 0');
+      toast.error('Please ensure all items have a valid material/product selected and quantity > 0');
       return;
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading('Constructing manual purchase order...');
+    const loadingToast = toast.loading('Constructing purchase order...');
     
     try {
+      const sanitizedItems = newItems.map(item => {
+        if (item.item_type === 'fabric') {
+          return {
+            item_type: 'fabric',
+            fabric_id: item.fabric_id,
+            quantity: Number(item.quantity)
+          };
+        } else if (item.item_type === 'trim') {
+          return {
+            item_type: 'trim',
+            trim_id: item.trim_id,
+            quantity: Number(item.quantity)
+          };
+        } else {
+          return {
+            item_type: 'product',
+            product_id: item.product_id,
+            size: item.size || 'M',
+            name: item.name,
+            art_number: item.art_number,
+            quantity: Number(item.quantity)
+          };
+        }
+      });
+
       await api.post('/inventory/purchase-orders', {
         supplier_name: supplierName,
         notes,
-        items: newItems
+        items: sanitizedItems
       });
 
       toast.success('Purchase Order initialized as Draft!', { id: loadingToast });
@@ -223,7 +323,7 @@ export default function PurchaseOrdersPage() {
       // Reset form
       setSupplierName('');
       setNotes('');
-      setNewItems([{ fabric_id: '', quantity: 50.00 }]);
+      setNewItems([{ item_type: 'fabric', fabric_id: '', quantity: 50.00 }]);
       fetchPurchaseOrders();
     } catch (err: any) {
       const errorMsg = err.response?.data?.error || 'Failed to create purchase order. Verify administrator permissions.';
@@ -601,15 +701,15 @@ export default function PurchaseOrdersPage() {
 
                 {/* Items Catalog List */}
                 <div className="space-y-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Ordered Raw Materials (Fabrics &amp; Trims)</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Ordered Items (Products, Fabrics &amp; Trims)</h4>
                   
                   <div className="border border-zinc-100 rounded-2xl overflow-hidden max-h-60 overflow-y-auto no-scrollbar">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-zinc-50 border-b border-zinc-100">
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Material</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Item</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Type</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Code</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Code / Art #</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Details / Spec</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Ordered Qty</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-right">Status</th>
@@ -618,13 +718,24 @@ export default function PurchaseOrdersPage() {
                       <tbody className="divide-y divide-zinc-50">
                         {selectedPO.items && selectedPO.items.length > 0 ? (
                           selectedPO.items.map((item) => {
-                            const isTrim = item.item_type === 'trim' || Boolean(item.trim_id);
-                            const name = item.fabrics?.name || item.trims?.name || (isTrim ? `Trim #${item.trim_id}` : `Fabric #${item.fabric_id}`);
-                            const code = item.fabrics?.code || item.trims?.code || 'N/A';
-                            const uom = isTrim ? (item.trims?.uom || 'pcs') : 'meters';
-                            const spec = item.fabrics 
-                              ? [item.fabrics.brand_name, item.fabrics.shade ? `Shade: ${item.fabrics.shade}` : null, item.fabrics.width ? `Width: ${item.fabrics.width}` : null].filter(Boolean).join(' • ') || 'Roll Spec'
-                              : `UOM: ${uom}`;
+                            const isProduct = item.item_type === 'product' || Boolean(item.products);
+                            const isTrim = !isProduct && (item.item_type === 'trim' || Boolean(item.trim_id));
+
+                            const name = isProduct 
+                              ? (item.products?.name || 'Finished Product')
+                              : (item.fabrics?.name || item.trims?.name || (isTrim ? `Trim #${item.trim_id}` : `Fabric #${item.fabric_id}`));
+
+                            const code = isProduct 
+                              ? (item.products?.art_number || 'N/A')
+                              : (item.fabrics?.code || item.trims?.code || 'N/A');
+
+                            const uom = isProduct ? 'pcs' : (isTrim ? (item.trims?.uom || 'pcs') : 'meters');
+
+                            const spec = isProduct
+                              ? `Size: ${item.products?.size || 'M'} • Ready-to-wear Stock`
+                              : item.fabrics 
+                                ? [item.fabrics.brand_name, item.fabrics.shade ? `Shade: ${item.fabrics.shade}` : null, item.fabrics.width ? `Width: ${item.fabrics.width}` : null].filter(Boolean).join(' • ') || 'Roll Spec'
+                                : `UOM: ${uom}`;
 
                             return (
                               <tr key={item.id} className="hover:bg-zinc-50/50">
@@ -633,9 +744,13 @@ export default function PurchaseOrdersPage() {
                                 </td>
                                 <td className="p-4">
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                                    isTrim ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    isProduct 
+                                      ? 'bg-purple-50 text-purple-700 border border-purple-200' 
+                                      : isTrim 
+                                        ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                        : 'bg-blue-50 text-blue-700 border border-blue-200'
                                   }`}>
-                                    {isTrim ? 'Trim' : 'Fabric'}
+                                    {isProduct ? 'Product' : isTrim ? 'Trim' : 'Fabric'}
                                   </span>
                                 </td>
                                 <td className="p-4 text-zinc-500 font-bold font-mono">
@@ -662,7 +777,7 @@ export default function PurchaseOrdersPage() {
                         ) : (
                           <tr>
                             <td colSpan={6} className="p-8 text-center text-zinc-400 italic font-bold">
-                              No raw material items compiled inside this Purchase Order.
+                              No items compiled inside this Purchase Order.
                             </td>
                           </tr>
                         )}
@@ -677,7 +792,7 @@ export default function PurchaseOrdersPage() {
                     <AlertTriangle size={18} className="shrink-0" />
                     <div>
                       <p className="font-black">Draft Order Status</p>
-                      <p className="opacity-90 mt-0.5">This PO is currently a draft. Ready to coordinate fabric roll placement? Advancing status to "Ordered" alerts suppliers. No fabric quantities will be credited yet.</p>
+                      <p className="opacity-90 mt-0.5">This PO is currently a draft. Ready to coordinate placement? Advancing status to "Ordered" alerts suppliers. No inventory will be credited yet.</p>
                     </div>
                   </div>
                 )}
@@ -687,7 +802,7 @@ export default function PurchaseOrdersPage() {
                     <AlertTriangle size={18} className="shrink-0" />
                     <div>
                       <p className="font-black">Shipment Pending Fulfillment</p>
-                      <p className="opacity-90 mt-0.5">Supplier is currently fulfilling this order. Ready to credit inventory? Clicking "Receive Shipment" will automatically add the itemized raw fabric quantities (meters) to the fabrics catalog database.</p>
+                      <p className="opacity-90 mt-0.5">Supplier is currently fulfilling this order. Ready to credit inventory? Clicking "Receive Shipment" will automatically add the itemized product, fabric, or trim quantities into active inventory.</p>
                     </div>
                   </div>
                 )}
@@ -767,9 +882,9 @@ export default function PurchaseOrdersPage() {
                 <PlusCircle size={20} />
               </div>
               <div>
-                <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">Create Fabric Purchase Order</h3>
+                <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">Create Purchase Order</h3>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-0.5">
-                  Prepare external raw materials replenishment PO
+                  Procure Finished Products, Fabrics, or Trims &amp; Accessories
                 </p>
               </div>
             </div>
@@ -785,7 +900,7 @@ export default function PurchaseOrdersPage() {
                     required
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
-                    placeholder="e.g. Acme Fabric Mills, Main Textiles"
+                    placeholder="e.g. Acme Garment Makers, Main Textiles"
                     className="w-full h-12 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
                   />
                 </div>
@@ -804,51 +919,120 @@ export default function PurchaseOrdersPage() {
               {/* Dynamic PO items list */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Fabric Items</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Procurement Items</label>
                   
                   <button
                     type="button"
                     onClick={handleAddItemRow}
                     className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] hover:text-[#2d8d9b]/80 flex items-center gap-1 transition-colors"
                   >
-                    <Plus size={12} /> Add Fabric Row
+                    <Plus size={12} /> Add Item Row
                   </button>
                 </div>
 
-                <div className="space-y-3 max-h-60 overflow-y-auto no-scrollbar pr-1">
+                <div className="space-y-3 max-h-72 overflow-y-auto no-scrollbar pr-1">
                   {newItems.map((item, idx) => (
                     <div 
                       key={idx}
-                      className="flex gap-3 items-center bg-zinc-50 border border-zinc-100 p-4 rounded-2xl relative group"
+                      className="flex flex-col md:flex-row gap-3 items-start md:items-center bg-zinc-50 border border-zinc-100 p-4 rounded-2xl relative group"
                     >
-                      {/* Fabric Selection Selector */}
-                      <div className="flex-1 space-y-1">
-                        <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">Fabric Selection</span>
+                      {/* Item Type Selector */}
+                      <div className="w-full md:w-36 space-y-1">
+                        <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">Type</span>
                         <select
-                          required
-                          value={item.fabric_id}
-                          onChange={(e) => handleItemChange(idx, 'fabric_id', e.target.value)}
-                          className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                          value={item.item_type}
+                          onChange={(e) => handleItemTypeChange(idx, e.target.value as any)}
+                          className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-2.5 text-xs font-bold outline-none"
                         >
-                          <option value="">Select a Fabric...</option>
-                          {fabricList.map(f => (
-                            <option key={f.id} value={f.id}>
-                              {f.name} ({f.code}) {f.brand_name ? `- ${f.brand_name}` : ''}
-                            </option>
-                          ))}
+                          <option value="fabric">Fabric</option>
+                          <option value="trim">Trim / Acc</option>
+                          <option value="product">Product</option>
                         </select>
                       </div>
 
+                      {/* Main Item Selector based on item_type */}
+                      <div className="flex-1 w-full space-y-1">
+                        <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">
+                          {item.item_type === 'fabric' ? 'Fabric Selection' : item.item_type === 'trim' ? 'Trim / Accessory Selection' : 'Finished Product Selection'}
+                        </span>
+
+                        {item.item_type === 'fabric' && (
+                          <select
+                            required
+                            value={item.fabric_id || ''}
+                            onChange={(e) => handleItemFieldChange(idx, 'fabric_id', e.target.value)}
+                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                          >
+                            <option value="">Select a Fabric...</option>
+                            {fabricList.map(f => (
+                              <option key={f.id} value={f.id}>
+                                {formatFabricDisplayName(f)} ({f.code})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {item.item_type === 'trim' && (
+                          <select
+                            required
+                            value={item.trim_id || ''}
+                            onChange={(e) => handleItemFieldChange(idx, 'trim_id', e.target.value)}
+                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                          >
+                            <option value="">Select a Trim / Accessory...</option>
+                            {trimsList.map(t => (
+                              <option key={t.id} value={t.id}>
+                                {t.name} ({t.code}) - {t.uom || 'pcs'}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {item.item_type === 'product' && (
+                          <select
+                            required
+                            value={item.product_id || ''}
+                            onChange={(e) => handleItemFieldChange(idx, 'product_id', e.target.value)}
+                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                          >
+                            <option value="">Select a Product...</option>
+                            {productsList.map(p => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} ({p.art_number})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+
+                      {/* Size picker for Products */}
+                      {item.item_type === 'product' && (
+                        <div className="w-full md:w-28 space-y-1">
+                          <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">Size</span>
+                          <select
+                            value={item.size || 'M'}
+                            onChange={(e) => handleItemFieldChange(idx, 'size', e.target.value)}
+                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-2.5 text-xs font-bold outline-none"
+                          >
+                            {['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '28', '30', '32', '34', '36', '38', '40', '42'].map(sz => (
+                              <option key={sz} value={sz}>{sz}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
                       {/* Quantity input */}
-                      <div className="w-40 space-y-1">
-                        <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">Quantity (meters)</span>
+                      <div className="w-full md:w-32 space-y-1">
+                        <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">
+                          Qty ({item.item_type === 'fabric' ? 'meters' : 'pcs'})
+                        </span>
                         <input
                           type="number"
-                          step="0.01"
+                          step={item.item_type === 'fabric' ? '0.01' : '1'}
                           required
                           min={1}
                           value={item.quantity}
-                          onChange={(e) => handleItemChange(idx, 'quantity', Math.max(1, parseFloat(e.target.value) || 0))}
+                          onChange={(e) => handleItemFieldChange(idx, 'quantity', Math.max(1, parseFloat(e.target.value) || 0))}
                           className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-black outline-none"
                         />
                       </div>
@@ -858,7 +1042,7 @@ export default function PurchaseOrdersPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveItemRow(idx)}
-                          className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-500 text-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 p-0 self-end mt-2"
+                          className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-500 text-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 p-0 self-end md:self-center mt-2 md:mt-4 shrink-0"
                         >
                           <Trash2 size={14} />
                         </button>

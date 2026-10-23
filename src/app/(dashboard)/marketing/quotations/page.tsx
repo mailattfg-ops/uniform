@@ -126,16 +126,19 @@ export interface ManualItem {
   // Main Fabric — mandatory
   fabric_id: string;
   main_fabric_meters: string;
+  base_main_fabric_meters?: string; // 58" width baseline measurement
   main_fabric_rate: string;
   main_fabric_sam: string; // Fabric SAM (minutes)
   // Attachment Fabric 1 — optional
   attachment_fabric1_id: string;
   attachment_fabric1_meters: string;
+  base_attachment_fabric1_meters?: string; // 58" width baseline measurement
   attachment_fabric1_rate: string;
   attachment_fabric1_sam: string; // Fabric SAM (minutes)
   // Attachment Fabric 2 — optional
   attachment_fabric2_id: string;
   attachment_fabric2_meters: string;
+  base_attachment_fabric2_meters?: string; // 58" width baseline measurement
   attachment_fabric2_rate: string;
   attachment_fabric2_sam: string; // Fabric SAM (minutes)
   // Trims & Accessories

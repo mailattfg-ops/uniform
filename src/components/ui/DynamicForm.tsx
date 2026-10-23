@@ -63,6 +63,7 @@ export interface FormField {
   onChange?: (value: any) => void;
   maxImages?: number;
   uploadLabel?: string;
+  helperText?: React.ReactNode;
   render?: (value: any, onChange: (val: any) => void) => React.ReactNode;
 }
 
@@ -350,6 +351,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   maxLength={field.maxLength}
                   pattern={field.pattern}
                   step={field.step}
+                  helperText={field.helperText}
                   onChange={(e: any) => {
                     if (field.onChange) field.onChange(e.target.value);
                   }}
