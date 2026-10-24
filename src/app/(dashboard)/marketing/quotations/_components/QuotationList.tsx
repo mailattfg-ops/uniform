@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import api from '@/lib/api';
@@ -36,6 +36,7 @@ interface QuotationListProps {
   onBmReject?: (q: Quotation) => void;
   currentUser?: any;
   onRefresh?: () => void;
+  onPrintTrigger?: (triggerFn: () => void) => void;
 }
 
 export default function QuotationList({
@@ -51,7 +52,8 @@ export default function QuotationList({
   onBmApprove,
   onBmReject,
   currentUser,
-  onRefresh
+  onRefresh,
+  onPrintTrigger
 }: QuotationListProps) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved'>('all');
@@ -388,7 +390,8 @@ export default function QuotationList({
     }
   ];
 
-  const handlePrintQuotations = (sortedData: Quotation[], sortInfo: SortInfo<Quotation>) => {
+  const handlePrintQuotations = useCallback((sortedData?: Quotation[], sortInfo?: SortInfo<Quotation>) => {
+    const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredQuotations;
     const printedAt = new Date().toLocaleString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -401,7 +404,7 @@ export default function QuotationList({
       ? 'All Branches'
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
-    const rowsHtml = sortedData.map((q, idx) => {
+    const rowsHtml = dataToPrint.map((q, idx) => {
       const org = q.organizations as any;
       const person = org?.contact_person || '—';
       const phone = org?.contact_number || org?.phone || '—';
@@ -458,7 +461,8 @@ export default function QuotationList({
     <div style="text-align: right; font-size: 10px; color: #4a5568;">
       <div><strong>Printed:</strong> ${printedAt}</div>
       <div><strong>Branch:</strong> ${activeBranchName}</div>
-      <div><strong>Total Records:</strong> ${sortedData.length}</div>
+      <div><strong>Total Records:</strong> ${dataToPrint.length}</div>
+      ${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? `<div><strong>Sorted by:</strong> ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})</div>` : ''}
     </div>
   </div>
   <table>
@@ -490,7 +494,21 @@ export default function QuotationList({
         printWin.print();
       }, 250);
     }
-  };
+  }, [filteredQuotations, selectedBranch, branches]);
+
+  const printTriggerRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (onPrintTrigger) {
+      onPrintTrigger(() => {
+        if (printTriggerRef.current) {
+          printTriggerRef.current();
+        } else {
+          handlePrintQuotations();
+        }
+      });
+    }
+  }, [onPrintTrigger, handlePrintQuotations]);
 
   return (
     <div className="space-y-6">
@@ -500,6 +518,8 @@ export default function QuotationList({
         isLoading={isLoading}
         searchPlaceholder="Search"
         onPrint={handlePrintQuotations}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 1. Branch Filter */}

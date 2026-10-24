@@ -29,7 +29,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 
 export interface AccessoryCategory {
   id: string;
@@ -826,7 +827,8 @@ export default function AccessoriesAndTradeCatalogPage() {
     setIsArticleModalOpen(true);
   };
 
-  const handlePrintAccessories = (sortedData: AccessoryItem[]) => {
+  const printTriggerRef = useRef<(() => void) | null>(null);
+  const handlePrintAccessories = (sortedData?: AccessoryItem[], sortInfo?: SortInfo<AccessoryItem>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
     const rowsHtml = dataToPrint.map((item, idx) => {
       const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
@@ -867,7 +869,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 </head>
 <body>
   <h1>Accessories Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>
@@ -1415,6 +1417,17 @@ export default function AccessoriesAndTradeCatalogPage() {
             <Plus size={18} strokeWidth={3} />
             New Accessories
           </button>
+
+          <PageActionsMenu
+            onPrint={() => {
+              if (printTriggerRef.current) {
+                printTriggerRef.current();
+              } else {
+                handlePrintAccessories(filteredItems);
+              }
+            }}
+            printLabel="Print Accessories"
+          />
         </div>
       </div>
 
@@ -1426,6 +1439,8 @@ export default function AccessoriesAndTradeCatalogPage() {
         searchPlaceholder="Search"
         onSearch={setSearchTerm}
         onPrint={handlePrintAccessories}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         headerAction={
           <div className="flex flex-wrap items-center gap-2">
             {/* Type Filter */}

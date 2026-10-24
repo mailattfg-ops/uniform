@@ -19,6 +19,7 @@ export interface TaxInvoiceItem {
 
 export interface TaxInvoiceData {
   id?: number | string;
+  organization_id?: number | string;
   invoice_no: string;
   order_no?: string;
   invoice_date?: string | Date;
@@ -83,6 +84,7 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
   const printContainerRef = useRef<HTMLDivElement>(null);
   const [company, setCompany] = React.useState<any>(DEFAULT_COMPANY);
   const [fetchedItems, setFetchedItems] = React.useState<any[] | null>(null);
+  const [fetchedCustomer, setFetchedCustomer] = React.useState<any | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -94,21 +96,33 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
         })
         .catch(() => {});
 
-      if (data?.id && (!data?.items || data.items.length === 0) && (!data?.invoice_items || data.invoice_items.length === 0)) {
+      if (data?.id) {
         api.get(`/invoices/${data.id}`)
           .then(res => {
             const invData = res.data?.data || res.data;
+            const cust = invData?.customer || invData?.organizations || invData?.orders?.quotations?.organizations;
+            if (cust) {
+              setFetchedCustomer(cust);
+            }
             const items = invData?.invoice_items || invData?.items || (Array.isArray(invData) ? invData : []);
             if (Array.isArray(items) && items.length > 0) {
               setFetchedItems(items);
             }
           })
           .catch(() => {});
+      } else if (data?.organization_id) {
+        api.get(`/organizations/${data.organization_id}`)
+          .then(res => {
+            const orgData = res.data?.data || res.data;
+            if (orgData) setFetchedCustomer(orgData);
+          })
+          .catch(() => {});
       }
     } else {
       setFetchedItems(null);
+      setFetchedCustomer(null);
     }
-  }, [isOpen, data?.id]);
+  }, [isOpen, data?.id, data?.organization_id]);
 
   const handlePrint = React.useCallback(() => {
     if (!data) return;
@@ -130,12 +144,26 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
   if (!isOpen || !data) return null;
 
   // Resolve customer details
-  const customer = data.customer || defaultCustomer || data.organizations || data.orders?.quotations?.organizations || data.raw?.organizations || {};
-  const customerName = data.customer_name || customer.name || data.raw?.customer_name || 'Valued Customer';
-  const customerAddress = customer.address || customer.delivery_address || 'Plot / Street Details, Industrial Park';
+  const customer = fetchedCustomer || data.customer || defaultCustomer || data.organizations || data.orders?.quotations?.organizations || data.raw?.organizations || {};
+  const customerName = customer.name || data.customer_name || data.raw?.customer_name || 'Valued Customer';
+  
+  // Billing Address & Location
+  const customerAddress = customer.address || 'Plot / Street Details, Industrial Park';
   const locationParts = [customer.city, customer.state, customer.pincode, customer.country || 'India'].filter(Boolean);
-  const locationString = locationParts.length > 0 ? locationParts.join(', ') : 'Kozhikode, Kerala – 673007, India';
+  const locationString = locationParts.length > 0 ? locationParts.join(', ') : 'Kerala – 673007, India';
+  
+  // Delivery Address & Location
   const deliveryAddress = customer.delivery_address || customerAddress;
+  const deliveryLocationParts = [
+    customer.delivery_city || customer.city,
+    customer.delivery_state || customer.state,
+    customer.delivery_pincode || customer.pincode,
+    customer.delivery_country || customer.country || 'India'
+  ].filter(Boolean);
+  const deliveryLocationString = deliveryLocationParts.length > 0 ? deliveryLocationParts.join(', ') : locationString;
+
+  const contactPhone = customer.contact_number || customer.phone || customer.contact_phone;
+  const contactEmail = customer.contact_email || customer.email;
 
   // Order Number
   const resolvedOrderNo = data.order_no || data.orders?.order_no || data.raw?.order_no || data.raw?.orders?.order_no || null;
@@ -378,16 +406,16 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                       <span className="font-semibold text-zinc-800">: {customer.contact_person}</span>
                     </div>
                   )}
-                  {customer.phone && (
+                  {contactPhone && (
                     <div className="flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Phone</span>
-                      <span className="font-semibold text-zinc-800">: {customer.phone}</span>
+                      <span className="font-semibold text-zinc-800">: {contactPhone}</span>
                     </div>
                   )}
-                  {customer.email && (
+                  {contactEmail && (
                     <div className="flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Email</span>
-                      <span className="text-zinc-700">: {customer.email}</span>
+                      <span className="text-zinc-700">: {contactEmail}</span>
                     </div>
                   )}
                 </div>
@@ -399,17 +427,17 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                   </h4>
                   <p className="text-sm font-black text-zinc-900 pt-0.5">{customerName}</p>
                   <p className="text-zinc-600 leading-relaxed">{deliveryAddress}</p>
-                  <p className="text-zinc-600">{locationString}</p>
+                  <p className="text-zinc-600">{deliveryLocationString}</p>
                   {customer.contact_person && (
                     <div className="pt-1 flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Contact</span>
                       <span className="font-semibold text-zinc-800">: {customer.contact_person}</span>
                     </div>
                   )}
-                  {customer.phone && (
+                  {contactPhone && (
                     <div className="flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Phone</span>
-                      <span className="font-semibold text-zinc-800">: {customer.phone}</span>
+                      <span className="font-semibold text-zinc-800">: {contactPhone}</span>
                     </div>
                   )}
                 </div>

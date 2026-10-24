@@ -928,8 +928,8 @@ export default function DashboardPage() {
       id: 'task-outstanding-receivables',
       title: (stats?.overdueOrdersCount || 0) > 0 ? 'Collect Overdue Sales Receivables' : 'Follow-up on Customer Receivables',
       description: (stats?.overdueOrdersCount || 0) > 0
-        ? `Immediate action required: ${stats.overdueOrdersCount} sales orders past scheduled delivery date with pending balance.`
-        : 'Collect outstanding payments on confirmed sales orders awaiting customer settlement.',
+        ? `Immediate action required: ${stats.overdueOrdersCount} customer invoices past due date with pending balance.`
+        : 'Collect outstanding payments on confirmed customer invoices awaiting full settlement.',
       category: 'Accounts',
       priority: (stats?.overdueOrdersCount || 0) > 0 ? 'Urgent' : (stats?.outstandingBalance || 0) > 0 ? 'High' : 'Normal',
       badge: (stats?.overdueAmount || 0) > 0
@@ -1026,11 +1026,11 @@ export default function DashboardPage() {
                   Payment Overdue
                 </span>
                 <h3 className="text-base font-black text-rose-950">
-                  {stats?.overdueOrdersCount} Sales Order{(stats?.overdueOrdersCount || 0) > 1 ? 's' : ''} Past Scheduled Delivery
+                  {stats?.overdueOrdersCount} Invoice{(stats?.overdueOrdersCount || 0) > 1 ? 's' : ''} Past Due Date
                 </h3>
               </div>
               <p className="text-xs font-semibold text-rose-800 mt-1">
-                Outstanding overdue receivables: <span className="font-mono font-black text-rose-950">₹{(stats?.overdueAmount || 0).toLocaleString('en-IN')}</span> requiring urgent follow-up.
+                Outstanding overdue receivables: <span className="font-mono font-black text-rose-950">₹{(stats?.overdueAmount || 0).toLocaleString('en-IN')}</span> calculated against invoice due date.
               </p>
             </div>
           </div>
@@ -1056,7 +1056,7 @@ export default function DashboardPage() {
                 Payment Collection Due: <span className="font-mono font-black">₹{(stats?.outstandingBalance || 0).toLocaleString('en-IN')}</span>
               </p>
               <p className="text-[10px] font-bold text-amber-800">
-                Calculated across {stats?.dueOrdersCount || 0} active sales orders awaiting full settlement.
+                Calculated across {stats?.dueOrdersCount || 0} customer invoices awaiting full settlement.
               </p>
             </div>
           </div>
@@ -1091,8 +1091,8 @@ export default function DashboardPage() {
           value={`₹${(stats?.outstandingBalance || 0).toLocaleString('en-IN')}`}
           subValue={
             (stats?.overdueOrdersCount || 0) > 0
-              ? `${stats.overdueOrdersCount} orders overdue past delivery`
-              : `${stats?.dueOrdersCount || 0} orders with pending balance`
+              ? `${stats.overdueOrdersCount} invoices overdue past due date`
+              : `${stats?.dueOrdersCount || 0} invoices with pending balance`
           }
           icon={CreditCard}
           variant={(stats?.overdueOrdersCount || 0) > 0 ? "rose" : (stats?.outstandingBalance || 0) > 0 ? "amber" : "default"}
@@ -1109,7 +1109,7 @@ export default function DashboardPage() {
           <DashboardStatCard
             label="Overdue Receivables"
             value={`₹${(stats.overdueAmount).toLocaleString('en-IN')}`}
-            subValue={`${stats.overdueOrdersCount} orders past delivery deadline`}
+            subValue={`${stats.overdueOrdersCount} invoices past payment due date`}
             icon={AlertTriangle}
             variant="rose"
             badge="OVERDUE"

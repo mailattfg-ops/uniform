@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers, FolderTree, Bookmark, Sparkles, X, AlertTriangle, CheckCircle2, Info, ExternalLink, Scissors, FileText, MoreHorizontal } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
@@ -1801,7 +1802,8 @@ export default function ProductManagement() {
     });
   }, [products, genders, filterGender, filterItemName, filterSpec, searchTerm]);
 
-  const handlePrintReadymades = (sortedData: Product[]) => {
+  const printTriggerRef = useRef<(() => void) | null>(null);
+  const handlePrintReadymades = (sortedData?: Product[], sortInfo?: SortInfo<Product>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredProducts;
     const rowsHtml = dataToPrint.map((p, idx) => `
       <tr>
@@ -1833,7 +1835,7 @@ export default function ProductManagement() {
 </head>
 <body>
   <h1>Readymades Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>
@@ -2051,6 +2053,17 @@ export default function ProductManagement() {
             <Plus size={18} strokeWidth={3} />
             New Readymade
           </Button>
+
+          <PageActionsMenu
+            onPrint={() => {
+              if (printTriggerRef.current) {
+                printTriggerRef.current();
+              } else {
+                handlePrintReadymades(filteredProducts);
+              }
+            }}
+            printLabel="Print Readymades"
+          />
         </div>
       </div>
 
@@ -2061,6 +2074,8 @@ export default function ProductManagement() {
         searchPlaceholder="Search"
         onSearch={setSearchTerm}
         onPrint={handlePrintReadymades}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         onRowClick={(product) => setSelectedProductForDetails(product)}
         headerAction={
           <div className="flex flex-wrap items-center gap-2">

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { 
   Plus, 
   Building2,
@@ -470,17 +471,20 @@ export default function CustomersRegistry() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Print Report Modal State
+  const printTriggerRef = useRef<(() => void) | null>(null);
   const [printModal, setPrintModal] = useState<{
     isOpen: boolean;
     data: Customer[];
     sortInfo: SortInfo<Customer>;
   } | null>(null);
 
-  const handlePrintCustomers = (sortedData: Customer[], sortInfo: SortInfo<Customer>) => {
+  const handlePrintCustomers = (sortedData?: Customer[], sortInfo?: SortInfo<Customer>) => {
+    const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredCustomers;
+    const infoToPrint: SortInfo<Customer> = sortInfo || { columnIndex: null, column: null, direction: 'asc', headerLabel: 'Default' };
     setPrintModal({
       isOpen: true,
-      data: sortedData,
-      sortInfo: sortInfo,
+      data: dataToPrint,
+      sortInfo: infoToPrint,
     });
   };
 
@@ -809,29 +813,45 @@ export default function CustomersRegistry() {
       const contactPerson = linkedCust?.contact_person || undefined;
       const contactPhone = linkedCust?.contact_number || linkedCust?.phone || undefined;
       const creditPeriod = inv.credit_period_days || linkedCust?.credit_period_days || 30;
+      const invDateStr = inv.invoice_date || inv.created_at || '';
 
-      const invDateStr = inv.invoice_date || inv.created_at;
-      const invDate = invDateStr ? new Date(invDateStr) : new Date();
-      const dueDate = inv.due_date ? new Date(inv.due_date) : new Date(invDate.getTime() + creditPeriod * 24 * 60 * 60 * 1000);
+      // Safe date parser to avoid UTC/local day-shifting
+      const parseLocal = (dStr?: string) => {
+        if (!dStr) return null;
+        const p = dStr.split('T')[0].split('-');
+        if (p.length === 3) return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        const d = new Date(dStr);
+        return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      };
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const dueMidnight = new Date(dueDate);
-      dueMidnight.setHours(0, 0, 0, 0);
+      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      let dueMidnight = parseLocal(inv.due_date);
+      if (!dueMidnight) {
+        const invMidnight = parseLocal(invDateStr) || todayMidnight;
+        dueMidnight = new Date(invMidnight.getTime() + creditPeriod * 24 * 60 * 60 * 1000);
+      }
 
       const msPerDay = 24 * 60 * 60 * 1000;
-      const diffDays = Math.round((today.getTime() - dueMidnight.getTime()) / msPerDay);
+      const diffDays = Math.round((todayMidnight.getTime() - dueMidnight.getTime()) / msPerDay);
+      const dueDateStr = inv.due_date || (dueMidnight ? dueMidnight.toISOString() : '');
 
-      let dueStatus: 'Active' | 'Due' | 'Overdue' | 'Paid' = inv.due_status || 'Active';
+      let dueStatus: 'Active' | 'Due' | 'Overdue' | 'Paid' = (inv.due_status as any) || 'Active';
       let daysRemaining = inv.days_remaining !== undefined ? inv.days_remaining : 0;
       let daysOverdue = inv.days_overdue !== undefined ? inv.days_overdue : 0;
       let statusMessage = inv.status_message || '';
 
-      if (inv.payment_status === 'Paid' || balance <= 0) {
+      if (inv.payment_status === 'Paid' || inv.payment_status === 'Fully Paid' || balance <= 0) {
         dueStatus = 'Paid';
+        daysRemaining = 0;
+        daysOverdue = 0;
+        statusMessage = 'Paid';
+      } else if (inv.due_status) {
+        dueStatus = inv.due_status as any;
       } else if (diffDays === 0) {
         dueStatus = 'Due';
-        statusMessage = 'Due Today (Last day of credit period)';
+        statusMessage = 'Due Today';
         daysRemaining = 0;
         daysOverdue = 0;
       } else if (diffDays > 0) {
@@ -860,7 +880,7 @@ export default function CustomersRegistry() {
           contact_person: contactPerson,
           contact_phone: contactPhone,
           invoice_date: invDateStr,
-          due_date: dueDate.toISOString(),
+          due_date: dueDateStr,
           credit_period_days: creditPeriod,
           total_amount: total,
           paid_amount: paid,
@@ -1154,18 +1174,30 @@ export default function CustomersRegistry() {
           </p>
         </div>
 
-        {!isClientUser && (
-          <Button
-            onClick={() => {
-              setEditingCustomer(null);
-              setIsAdding(true);
+        <div className="flex items-center gap-3">
+          {!isClientUser && (
+            <Button
+              onClick={() => {
+                setEditingCustomer(null);
+                setIsAdding(true);
+              }}
+              className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
+            >
+              <Plus size={18} strokeWidth={3} />
+              New Customer
+            </Button>
+          )}
+          <PageActionsMenu
+            onPrint={() => {
+              if (printTriggerRef.current) {
+                printTriggerRef.current();
+              } else {
+                handlePrintCustomers(filteredCustomers);
+              }
             }}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
-          >
-            <Plus size={18} strokeWidth={3} />
-            New Customer
-          </Button>
-        )}
+            printLabel="Print Customers"
+          />
+        </div>
       </div>
 
       {/* Main Table with Header Actions */}
@@ -1175,6 +1207,8 @@ export default function CustomersRegistry() {
         isLoading={isLoading}
         searchPlaceholder="Search"
         onPrint={handlePrintCustomers}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 1. Branch Filter */}

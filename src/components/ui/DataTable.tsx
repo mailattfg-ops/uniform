@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown, Printer, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown, Printer, MoreVertical, X } from 'lucide-react';
 import { Button } from './Button';
 
 export interface Column<T> {
@@ -34,9 +34,12 @@ export interface DataTableProps<T> {
   defaultSortIndex?: number | null;
   defaultSortDirection?: 'asc' | 'desc';
   onPrint?: (sortedData: T[], sortInfo: SortInfo<T>) => void;
+  hideTablePrint?: boolean;
   pinRowTop?: (item: T) => boolean;
   rowClassName?: (item: T) => string | undefined;
   onRowClick?: (item: T) => void;
+  printTriggerRef?: React.MutableRefObject<(() => void) | null>;
+  onSortedChange?: (sortedData: T[], sortInfo: SortInfo<T>) => void;
 }
 
 function extractTextFromReactNode(node: React.ReactNode): string {
@@ -140,14 +143,19 @@ export function DataTable<T extends { id: string | number }>({
   defaultSortIndex = null,
   defaultSortDirection = 'asc',
   onPrint,
+  hideTablePrint = false,
   pinRowTop,
   rowClassName,
   onRowClick,
+  printTriggerRef,
+  onSortedChange,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
+  const tableMenuRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumnIndex, setSortColumnIndex] = useState<number | null>(defaultSortIndex ?? null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection || 'asc');
@@ -169,11 +177,15 @@ export function DataTable<T extends { id: string | number }>({
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
       }
+      if (tableMenuRef.current && !tableMenuRef.current.contains(event.target as Node)) {
+        setIsTableMenuOpen(false);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsSearchOpen(false);
+        setIsTableMenuOpen(false);
       }
     };
 
@@ -287,6 +299,24 @@ export function DataTable<T extends { id: string | number }>({
     };
   }, [sortColumnIndex, sortDirection, columns]);
 
+  // Synchronize print trigger ref with latest sorted data and sorting metadata
+  React.useEffect(() => {
+    if (printTriggerRef) {
+      printTriggerRef.current = () => {
+        if (onPrint) {
+          onPrint(sortedData, currentSortInfo);
+        }
+      };
+    }
+  }, [printTriggerRef, onPrint, sortedData, currentSortInfo]);
+
+  // Optionally notify parent component of sorted data and sort metadata changes
+  React.useEffect(() => {
+    if (onSortedChange) {
+      onSortedChange(sortedData, currentSortInfo);
+    }
+  }, [onSortedChange, sortedData, currentSortInfo]);
+
   const totalPages = Math.ceil(sortedData.length / pageSize);
   const paginatedData = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -296,7 +326,7 @@ export function DataTable<T extends { id: string | number }>({
   return (
     <div className="bg-white rounded-2xl md:rounded-3xl border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
       {/* Table Header Section - Unified One-Line Toolbar */}
-      {(title || subtitle || searchPlaceholder || headerAction || rightAction || onPrint) && (
+      {(title || subtitle || searchPlaceholder || headerAction || rightAction || (onPrint && !hideTablePrint)) && (
         <div className="px-4 py-2.5 md:px-6 md:py-3 border-b border-[#fce4d4] flex flex-wrap items-center justify-between gap-2.5 bg-[#fce4d4]/10 min-w-0">
           {/* Left: Title & Subtitle Info (if provided) */}
           {(title || subtitle) && (
@@ -436,23 +466,45 @@ export function DataTable<T extends { id: string | number }>({
               </div>
             )}
 
-            {/* Print Button */}
-            {onPrint && (
-              <button
-                type="button"
-                onClick={() => onPrint(sortedData, currentSortInfo)}
-                className="h-10 px-3.5 bg-white border border-[#fce4d4] hover:bg-[#fce4d4]/30 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-2xs shrink-0 cursor-pointer"
-                title="Print table data (as per current sort applied)"
-              >
-                <Printer size={15} className="text-[#2d8d9b]" />
-                <span className="hidden sm:inline">Print</span>
-              </button>
-            )}
-
             {/* Right Action */}
             {rightAction && (
               <div className="shrink-0 flex items-center">
                 {rightAction}
+              </div>
+            )}
+
+            {/* Three-Dot Menu (houses Print option removed from previous direct position) */}
+            {onPrint && !hideTablePrint && (
+              <div className="relative shrink-0" ref={tableMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsTableMenuOpen(prev => !prev)}
+                  className={`w-10 h-10 bg-white border border-[#fce4d4] hover:border-[#2d8d9b]/60 rounded-xl text-[#3a525d] hover:text-[#2d8d9b] transition-all flex items-center justify-center cursor-pointer shadow-2xs ${
+                    isTableMenuOpen
+                      ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b] ring-2 ring-[#2d8d9b]/20'
+                      : 'hover:bg-[#fce4d4]/20'
+                  }`}
+                  title="More options"
+                  aria-label="More options"
+                  aria-expanded={isTableMenuOpen}
+                >
+                  <MoreVertical size={16} strokeWidth={2.5} />
+                </button>
+                {isTableMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 z-50 w-44 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTableMenuOpen(false);
+                        onPrint(sortedData, currentSortInfo);
+                      }}
+                      className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-[#3a525d] hover:bg-[#fce4d4]/20 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Printer size={15} className="text-[#2d8d9b]" />
+                      <span>Print</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

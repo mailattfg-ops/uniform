@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -214,6 +215,7 @@ export default function QuotationsPage() {
   const [isRejecting, setIsRejecting] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
+  const printTriggerRef = useRef<(() => void) | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
   const [threadsList, setThreadsList] = useState<any[]>([]);
   const [trimsList, setTrimsList] = useState<any[]>([]);
@@ -542,13 +544,23 @@ export default function QuotationsPage() {
         </div>
 
         {activeTab === 'list' ? (
-          <Button
-            onClick={() => setActiveTab('create')}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
-          >
-            <Plus size={18} strokeWidth={3} />
-            New Quotation
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setActiveTab('create')}
+              className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
+            >
+              <Plus size={18} strokeWidth={3} />
+              New Quotation
+            </Button>
+            <PageActionsMenu
+              onPrint={() => {
+                if (printTriggerRef.current) {
+                  printTriggerRef.current();
+                }
+              }}
+              printLabel="Print Quotations"
+            />
+          </div>
         ) : (
           <Button
             variant="secondary"
@@ -580,6 +592,7 @@ export default function QuotationsPage() {
           onBmReject={setBmRejectCandidate}
           currentUser={currentUser}
           onRefresh={fetchQuotations}
+          onPrintTrigger={(fn) => { printTriggerRef.current = fn; }}
         />
       )}
 

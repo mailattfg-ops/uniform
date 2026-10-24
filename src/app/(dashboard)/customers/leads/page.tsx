@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { 
   Plus, Users, MapPin, Edit2, Trash2, Target, ShieldCheck, 
   Phone, Mail, Clock, Briefcase, FileText, X, Check, MessageSquarePlus, 
@@ -884,7 +885,9 @@ export default function LeadsRegistryPage() {
   ], [branches, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
 
   // Print Report Handler
-  const handlePrintLeads = (sortedData: Lead[], sortInfo: SortInfo<Lead>) => {
+  const printTriggerRef = useRef<(() => void) | null>(null);
+  const handlePrintLeads = (sortedData?: Lead[], sortInfo?: SortInfo<Lead>) => {
+    const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredLeads;
     const printedAt = new Date().toLocaleString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -897,7 +900,7 @@ export default function LeadsRegistryPage() {
       ? 'All Branches'
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
-    const rowsHtml = sortedData.map((l, idx) => {
+    const rowsHtml = dataToPrint.map((l, idx) => {
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -948,7 +951,8 @@ export default function LeadsRegistryPage() {
       <div><strong>Printed:</strong> ${printedAt}</div>
       <div><strong>Filter Stage:</strong> ${activeStageFilter}</div>
       <div><strong>Branch:</strong> ${activeBranchName}</div>
-      <div><strong>Total Records:</strong> ${sortedData.length}</div>
+      <div><strong>Total Records:</strong> ${dataToPrint.length}</div>
+      ${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? `<div><strong>Sorted by:</strong> ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})</div>` : ''}
     </div>
   </div>
   <table>
@@ -1007,6 +1011,16 @@ export default function LeadsRegistryPage() {
               New Lead
             </Button>
           )}
+          <PageActionsMenu
+            onPrint={() => {
+              if (printTriggerRef.current) {
+                printTriggerRef.current();
+              } else {
+                handlePrintLeads(filteredLeads);
+              }
+            }}
+            printLabel="Print Leads"
+          />
         </div>
       </div>
 
@@ -1017,6 +1031,8 @@ export default function LeadsRegistryPage() {
         isLoading={isLoading}
         searchPlaceholder="Search"
         onPrint={handlePrintLeads}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         pinRowTop={prioritizeNoFollowups ? isOverdueSalesLead : undefined}
         rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
         headerAction={
