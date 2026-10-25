@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { 
   Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText
 } from 'lucide-react';
@@ -272,7 +273,9 @@ export default function DealsRegistryPage() {
   }, [allDeals, stageFilter, selectedBranch, selectedZone, selectedIndustry, getDealFinancials]);
 
   // Print Handler
-  const handlePrintDeals = (sortedData: Lead[], currentSort?: SortInfo<Lead> | null) => {
+  const printTriggerRef = useRef<(() => void) | null>(null);
+  const handlePrintDeals = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
+    const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredDeals;
     const printedAt = new Date().toLocaleString('en-IN', {
       dateStyle: 'medium',
       timeStyle: 'short'
@@ -282,7 +285,7 @@ export default function DealsRegistryPage() {
       ? 'All Branches'
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
-    const rowsHtml = sortedData.map((l, idx) => {
+    const rowsHtml = dataToPrint.map((l, idx) => {
       const fin = getDealFinancials(l);
       return `
       <tr>
@@ -342,7 +345,8 @@ export default function DealsRegistryPage() {
     <div style="text-align: right;">
       <div style="font-size: 12px; font-weight: bold; color: #3a525d;">Branch: ${activeBranchName}</div>
       <div style="font-size: 9px; color: #718096; margin-top: 2px;">Printed: ${printedAt}</div>
-      <div style="font-size: 9px; font-weight: bold; color: #047857;">Total Deals: ${sortedData.length}</div>
+      <div style="font-size: 9px; font-weight: bold; color: #047857;">Total Deals: ${dataToPrint.length}</div>
+      ${currentSort?.headerLabel && currentSort.headerLabel !== 'Default' ? `<div style="font-size: 9px; color: #2d8d9b; font-weight: bold; margin-top: 2px;">Sorted by: ${currentSort.headerLabel} (${currentSort.direction === 'asc' ? 'Ascending' : 'Descending'})</div>` : ''}
     </div>
   </div>
   <table>
@@ -594,6 +598,19 @@ export default function DealsRegistryPage() {
             Commercial Deals • Initial Payments • Sales Order Conversions
           </p>
         </div>
+
+        <div className="flex items-center gap-3">
+          <PageActionsMenu
+            onPrint={() => {
+              if (printTriggerRef.current) {
+                printTriggerRef.current();
+              } else {
+                handlePrintDeals(filteredDeals);
+              }
+            }}
+            printLabel="Print Deals"
+          />
+        </div>
       </div>
 
       {/* Main DataTable with standardized filters */}
@@ -603,6 +620,8 @@ export default function DealsRegistryPage() {
         isLoading={isLoading}
         searchPlaceholder="Search"
         onPrint={handlePrintDeals}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         pinRowTop={prioritizeNoFollowups ? isNoFollowupDeal : undefined}
         rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
         headerAction={

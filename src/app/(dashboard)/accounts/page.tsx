@@ -29,7 +29,7 @@ export default function AccountsDashboardPage() {
       const [invRes, payRes, compRes] = await Promise.allSettled([
         api.get('/invoices'),
         api.get('/payments'),
-        api.get('/company').catch(() => api.get('/company-settings'))
+        api.get('/company-settings')
       ]);
 
       if (invRes.status === 'fulfilled') setInvoices(invRes.value.data || []);

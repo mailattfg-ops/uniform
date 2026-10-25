@@ -68,7 +68,8 @@ interface Invoice {
   created_at: string;
   invoice_items?: InvoiceItem[];
   orders?: { id: number; order_no: string; status?: string };
-  organizations?: { id: number; name: string; gst_number?: string; city?: string; state?: string };
+  customer?: any;
+  organizations?: any;
 }
 
 interface SalesOrderOption {
@@ -655,12 +656,17 @@ export default function InvoicesPage() {
                     <td className="px-5 py-4">
                       {inv.due_date ? (
                         <div>
-                          <p className={`font-mono text-xs ${isOverdue ? 'font-black text-rose-600' : 'text-zinc-700'}`}>
+                          <p className={`font-mono text-xs ${isOverdue ? 'font-black text-rose-600' : inv.due_status === 'Due' ? 'font-black text-amber-600' : 'text-zinc-700'}`}>
                             {formatDate(inv.due_date)}
                           </p>
                           {isOverdue && (
                             <span className="inline-block mt-0.5 px-2 py-0.2 rounded text-[9px] font-black uppercase tracking-wide bg-rose-600 text-white">
                               {inv.days_overdue}d Overdue
+                            </span>
+                          )}
+                          {inv.due_status === 'Due' && inv.payment_status !== 'Fully Paid' && inv.payment_status !== 'Paid' && (
+                            <span className="inline-block mt-0.5 px-2 py-0.2 rounded text-[9px] font-black uppercase tracking-wide bg-amber-500 text-white">
+                              Due Today
                             </span>
                           )}
                         </div>

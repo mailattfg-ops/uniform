@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { 
   Plus, Compass, MapPin, Phone, Mail, User, ShieldCheck, 
   ExternalLink, Building2, ArrowRight, MessageSquarePlus
@@ -239,7 +240,9 @@ export default function FeedsRegistryPage() {
   };
 
   // Print Handler
-  const handlePrintFeeds = (sortedData: Lead[], currentSort?: SortInfo<Lead> | null) => {
+  const printTriggerRef = useRef<(() => void) | null>(null);
+  const handlePrintFeeds = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
+    const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredFeeds;
     const printedAt = new Date().toLocaleString('en-IN', {
       dateStyle: 'medium',
       timeStyle: 'short'
@@ -251,7 +254,7 @@ export default function FeedsRegistryPage() {
         ? 'Headquarters (HQ Central)'
         : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
-    const rowsHtml = sortedData.map((l, idx) => {
+    const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
       return `
       <tr>
@@ -293,7 +296,7 @@ export default function FeedsRegistryPage() {
     <div>
       <div class="brand-title">Forma Apparels ERP</div>
       <div class="report-title">Field Feeds Intake Registry</div>
-      <div style="font-size: 9px; color: #718096; margin-top: 4px;">Branch: <strong>${activeBranchName}</strong> • Records: <strong>${sortedData.length}</strong></div>
+      <div style="font-size: 9px; color: #718096; margin-top: 4px;">Branch: <strong>${activeBranchName}</strong> • Records: <strong>${dataToPrint.length}</strong>${currentSort?.headerLabel && currentSort.headerLabel !== 'Default' ? ` • Sorted by: <strong>${currentSort.headerLabel} (${currentSort.direction === 'asc' ? 'Ascending' : 'Descending'})</strong>` : ''}</div>
     </div>
     <div style="text-align: right; font-size: 9px; color: #718096;">Printed on: <strong>${printedAt}</strong></div>
   </div>
@@ -505,6 +508,16 @@ export default function FeedsRegistryPage() {
               New Feed
             </Button>
           )}
+          <PageActionsMenu
+            onPrint={() => {
+              if (printTriggerRef.current) {
+                printTriggerRef.current();
+              } else {
+                handlePrintFeeds(filteredFeeds);
+              }
+            }}
+            printLabel="Print Feeds"
+          />
         </div>
       </div>
 
@@ -515,6 +528,8 @@ export default function FeedsRegistryPage() {
         isLoading={isLoading}
         searchPlaceholder="Search"
         onPrint={handlePrintFeeds}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Branch Filter */}

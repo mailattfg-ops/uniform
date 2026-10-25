@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { Plus, Edit2, Trash2, ArrowLeft, X } from 'lucide-react';
 import api from '@/lib/api';
@@ -471,7 +472,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     });
   }, [items, type, garmentCategoryFilter, brandTypeFilter, brandFilter, qualityFilter, shadeFilter, widthFilter, searchTerm]);
 
-  const handlePrintFabrics = (sortedData: Item[]) => {
+  const printTriggerRef = useRef<(() => void) | null>(null);
+  const handlePrintFabrics = (sortedData?: Item[], sortInfo?: SortInfo<Item>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
     const rowsHtml = dataToPrint.map((item, idx) => `
       <tr>
@@ -502,7 +504,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
 </head>
 <body>
   <h1>Fabric Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}</p>
+  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>
@@ -986,6 +988,18 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             <Plus size={18} strokeWidth={3} />
             Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
           </Button>
+          {type === 'fabrics' && (
+            <PageActionsMenu
+              onPrint={() => {
+                if (printTriggerRef.current) {
+                  printTriggerRef.current();
+                } else {
+                  handlePrintFabrics(filteredItems);
+                }
+              }}
+              printLabel="Print Fabrics"
+            />
+          )}
         </div>
       </div>
 
@@ -996,6 +1010,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         searchPlaceholder={type === 'fabrics' ? 'Search' : 'Search...'}
         onSearch={type === 'fabrics' ? setSearchTerm : undefined}
         onPrint={type === 'fabrics' ? handlePrintFabrics : undefined}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {type === 'fabrics' && (
