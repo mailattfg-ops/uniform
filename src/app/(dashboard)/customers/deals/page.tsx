@@ -272,8 +272,9 @@ export default function DealsRegistryPage() {
     });
   }, [allDeals, stageFilter, selectedBranch, selectedZone, selectedIndustry, getDealFinancials]);
 
-  // Print Handler
+  // Print & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintDeals = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredDeals;
     const printedAt = new Date().toLocaleString('en-IN', {
@@ -609,6 +610,8 @@ export default function DealsRegistryPage() {
               }
             }}
             printLabel="Print Deals"
+            onUserReport={() => userReportTriggerRef.current?.()}
+            userReportLabel="My Updated Report"
           />
         </div>
       </div>
@@ -622,6 +625,7 @@ export default function DealsRegistryPage() {
         onPrint={handlePrintDeals}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         pinRowTop={prioritizeNoFollowups ? isNoFollowupDeal : undefined}
         rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
         headerAction={

@@ -1803,6 +1803,7 @@ export default function ProductManagement() {
   }, [products, genders, filterGender, filterItemName, filterSpec, searchTerm]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintReadymades = (sortedData?: Product[], sortInfo?: SortInfo<Product>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredProducts;
     const rowsHtml = dataToPrint.map((p, idx) => `
@@ -2063,6 +2064,8 @@ export default function ProductManagement() {
               }
             }}
             printLabel="Print Readymades"
+            onUserReport={() => userReportTriggerRef.current?.()}
+            userReportLabel="My Updated Report"
           />
         </div>
       </div>
@@ -2076,6 +2079,7 @@ export default function ProductManagement() {
         onPrint={handlePrintReadymades}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         onRowClick={(product) => setSelectedProductForDetails(product)}
         headerAction={
           <div className="flex flex-wrap items-center gap-2">
