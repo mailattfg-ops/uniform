@@ -216,6 +216,7 @@ export default function QuotationsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
   const [threadsList, setThreadsList] = useState<any[]>([]);
   const [trimsList, setTrimsList] = useState<any[]>([]);
@@ -559,6 +560,8 @@ export default function QuotationsPage() {
                 }
               }}
               printLabel="Print Quotations"
+              onUserReport={() => userReportTriggerRef.current?.()}
+              userReportLabel="My Updated Report"
             />
           </div>
         ) : (
@@ -593,6 +596,7 @@ export default function QuotationsPage() {
           currentUser={currentUser}
           onRefresh={fetchQuotations}
           onPrintTrigger={(fn) => { printTriggerRef.current = fn; }}
+          onUserReportTrigger={(fn) => { userReportTriggerRef.current = fn; }}
         />
       )}
 

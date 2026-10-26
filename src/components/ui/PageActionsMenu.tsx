@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Printer } from 'lucide-react';
+import { MoreVertical, Printer, CalendarCheck } from 'lucide-react';
 
 export interface PageActionsMenuProps {
   onPrint?: () => void;
   printLabel?: string;
+  onUserReport?: () => void;
+  userReportLabel?: string;
   className?: string;
   buttonClassName?: string;
   size?: 'header' | 'sm' | 'md';
@@ -20,6 +22,8 @@ export interface PageActionsMenuProps {
 export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
   onPrint,
   printLabel = 'Print',
+  onUserReport,
+  userReportLabel = 'My Updated Report',
   className = '',
   buttonClassName = '',
   size = 'header',
@@ -52,7 +56,7 @@ export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
     };
   }, [isOpen]);
 
-  if (!onPrint && (!extraActions || extraActions.length === 0)) {
+  if (!onPrint && !onUserReport && (!extraActions || extraActions.length === 0)) {
     return null;
   }
 
@@ -74,7 +78,7 @@ export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-48 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-black/5">
+        <div className="absolute right-0 top-full mt-2 z-50 w-52 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-black/5">
           {onPrint && (
             <button
               type="button"
@@ -86,6 +90,20 @@ export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
             >
               <Printer size={15} className="text-[#2d8d9b] shrink-0" />
               <span>{printLabel}</span>
+            </button>
+          )}
+
+          {onUserReport && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onUserReport();
+              }}
+              className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-[#3a525d] hover:bg-[#fce4d4]/20 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <CalendarCheck size={15} className="text-[#2d8d9b] shrink-0" />
+              <span>{userReportLabel}</span>
             </button>
           )}
 

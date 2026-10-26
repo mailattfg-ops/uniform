@@ -828,6 +828,7 @@ export default function AccessoriesAndTradeCatalogPage() {
   };
 
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintAccessories = (sortedData?: AccessoryItem[], sortInfo?: SortInfo<AccessoryItem>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
     const rowsHtml = dataToPrint.map((item, idx) => {
@@ -1427,6 +1428,8 @@ export default function AccessoriesAndTradeCatalogPage() {
               }
             }}
             printLabel="Print Accessories"
+            onUserReport={() => userReportTriggerRef.current?.()}
+            userReportLabel="My Updated Report"
           />
         </div>
       </div>
@@ -1441,6 +1444,7 @@ export default function AccessoriesAndTradeCatalogPage() {
         onPrint={handlePrintAccessories}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex flex-wrap items-center gap-2">
             {/* Type Filter */}

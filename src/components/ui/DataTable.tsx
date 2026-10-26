@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown, Printer, MoreVertical, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown, X, CalendarCheck } from 'lucide-react';
 import { Button } from './Button';
+import { UserActivityReportModal } from './UserActivityReportModal';
 
 export interface Column<T> {
   header: React.ReactNode;
@@ -40,6 +41,8 @@ export interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   printTriggerRef?: React.MutableRefObject<(() => void) | null>;
   onSortedChange?: (sortedData: T[], sortInfo: SortInfo<T>) => void;
+  userReportTriggerRef?: React.MutableRefObject<(() => void) | null>;
+  enableUserReport?: boolean;
 }
 
 function extractTextFromReactNode(node: React.ReactNode): string {
@@ -149,16 +152,29 @@ export function DataTable<T extends { id: string | number }>({
   onRowClick,
   printTriggerRef,
   onSortedChange,
+  userReportTriggerRef,
+  enableUserReport = true,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
-  const tableMenuRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumnIndex, setSortColumnIndex] = useState<number | null>(defaultSortIndex ?? null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection || 'asc');
+  
+  // User Activity & Updates Report state
+  const [isUserReportOpen, setIsUserReportOpen] = useState(false);
+  const [appliedUserFilter, setAppliedUserFilter] = useState<{ items: T[]; summary: string } | null>(null);
+
+  // Bind external user report trigger ref if passed from parent PageActionsMenu
+  useEffect(() => {
+    if (userReportTriggerRef) {
+      userReportTriggerRef.current = () => {
+        setIsUserReportOpen(true);
+      };
+    }
+  }, [userReportTriggerRef]);
 
   // Auto-focus search input when popup opens
   useEffect(() => {
@@ -177,15 +193,11 @@ export function DataTable<T extends { id: string | number }>({
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
       }
-      if (tableMenuRef.current && !tableMenuRef.current.contains(event.target as Node)) {
-        setIsTableMenuOpen(false);
-      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsSearchOpen(false);
-        setIsTableMenuOpen(false);
       }
     };
 
@@ -219,8 +231,12 @@ export function DataTable<T extends { id: string | number }>({
     setCurrentPage(1);
   };
 
+  const sourceData = React.useMemo(() => {
+    return appliedUserFilter ? appliedUserFilter.items : data;
+  }, [appliedUserFilter, data]);
+
   const filteredData = React.useMemo(() => {
-    if (!searchTerm.trim()) return data;
+    if (!searchTerm.trim()) return sourceData;
     
     const lowerSearch = searchTerm.toLowerCase().trim();
     const searchWords = lowerSearch.split(/\s+/).filter(Boolean);
@@ -244,14 +260,14 @@ export function DataTable<T extends { id: string | number }>({
       return values;
     };
 
-    return data.filter(item => {
+    return sourceData.filter(item => {
       const itemValues = getAllValues(item);
 
       return searchWords.every(word => 
         itemValues.some(val => val.includes(word))
       );
     });
-  }, [data, searchTerm]);
+  }, [sourceData, searchTerm]);
 
   const sortedData = React.useMemo(() => {
     let list = filteredData;
@@ -472,42 +488,27 @@ export function DataTable<T extends { id: string | number }>({
                 {rightAction}
               </div>
             )}
-
-            {/* Three-Dot Menu (houses Print option removed from previous direct position) */}
-            {onPrint && !hideTablePrint && (
-              <div className="relative shrink-0" ref={tableMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsTableMenuOpen(prev => !prev)}
-                  className={`w-10 h-10 bg-white border border-[#fce4d4] hover:border-[#2d8d9b]/60 rounded-xl text-[#3a525d] hover:text-[#2d8d9b] transition-all flex items-center justify-center cursor-pointer shadow-2xs ${
-                    isTableMenuOpen
-                      ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b] ring-2 ring-[#2d8d9b]/20'
-                      : 'hover:bg-[#fce4d4]/20'
-                  }`}
-                  title="More options"
-                  aria-label="More options"
-                  aria-expanded={isTableMenuOpen}
-                >
-                  <MoreVertical size={16} strokeWidth={2.5} />
-                </button>
-                {isTableMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 z-50 w-44 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-150">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsTableMenuOpen(false);
-                        onPrint(sortedData, currentSortInfo);
-                      }}
-                      className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-[#3a525d] hover:bg-[#fce4d4]/20 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
-                    >
-                      <Printer size={15} className="text-[#2d8d9b]" />
-                      <span>Print</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+        </div>
+      )}
+
+      {/* Active User Updates Filter Banner */}
+      {appliedUserFilter && (
+        <div className="mx-4 my-2 md:mx-6 px-3.5 py-2 bg-gradient-to-r from-[#2d8d9b]/15 to-[#2d8d9b]/5 border border-[#2d8d9b]/30 rounded-xl flex items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2 text-[#3a525d] min-w-0">
+            <CalendarCheck size={15} className="text-[#2d8d9b] shrink-0" strokeWidth={2.5} />
+            <span className="font-extrabold text-zinc-500 text-[10px] uppercase tracking-wider shrink-0">User Updates:</span>
+            <span className="text-[#2d8d9b] font-black truncate">{appliedUserFilter.summary}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAppliedUserFilter(null)}
+            className="px-2 py-0.5 text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+            title="Clear user updates filter"
+          >
+            <X size={11} strokeWidth={2.5} />
+            <span>Clear Filter</span>
+          </button>
         </div>
       )}
 
@@ -684,6 +685,22 @@ export function DataTable<T extends { id: string | number }>({
           </Button>
         </div>
       </div>
+
+      {/* User Updates & Activity Report Modal */}
+      {enableUserReport && (
+        <UserActivityReportModal
+          isOpen={isUserReportOpen}
+          onClose={() => setIsUserReportOpen(false)}
+          data={data}
+          title={title || 'Table Records'}
+          isFilterApplied={Boolean(appliedUserFilter)}
+          onApplyFilter={(filteredItems, summary) => {
+            setAppliedUserFilter({ items: filteredItems, summary });
+            setCurrentPage(1);
+          }}
+          onClearFilter={() => setAppliedUserFilter(null)}
+        />
+      )}
     </div>
   );
 }

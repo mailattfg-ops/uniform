@@ -470,8 +470,9 @@ export default function CustomersRegistry() {
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Print Report Modal State
+  // Print Report & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const [printModal, setPrintModal] = useState<{
     isOpen: boolean;
     data: Customer[];
@@ -1196,6 +1197,8 @@ export default function CustomersRegistry() {
               }
             }}
             printLabel="Print Customers"
+            onUserReport={() => userReportTriggerRef.current?.()}
+            userReportLabel="My Updated Report"
           />
         </div>
       </div>
@@ -1209,6 +1212,7 @@ export default function CustomersRegistry() {
         onPrint={handlePrintCustomers}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 1. Branch Filter */}

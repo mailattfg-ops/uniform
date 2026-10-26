@@ -37,6 +37,7 @@ interface QuotationListProps {
   currentUser?: any;
   onRefresh?: () => void;
   onPrintTrigger?: (triggerFn: () => void) => void;
+  onUserReportTrigger?: (triggerFn: () => void) => void;
 }
 
 export default function QuotationList({
@@ -53,7 +54,8 @@ export default function QuotationList({
   onBmReject,
   currentUser,
   onRefresh,
-  onPrintTrigger
+  onPrintTrigger,
+  onUserReportTrigger,
 }: QuotationListProps) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved'>('all');
@@ -497,6 +499,7 @@ export default function QuotationList({
   }, [filteredQuotations, selectedBranch, branches]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (onPrintTrigger) {
@@ -510,6 +513,14 @@ export default function QuotationList({
     }
   }, [onPrintTrigger, handlePrintQuotations]);
 
+  useEffect(() => {
+    if (onUserReportTrigger) {
+      onUserReportTrigger(() => {
+        userReportTriggerRef.current?.();
+      });
+    }
+  }, [onUserReportTrigger]);
+
   return (
     <div className="space-y-6">
       <DataTable
@@ -520,6 +531,7 @@ export default function QuotationList({
         onPrint={handlePrintQuotations}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 1. Branch Filter */}

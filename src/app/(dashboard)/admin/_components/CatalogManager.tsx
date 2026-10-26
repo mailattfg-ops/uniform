@@ -473,6 +473,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   }, [items, type, garmentCategoryFilter, brandTypeFilter, brandFilter, qualityFilter, shadeFilter, widthFilter, searchTerm]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintFabrics = (sortedData?: Item[], sortInfo?: SortInfo<Item>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredItems;
     const rowsHtml = dataToPrint.map((item, idx) => `
@@ -998,6 +999,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 }
               }}
               printLabel="Print Fabrics"
+              onUserReport={() => userReportTriggerRef.current?.()}
+              userReportLabel="My Updated Report"
             />
           )}
         </div>
@@ -1012,6 +1015,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         onPrint={type === 'fabrics' ? handlePrintFabrics : undefined}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {type === 'fabrics' && (

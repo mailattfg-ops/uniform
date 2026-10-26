@@ -239,8 +239,9 @@ export default function FeedsRegistryPage() {
     }
   };
 
-  // Print Handler
+  // Print & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintFeeds = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredFeeds;
     const printedAt = new Date().toLocaleString('en-IN', {
@@ -517,6 +518,8 @@ export default function FeedsRegistryPage() {
               }
             }}
             printLabel="Print Feeds"
+            onUserReport={() => userReportTriggerRef.current?.()}
+            userReportLabel="My Updated Report"
           />
         </div>
       </div>
@@ -530,6 +533,7 @@ export default function FeedsRegistryPage() {
         onPrint={handlePrintFeeds}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Branch Filter */}

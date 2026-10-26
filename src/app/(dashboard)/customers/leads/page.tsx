@@ -884,8 +884,9 @@ export default function LeadsRegistryPage() {
     }
   ], [branches, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
 
-  // Print Report Handler
+  // Print Report & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintLeads = (sortedData?: Lead[], sortInfo?: SortInfo<Lead>) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredLeads;
     const printedAt = new Date().toLocaleString('en-IN', {
@@ -1020,6 +1021,8 @@ export default function LeadsRegistryPage() {
               }
             }}
             printLabel="Print Leads"
+            onUserReport={() => userReportTriggerRef.current?.()}
+            userReportLabel="My Updated Report"
           />
         </div>
       </div>
@@ -1033,6 +1036,7 @@ export default function LeadsRegistryPage() {
         onPrint={handlePrintLeads}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
         pinRowTop={prioritizeNoFollowups ? isOverdueSalesLead : undefined}
         rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
         headerAction={

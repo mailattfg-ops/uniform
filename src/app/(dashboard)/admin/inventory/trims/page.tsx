@@ -509,6 +509,7 @@ export default function TrimsCatalogPage() {
   }, [trims, selectedCategoryId, filterSize, filterColour, searchTerm]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
+  const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintTrims = (sortedData?: TrimItem[], sortInfo?: SortInfo<TrimItem>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredTrims;
     const rowsHtml = dataToPrint.map((item, idx) => `
@@ -839,6 +840,8 @@ export default function TrimsCatalogPage() {
                 }
               }}
               printLabel="Print Trims"
+              onUserReport={() => userReportTriggerRef.current?.()}
+              userReportLabel="My Updated Report"
             />
           </div>
         </div>
@@ -852,6 +855,7 @@ export default function TrimsCatalogPage() {
           onPrint={handlePrintTrims}
           hideTablePrint={true}
           printTriggerRef={printTriggerRef}
+          userReportTriggerRef={userReportTriggerRef}
           headerAction={
             <div className="flex flex-wrap items-center gap-2">
               {/* Category Filter Dropdown */}
