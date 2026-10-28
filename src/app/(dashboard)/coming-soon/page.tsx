@@ -47,18 +47,18 @@ function ComingSoonContent() {
       <div className="w-full max-w-3xl">
         <div className="bg-white border border-[#e2e8f0] rounded-2xl shadow-xl overflow-hidden relative">
           {/* Subtle Top Decorative Gradient Bar */}
-          <div className="h-2 w-full bg-gradient-to-r from-[#1B365D] via-[#CC9448] to-[#1B365D]" />
+          <div className="h-2 w-full bg-gradient-to-r from-[#1B365D] via-[#C82A2B] to-[#1B365D]" />
 
           <div className="p-8 md:p-12 text-center">
             {/* Module pill badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1B365D]/10 text-[#1B365D] font-bold text-xs uppercase tracking-wider mb-6 border border-[#1B365D]/20">
-              <Layers className="w-3.5 h-3.5 text-[#CC9448]" />
+              <Layers className="w-3.5 h-3.5 text-[#C82A2B]" />
               <span>{moduleName} Module</span>
             </div>
 
             {/* Main Icon Glow */}
-            <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#1B365D] to-[#2a4d7d] flex items-center justify-center text-[#CC9448] shadow-lg shadow-[#1B365D]/20 mb-6">
-              <Sparkles className="w-10 h-10 animate-pulse text-[#E5B869]" />
+            <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#1B365D] to-[#2a4d7d] flex items-center justify-center text-[#C82A2B] shadow-lg shadow-[#1B365D]/20 mb-6">
+              <Sparkles className="w-10 h-10 animate-pulse text-[#C82A2B]" />
             </div>
 
             {/* Feature Name & Header */}
@@ -73,7 +73,7 @@ function ComingSoonContent() {
             <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-6 text-left mb-8 max-w-2xl mx-auto shadow-sm">
               <div className="flex items-center justify-between pb-4 border-b border-[#e2e8f0] mb-4">
                 <div className="flex items-center gap-2 text-sm font-bold text-[#1B365D]">
-                  <Workflow className="w-4 h-4 text-[#CC9448]" />
+                  <Workflow className="w-4 h-4 text-[#C82A2B]" />
                   <span>Module Engineering Roadmap</span>
                 </div>
                 <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
@@ -115,7 +115,7 @@ function ComingSoonContent() {
 
               <Link href="/dashboard">
                 <Button className="flex items-center gap-2 bg-[#1B365D] hover:bg-[#152a48] text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all">
-                  <ShieldCheck className="w-4 h-4 text-[#CC9448]" />
+                  <ShieldCheck className="w-4 h-4 text-[#C82A2B]" />
                   Return to Dashboard
                 </Button>
               </Link>
@@ -124,7 +124,7 @@ function ComingSoonContent() {
 
           {/* Footer note */}
           <div className="bg-[#f8fafc] border-t border-[#e2e8f0] px-8 py-3.5 text-center text-xs font-medium text-[#64748b] flex items-center justify-center gap-2">
-            <BellRing className="w-3.5 h-3.5 text-[#CC9448]" />
+            <BellRing className="w-3.5 h-3.5 text-[#C82A2B]" />
             <span>Need priority access or early beta deployment for this feature? Contact your system administrator.</span>
           </div>
         </div>

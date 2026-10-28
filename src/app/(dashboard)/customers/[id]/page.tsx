@@ -184,7 +184,7 @@ const MultiEntryInput: React.FC<{
         <button
           type="button"
           onClick={handleAdd}
-          className="px-5 h-11 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase tracking-wider text-[10px] flex items-center justify-center transition-all active:scale-95 shadow-md shadow-[#2d8d9b]/20 cursor-pointer border-none outline-none"
+          className="px-5 h-11 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase tracking-wider text-[10px] flex items-center justify-center transition-all active:scale-95 shadow-md shadow-[#C82A2B]/20 cursor-pointer border-none outline-none"
         >
           Add
         </button>
@@ -1854,7 +1854,7 @@ function OrganizationDetailsPageContent() {
             <button
               type="button"
               onClick={() => setIsMeasurementDrawerOpen(!isMeasurementDrawerOpen)}
-              className="w-[46px] bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-l-2xl py-4 px-2 flex flex-col items-center justify-center gap-2.5 shadow-[-6px_4px_25px_rgba(0,0,0,0.18)] border-y border-l border-[#2d8d9b]/40 cursor-pointer transition-all shrink-0"
+              className="w-[46px] bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-2xl py-4 px-2 flex flex-col items-center justify-center gap-2.5 shadow-[-6px_4px_25px_rgba(200,42,43,0.25)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0"
               title="Measurements & Sizing Quick Actions"
             >
               <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[#2d8d9b]">
@@ -1982,7 +1982,7 @@ function OrganizationDetailsPageContent() {
               <button
                 type="button"
                 onClick={() => router.push('/measurements/entry')}
-                className="w-full h-10 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-[#2d8d9b]/20 transition-all cursor-pointer active:scale-95"
+                className="w-full h-10 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all cursor-pointer active:scale-95"
               >
                 <Ruler size={14} />
                 <span>Record Sizing Now</span>
@@ -2069,7 +2069,7 @@ function OrganizationDetailsPageContent() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                     {(ledgerData?.summary?.outstanding_balance || 0) < 0 ? 'Customer Credit Balance' : 'Net Outstanding Balance'}
                   </span>
-                  <div className="w-9 h-9 rounded-xl bg-[#CC9448]/15 text-[#CC9448] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-9 h-9 rounded-xl bg-[#C82A2B]/10 text-[#C82A2B] flex items-center justify-center group-hover:scale-105 transition-transform">
                     <CreditCard size={18} />
                   </div>
                 </div>
@@ -2690,7 +2690,7 @@ function OrganizationDetailsPageContent() {
                           setGeneratedEntityCreds(null);
                           setEntityView('register');
                         }}
-                        className="h-10 px-3.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                        className="h-10 px-3.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-sm shadow-[#C82A2B]/20 shrink-0 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                         <UserPlus size={14} /> Add Member
                       </Button>
@@ -2964,7 +2964,7 @@ function OrganizationDetailsPageContent() {
                     </Button>
                     <Button
                       onClick={() => setIsAddingDept(true)}
-                      className="h-10 px-4 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] shadow-sm gap-1.5 shrink-0 cursor-pointer"
+                      className="h-10 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-[10px] shadow-sm shadow-[#C82A2B]/20 gap-1.5 shrink-0 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <Plus size={15} />
                       Setup Department
@@ -2998,7 +2998,7 @@ function OrganizationDetailsPageContent() {
             <div className="flex flex-wrap items-center gap-2.5">
               <Button
                 onClick={() => router.push('/marketing/quotations')}
-                className="h-11 px-4 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#3a525d]/10"
+                className="h-11 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#C82A2B]/20"
               >
                 <Plus size={15} /> Create Quote
               </Button>
@@ -3894,7 +3894,7 @@ function OrganizationDetailsPageContent() {
                   <button
                     type="button"
                     onClick={() => setIsJournalDrawerOpen(!isJournalDrawerOpen)}
-                    className="w-[46px] bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-l-2xl py-4 px-2 flex flex-col items-center justify-center gap-2.5 shadow-[-6px_4px_25px_rgba(0,0,0,0.18)] border-y border-l border-[#2d8d9b]/40 cursor-pointer transition-all shrink-0"
+                    className="w-[46px] bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-2xl py-4 px-2 flex flex-col items-center justify-center gap-2.5 shadow-[-6px_4px_25px_rgba(200,42,43,0.25)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0"
                     title="Financial Journal Summary & Balances"
                   >
                     <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[#2d8d9b]">
@@ -4001,7 +4001,7 @@ function OrganizationDetailsPageContent() {
                     <button
                       type="button"
                       onClick={() => setIsAddJournalModalOpen(true)}
-                      className="w-full h-10 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-[#2d8d9b]/20 transition-all cursor-pointer active:scale-95"
+                      className="w-full h-10 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all cursor-pointer active:scale-95"
                     >
                       <Plus size={14} />
                       <span>New Journal Entry</span>
@@ -4163,13 +4163,13 @@ function OrganizationDetailsPageContent() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Button
                         onClick={() => setIsAddJournalModalOpen(true)}
-                        className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 cursor-pointer transition-all"
+                        className="h-9 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm shadow-[#C82A2B]/20 cursor-pointer transition-all"
                       >
                         <Plus size={14} strokeWidth={2.5} /> Add Journal
                       </Button>
                       <Button
                         onClick={() => setActiveTab('ledger')}
-                        className="h-9 px-3.5 bg-[#2d8d9b] hover:bg-[#236e7a] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm"
+                        className="h-9 px-3.5 bg-[#9E1B1D] hover:bg-[#7F1D1D] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm shadow-[#9E1B1D]/20 transition-all"
                       >
                         <ReceiptText size={14} /> Customer Statement
                       </Button>
@@ -4237,7 +4237,7 @@ function OrganizationDetailsPageContent() {
               </Button>
               <Button
                 onClick={() => setIsPrintModalOpen(true)}
-                className="h-11 px-6 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#2d8d9b]/25 transition-all"
+                className="h-11 px-6 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Printer size={15} />
                 Print Statement
@@ -4289,7 +4289,7 @@ function OrganizationDetailsPageContent() {
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                   {(ledgerData?.summary?.outstanding_balance || 0) < 0 ? 'Customer Credit Balance' : 'Net Outstanding Balance'}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#CC9448]/15 text-[#CC9448] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#C82A2B]/10 text-[#C82A2B] flex items-center justify-center">
                   <CreditCard size={18} />
                 </div>
               </div>
@@ -4527,7 +4527,7 @@ function OrganizationDetailsPageContent() {
               <div className="flex items-center gap-3">
                 <Button
                   onClick={() => window.print()}
-                  className="h-10 px-5 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2"
+                  className="h-10 px-5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Printer size={15} />
                   Print / Save as PDF
@@ -4720,7 +4720,8 @@ function OrganizationDetailsPageContent() {
         <div className="fixed inset-0 z-[125] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsGstDeliveryModalOpen(false)} />
           <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative z-10 my-8">
-            <div className="bg-gradient-to-r from-[#2d8d9b] to-[#3a525d] p-6 text-white flex items-center justify-between">
+            <div className="relative overflow-hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 p-6 text-white flex items-center justify-between">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
                   <Truck size={20} className="text-white" />
@@ -4762,7 +4763,7 @@ function OrganizationDetailsPageContent() {
               {/* Section 1: GST Identification */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
-                  <ReceiptText size={16} className="text-[#2d8d9b]" />
+                  <ReceiptText size={16} className="text-[#9E1B1D]" />
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
                     1. GST & Commercial Tax Identification
                   </h4>
@@ -4790,7 +4791,7 @@ function OrganizationDetailsPageContent() {
                         }));
                       }}
                       placeholder="e.g. 27AAPFU0939F1ZV"
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] uppercase"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
                     />
                     <p className="text-[10px] text-zinc-400 font-medium">
                       Entering GSTIN automatically sets this client to B2B and extracts the PAN.
@@ -4806,7 +4807,7 @@ function OrganizationDetailsPageContent() {
                       value={gstDeliveryForm.legal_name}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, legal_name: e.target.value }))}
                       placeholder={org?.name || 'Legal Company Name'}
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>
 
@@ -4820,7 +4821,7 @@ function OrganizationDetailsPageContent() {
                       value={gstDeliveryForm.pan_number}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, pan_number: e.target.value.toUpperCase().trim() }))}
                       placeholder="e.g. AAPFU0939F"
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] uppercase"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
                     />
                   </div>
                 </div>
@@ -4830,7 +4831,7 @@ function OrganizationDetailsPageContent() {
               <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <Truck size={16} className="text-[#2d8d9b]" />
+                    <Truck size={16} className="text-[#9E1B1D]" />
                     <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
                       2. Delivery / Dispatch Destination
                     </h4>
@@ -4864,7 +4865,7 @@ function OrganizationDetailsPageContent() {
                       value={gstDeliveryForm.delivery_address}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_address: e.target.value }))}
                       placeholder="e.g. Building 4B, Goods Delivery Gate 2"
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>
 
@@ -4878,7 +4879,7 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_city}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_city: e.target.value }))}
                         placeholder="e.g. Mumbai, Bengaluru"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -4890,7 +4891,7 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_state}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_state: e.target.value }))}
                         placeholder="e.g. Maharashtra, Karnataka"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                   </div>
@@ -4905,7 +4906,7 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_pincode}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_pincode: e.target.value }))}
                         placeholder="e.g. 400001"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -4917,7 +4918,7 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_country}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_country: e.target.value }))}
                         placeholder="India"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                   </div>
@@ -4938,7 +4939,7 @@ function OrganizationDetailsPageContent() {
                 <Button
                   type="submit"
                   disabled={isSavingGstDelivery}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-xs font-black uppercase tracking-wider shadow-md"
+                  className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-md shadow-[#C82A2B]/20"
                 >
                   {isSavingGstDelivery ? 'Saving...' : 'Save GST & Delivery Details'}
                 </Button>
@@ -4962,17 +4963,18 @@ function OrganizationDetailsPageContent() {
       {/* Create Invoice Modal (Bulk Against Sales Order vs Manual Retail Sale) */}
       {isInvoiceModalOpen && org && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-300">
-          <div className="relative w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl p-6 md:p-8 my-8 border border-zinc-100 max-h-[92vh] overflow-y-auto">
+          <div className="relative w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl p-6 md:p-8 my-8 border border-zinc-200/80 max-h-[92vh] overflow-y-auto overflow-x-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             {/* Header */}
             <div className="flex items-start justify-between pb-5 border-b border-zinc-150">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center">
+                <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-white flex items-center justify-center">
                   <ReceiptText size={22} />
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-zinc-900 italic tracking-tight">Generate Commercial Invoice</h3>
                   <p className="text-xs text-zinc-500 font-medium">
-                    {org.name} ({org.customer_code || `#${org.id}`}) · Default Credit Period: <strong className="text-[#2d8d9b]">{org.credit_period_days || 30} Days</strong>
+                    {org.name} ({org.customer_code || `#${org.id}`}) · Default Credit Period: <strong className="text-[#9E1B1D]">{org.credit_period_days || 30} Days</strong>
                   </p>
                 </div>
               </div>
@@ -4996,7 +4998,7 @@ function OrganizationDetailsPageContent() {
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
-                <Package size={16} className={invoiceType === 'bulk' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                <Package size={16} className={invoiceType === 'bulk' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
                 Bulk Order (From Sales Order)
               </button>
               <button
@@ -5008,14 +5010,14 @@ function OrganizationDetailsPageContent() {
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
-                <ReceiptText size={16} className={invoiceType === 'retail' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                <ReceiptText size={16} className={invoiceType === 'retail' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
                 Retail Sale (Manual Invoicing)
               </button>
             </div>
 
             <form onSubmit={handleCreateInvoice} className="space-y-5 mt-5">
               {/* Credit Terms & Dates Configuration */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-teal-50/40 border border-teal-100">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-[#FFF1F1]/50 border border-[#C82A2B]/15">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-1">
                     Invoice Date
@@ -5025,7 +5027,7 @@ function OrganizationDetailsPageContent() {
                     required
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#2d8d9b]"
+                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   />
                 </div>
                 <div>
@@ -5039,7 +5041,7 @@ function OrganizationDetailsPageContent() {
                     required
                     value={invoiceCreditPeriod}
                     onChange={(e) => setInvoiceCreditPeriod(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-teal-300 bg-white text-xs font-black text-zinc-800 focus:outline-none focus:border-[#2d8d9b]"
+                    className="w-full px-3 py-2.5 rounded-xl border border-teal-300 bg-white text-xs font-black text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   />
                 </div>
                 <div>
@@ -5213,7 +5215,7 @@ function OrganizationDetailsPageContent() {
                   value={invoiceNotes}
                   onChange={(e) => setInvoiceNotes(e.target.value)}
                   placeholder="e.g. Terms of payment, PO reference, dispatch notes..."
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-800 focus:outline-none focus:border-[#2d8d9b]"
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 />
               </div>
 
@@ -5231,7 +5233,7 @@ function OrganizationDetailsPageContent() {
                 <Button
                   type="submit"
                   disabled={isSubmittingInvoice || (invoiceType === 'bulk' && !selectedOrderIdForInvoice)}
-                  className="h-11 px-6 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#2d8d9b]/25"
+                  className="h-11 px-6 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {isSubmittingInvoice ? 'Generating...' : invoiceType === 'bulk' ? 'Generate Bulk Invoice' : 'Generate Retail Invoice'}
                 </Button>
@@ -5580,7 +5582,7 @@ function OrganizationDetailsPageContent() {
               <Button
                 onClick={handleConfirmMigrationAndCreate}
                 disabled={firstDeptMigrationModal.isSubmitting}
-                className="px-6 h-11 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#3a525d] text-white shadow-md flex items-center gap-2 cursor-pointer"
+                className="px-6 h-11 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20 flex items-center gap-2 cursor-pointer"
               >
                 {firstDeptMigrationModal.isSubmitting ? (
                   <span>Processing...</span>

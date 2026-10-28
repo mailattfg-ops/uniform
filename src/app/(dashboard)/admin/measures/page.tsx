@@ -218,7 +218,7 @@ export default function MeasuresArchitectPage() {
           className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
             selectedProductType === 'all'
               ? 'bg-[#3a525d] text-white shadow-lg shadow-[#3a525d]/20 ring-2 ring-[#3a525d]/30'
-              : 'bg-white text-zinc-500 border border-zinc-200 hover:border-[#2d8d9b]/50 hover:bg-zinc-50'
+              : 'bg-white text-zinc-500 border border-zinc-200 hover:border-[#C82A2B]/50 hover:bg-zinc-50'
           }`}
         >
           <Layers size={13} />
@@ -230,7 +230,7 @@ export default function MeasuresArchitectPage() {
           onClick={() => setSelectedProductType('universal')}
           className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
             selectedProductType === 'universal'
-              ? 'bg-[#2d8d9b] text-white shadow-lg shadow-[#2d8d9b]/20 ring-2 ring-[#2d8d9b]/30'
+              ? 'bg-zinc-900 text-white shadow-lg ring-2 ring-zinc-900/30'
               : 'bg-white text-zinc-500 border border-zinc-200 hover:border-[#2d8d9b]/50 hover:bg-zinc-50'
           }`}
         >
@@ -263,7 +263,7 @@ export default function MeasuresArchitectPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* ADD NEW METRIC CARD */}
         <div className="lg:col-span-1">
-          <Card className="p-8 border-none bg-[#3a525d] text-white shadow-2xl relative overflow-hidden">
+          <Card className="p-8 border border-zinc-200 bg-zinc-900 text-white shadow-2xl relative overflow-hidden rounded-[2.5rem]"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full translate-x-16 -translate-y-16 blur-2xl" />
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-3 mb-2">
@@ -333,7 +333,7 @@ export default function MeasuresArchitectPage() {
                     placeholder="e.g. From top waistband along outer leg seam down to shoe top..."
                     value={newFieldDescription}
                     onChange={(e) => setNewFieldDescription(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-[#f2994a] transition-all resize-none"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-[#C82A2B] transition-all resize-none"
                   />
                 </div>
 
@@ -356,7 +356,7 @@ export default function MeasuresArchitectPage() {
                   onClick={handleAddField}
                   disabled={!newFieldName || isSaving}
                   isLoading={isSaving}
-                  className="w-full h-14 rounded-2xl bg-[#f2994a] hover:bg-[#d4813a] text-white font-black uppercase text-[10px] tracking-widest shadow-lg border-none transition-all mt-4"
+                  className="w-full h-14 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-[#C82A2B]/25 border-none transition-all mt-4 cursor-pointer active:scale-95"
                 >
                   Save Metric To Registry
                 </Button>

@@ -34,12 +34,12 @@ export const SchoolAddForm: React.FC<SchoolAddFormProps> = ({ onSuccess, onCance
     <div className="animate-in fade-in slide-in-from-right-8 duration-500">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#2d8d9b] rounded-2xl flex items-center justify-center text-white shadow-lg">
+          <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-white shadow-xs">
             <School size={24} />
           </div>
           <div>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d]">New School Onboarding</h3>
-            <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] mt-1">Registry Entry • Admin Control</p>
+            <h3 className="text-2xl font-black italic tracking-tight text-zinc-900">New School Onboarding</h3>
+            <p className="text-[10px] text-[#9E1B1D] font-black uppercase tracking-[0.3em] mt-1">Registry Entry • Admin Control</p>
           </div>
         </div>
         <Button
@@ -61,11 +61,11 @@ export const SchoolAddForm: React.FC<SchoolAddFormProps> = ({ onSuccess, onCance
           columns={2}
         />
         
-        <div className="mt-8 p-6 bg-[#fce4d4]/20 rounded-3xl border border-[#fce4d4]/40 flex items-start gap-4">
-          <div className="w-8 h-8 rounded-full bg-[#f2994a]/10 flex items-center justify-center shrink-0">
-             <MapPin size={16} className="text-[#f2994a]" />
+        <div className="mt-8 p-6 bg-[#FFF1F1] rounded-3xl border border-[#C82A2B]/15 flex items-start gap-4">
+          <div className="w-8 h-8 rounded-full bg-[#C82A2B]/10 flex items-center justify-center shrink-0">
+             <MapPin size={16} className="text-[#C82A2B]" />
           </div>
-          <p className="text-xs text-[#8b6b5a] font-medium leading-relaxed italic">
+          <p className="text-xs text-zinc-600 font-medium leading-relaxed italic">
             Tip: Onboarding a new school will automatically enable uniform template assignments and class group creation for this institution.
           </p>
         </div>

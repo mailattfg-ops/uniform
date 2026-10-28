@@ -412,7 +412,7 @@ function MeasurementEntryContent() {
           <Button
             type="button"
             onClick={() => router.push('/measurements/templates')}
-            className="h-10 px-5 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-wider gap-2 shrink-0 shadow-md shadow-[#3a525d]/10"
+            className="h-10 px-5 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-[10px] font-black uppercase tracking-wider gap-2 shrink-0 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={14} strokeWidth={3} />
             Configure Industry Template
@@ -517,7 +517,7 @@ function MeasurementEntryContent() {
                      <Button
                         type="button"
                         onClick={() => router.push('/measurements/templates')}
-                        className="w-full h-11 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-wider gap-2 shadow-lg shadow-[#3a525d]/10"
+                        className="w-full h-11 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-[10px] font-black uppercase tracking-wider gap-2 shadow-lg shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                      >
                         <Plus size={14} strokeWidth={3} />
                         Configure Industry Template
@@ -763,7 +763,7 @@ function MeasurementEntryContent() {
                         <Button
                           type="button"
                           onClick={() => setIsEditingMeasurement(!isEditingMeasurement)}
-                          className="h-11 px-6 rounded-2xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-md shadow-[#2d8d9b]/20"
+                          className="h-11 px-6 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-md shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                           <Ruler size={14} />
                           {isEditingMeasurement ? 'Hide Update Form' : 'Update Sizing / Log New Fitting'}
@@ -849,7 +849,7 @@ function MeasurementEntryContent() {
                           <Button
                              type="button"
                              onClick={() => router.push('/measurements/templates')}
-                             className="h-11 px-6 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-[10px] font-black uppercase tracking-wider gap-2 shadow-lg shadow-[#3a525d]/20 mx-auto"
+                             className="h-11 px-6 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-[10px] font-black uppercase tracking-wider gap-2 shadow-lg shadow-[#C82A2B]/20 mx-auto transition-all hover:scale-[1.02] active:scale-[0.98]"
                           >
                              <Plus size={15} strokeWidth={3} />
                              Open Industry Templates
@@ -1142,7 +1142,7 @@ function MeasurementEntryContent() {
                           <Button 
                             type="submit" 
                             isLoading={isLoading}
-                            className="h-16 px-14 rounded-2xl bg-[#3a525d] hover:bg-[#2d8d9b] text-white font-black uppercase text-[11px] tracking-[0.2em] shadow-xl flex gap-3 transition-opacity"
+                            className="h-16 px-14 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-[#C82A2B]/25 flex gap-3 transition-opacity"
                           >
                             <Save size={20} />
                             {lastMeasurement ? 'Submit Updated Fitting' : 'Submit Sizing for Approval'}

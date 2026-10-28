@@ -101,8 +101,8 @@ export default function StudentProfilesPage() {
 
   if (loading) {
     return (
-      <div className="h-[75vh] flex items-center justify-center bg-[#F5F4F2]">
-        <Loader2 className="animate-spin text-[#CC9448]" size={42} />
+      <div className="h-[75vh] flex items-center justify-center bg-[#FAFAFA]">
+        <Loader2 className="animate-spin text-[#C82A2B]" size={42} />
       </div>
     );
   }
@@ -114,7 +114,7 @@ export default function StudentProfilesPage() {
         <div className="space-y-1">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#CC9448] transition-colors mb-1"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#C82A2B] transition-colors mb-1"
           >
             <ArrowLeft size={14} />
             <span>Back to Dashboard</span>
@@ -132,7 +132,7 @@ export default function StudentProfilesPage() {
             onClick={() => {
               if (typeof window !== 'undefined') window.print();
             }}
-            className="px-5 py-2.5 rounded-2xl bg-[#030303] hover:bg-[#CC9448] text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-black/10 active:scale-95"
+            className="px-5 py-2.5 rounded-2xl bg-[#030303] hover:bg-[#C82A2B] text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-black/10 active:scale-95"
           >
             <Printer size={15} />
             <span>Print Student Pass</span>
@@ -144,18 +144,18 @@ export default function StudentProfilesPage() {
       <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-xl overflow-hidden">
         {/* Pass Header Banner */}
         <div className="bg-[#030303] p-8 md:p-10 text-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #CC9448 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #C82A2B 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               {/* Avatar Initial */}
-              <div className="w-20 h-20 rounded-3xl bg-white/10 border-2 border-[#CC9448] flex items-center justify-center text-2xl font-black text-[#CC9448] shadow-inner shrink-0">
+              <div className="w-20 h-20 rounded-3xl bg-white/10 border-2 border-[#C82A2B] flex items-center justify-center text-2xl font-black text-[#C82A2B] shadow-inner shrink-0">
                 {fullName.charAt(0).toUpperCase()}
               </div>
 
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#CC9448]/20 text-[#CC9448] border border-[#CC9448]/30">
+                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#C82A2B]/20 text-[#C82A2B] border border-[#C82A2B]/30">
                     Verified Member
                   </span>
                   {admissionNo && (
@@ -173,7 +173,7 @@ export default function StudentProfilesPage() {
 
             {/* Sizing Badge Pill */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 min-w-[180px] text-right">
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#CC9448]">Assigned Uniform Size</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B]">Assigned Uniform Size</p>
               <p className="text-2xl font-black text-white mt-0.5">{suggestedSize}</p>
               <p className="text-[10px] text-white/50 font-medium">
                 {isApproved ? 'Fitting Verified' : 'In Verification'}
@@ -231,7 +231,7 @@ export default function StudentProfilesPage() {
               </h3>
               <Link
                 href="/measurements/history"
-                className="text-xs font-bold text-[#CC9448] hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-[#C82A2B] hover:underline flex items-center gap-1"
               >
                 <span>Full Archive</span>
                 <ChevronRight size={14} />
@@ -251,7 +251,7 @@ export default function StudentProfilesPage() {
               </div>
             ) : (
               <div className="p-8 rounded-2xl bg-zinc-50 border border-dashed border-zinc-200 text-center space-y-2">
-                <Ruler size={24} className="text-[#CC9448] mx-auto opacity-70" />
+                <Ruler size={24} className="text-[#C82A2B] mx-auto opacity-70" />
                 <p className="text-xs font-bold text-zinc-600">No measurements logged for this student yet.</p>
                 <p className="text-[11px] text-zinc-400">Measurements taken during fitting sessions will appear here.</p>
               </div>
@@ -260,10 +260,10 @@ export default function StudentProfilesPage() {
 
           {/* Fitting Notes & Status Summary */}
           {latestMeas?.notes && (
-            <div className="bg-[#FAF7F2] border border-[#CC9448]/20 rounded-2xl p-5 flex items-start gap-3.5">
-              <Sparkles size={18} className="text-[#CC9448] shrink-0 mt-0.5" />
+            <div className="bg-[#FAF7F2] border border-[#C82A2B]/20 rounded-2xl p-5 flex items-start gap-3.5">
+              <Sparkles size={18} className="text-[#C82A2B] shrink-0 mt-0.5" />
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#CC9448]">Tailoring & Fitting Remarks</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B]">Tailoring & Fitting Remarks</p>
                 <p className="text-xs text-zinc-700 font-medium mt-1 leading-relaxed">{latestMeas.notes}</p>
               </div>
             </div>
@@ -281,7 +281,7 @@ export default function StudentProfilesPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/measurements/history"
-                className="px-5 py-2.5 rounded-xl bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-[#CC9448]/20"
+                className="px-5 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-[#C82A2B]/20"
               >
                 Measurement Records
               </Link>

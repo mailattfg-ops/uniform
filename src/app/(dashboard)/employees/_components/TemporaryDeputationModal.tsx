@@ -100,65 +100,68 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
   const eligibleBranches = branches.filter(b => String(b.id) !== String(homeBranchId));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] border border-[#fce4d4] max-w-lg w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2.5rem] border border-zinc-200/80 max-w-lg w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative animate-in zoom-in-95 duration-200">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-4 pt-1">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shadow-inner">
-              <PlaneTakeoff size={24} />
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-xs">
+              <PlaneTakeoff size={22} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-[#3a525d] tracking-tight">Temporary Branch Deputation</h3>
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight">Temporary Branch Deputation</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Cross-Branch Staff Duty Assignment</p>
             </div>
           </div>
           <button 
             type="button" 
             onClick={onClose} 
-            className="w-9 h-9 rounded-full bg-zinc-100 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 flex items-center justify-center transition-all"
+            className="w-9 h-9 rounded-xl bg-zinc-100 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 flex items-center justify-center transition-all cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Employee Summary Card */}
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-[#3a525d]">{employee.full_name}</p>
+            <p className="text-sm font-bold text-zinc-900">{employee.full_name}</p>
             <p className="text-[10px] text-zinc-400 font-mono font-bold uppercase mt-0.5">{employee.employee_id} • {employee.designation}</p>
           </div>
           <div className="text-right">
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Home Branch Base</span>
-            <span className="text-xs font-bold text-[#2d8d9b]">{homeBranchName}</span>
+            <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Home Branch Base</span>
+            <span className="text-xs font-bold text-[#9E1B1D] font-mono">{homeBranchName}</span>
           </div>
         </div>
 
         {/* Current Deputation Notice (If Active) */}
         {isCurrentlyDeputed && (
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+          <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
-                <PlaneTakeoff size={14} className="text-amber-600" /> Currently on Deputation
+              <span className="text-xs font-bold text-zinc-800 flex items-center gap-1.5">
+                <PlaneTakeoff size={14} className="text-[#9E1B1D]" /> Currently on Deputation
               </span>
               <button
                 type="button"
                 onClick={handleRecall}
                 disabled={loading}
-                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-xs transition flex items-center gap-1"
+                className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-xs transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
               >
                 <Undo2 size={12} />
                 Recall Home Now
               </button>
             </div>
-            <p className="text-xs text-amber-900 font-medium">
-              Deputed at: <strong className="font-bold">{currentTempBranchName}</strong>
+            <p className="text-xs text-zinc-600 font-medium">
+              Deputed at: <strong className="font-bold text-zinc-900">{currentTempBranchName}</strong>
               {employee.temp_branch_until && (
                 <span> (Scheduled until: <strong>{formatDate(employee.temp_branch_until)}</strong>)</span>
               )}
             </p>
             {employee.temp_branch_notes && (
-              <p className="text-[11px] text-amber-700 italic">"{employee.temp_branch_notes}"</p>
+              <p className="text-[11px] text-zinc-500 italic bg-white p-2 rounded-xl border border-zinc-150">"{employee.temp_branch_notes}"</p>
             )}
           </div>
         )}
@@ -166,14 +169,14 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
         {/* Deputation Form */}
         <form onSubmit={handleAssign} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">
               Select Temporary Destination Branch *
             </label>
             <select
               required
               value={tempBranchId}
               onChange={e => setTempBranchId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+              className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
             >
               <option value="">Choose Branch / Factory / Unit...</option>
               {eligibleBranches.map(b => (
@@ -188,7 +191,7 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
           </div>
 
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">
               Deputation Valid Until (Optional Return Date)
             </label>
             <input
@@ -196,12 +199,12 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
               min={new Date().toISOString().split('T')[0]}
               value={tempUntil}
               onChange={e => setTempUntil(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+              className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">
               Purpose / Deputation Duty Notes
             </label>
             <textarea
@@ -209,22 +212,22 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
               placeholder="e.g. Assigned to support festival rush sales and stock count, or factory tailoring quality inspection"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+              className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-500 hover:bg-zinc-50 transition"
+              className="px-5 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-500 hover:bg-zinc-50 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-amber-600/20 transition flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#C82A2B]/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <PlaneTakeoff size={14} />
               {loading ? 'Processing...' : isCurrentlyDeputed ? 'Update Deputation' : 'Confirm Deputation'}

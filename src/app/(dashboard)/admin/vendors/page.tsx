@@ -126,7 +126,7 @@ export default function VendorManagementPage() {
             <ShieldCheck size={20} />
           </div>
           <div>
-            <p className="font-black text-sm tracking-tight text-[#3a525d]">{v.code}</p>
+            <p className="font-black text-sm tracking-tight text-zinc-900">{v.code}</p>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">UID: VND-{v.id}</p>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function VendorManagementPage() {
     },
     {
       header: 'Vendor Name',
-      accessor: (v) => <span className="text-sm font-bold text-[#3a525d]">{v.name}</span>
+      accessor: (v) => <span className="text-sm font-bold text-zinc-900">{v.name}</span>
     },
     {
       header: 'Contact Person',
@@ -168,10 +168,10 @@ export default function VendorManagementPage() {
           <Button
             onClick={() => startEdit(v)}
             variant="none"
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20 p-0"
+            className="w-10 h-10 rounded-xl bg-[#FFF1F1] text-[#9E1B1D] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#C82A2B]/20 p-0"
             title="Edit Vendor"
           >
-            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
+            <Edit2 size={16} className="text-[#9E1B1D] shrink-0" />
           </Button>
           <Button
             onClick={() => setDeleteCandidate(v)}
@@ -203,8 +203,8 @@ export default function VendorManagementPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Vendors Manager</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Vendors Manager</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-70">
             Unified Registry for Fabrics, Buttons, & Thread Suppliers
           </p>
         </div>
@@ -212,7 +212,7 @@ export default function VendorManagementPage() {
         {!isAdding ? (
           <Button
             onClick={() => setIsAdding(true)}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             Register Vendor
@@ -229,17 +229,17 @@ export default function VendorManagementPage() {
       </div>
 
       {isAdding ? (
-        <Card className="max-w-3xl mx-auto p-10 border-2 border-dashed border-[#2d8d9b]/20 shadow-2xl shadow-[#2d8d9b]/5 rounded-[3rem] animate-in slide-in-from-top-10 duration-500">
+        <Card className="max-w-3xl mx-auto p-10 border border-zinc-200 shadow-2xl shadow-zinc-900/5 rounded-[3rem] animate-in slide-in-from-top-10 duration-500">
           <div className="space-y-8">
             <div className="flex items-center gap-4 border-b border-zinc-100 pb-6">
-              <div className="w-14 h-14 bg-[#2d8d9b] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-[#2d8d9b]/20">
+              <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-zinc-900/20">
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-black italic text-[#3a525d] tracking-tight">
+                <h3 className="text-2xl font-black italic text-zinc-900 tracking-tight">
                   {editingVendor ? 'Modify Vendor Profile' : 'Register New Vendor'}
                 </h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] opacity-60">
                   Basic Info & Contact Details
                 </p>
               </div>
@@ -247,63 +247,63 @@ export default function VendorManagementPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Vendor Code (Optional)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Vendor Code (Optional)</label>
                 <Input
                   placeholder="Leave blank to auto-generate (e.g. VND-0001)"
                   value={code}
                   readOnly={!!editingVendor}
                   onChange={(e) => setCode(e.target.value)}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all font-black uppercase"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-black uppercase"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Vendor Name</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Vendor Name</label>
                 <Input
                   placeholder="e.g. Raymond Ltd"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   maxLength={100}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Contact Person</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Contact Person</label>
                 <Input
                   placeholder="e.g. Mr. Anil Sharma"
                   value={contactPerson}
                   onChange={(e) => setContactPerson(e.target.value)}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all font-semibold"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-semibold"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Phone Number</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Phone Number</label>
                 <Input
                   placeholder="e.g. +91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all font-mono font-bold"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-mono font-bold"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Email Address</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Email Address</label>
                 <Input
                   placeholder="e.g. sales@raymond.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all font-medium"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-medium"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Status</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Status</label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full h-14 bg-white border border-zinc-200 rounded-2xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/25 focus:border-[#2d8d9b] text-[#3a525d]"
+                  className="w-full h-14 bg-white border border-zinc-200 rounded-2xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -311,19 +311,19 @@ export default function VendorManagementPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Address / Notes</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Address / Notes</label>
                 <Input
                   placeholder="Registered company address or notes..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
                 />
               </div>
             </div>
 
             <Button
               onClick={handleSubmit}
-              className="w-full h-20 rounded-[2rem] bg-[#3a525d] hover:bg-[#2d8d9b] text-white font-black italic text-xl shadow-2xl shadow-[#3a525d]/20 flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full h-20 rounded-[2rem] bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black italic text-xl shadow-2xl shadow-[#C82A2B]/25 flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {editingVendor ? 'Commit Changes' : 'Register Vendor'}
               <ArrowRight />

@@ -150,7 +150,7 @@ export default function DressPrefixManagementPage() {
           <Button
             onClick={() => startEdit(dp)}
             variant="none"
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20 p-0"
+            className="w-10 h-10 rounded-xl bg-[#FFF1F1] text-[#9E1B1D] hover:bg-[#C82A2B] hover:text-white transition-all flex items-center justify-center border border-[#C82A2B]/20 p-0"
             title="Edit Prefix"
           >
             <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
@@ -194,7 +194,7 @@ export default function DressPrefixManagementPage() {
         {!isAdding ? (
           <Button
             onClick={() => setIsAdding(true)}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             Add Dress Prefix
@@ -211,17 +211,18 @@ export default function DressPrefixManagementPage() {
       </div>
 
       {isAdding ? (
-        <Card className="max-w-3xl mx-auto p-10 border-2 border-dashed border-[#2d8d9b]/20 shadow-2xl shadow-[#2d8d9b]/5 rounded-[3rem] animate-in slide-in-from-top-10 duration-500">
+        <Card className="max-w-3xl mx-auto p-10 border border-zinc-200/80 shadow-2xl rounded-[3rem] bg-white animate-in slide-in-from-top-10 duration-500 relative overflow-hidden">
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
           <div className="space-y-8">
             <div className="flex items-center gap-4 border-b border-zinc-100 pb-6">
-              <div className="w-14 h-14 bg-[#2d8d9b] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-[#2d8d9b]/20">
+              <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-zinc-900/20">
                 <Scissors size={24} />
               </div>
               <div>
                 <h3 className="text-2xl font-black italic text-[#3a525d] tracking-tight">
                   {editingPrefix ? 'Modify Dress Prefix' : 'Define New Dress Prefix'}
                 </h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] opacity-80">
                   Specification component registry
                 </p>
               </div>
@@ -239,7 +240,7 @@ export default function DressPrefixManagementPage() {
                       setCode(val.toUpperCase());
                     }
                   }}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all font-black uppercase"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-black uppercase"
                 />
               </div>
 
@@ -250,7 +251,7 @@ export default function DressPrefixManagementPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   maxLength={50}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
                 />
               </div>
 
@@ -260,14 +261,14 @@ export default function DressPrefixManagementPage() {
                   placeholder="Detailed description of the dress prefix..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
                 />
               </div>
             </div>
 
             <Button
               onClick={handleSubmit}
-              className="w-full h-20 rounded-[2rem] bg-[#3a525d] hover:bg-[#2d8d9b] text-white font-black italic text-xl shadow-2xl shadow-[#3a525d]/20 flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full h-20 rounded-[2rem] bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black italic text-xl shadow-2xl shadow-[#C82A2B]/25 flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {editingPrefix ? 'Commit Changes' : 'Initialize Dress Prefix'}
               <ArrowRight />

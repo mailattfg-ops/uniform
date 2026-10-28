@@ -145,11 +145,11 @@ const VendorChecklistInput: React.FC<{
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
-        <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Supplying Vendors</label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Select Supplying Vendors</label>
         <button 
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="text-[10px] font-black text-[#2d8d9b] hover:text-[#3a525d] hover:underline uppercase tracking-wider transition-all cursor-pointer bg-transparent border-none outline-none"
+          className="text-[10px] font-black text-[#9E1B1D] hover:text-[#C82A2B] hover:underline uppercase tracking-wider transition-all cursor-pointer bg-transparent border-none outline-none"
         >
           + Register New Vendor
         </button>
@@ -164,15 +164,15 @@ const VendorChecklistInput: React.FC<{
                 key={v.id} 
                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all duration-250 active:scale-98 ${
                   isChecked 
-                    ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] text-[#2d8d9b] shadow-sm' 
-                    : 'bg-white border-zinc-200 text-[#3a525d] hover:border-zinc-300 hover:bg-zinc-50/50'
+                    ? 'bg-[#FFF1F1] border-[#C82A2B] text-[#9E1B1D] shadow-2xs' 
+                    : 'bg-white border-zinc-200 text-zinc-800 hover:border-zinc-300 hover:bg-zinc-50/50'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => handleToggle(v.id)}
-                  className="rounded border-zinc-300 text-[#2d8d9b] focus:ring-[#2d8d9b]/25 h-4 w-4 transition-all"
+                  className="rounded border-zinc-300 text-[#C82A2B] focus:ring-[#C82A2B]/25 accent-[#C82A2B] h-4 w-4 transition-all"
                 />
                 <div className="flex flex-col">
                   <span className="text-xs font-black leading-tight">{v.name}</span>
@@ -201,10 +201,10 @@ const VendorChecklistInput: React.FC<{
           <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-[0_20px_70px_-10px_rgba(0,0,0,0.4)] border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300">
             <div className="flex flex-col h-full max-h-[90vh]">
               {/* Header */}
-              <div className="bg-[#fce4d4]/20 p-6 border-b border-[#fce4d4] flex justify-between items-center">
+              <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" /><div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 p-6 flex justify-between items-center text-white border-b border-white/10">
                 <div>
-                  <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">Register New Supplier</h3>
-                  <p className="text-[9px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-0.5">
+                  <h3 className="text-lg md:text-xl font-black tracking-tight text-white">Register New Supplier</h3>
+                  <p className="text-[9px] text-zinc-300 font-black uppercase tracking-[0.2em] mt-0.5">
                     Add to Global Vendors Registry
                   </p>
                 </div>
@@ -212,7 +212,7 @@ const VendorChecklistInput: React.FC<{
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSaving}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-zinc-100 transition-colors text-zinc-400 border border-zinc-150/50 cursor-pointer"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white border border-white/10 cursor-pointer"
                 >
                   <X size={20} />
                 </button>
@@ -222,19 +222,19 @@ const VendorChecklistInput: React.FC<{
               <div className="p-6 overflow-y-auto space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Vendor Code (Optional)</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-900 ml-1">Vendor Code (Optional)</label>
                     <input
                       type="text"
                       placeholder="Leave blank to auto-generate"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d] uppercase"
+                      className="h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900 uppercase"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Vendor Name *</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-900 ml-1">Vendor Name *</label>
                     <input
                       type="text"
                       placeholder="e.g. Raymond Ltd"
@@ -242,55 +242,55 @@ const VendorChecklistInput: React.FC<{
                       onChange={(e) => setName(e.target.value)}
                       onKeyDown={handleKeyDown}
                       required
-                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                      className="h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Contact Person</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-900 ml-1">Contact Person</label>
                     <input
                       type="text"
                       placeholder="e.g. Mr. Anil Sharma"
                       value={contactPerson}
                       onChange={(e) => setContactPerson(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                      className="h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Phone Number</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-900 ml-1">Phone Number</label>
                     <input
                       type="text"
                       placeholder="e.g. +91 98765 43210"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                      className="h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold font-mono outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Email Address</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-900 ml-1">Email Address</label>
                     <input
                       type="email"
                       placeholder="e.g. sales@raymond.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                      className="h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] ml-1">Address / Notes</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-900 ml-1">Address / Notes</label>
                     <input
                       type="text"
                       placeholder="Registered company address or notes..."
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+                      className="h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                     />
                   </div>
                 </div>
@@ -310,7 +310,7 @@ const VendorChecklistInput: React.FC<{
                   type="button"
                   onClick={() => handleRegisterVendor()}
                   disabled={isSaving}
-                  className="px-6 h-11 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase tracking-wider text-[10px] flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-[#2d8d9b]/20 cursor-pointer disabled:opacity-40"
+                  className="px-6 h-11 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase tracking-wider text-[10px] flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-[#C82A2B]/25 cursor-pointer disabled:opacity-40"
                 >
                   {isSaving ? 'Registering...' : 'Register Vendor'}
                 </button>
@@ -566,7 +566,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             )}
           </div>
           <div>
-            <p className="font-bold text-sm text-[#3a525d]">{formatFabricDisplayName(item)}</p>
+            <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
             <div className="flex items-center gap-2 flex-wrap mt-0.5">
               {item.brand_name && (
                 <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
@@ -639,7 +639,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       header: type === 'buttons' ? 'Button Name' : 'Thread Name', 
       accessor: ((item: Item) => (
         <div>
-          <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
+          <p className="font-bold text-sm text-zinc-900">{item.name}</p>
           {item.description && (
             <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 max-w-[200px]">{item.description}</p>
           )}
@@ -726,7 +726,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             setEditingItem(null);
           }}
           variant="secondary"
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors bg-transparent border-none shadow-none px-0"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-900 transition-colors bg-transparent border-none shadow-none px-0"
         >
           <ArrowLeft size={14} />
           Back to List
@@ -968,12 +968,12 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">{title}</h1>
-            <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] rounded-full text-[10px] font-black uppercase tracking-wider">
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">{title}</h1>
+            <span className="px-3 py-1 bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D] rounded-full text-[10px] font-black uppercase tracking-wider">
               {type === 'fabrics' ? 'Material Grade & Coding' : 'Specification Hub'}
             </span>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 mt-1">
             {type === 'fabrics' ? 'Fabric Specification Hub & Vendor Registry' : subtitle}
           </p>
         </div>
@@ -984,7 +984,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               setEditingItem(null);
               setView('add');
             }}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
@@ -1024,7 +1024,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 <select
                   value={garmentCategoryFilter}
                   onChange={(e) => setGarmentCategoryFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
                   title="Filter by Garment Category"
                 >
                   <option value="ALL">All Garment Categories</option>
@@ -1037,7 +1037,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 <select
                   value={brandTypeFilter}
                   onChange={(e) => setBrandTypeFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
                   title="Filter by Brand Type"
                 >
                   <option value="ALL">All Brand Types</option>
@@ -1050,7 +1050,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 <select
                   value={brandFilter}
                   onChange={(e) => setBrandFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
                   title="Filter by Brand"
                 >
                   <option value="ALL">All Brands</option>
@@ -1063,7 +1063,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 <select
                   value={qualityFilter}
                   onChange={(e) => setQualityFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
                   title="Filter by Quality Name"
                 >
                   <option value="ALL">All Quality Names</option>
@@ -1076,7 +1076,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 <select
                   value={shadeFilter}
                   onChange={(e) => setShadeFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
                   title="Filter by Shade"
                 >
                   <option value="ALL">All Shades</option>
@@ -1089,7 +1089,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 <select
                   value={widthFilter}
                   onChange={(e) => setWidthFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
                   title="Filter by Width"
                 >
                   <option value="ALL">All Widths</option>

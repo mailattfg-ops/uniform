@@ -415,7 +415,7 @@ Forma Apparels Co.`;
             <>
               <Button
                 onClick={() => handleDownloadPDF(selectedQuotation)}
-                className="flex items-center gap-2 bg-[#3a525d] hover:bg-[#2d8d9b] text-white shadow-md rounded-xl py-2.5 text-xs font-black uppercase tracking-widest"
+                className="flex items-center gap-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 📥 Download Proposal PDF
               </Button>
@@ -423,7 +423,7 @@ Forma Apparels Co.`;
               <Button
                 variant="primary"
                 onClick={startEditing}
-                className="flex items-center gap-2 bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-md rounded-xl py-2.5 text-xs font-black uppercase tracking-widest"
+                className="flex items-center gap-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Edit3 size={14} />
                 Deep Edit Quotation

@@ -576,8 +576,8 @@ export default function DeliveryChallansPage() {
 
             {/* Header */}
             <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Truck className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900">Confirm Delivery Challan</h3>
@@ -608,7 +608,7 @@ export default function DeliveryChallansPage() {
               <button
                 onClick={confirmAndGenerate}
                 disabled={isSubmitting}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition"
+                className="flex-1 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#C82A2B]/20 transition"
               >
                 <Truck className="w-3.5 h-3.5" />
                 Yes, Generate Challan

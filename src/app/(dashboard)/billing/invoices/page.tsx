@@ -543,7 +543,7 @@ export default function InvoicesPage() {
                 setCreateMode('order');
                 setShowCreateModal(true);
               }}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#991b1b] hover:bg-[#7f1d1d] text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/20 text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               <FileCheck size={16} />
               <span>Invoice Against Sales Order</span>
@@ -730,12 +730,13 @@ export default function InvoicesPage() {
       {/* ── 6. CREATE INVOICE MODAL (DUAL MODE) ─────────────────────────────── */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto border border-zinc-200">
+          <div className="bg-white rounded-[2.5rem] max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto border border-zinc-200 relative overflow-x-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
               <div>
-                <h3 className="text-xl font-black text-[#3a525d] tracking-tight flex items-center gap-2">
-                  <FileText className="text-[#991b1b]" size={22} />
+                <h3 className="text-xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                  <FileText className="text-[#C82A2B]" size={22} />
                   <span>Generate Customer Invoice</span>
                 </h3>
                 <p className="text-xs font-semibold text-zinc-500 mt-0.5">
@@ -750,7 +751,7 @@ export default function InvoicesPage() {
                   onClick={() => setCreateMode('order')}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
                     createMode === 'order'
-                      ? 'bg-[#991b1b] text-white shadow-xs'
+                      ? 'bg-[#C82A2B] text-white shadow-xs'
                       : 'text-zinc-600 hover:text-zinc-900'
                   }`}
                 >
@@ -761,7 +762,7 @@ export default function InvoicesPage() {
                   onClick={() => setCreateMode('retail')}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
                     createMode === 'retail'
-                      ? 'bg-[#3a525d] text-white shadow-xs'
+                      ? 'bg-zinc-900 text-white shadow-xs'
                       : 'text-zinc-600 hover:text-zinc-900'
                   }`}
                 >
@@ -1128,7 +1129,7 @@ export default function InvoicesPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingRetail}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition disabled:opacity-50 cursor-pointer"
+                    className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/20 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmittingRetail ? 'Generating...' : 'Generate Retail Invoice'}
                   </button>

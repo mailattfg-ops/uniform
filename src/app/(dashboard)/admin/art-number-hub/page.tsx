@@ -310,7 +310,7 @@ export default function ArtNumberHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => startEdit(d)}
-            className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
+            className="w-10 h-10 rounded-xl bg-[#FFF1F1] text-[#9E1B1D] hover:bg-[#C82A2B] hover:text-white transition-all flex items-center justify-center border border-[#C82A2B]/20"
           >
             <Edit2 size={16} />
           </button>
@@ -358,7 +358,7 @@ export default function ArtNumberHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => startEdit(g)}
-            className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
+            className="w-10 h-10 rounded-xl bg-[#FFF1F1] text-[#9E1B1D] hover:bg-[#C82A2B] hover:text-white transition-all flex items-center justify-center border border-[#C82A2B]/20"
           >
             <Edit2 size={16} />
           </button>
@@ -406,7 +406,7 @@ export default function ArtNumberHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => startEdit(p)}
-            className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
+            className="w-10 h-10 rounded-xl bg-[#FFF1F1] text-[#9E1B1D] hover:bg-[#C82A2B] hover:text-white transition-all flex items-center justify-center border border-[#C82A2B]/20"
           >
             <Edit2 size={16} />
           </button>
@@ -459,7 +459,7 @@ export default function ArtNumberHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => startEdit(f)}
-            className="w-10 h-10 rounded-xl bg-teal-50/50 text-teal-600 hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center border border-teal-100/50"
+            className="w-10 h-10 rounded-xl bg-[#FFF1F1] text-[#9E1B1D] hover:bg-[#C82A2B] hover:text-white transition-all flex items-center justify-center border border-[#C82A2B]/20"
           >
             <Edit2 size={16} />
           </button>
@@ -611,7 +611,7 @@ export default function ArtNumberHubPage() {
             <Button
               onClick={() => setIsAdding(true)}
               size="h-auto"
-              className="h-14 px-8 bg-[#3a525d] hover:bg-teal-600 text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={18} strokeWidth={3} />
               Register {getTabLabelSingular()}
@@ -711,7 +711,7 @@ export default function ArtNumberHubPage() {
                   </div>
                   <div>
                     <h3 className="text-2xl font-black italic text-[#3a525d] tracking-tight">Art Number Generator</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-teal-600 opacity-70">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] opacity-80">
                       Instantly form codes from registered prefixes & formats
                     </p>
                   </div>
@@ -788,7 +788,7 @@ export default function ArtNumberHubPage() {
                       placeholder="e.g. M"
                       value={baseSize}
                       onChange={(e) => setBaseSize(e.target.value)}
-                      className="h-14 rounded-2xl border-zinc-200 focus:border-teal-500 transition-all font-bold text-sm text-[#3a525d]"
+                      className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-bold text-sm text-[#3a525d]"
                     />
                   </div>
 
@@ -839,7 +839,7 @@ export default function ArtNumberHubPage() {
                   onClick={handleCreateOrUpdate}
                   disabled={!selectedDressId || !selectedGenderId || !selectedPatternId}
                   size="h-auto"
-                  className="w-full h-20 rounded-[2rem] bg-zinc-900 hover:bg-teal-600 text-white font-black italic text-xl shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none"
+                  className="w-full h-20 rounded-[2rem] bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black italic text-xl shadow-2xl shadow-[#C82A2B]/25 flex items-center justify-center gap-4 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none"
                 >
                   Pre-register Dynamic Combination
                   <ArrowRight />
@@ -848,10 +848,11 @@ export default function ArtNumberHubPage() {
             </Card>
           ) : (
             /* Dress, Gender, Pattern Forms */
-            <Card className="p-8 border border-zinc-200 shadow-2xl rounded-[3rem] bg-white animate-in slide-in-from-top-10 duration-500">
+            <Card className="p-8 border border-zinc-200/80 shadow-2xl rounded-[3rem] bg-white animate-in slide-in-from-top-10 duration-500 relative overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
               <div className="space-y-8">
                 <div className="flex items-center gap-4 border-b border-zinc-100 pb-6">
-                  <div className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-teal-600/20">
+                  <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-zinc-900/20">
                     {activeTab === 'dresses' ? <Scissors size={24} /> : activeTab === 'genders' ? <UserCheck size={24} /> : activeTab === 'fits' ? <Sparkles size={24} /> : <Palette size={24} />}
                   </div>
                   <div>
@@ -888,7 +889,7 @@ export default function ArtNumberHubPage() {
                           }
                         }
                       }}
-                      className="h-14 rounded-2xl border-zinc-200 focus:border-teal-500 transition-all font-black uppercase tracking-wider text-[#3a525d]"
+                      className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all font-black uppercase tracking-wider text-[#3a525d]"
                     />
                   </div>
 
@@ -901,7 +902,7 @@ export default function ArtNumberHubPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       maxLength={50}
-                      className="h-14 rounded-2xl border-zinc-200 focus:border-teal-500 transition-all text-sm font-bold text-[#3a525d]"
+                      className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all text-sm font-bold text-[#3a525d]"
                     />
                   </div>
                 </div>
@@ -909,7 +910,7 @@ export default function ArtNumberHubPage() {
                 <Button
                   onClick={handleCreateOrUpdate}
                   size="h-auto"
-                  className="w-full h-20 rounded-[2rem] bg-[#3a525d] hover:bg-teal-600 text-white font-black italic text-xl shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                  className="w-full h-20 rounded-[2rem] bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black italic text-xl shadow-2xl shadow-[#C82A2B]/25 flex items-center justify-center gap-4 transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {editingId ? 'Commit Modifications' : `Initialize ${getTabLabelSingular()} Registry`}
                   <ArrowRight />

@@ -97,11 +97,11 @@ export default function ProductTypeManagementPage() {
       header: 'Product Type',
       accessor: (pt) => (
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#2d8d9b]/5 rounded-2xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shadow-sm">
+          <div className="w-12 h-12 bg-[#2d8d9b]/5 rounded-2xl flex items-center justify-center text-[#9E1B1D] border border-[#2d8d9b]/10 shadow-sm">
             <Tags size={20} />
           </div>
           <div>
-            <p className="font-black text-sm tracking-tight text-[#3a525d]">{pt.name}</p>
+            <p className="font-black text-sm tracking-tight text-zinc-900">{pt.name}</p>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">UID: TYP-{pt.id}</p>
           </div>
         </div>
@@ -122,10 +122,10 @@ export default function ProductTypeManagementPage() {
           <Button
             onClick={() => startEdit(pt)}
             variant="none"
-            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20 p-0"
+            className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 text-[#9E1B1D] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center justify-center border border-[#2d8d9b]/20 p-0"
             title="Edit Product Type"
           >
-            <Edit2 size={16} className="text-[#2d8d9b] shrink-0" />
+            <Edit2 size={16} className="text-[#9E1B1D] shrink-0" />
           </Button>
           <Button
             onClick={() => setDeleteCandidate(pt)}
@@ -157,14 +157,14 @@ export default function ProductTypeManagementPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Product Types</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Master definitions for specification catalog</p>
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Product Types</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-70">Master definitions for specification catalog</p>
         </div>
 
         {!isAdding ? (
           <Button
             onClick={() => setIsAdding(true)}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             Add New Type
@@ -181,23 +181,23 @@ export default function ProductTypeManagementPage() {
       </div>
 
       {isAdding ? (
-        <Card className="max-w-3xl mx-auto p-10 border-2 border-dashed border-[#2d8d9b]/20 shadow-2xl shadow-[#2d8d9b]/5 rounded-[3rem] animate-in slide-in-from-top-10 duration-500">
+        <Card className="max-w-3xl mx-auto p-10 border border-zinc-200 shadow-2xl shadow-zinc-900/5 rounded-[3rem] animate-in slide-in-from-top-10 duration-500">
           <div className="space-y-8">
             <div className="flex items-center gap-4 border-b border-zinc-100 pb-6">
-              <div className="w-14 h-14 bg-[#2d8d9b] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-[#2d8d9b]/20">
+              <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-zinc-900/20">
                 <Tags size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-black italic text-[#3a525d] tracking-tight">
+                <h3 className="text-2xl font-black italic text-zinc-900 tracking-tight">
                   {editingType ? 'Modify Product Type' : 'Define New Product Type'}
                 </h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">Specification Categories Definition</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] opacity-60">Specification Categories Definition</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product Type Name</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Product Type Name</label>
                 <Input
                   placeholder="e.g. Shirt, Blazer, Trousers, Skirt"
                   value={name}
@@ -208,14 +208,14 @@ export default function ProductTypeManagementPage() {
                     }
                   }}
                   maxLength={50}
-                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#2d8d9b] transition-all"
+                  className="h-14 rounded-2xl border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
                 />
               </div>
             </div>
 
             <Button
               onClick={handleSubmit}
-              className="w-full h-20 rounded-[2rem] bg-[#3a525d] hover:bg-[#2d8d9b] text-white font-black italic text-xl shadow-2xl shadow-[#3a525d]/20 flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full h-20 rounded-[2rem] bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black italic text-xl shadow-2xl shadow-[#C82A2B]/25 flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {editingType ? 'Commit Changes' : 'Initialize Product Type'}
               <ArrowRight />

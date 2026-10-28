@@ -295,9 +295,9 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
         <Button
           onClick={onCancel}
           variant="secondary"
-          className="flex items-center gap-2 text-zinc-400 hover:text-[#3a525d] font-bold text-sm transition-colors group bg-transparent border-none shadow-none p-0"
+          className="flex items-center gap-2 text-zinc-400 hover:text-zinc-900 font-bold text-sm transition-colors group bg-transparent border-none shadow-none p-0"
         >
-          <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center group-hover:bg-[#3a525d] group-hover:text-white transition-all">
+          <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center group-hover:bg-zinc-900 group-hover:text-white transition-all">
             <ArrowLeft size={16} />
           </div>
           Back to Directory
@@ -313,11 +313,11 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
         
         <div className="relative z-10">
           <div className="flex items-center gap-6 mb-10">
-            <div className="w-20 h-20 bg-[#3a525d] rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-[#3a525d]/30 shrink-0">
+            <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-zinc-900/30 shrink-0">
               <UserPlus size={36} />
             </div>
             <div>
-              <h2 className="text-3xl font-black italic tracking-tight text-[#3a525d]">
+              <h2 className="text-3xl font-black italic tracking-tight text-zinc-900">
                 {initialData ? 'Update Staff Member' : 'Add New Employee'}
               </h2>
               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">
@@ -349,14 +349,14 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
 
               {/* Branch Assignment */}
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-[#3a525d] block">
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Assigned Branch / Location *
                 </label>
                 <select
                   required
                   value={selectedBranchId}
                   onChange={(e) => setSelectedBranchId(e.target.value)}
-                  className="w-full bg-white border border-[#fce4d4] rounded-2xl p-4 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 transition-all shadow-sm"
+                  className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all shadow-sm"
                 >
                   <option value="">Select Branch / Unit...</option>
                   {branches.map(b => (
@@ -369,14 +369,14 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
 
               {/* Employment Type */}
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-[#3a525d] block">
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Employment Type *
                 </label>
                 <select
                   required
                   value={employmentType}
                   onChange={(e) => setEmploymentType(e.target.value)}
-                  className="w-full bg-white border border-[#fce4d4] rounded-2xl p-4 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 transition-all shadow-sm"
+                  className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all shadow-sm"
                 >
                   <option value="Permanent">Permanent (Full Time)</option>
                   <option value="Temporary">Temporary (Seasonal / Short Term)</option>
@@ -388,7 +388,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
 
               {/* Designation & Department with Live Detection */}
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-[#3a525d] block">
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Designation / Job Title *
                 </label>
                 <input
@@ -398,19 +398,19 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                   value={designation}
                   onChange={(e) => setDesignation(e.target.value)}
                   placeholder="e.g. Master Tailor, Sales Executive, Cutting Supervisor"
-                  className="w-full bg-white border border-[#fce4d4] rounded-2xl p-4 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 transition-all shadow-sm"
+                  className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all shadow-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-[#3a525d] block">
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Department *
                 </label>
                 <select
                   required
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full bg-white border border-[#fce4d4] rounded-2xl p-4 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 transition-all shadow-sm"
+                  className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all shadow-sm"
                 >
                   <option value="Production & Tailoring">Production & Tailoring</option>
                   <option value="Cutting & Pattern Making">Cutting & Pattern Making</option>
@@ -471,13 +471,13 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                      isNewRole ? 'bg-amber-500 text-white' : 'bg-[#2d8d9b] text-white'
+                      isNewRole ? 'bg-amber-500 text-white' : 'bg-[#9E1B1D] text-white'
                     }`}>
                       {isNewRole ? <Sparkles size={24} /> : <ShieldCheck size={24} />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-black uppercase tracking-tight text-[#3a525d]">
+                        <span className="text-xs font-black uppercase tracking-tight text-zinc-900">
                           {comboRoleName}
                         </span>
                         {isNewRole ? (
@@ -508,7 +508,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
 
                   {/* Toggle Assigner Visibility */}
                   <div className="flex items-center gap-2 self-end sm:self-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 bg-white border border-zinc-200 rounded-xl text-[#2d8d9b]">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 bg-white border border-zinc-200 rounded-xl text-[#9E1B1D]">
                       {assignedPermissions.length} Features Active
                     </span>
                     <button
@@ -529,8 +529,8 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                     <div className="bg-white p-5 rounded-2xl border border-zinc-200/70 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <Settings2 size={15} className="text-[#2d8d9b]" />
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                          <Settings2 size={15} className="text-[#9E1B1D]" />
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
                             Feature Baseline Templates
                           </h4>
                         </div>
@@ -538,7 +538,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                           <button
                             type="button"
                             onClick={selectAll}
-                            className="px-2.5 py-1 bg-zinc-100 hover:bg-[#2d8d9b] hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider text-zinc-600 transition-colors flex items-center gap-1"
+                            className="px-2.5 py-1 bg-zinc-100 hover:bg-[#C82A2B] hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider text-zinc-600 transition-colors flex items-center gap-1"
                           >
                             <CheckSquare size={11} />
                             Select All ({AVAILABLE_PERMISSIONS.length})
@@ -558,7 +558,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                         <button
                           type="button"
                           onClick={applyDepartmentSuggestion}
-                          className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#2d8d9b]/30"
+                          className="px-3 py-1.5 bg-[#FFF1F1] hover:bg-[#C82A2B] text-[#9E1B1D] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#C82A2B]/20"
                         >
                           <Sparkles size={12} />
                           Suggest for {department}
@@ -571,7 +571,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                             className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-200 text-zinc-700 rounded-xl text-[10px] font-bold border border-zinc-200 transition-colors flex items-center gap-1.5"
                             title={preset.description}
                           >
-                            <span className="text-[9px] font-black uppercase text-[#2d8d9b]">[{preset.badge}]</span>
+                            <span className="text-[9px] font-black uppercase text-[#9E1B1D]">[{preset.badge}]</span>
                             <span>{preset.name}</span>
                           </button>
                         ))}
@@ -587,13 +587,13 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                           value={permissionSearch}
                           onChange={(e) => setPermissionSearch(e.target.value)}
                           placeholder="Search"
-                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-900 outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                         />
                       </div>
                       <select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                        className="px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       >
                         {categories.map(cat => (
                           <option key={cat} value={cat}>
@@ -615,8 +615,8 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                           <div key={category} className="bg-white p-4 rounded-2xl border border-zinc-200/70 space-y-2.5">
                             <div className="flex items-center justify-between pb-1.5 border-b border-zinc-100">
                               <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-[#2d8d9b]" />
-                                <h5 className="text-[10px] font-black uppercase tracking-wider text-[#3a525d]">
+                                <span className="w-2 h-2 rounded-full bg-[#9E1B1D]" />
+                                <h5 className="text-[10px] font-black uppercase tracking-wider text-zinc-900">
                                   {category}
                                 </h5>
                                 <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
@@ -626,7 +626,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                               <button
                                 type="button"
                                 onClick={() => toggleCategory(category)}
-                                className="text-[9px] font-black uppercase text-[#2d8d9b] hover:text-[#3a525d] transition-colors"
+                                className="text-[9px] font-black uppercase text-[#9E1B1D] hover:text-zinc-900 transition-colors"
                               >
                                 {hasAllInCategory ? 'Unselect Category' : 'Select Category'}
                               </button>
@@ -640,13 +640,13 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                                     key={permission.id}
                                     className={`flex items-start justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
                                       isChecked 
-                                        ? 'bg-[#2d8d9b]/5 border-[#2d8d9b]/40 shadow-xs' 
+                                        ? 'bg-[#FFF1F1] border-[#C82A2B]/30 shadow-xs' 
                                         : 'bg-zinc-50/50 border-zinc-200/60 hover:border-zinc-300'
                                     }`}
                                   >
                                     <div className="flex flex-col gap-0.5 pr-2">
                                       <span className={`text-[10px] font-black ${
-                                        isChecked ? 'text-[#2d8d9b]' : 'text-zinc-700'
+                                        isChecked ? 'text-[#9E1B1D]' : 'text-zinc-700'
                                       }`}>
                                         {permission.label}
                                       </span>
@@ -658,7 +658,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                                       type="checkbox"
                                       checked={isChecked}
                                       onChange={() => togglePermission(permission.id)}
-                                      className="mt-0.5 w-4 h-4 rounded border-zinc-300 text-[#2d8d9b] focus:ring-[#2d8d9b] accent-[#2d8d9b] shrink-0 cursor-pointer"
+                                      className="mt-0.5 w-4 h-4 rounded border-zinc-300 text-[#9E1B1D] focus:ring-[#C82A2B] accent-[#C82A2B] shrink-0 cursor-pointer"
                                     />
                                   </label>
                                 );
@@ -687,12 +687,12 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                   id="has_login_access"
                   checked={hasLoginAccess}
                   onChange={(e) => setHasLoginAccess(e.target.checked)}
-                  className="mt-1 w-5 h-5 rounded-md text-[#2d8d9b] border-slate-300 focus:ring-[#2d8d9b] cursor-pointer accent-[#2d8d9b]"
+                  className="mt-1 w-5 h-5 rounded-md text-[#9E1B1D] border-slate-300 focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
                 />
                 <label htmlFor="has_login_access" className="cursor-pointer select-none">
                   <div className="flex items-center gap-2">
-                    <Key size={14} className="text-[#2d8d9b]" />
-                    <span className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    <Key size={14} className="text-[#9E1B1D]" />
+                    <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
                       Grant ERP Portal Login Access
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">
@@ -700,7 +700,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                     </span>
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed">
-                    Check this for managers, administrative staff, and sales executives who need system access. They will be linked to the <span className="font-bold text-[#3a525d]">{comboRoleName || 'Staff'}</span> role with the {assignedPermissions.length} features assigned above.
+                    Check this for managers, administrative staff, and sales executives who need system access. They will be linked to the <span className="font-bold text-zinc-900">{comboRoleName || 'Staff'}</span> role with the {assignedPermissions.length} features assigned above.
                   </p>
                 </label>
               </div>
@@ -711,14 +711,14 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 type="button" 
                 variant="outline" 
                 onClick={onCancel}
-                className="h-14 rounded-2xl px-10 font-black uppercase text-[10px] tracking-widest text-zinc-400 hover:text-[#3a525d]"
+                className="h-14 rounded-2xl px-10 font-black uppercase text-[10px] tracking-widest text-zinc-400 hover:text-zinc-900"
                >
                  Cancel Entry
                </Button>
                <Button 
                 type="submit" 
                 isLoading={isLoading}
-                className="h-14 rounded-2xl px-12 font-black uppercase text-[10px] tracking-[0.2em] bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xl shadow-[#2d8d9b]/20"
+                className="h-14 rounded-2xl px-12 font-black uppercase text-[10px] tracking-[0.2em] bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
                >
                  {initialData ? 'Save Modifications' : isNewRole ? 'Create Role & Onboard Staff' : 'Confirm Onboarding'}
                </Button>
@@ -727,13 +727,13 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
         </div>
       </Card>
       
-      <div className="mt-8 p-6 bg-[#3a525d]/5 rounded-[2rem] border border-[#3a525d]/10">
+      <div className="mt-8 p-6 bg-zinc-50 rounded-[2rem] border border-zinc-200">
          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#2d8d9b] shadow-sm shrink-0">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#9E1B1D] shadow-sm shrink-0">
                <ShieldCheck size={20} />
             </div>
             <div>
-               <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] mb-1">Role Management Integration</h4>
+               <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-900 mb-1">Role Management Integration</h4>
                <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase">
                  Any new user role generated during staff registration is immediately registered in the User Roles & Permissions catalog (/admin/roles). You can manage, expand, or adjust its features at any time.
                </p>

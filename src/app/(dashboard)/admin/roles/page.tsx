@@ -299,7 +299,7 @@ export default function RoleManagementPage() {
         </div>
         <button
           onClick={() => openModal()}
-          className="relative h-14 px-8 bg-[#2d8d9b] hover:bg-[#236e7a] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#2d8d9b]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+          className="relative h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <Plus size={18} strokeWidth={3} />
           Define New Role
@@ -353,16 +353,18 @@ export default function RoleManagementPage() {
 
           <div className="relative w-full max-w-5xl bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col max-h-[92vh]">
             {/* Modal Header */}
-            <div className="p-8 bg-[#3a525d] text-white flex justify-between items-center shrink-0">
+            {/* Top Brand Accent Rail */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
+            <div className="p-8 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 text-white flex justify-between items-center shrink-0 border-b border-zinc-800">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 text-[#C82A2B]">
                   <Shield size={28} />
                 </div>
                 <div>
                   <h2 className="text-2xl font-black italic tracking-tighter leading-none">
                     {editingRole ? `Configure: ${editingRole.name}` : 'Define New System Role'}
                   </h2>
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70 mt-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 mt-2">
                     Access Control Policy & Permission Matrix Center
                   </p>
                 </div>
@@ -380,15 +382,15 @@ export default function RoleManagementPage() {
               {/* Role Name */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-5 bg-[#2d8d9b] rounded-full" />
-                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Role Identity Name</h4>
+                  <div className="w-1.5 h-5 bg-[#9E1B1D] rounded-full" />
+                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-900">Role Identity Name</h4>
                 </div>
                 <Input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter role title (e.g. Branch Manager, Factory Supervisor, Sales Rep)"
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 rounded-[1.2rem] font-bold text-base text-[#3a525d] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all"
+                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 rounded-[1.2rem] font-bold text-base text-zinc-900 focus:outline-none focus:ring-4 focus:ring-[#C82A2B]/10 focus:border-[#C82A2B] transition-all"
                 />
               </div>
 
@@ -396,8 +398,8 @@ export default function RoleManagementPage() {
               <div className="space-y-3 bg-zinc-50/70 p-6 rounded-[1.8rem] border border-zinc-100">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-[#2d8d9b]" />
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    <Sparkles size={16} className="text-[#9E1B1D]" />
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
                       Quick Operational Presets
                     </h5>
                   </div>
@@ -409,10 +411,10 @@ export default function RoleManagementPage() {
                       key={preset.name}
                       type="button"
                       onClick={() => applyPreset(preset)}
-                      className="px-3.5 py-2 bg-white hover:bg-[#2d8d9b] hover:text-white text-zinc-700 rounded-xl text-xs font-bold border border-zinc-200/80 shadow-sm transition-all flex items-center gap-2 group"
+                      className="px-3.5 py-2 bg-white hover:bg-[#FFF1F1] hover:text-[#9E1B1D] hover:border-[#C82A2B]/40 text-zinc-700 rounded-xl text-xs font-bold border border-zinc-200/80 shadow-sm transition-all flex items-center gap-2 group cursor-pointer"
                       title={preset.description}
                     >
-                      <span className="text-[9px] font-black uppercase tracking-wider text-[#2d8d9b] group-hover:text-white">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-[#9E1B1D]">
                         [{preset.badge}]
                       </span>
                       <span>{preset.name}</span>
@@ -426,12 +428,12 @@ export default function RoleManagementPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
                   <div>
                     <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-5 bg-[#f2994a] rounded-full" />
-                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#3a525d]">
+                      <div className="w-1.5 h-5 bg-[#9E1B1D] rounded-full" />
+                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-900">
                         Granular Permission Matrix
                       </h4>
                     </div>
-                    <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider mt-1">
+                    <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider mt-1">
                       {formData.permissions.length} of {AVAILABLE_PERMISSIONS.length} Permissions Active
                     </p>
                   </div>
@@ -440,7 +442,7 @@ export default function RoleManagementPage() {
                     <button
                       type="button"
                       onClick={selectAllPermissions}
-                      className="px-3.5 py-1.5 bg-zinc-100 hover:bg-[#2d8d9b] hover:text-white text-zinc-600 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-900 hover:text-white text-zinc-600 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <CheckSquare size={13} />
                       Select All
@@ -465,13 +467,13 @@ export default function RoleManagementPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search"
-                      className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-[#3a525d] focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                      className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                     />
                   </div>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                    className="px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                   >
                     {categories.map(cat => (
                       <option key={cat} value={cat}>{cat} {cat !== 'All' ? 'Module' : ''}</option>
@@ -491,8 +493,8 @@ export default function RoleManagementPage() {
                       <div key={category} className="space-y-3 bg-zinc-50/40 p-5 rounded-[2rem] border border-zinc-100">
                         <div className="flex items-center justify-between pb-2 border-b border-zinc-200/60">
                           <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#2d8d9b]" />
-                            <h5 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d]">
+                            <span className="w-2 h-2 rounded-full bg-[#9E1B1D]" />
+                            <h5 className="text-[11px] font-black uppercase tracking-widest text-zinc-900">
                               {category}
                             </h5>
                             <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-600">
@@ -502,7 +504,7 @@ export default function RoleManagementPage() {
                           <button
                             type="button"
                             onClick={() => toggleCategory(category)}
-                            className="text-[9px] font-black uppercase text-[#2d8d9b] hover:text-[#3a525d] transition-colors"
+                            className="text-[9px] font-black uppercase text-[#9E1B1D] hover:text-[#801416] transition-colors cursor-pointer"
                           >
                             {hasAllInCategory ? 'Unselect Module' : 'Select All In Module'}
                           </button>
@@ -517,14 +519,14 @@ export default function RoleManagementPage() {
                                 key={permission.id}
                                 className={`flex items-start justify-between p-3.5 rounded-xl border transition-all cursor-pointer group ${
                                   isChecked
-                                    ? 'bg-[#2d8d9b]/5 border-[#2d8d9b]/40 shadow-xs'
+                                    ? 'bg-[#FFF1F1]/60 border-[#C82A2B]/30 shadow-xs'
                                     : 'bg-white border-zinc-200/70 hover:border-zinc-300'
                                 }`}
                               >
                                 <div className="flex flex-col gap-0.5 pr-3">
                                   <div className="flex items-center gap-2">
                                     <span className={`text-[11px] font-black transition-colors ${
-                                      isChecked ? 'text-[#2d8d9b]' : 'text-zinc-700'
+                                      isChecked ? 'text-[#9E1B1D]' : 'text-zinc-700'
                                     }`}>
                                       {permission.label}
                                     </span>
@@ -540,7 +542,7 @@ export default function RoleManagementPage() {
                                   type="checkbox"
                                   checked={isChecked}
                                   onChange={() => togglePermission(permission.id)}
-                                  className="mt-1 w-4 h-4 rounded-md border-2 border-zinc-300 text-[#2d8d9b] focus:ring-[#2d8d9b] transition-all accent-[#2d8d9b] shrink-0"
+                                  className="mt-1 w-4 h-4 rounded-md border-2 border-zinc-300 text-[#C82A2B] focus:ring-[#C82A2B] transition-all accent-[#C82A2B] shrink-0"
                                 />
                               </label>
                             );
@@ -563,7 +565,7 @@ export default function RoleManagementPage() {
             <div className="p-6 md:p-8 bg-zinc-50 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Active Selection:</span>
-                <span className="text-xs font-black text-[#2d8d9b] bg-[#2d8d9b]/10 px-3 py-1 rounded-lg">
+                <span className="text-xs font-black text-[#9E1B1D] bg-[#FFF1F1] border border-[#C82A2B]/20 px-3 py-1 rounded-lg">
                   {formData.permissions.length} Permissions
                 </span>
               </div>
@@ -578,7 +580,7 @@ export default function RoleManagementPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="px-8 py-3 bg-[#3a525d] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#3a525d]/20 flex items-center gap-2.5"
+                  className="px-8 py-3 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#C82A2B]/25 flex items-center gap-2.5 cursor-pointer"
                 >
                   <Save size={15} strokeWidth={3} />
                   Deploy Configuration

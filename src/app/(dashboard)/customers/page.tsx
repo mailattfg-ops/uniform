@@ -1182,7 +1182,7 @@ export default function CustomersRegistry() {
                 setEditingCustomer(null);
                 setIsAdding(true);
               }}
-              className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={18} strokeWidth={3} />
               New Customer
@@ -1328,7 +1328,7 @@ export default function CustomersRegistry() {
                 ? 'bg-amber-50/70 border-amber-200'
                 : financialModal.type === 'overdue'
                 ? 'bg-rose-50/70 border-rose-200'
-                : 'bg-teal-50/60 border-teal-100'
+                : 'bg-zinc-900 text-white border-zinc-800'
             }`}>
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
@@ -1338,7 +1338,7 @@ export default function CustomersRegistry() {
                     ? 'bg-amber-600 text-white'
                     : financialModal.type === 'overdue'
                     ? 'bg-rose-600 text-white'
-                    : 'bg-[#2d8d9b] text-white'
+                    : 'bg-[#C82A2B] text-white'
                 }`}>
                   {financialModal.type === 'upcoming' ? (
                     <Clock size={24} />
@@ -1365,7 +1365,7 @@ export default function CustomersRegistry() {
                         ? 'bg-amber-100 text-amber-900'
                         : financialModal.type === 'overdue'
                         ? 'bg-rose-100 text-rose-800'
-                        : 'bg-teal-100 text-teal-800'
+                        : 'bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20'
                     }`}>
                       {modalItems.length} {modalItems.length === 1 ? 'Record' : 'Records'}
                     </span>
@@ -1406,7 +1406,7 @@ export default function CustomersRegistry() {
                   onClick={() => setFinancialModal({ isOpen: true, type: 'receivables' })}
                   className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                     financialModal.type === 'receivables'
-                      ? 'bg-white text-[#2d8d9b] shadow-2xs'
+                      ? 'bg-white text-[#9E1B1D] shadow-2xs'
                       : 'text-zinc-600 hover:text-zinc-900'
                   }`}
                 >
@@ -1634,7 +1634,7 @@ export default function CustomersRegistry() {
             {/* Header */}
             <div className="p-5 sm:p-6 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-4 bg-zinc-50/70">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shrink-0">
                   <Printer size={22} />
                 </div>
                 <div>
@@ -1661,7 +1661,7 @@ export default function CustomersRegistry() {
               <div className="flex items-center gap-3">
                 <Button
                   onClick={() => executePrint(compiledPrintHTML)}
-                  className="h-10 px-5 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-sm"
+                  className="h-10 px-5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-sm shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Printer size={15} />
                   Print / Save as PDF
@@ -1699,7 +1699,7 @@ export default function CustomersRegistry() {
                 </Button>
                 <Button
                   onClick={() => executePrint(compiledPrintHTML)}
-                  className="bg-[#2d8d9b] hover:bg-[#236e7a] text-white"
+                  className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-sm shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Print / Save as PDF
                 </Button>

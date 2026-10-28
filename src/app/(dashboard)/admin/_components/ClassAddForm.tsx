@@ -49,12 +49,12 @@ export const ClassAddForm: React.FC<ClassAddFormProps> = ({ onSuccess, onCancel 
     <div className="animate-in fade-in slide-in-from-right-8 duration-500">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#f2994a] rounded-2xl flex items-center justify-center text-white shadow-lg">
+          <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-white shadow-xs">
             <Layers size={24} />
           </div>
           <div>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d]">New Class Configuration</h3>
-            <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] mt-1">Registry Setup • Group Logistics</p>
+            <h3 className="text-2xl font-black italic tracking-tight text-zinc-900">New Class Configuration</h3>
+            <p className="text-[10px] text-[#9E1B1D] font-black uppercase tracking-[0.3em] mt-1">Registry Setup • Group Logistics</p>
           </div>
         </div>
         <Button
@@ -78,23 +78,23 @@ export const ClassAddForm: React.FC<ClassAddFormProps> = ({ onSuccess, onCancel 
         />
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 bg-[#6fa1ac]/5 rounded-3xl border border-[#6fa1ac]/10 flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-[#6fa1ac]/10 flex items-center justify-center shrink-0">
-               <School size={16} className="text-[#6fa1ac]" />
+          <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-200 flex items-start gap-4">
+            <div className="w-8 h-8 rounded-full bg-[#FFF1F1] flex items-center justify-center shrink-0">
+               <School size={16} className="text-[#9E1B1D]" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] mb-1">School Affiliation</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-900 mb-1">School Affiliation</h4>
               <p className="text-xs text-muted-foreground font-medium leading-relaxed italic">
                 Classes are unique to their assigned school registry.
               </p>
             </div>
           </div>
-          <div className="p-6 bg-[#f2994a]/5 rounded-3xl border border-[#f2994a]/10 flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-[#f2994a]/10 flex items-center justify-center shrink-0">
-               <Info size={16} className="text-[#f2994a]" />
+          <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-200 flex items-start gap-4">
+            <div className="w-8 h-8 rounded-full bg-[#FFF1F1] flex items-center justify-center shrink-0">
+               <Info size={16} className="text-[#9E1B1D]" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-[#3a525d] mb-1">Section Entry</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-900 mb-1">Section Entry</h4>
               <p className="text-xs text-muted-foreground font-medium leading-relaxed italic">
                 Multiple sections can be created for the same grade.
               </p>

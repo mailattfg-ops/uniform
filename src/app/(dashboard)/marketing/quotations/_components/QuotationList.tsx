@@ -6,6 +6,7 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import api from '@/lib/api';
 import {
   AlertTriangle,
+  RotateCcw,
   ExternalLink,
   Phone,
   X,
@@ -706,20 +707,23 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
       <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative p-8 space-y-5 z-10 animate-in zoom-in-95 max-h-[92vh] flex flex-col">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
+
         {/* Header */}
-        <div className="flex justify-between items-start shrink-0">
+        <div className="flex justify-between items-start shrink-0 pt-1">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/30 text-[10px] font-black uppercase font-mono tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 text-[10px] font-black uppercase font-mono tracking-wider">
                 {quotation.quotation_no}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 text-[10px] font-black uppercase">
                 {quotation.status}
               </span>
             </div>
-            <h3 className="text-xl font-black text-[#3a525d] italic mt-1.5">Record Follow-up Communication</h3>
-            <p className="text-xs text-zinc-500 font-bold mt-0.5">
-              Client: <span className="text-[#3a525d]">{quotation.organizations?.name || '—'}</span>
+            <h3 className="text-xl font-black text-zinc-900 tracking-tight mt-1.5">Record Follow-up Communication</h3>
+            <p className="text-xs text-zinc-500 font-medium mt-0.5">
+              Client: <span className="text-zinc-900 font-bold">{quotation.organizations?.name || '—'}</span>
             </p>
           </div>
           <button
@@ -786,7 +790,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 }`}
               >
                 <span className="text-xs font-black block flex items-center gap-1.5">
-                  <AlertTriangle size={13} className="text-sky-600 shrink-0" />
+                  <RotateCcw size={13} className="text-sky-600 shrink-0" />
                   Revision Requested
                 </span>
                 <span className="text-[10px] text-sky-700/80 font-medium mt-0.5 block">
@@ -817,21 +821,21 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           {/* Next Follow-up Date */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-              <Calendar size={11} className="text-[#2d8d9b]" />
+              <Calendar size={11} className="text-[#9E1B1D]" />
               Next Scheduled Follow-up Date (Optional)
             </label>
             <input
               type="date"
               value={nextFollowUpDate}
               onChange={(e) => setNextFollowUpDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
+              className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 bg-white transition-all"
             />
           </div>
 
           {/* Remarks */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-              <MessageSquare size={11} className="text-[#2d8d9b]" />
+              <MessageSquare size={11} className="text-[#9E1B1D]" />
               Follow-up Communication Notes *
             </label>
             <textarea
@@ -839,7 +843,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               value={remarks}
               onChange={(e) => setRemarks(capitalizeFirstLetter(e.target.value))}
               placeholder="e.g. Spoke to procurement manager; client approved sample fabric swatch and requested revised quantity for operations staff..."
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#2d8d9b] resize-none transition-all"
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 resize-none transition-all"
             />
           </div>
 
@@ -849,7 +853,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowHistory(!showHistory)}
-                className="w-full flex items-center justify-between text-xs font-black text-[#3a525d] uppercase tracking-wider cursor-pointer"
+                className="w-full flex items-center justify-between text-xs font-black text-zinc-800 uppercase tracking-wider cursor-pointer"
               >
                 <span>Follow-up History ({pastFollowups.length})</span>
                 {showHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

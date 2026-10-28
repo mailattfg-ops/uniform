@@ -339,11 +339,13 @@ export default function ProFormaInvoiceModal({ isOpen, onClose, data }: ProForma
       {/* Modal Dialog Card */}
       <div className="bg-zinc-100 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] my-auto border border-zinc-300">
         {/* Modal Top Bar (Screen Only) */}
-        <div className="no-print bg-slate-900 px-6 py-4 flex items-center justify-between text-white border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+        <div className="no-print bg-zinc-950 px-6 py-4 flex items-center justify-between text-white border-b border-zinc-800">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#FFF1F1]/10 text-rose-300 border border-rose-500/30">
+              Pro Forma
+            </span>
             <h3 className="text-sm font-black tracking-wide uppercase">
-              Pro Forma Invoice Preview · <span className="font-mono text-rose-300">{data.pi_no}</span>
+              Invoice Preview · <span className="font-mono text-rose-300">{data.pi_no}</span>
             </h3>
           </div>
           <div className="flex items-center gap-3">

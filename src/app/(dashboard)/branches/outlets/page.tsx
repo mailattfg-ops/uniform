@@ -256,7 +256,7 @@ export default function BranchOutletsPage() {
         return 'bg-amber-50 text-amber-800 border-amber-200';
       case 'Branch':
       default:
-        return 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b]/20';
+        return 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B]/20';
     }
   };
 
@@ -307,21 +307,21 @@ export default function BranchOutletsPage() {
   return (
     <div className="space-y-6">
       {/* Forma Header Banner */}
-      <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] border border-[#fce4d4] p-6 md:p-8 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] border border-zinc-200 p-6 md:p-8 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-3xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner font-black">
+          <div className="w-14 h-14 rounded-3xl bg-[#FFF1F1] text-[#9E1B1D] flex items-center justify-center shadow-inner font-black">
             <Building2 size={28} />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-black tracking-tight text-[#3a525d]">
+              <h1 className="text-2xl font-black tracking-tight text-zinc-900">
                 {isAdmin ? 'Multi-Branch Outlets & Access Control' : `${currentUser?.branchName || 'Branch Outlet'} Profile`}
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                 {visibleBranches.length} Active {visibleBranches.length === 1 ? 'Unit' : 'Units'}
               </span>
             </div>
-            <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.2em] mt-1">
+            <p className="text-[10px] text-[#9E1B1D] font-black uppercase tracking-[0.2em] mt-1">
               {isAdmin 
                 ? 'Corporate Headquarters, Factory Units & Retail Showrooms Master Hub'
                 : `Branch Outlet information and staff credentials for ${currentUser?.branchName || 'your branch'}.`
@@ -333,16 +333,16 @@ export default function BranchOutletsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={fetchData}
-            className="w-14 h-14 rounded-[1.25rem] border border-zinc-200/80 bg-white hover:bg-zinc-50 text-[#3a525d] flex items-center justify-center transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer"
+            className="w-14 h-14 rounded-[1.25rem] border border-zinc-200/80 bg-white hover:bg-zinc-50 text-zinc-900 flex items-center justify-center transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 text-[#3a525d] ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-zinc-900 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
           {isAdmin && (
             <button
               onClick={() => setShowAddBranchModal(true)}
-              className="flex items-center gap-2 h-14 px-8 bg-[#2d8d9b] hover:bg-[#236e7a] rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#2d8d9b]/20 cursor-pointer"
+              className="flex items-center gap-2 h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#C82A2B]/25 cursor-pointer"
             >
               <Plus size={18} strokeWidth={3} />
               Add New Branch
@@ -353,15 +353,15 @@ export default function BranchOutletsPage() {
 
       {/* Summary KPI Cards in Forma Style */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#3a525d]/10 text-[#3a525d] flex items-center justify-center shadow-inner">
+        <div className="bg-white p-5 rounded-[2rem] border border-zinc-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#3a525d]/10 text-zinc-900 flex items-center justify-center shadow-inner">
             <Building2 size={24} />
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">
               {isAdmin ? 'Active Branch Network' : 'Assigned Branch'}
             </p>
-            <p className="text-2xl font-black text-[#3a525d] leading-none mt-1">
+            <p className="text-2xl font-black text-zinc-900 leading-none mt-1">
               {visibleBranches.length}
             </p>
             <p className="text-[9px] font-bold text-zinc-400 mt-1">
@@ -370,13 +370,13 @@ export default function BranchOutletsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner">
+        <div className="bg-white p-5 rounded-[2rem] border border-zinc-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-inner">
             <MapPin size={24} />
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Regional Zones</p>
-            <p className="text-2xl font-black text-[#2d8d9b] leading-none mt-1">
+            <p className="text-2xl font-black text-[#9E1B1D] leading-none mt-1">
               {isAdmin ? zones.length : zones.filter(z => z.branch_id === currentUser?.branchId).length}
             </p>
             <p className="text-[9px] font-bold text-zinc-400 mt-1">
@@ -385,7 +385,7 @@ export default function BranchOutletsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
+        <div className="bg-white p-5 rounded-[2rem] border border-zinc-200 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
             <Users size={24} />
           </div>
@@ -400,7 +400,7 @@ export default function BranchOutletsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-[2rem] border border-[#fce4d4] shadow-sm flex items-center gap-4">
+        <div className="bg-white p-5 rounded-[2rem] border border-zinc-200 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shadow-inner">
             <ShieldCheck size={24} />
           </div>
@@ -413,16 +413,16 @@ export default function BranchOutletsPage() {
       </div>
 
       {/* Search & Category Filter Bar */}
-      <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-white rounded-[2rem] border border-zinc-200 p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-[#2d8d9b] absolute left-4 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#9E1B1D] absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search branches, factory, zones, codes or locations..."
-            className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b] transition-all"
+            className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 placeholder:text-zinc-400 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
           />
           {searchQuery && (
             <button
@@ -441,7 +441,7 @@ export default function BranchOutletsPage() {
             onClick={() => setTierFilter('ALL')}
             className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
               tierFilter === 'ALL'
-                ? 'bg-[#2d8d9b] text-white shadow-sm'
+                ? 'bg-zinc-900 text-white shadow-sm'
                 : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
             }`}
           >
@@ -451,7 +451,7 @@ export default function BranchOutletsPage() {
             onClick={() => setTierFilter('Branch')}
             className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
               tierFilter === 'Branch'
-                ? 'bg-[#2d8d9b] text-white shadow-sm'
+                ? 'bg-zinc-900 text-white shadow-sm'
                 : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
             }`}
           >
@@ -483,8 +483,8 @@ export default function BranchOutletsPage() {
       {/* Outlets Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-base font-black text-[#3a525d] uppercase tracking-wider flex items-center gap-2">
-            <Store className="w-4 h-4 text-[#2d8d9b]" />
+          <h2 className="text-base font-black text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+            <Store className="w-4 h-4 text-[#9E1B1D]" />
             {isAdmin ? 'Registered Units & Showrooms' : 'My Branch Details'}
           </h2>
           <div className="flex items-center gap-2">
@@ -499,7 +499,7 @@ export default function BranchOutletsPage() {
                 Reset Filters
               </button>
             )}
-            <span className="text-[10px] font-bold text-[#8b6b5a] uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-[#fce4d4]">
+            <span className="text-[10px] font-bold text-[#8b6b5a] uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-zinc-200">
               Showing {filteredBranches.length} of {visibleBranches.length} {visibleBranches.length === 1 ? 'Location' : 'Locations'}
             </span>
           </div>
@@ -519,16 +519,16 @@ export default function BranchOutletsPage() {
             return (
               <div 
                 key={branch.id} 
-                className="bg-white rounded-[2.5rem] border border-[#fce4d4] shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-xl hover:shadow-[#2d8d9b]/5 transition-all duration-300 group"
+                className="bg-white rounded-[2.5rem] border border-zinc-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-xl hover:shadow-[#2d8d9b]/5 transition-all duration-300 group"
               >
                 <div className="p-6 space-y-4">
                   {/* Card Top / Header */}
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <span className="text-xs font-mono font-black text-[#2d8d9b] bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 px-3 py-1 rounded-xl">
+                      <span className="text-xs font-mono font-black text-[#9E1B1D] bg-[#FFF1F1] border border-[#C82A2B]/20 px-3 py-1 rounded-xl">
                         {branch.code}
                       </span>
-                      <h3 className="text-lg font-black text-[#3a525d] mt-2 leading-tight">{branch.name}</h3>
+                      <h3 className="text-lg font-black text-zinc-900 mt-2 leading-tight">{branch.name}</h3>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 ${getTierBadge(branch.tier)}`}>
                       {getTierIcon(branch.tier)} {branch.tier}
@@ -536,32 +536,32 @@ export default function BranchOutletsPage() {
                   </div>
 
                   {/* Branch Contact Information */}
-                  <div className="text-xs space-y-2 pt-3 border-t border-[#fce4d4]/60">
+                  <div className="text-xs space-y-2 pt-3 border-t border-zinc-200/60">
                     <p className="flex items-center gap-2 text-slate-600 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-[#2d8d9b] shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-[#9E1B1D] shrink-0" />
                       <span className="truncate">{branch.address || 'Address not configured'}</span>
                     </p>
                     <p className="flex items-center gap-2 text-slate-600 font-medium">
-                      <Phone className="w-3.5 h-3.5 text-[#2d8d9b] shrink-0" />
+                      <Phone className="w-3.5 h-3.5 text-[#9E1B1D] shrink-0" />
                       <span>{branch.contact_number || 'No contact phone'}</span>
                     </p>
                     <p className="flex items-center gap-2 text-slate-600 font-medium">
-                      <Mail className="w-3.5 h-3.5 text-[#2d8d9b] shrink-0" />
+                      <Mail className="w-3.5 h-3.5 text-[#9E1B1D] shrink-0" />
                       <span className="truncate">{branch.email || 'No official email'}</span>
                     </p>
                   </div>
 
                   {/* Branch Assigned Personnel / Staff */}
-                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-[#fce4d4] space-y-2">
-                    <div className="flex justify-between items-center text-xs font-black text-[#3a525d]">
+                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-zinc-200 space-y-2">
+                    <div className="flex justify-between items-center text-xs font-black text-zinc-900">
                       <span className="flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-[#8b6b5a]">
-                        <Users className="w-3.5 h-3.5 text-[#2d8d9b]" />
+                        <Users className="w-3.5 h-3.5 text-[#9E1B1D]" />
                         Assigned Personnel ({assignedEmployees.length})
                       </span>
                       {isAdmin && (
                         <Link 
                           href="/employees/directory" 
-                          className="text-[10px] text-[#2d8d9b] hover:underline flex items-center gap-1 font-black uppercase tracking-wider"
+                          className="text-[10px] text-[#9E1B1D] hover:underline flex items-center gap-1 font-black uppercase tracking-wider"
                           title="Manage in HRMS"
                         >
                           HRMS <ExternalLink size={10} />
@@ -581,7 +581,7 @@ export default function BranchOutletsPage() {
                                   <button
                                     type="button"
                                     onClick={() => setSelectedEmpForHistory(emp)}
-                                    className="font-bold text-[#3a525d] hover:text-[#2d8d9b] hover:underline text-left truncate cursor-pointer transition-colors"
+                                    className="font-bold text-zinc-900 hover:text-[#9E1B1D] hover:underline text-left truncate cursor-pointer transition-colors"
                                     title="View Career & Movement History"
                                   >
                                     {emp.full_name}
@@ -608,7 +608,7 @@ export default function BranchOutletsPage() {
                                   )}
                                 </div>
                                 <p className="text-zinc-400 text-[10px] font-medium mt-0.5">
-                                  {emp.designation || 'Staff'} • <span className="text-[#2d8d9b] font-bold">{emp.department}</span>
+                                  {emp.designation || 'Staff'} • <span className="text-[#9E1B1D] font-bold">{emp.department}</span>
                                   {isDeputedHere && emp.temp_branch_until && (
                                     <span className="text-amber-800 ml-1 font-bold">
                                       (Until {formatDate(emp.temp_branch_until)})
@@ -620,7 +620,7 @@ export default function BranchOutletsPage() {
                                 <button 
                                   type="button"
                                   onClick={() => setSelectedEmpForHistory(emp)}
-                                  className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition"
+                                  className="p-1.5 text-zinc-400 hover:text-[#9E1B1D] hover:bg-[#FFF1F1] rounded-lg transition"
                                   title="View Career & Movement History"
                                 >
                                   <History className="w-3.5 h-3.5" />
@@ -628,7 +628,7 @@ export default function BranchOutletsPage() {
                                 {emp.contact_mobile && (
                                   <a 
                                     href={`tel:${emp.contact_mobile}`}
-                                    className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition"
+                                    className="p-1.5 text-zinc-400 hover:text-[#9E1B1D] hover:bg-[#FFF1F1] rounded-lg transition"
                                     title={emp.contact_mobile}
                                   >
                                     <Phone className="w-3.5 h-3.5" />
@@ -645,13 +645,13 @@ export default function BranchOutletsPage() {
                   </div>
 
                   {/* Branch Assigned Zones */}
-                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-[#fce4d4] space-y-2">
-                    <div className="flex justify-between items-center text-xs font-black text-[#3a525d]">
+                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-zinc-200 space-y-2">
+                    <div className="flex justify-between items-center text-xs font-black text-zinc-900">
                       <span className="flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-[#8b6b5a]">
-                        <MapPin className="w-3.5 h-3.5 text-[#2d8d9b]" />
+                        <MapPin className="w-3.5 h-3.5 text-[#9E1B1D]" />
                         Regional Zones ({branchZones.length})
                         {matchingZones.length > 0 && (
-                          <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-[#2d8d9b] text-white">
+                          <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-zinc-900 text-white">
                             {matchingZones.length} Matched
                           </span>
                         )}
@@ -660,7 +660,7 @@ export default function BranchOutletsPage() {
                         <button
                           type="button"
                           onClick={() => openAddZoneModal(branch)}
-                          className="text-[10px] text-[#2d8d9b] hover:text-[#236e7a] flex items-center gap-1 font-black uppercase tracking-wider cursor-pointer"
+                          className="text-[10px] text-[#9E1B1D] hover:text-[#236e7a] flex items-center gap-1 font-black uppercase tracking-wider cursor-pointer"
                           title="Add new zone to this branch"
                         >
                           <Plus size={11} className="stroke-[3]" /> Add Zone
@@ -683,20 +683,20 @@ export default function BranchOutletsPage() {
                             key={zone.id} 
                             className={`flex justify-between items-center bg-white p-2.5 rounded-xl border text-xs transition-colors ${
                               isZoneMatch 
-                                ? 'border-[#2d8d9b] bg-[#2d8d9b]/5 ring-1 ring-[#2d8d9b]/30' 
+                                ? 'border-[#2d8d9b] bg-zinc-900/5 ring-1 ring-[#2d8d9b]/30' 
                                 : 'border-zinc-100 hover:border-[#2d8d9b]/30'
                             }`}
                           >
                             <div className="min-w-0 pr-2">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className={`font-bold truncate ${isZoneMatch ? 'text-[#2d8d9b]' : 'text-[#3a525d]'}`}>{zone.name}</p>
+                                <p className={`font-bold truncate ${isZoneMatch ? 'text-[#9E1B1D]' : 'text-zinc-900'}`}>{zone.name}</p>
                                 {zone.code && (
-                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#2d8d9b]/10 text-[#2d8d9b] font-black">
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#FFF1F1] text-[#9E1B1D] font-black">
                                     {zone.code}
                                   </span>
                                 )}
                                 {isZoneMatch && (
-                                  <span className="text-[8px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white px-1.5 py-0.5 rounded">
+                                  <span className="text-[8px] font-black uppercase tracking-wider bg-zinc-900 text-white px-1.5 py-0.5 rounded">
                                     Match
                                   </span>
                                 )}
@@ -712,7 +712,7 @@ export default function BranchOutletsPage() {
                                   <button
                                     type="button"
                                     onClick={() => openEditZoneModal(zone)}
-                                    className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition cursor-pointer"
+                                    className="p-1.5 text-zinc-400 hover:text-[#9E1B1D] hover:bg-[#FFF1F1] rounded-lg transition cursor-pointer"
                                     title="Edit Zone"
                                   >
                                     <Edit2 className="w-3 h-3" />
@@ -738,7 +738,7 @@ export default function BranchOutletsPage() {
                           <button
                             type="button"
                             onClick={() => openAddZoneModal(branch)}
-                            className="text-[10px] text-[#2d8d9b] font-bold underline hover:text-[#236e7a] cursor-pointer"
+                            className="text-[10px] text-[#9E1B1D] font-bold underline hover:text-[#236e7a] cursor-pointer"
                           >
                             + Add Zone
                           </button>
@@ -748,10 +748,10 @@ export default function BranchOutletsPage() {
                   </div>
 
                   {/* Branch Credentials Preview */}
-                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-[#fce4d4] space-y-2">
-                    <div className="flex justify-between items-center text-xs font-black text-[#3a525d]">
+                  <div className="bg-[#fce4d4]/10 p-4 rounded-2xl border border-zinc-200 space-y-2">
+                    <div className="flex justify-between items-center text-xs font-black text-zinc-900">
                       <span className="flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-[#8b6b5a]">
-                        <Key className="w-3.5 h-3.5 text-[#2d8d9b]" />
+                        <Key className="w-3.5 h-3.5 text-[#9E1B1D]" />
                         Portal Login Accounts ({users.length})
                       </span>
                     </div>
@@ -762,10 +762,10 @@ export default function BranchOutletsPage() {
                           <div key={u.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-zinc-100 text-xs">
                             <div>
                               <div className="flex items-center gap-1.5">
-                                <p className="font-bold text-[#3a525d]">{u.name}</p>
+                                <p className="font-bold text-zinc-900">{u.name}</p>
                                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${
                                   u.role?.includes('Factory') ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                                  u.role === 'Branch Manager' ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b]/20' :
+                                  u.role === 'Branch Manager' ? 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B]/20' :
                                   'bg-zinc-100 text-zinc-700 border-zinc-200'
                                 }`}>
                                   {u.role || 'Staff'}
@@ -775,7 +775,7 @@ export default function BranchOutletsPage() {
                             </div>
                             <button
                               onClick={() => handleCopyCredentials(u)}
-                              className="p-1.5 text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg transition"
+                              className="p-1.5 text-zinc-400 hover:text-[#9E1B1D] hover:bg-[#FFF1F1] rounded-lg transition"
                               title="Copy Credentials"
                             >
                               {copiedId === u.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -800,7 +800,7 @@ export default function BranchOutletsPage() {
                       <button
                         type="button"
                         onClick={() => openAddZoneModal(branch)}
-                        className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-[#2d8d9b] hover:text-white hover:bg-[#2d8d9b] px-3 py-1.5 rounded-xl transition border border-[#2d8d9b]/30 shadow-xs cursor-pointer"
+                        className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-[#9E1B1D] hover:text-white hover:bg-zinc-900 px-3 py-1.5 rounded-xl transition border border-[#2d8d9b]/30 shadow-xs cursor-pointer"
                         title="Add Zone to this branch"
                       >
                         <MapPin className="w-3.5 h-3.5" />
@@ -827,9 +827,9 @@ export default function BranchOutletsPage() {
           })}
 
           {filteredBranches.length === 0 && !loading && (
-            <div className="col-span-full bg-white p-12 rounded-[2.5rem] border border-[#fce4d4] text-center space-y-3">
-              <Building2 size={36} className="text-[#2d8d9b] mx-auto opacity-50" />
-              <h3 className="text-base font-black text-[#3a525d]">
+            <div className="col-span-full bg-white p-12 rounded-[2.5rem] border border-zinc-200 text-center space-y-3">
+              <Building2 size={36} className="text-[#9E1B1D] mx-auto opacity-50" />
+              <h3 className="text-base font-black text-zinc-900">
                 {searchQuery ? `No matches found for "${searchQuery}"` : 'No Units Found'}
               </h3>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
@@ -845,7 +845,7 @@ export default function BranchOutletsPage() {
                     setSearchQuery('');
                     setTierFilter('ALL');
                   }}
-                  className="px-4 py-2 bg-[#2d8d9b] text-white rounded-xl text-xs font-bold hover:bg-[#236e7a] transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#C82A2B] text-white rounded-xl text-xs font-bold hover:bg-[#A81D1E] transition shadow-xs shadow-[#C82A2B]/20 cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <RefreshCw size={12} /> Clear Search & Filters
                 </button>
@@ -868,14 +868,14 @@ export default function BranchOutletsPage() {
       {/* Add User Credentials Modal in Forma Style */}
       {showUserModal && selectedBranch && isAdmin && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] border border-[#fce4d4] max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] border border-zinc-200 max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-inner">
                   <Key size={22} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-[#3a525d] tracking-tight">Provision Portal Access</h3>
+                  <h3 className="text-xl font-black text-zinc-900 tracking-tight">Provision Portal Access</h3>
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
                     For {selectedBranch.name} ({selectedBranch.tier})
                   </p>
@@ -892,7 +892,7 @@ export default function BranchOutletsPage() {
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5">
                   Staff / Manager Full Name *
                 </label>
                 <input
@@ -901,12 +901,12 @@ export default function BranchOutletsPage() {
                   placeholder="e.g. Rahul Sharma"
                   value={userName}
                   onChange={e => setUserName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5">
                   Official Login Email *
                 </label>
                 <input
@@ -915,12 +915,12 @@ export default function BranchOutletsPage() {
                   placeholder="user@forma.com"
                   value={userEmail}
                   onChange={e => setUserEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5">
                   Password *
                 </label>
                 <input
@@ -929,18 +929,18 @@ export default function BranchOutletsPage() {
                   placeholder="Set login password"
                   value={userPassword}
                   onChange={e => setUserPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5">
                   Assigned Operational Role *
                 </label>
                 <select
                   value={userRole}
                   onChange={e => setUserRole(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 >
                   {selectedBranch.tier === 'Factory' ? (
                     <>
@@ -967,7 +967,7 @@ export default function BranchOutletsPage() {
                 <button
                   type="submit"
                   disabled={submittingUser}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#2d8d9b]/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#C82A2B]/25 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Key size={14} />
                   {submittingUser ? 'Generating...' : 'Generate Credentials'}
@@ -981,15 +981,15 @@ export default function BranchOutletsPage() {
       {/* Add / Edit Regional Zone Modal */}
       {showZoneModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] border border-[#fce4d4] max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] border border-zinc-200 max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             {/* Header */}
             <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shadow-inner">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-inner">
                   <MapPin size={22} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-[#3a525d] tracking-tight">
+                  <h3 className="text-xl font-black text-zinc-900 tracking-tight">
                     {editingZone ? 'Edit Regional Zone' : 'Add Regional Zone'}
                   </h3>
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
@@ -1009,15 +1009,15 @@ export default function BranchOutletsPage() {
             <form onSubmit={handleSaveZone} className="space-y-4">
               {/* Branch Outlet Selection */}
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
-                  <Building2 size={13} className="text-[#2d8d9b]" />
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5 flex items-center gap-1.5">
+                  <Building2 size={13} className="text-[#9E1B1D]" />
                   Assigned Branch Outlet *
                 </label>
                 <select
                   required
                   value={zoneBranchId ? String(zoneBranchId) : ''}
                   onChange={e => setZoneBranchId(parseInt(e.target.value, 10))}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 >
                   <option value="">Select Branch Outlet</option>
                   {branches.map(b => (
@@ -1030,8 +1030,8 @@ export default function BranchOutletsPage() {
 
               {/* Zone Name */}
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
-                  <Compass size={13} className="text-[#2d8d9b]" />
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5 flex items-center gap-1.5">
+                  <Compass size={13} className="text-[#9E1B1D]" />
                   Zone / Sector Name *
                 </label>
                 <input
@@ -1040,14 +1040,14 @@ export default function BranchOutletsPage() {
                   placeholder="e.g. Zone 1 (Downtown / Commercial Hub)"
                   value={zoneName}
                   onChange={e => setZoneName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b]"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                 />
               </div>
 
               {/* Zone Code */}
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
-                  <Tag size={13} className="text-[#2d8d9b]" />
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5 flex items-center gap-1.5">
+                  <Tag size={13} className="text-[#9E1B1D]" />
                   Zone Code / Short Identifier
                 </label>
                 <input
@@ -1055,14 +1055,14 @@ export default function BranchOutletsPage() {
                   placeholder="e.g. Z1-HQ, BLR-NORTH"
                   value={zoneCode}
                   onChange={e => setZoneCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] uppercase"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
-                  <MapPin size={13} className="text-[#2d8d9b]" />
+                <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#9E1B1D]" />
                   Coverage Localities / Description
                 </label>
                 <textarea
@@ -1070,7 +1070,7 @@ export default function BranchOutletsPage() {
                   placeholder="e.g. Covers institutional clients, retail outlets, and university campus belt."
                   value={zoneDescription}
                   onChange={e => setZoneDescription(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] resize-none"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 resize-none"
                 />
               </div>
 
@@ -1085,7 +1085,7 @@ export default function BranchOutletsPage() {
                 <button
                   type="submit"
                   disabled={submittingZone}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d8d9b] hover:bg-[#236e7a] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#2d8d9b]/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#C82A2B]/25 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <MapPin size={14} />
                   {submittingZone ? 'Saving...' : editingZone ? 'Update Zone' : 'Save Zone'}

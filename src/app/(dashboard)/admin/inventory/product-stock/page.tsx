@@ -267,7 +267,7 @@ export default function ProductStockPage() {
         <button 
           onClick={fetchStockData}
           disabled={isLoading}
-          className="h-14 px-6 bg-white hover:bg-zinc-50 border border-[#fce4d4] rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+          className="h-14 px-6 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
           Sync Product Stock
@@ -278,7 +278,7 @@ export default function ProductStockPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Total Products */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d] border border-[#3a525d]/10 shrink-0">
             <Box size={20} />
           </div>
@@ -292,7 +292,7 @@ export default function ProductStockPage() {
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100 shrink-0">
             <AlertTriangle size={20} />
           </div>
@@ -306,7 +306,7 @@ export default function ProductStockPage() {
         </div>
 
         {/* Out of Stock */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
             <XCircle size={20} />
           </div>
@@ -320,7 +320,7 @@ export default function ProductStockPage() {
         </div>
 
         {/* Total Reserved */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-teal-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-teal-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100 shrink-0">
             <ShieldCheck size={20} />
           </div>
@@ -336,7 +336,7 @@ export default function ProductStockPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-[#fce4d4] rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+      <div className="bg-white border border-zinc-200/80 rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
         
         {/* Search */}
         <div className="relative group w-full md:w-96">
@@ -346,7 +346,7 @@ export default function ProductStockPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search"
-            className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
+            className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
           />
         </div>
 
@@ -392,7 +392,7 @@ export default function ProductStockPage() {
 
       {/* Main Grid display of finished uniform stocks */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center p-24 bg-white border border-[#fce4d4] rounded-[3rem] gap-4">
+        <div className="flex flex-col items-center justify-center p-24 bg-white border border-zinc-200/80 rounded-[3rem] gap-4">
           <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
           <p className="text-sm font-bold text-[#3a525d]">Parsing product stock database...</p>
         </div>
@@ -417,7 +417,7 @@ export default function ProductStockPage() {
             return (
               <div 
                 key={product.id}
-                className="bg-white rounded-[2.5rem] border border-[#fce4d4] p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300"
+                className="bg-white rounded-[2.5rem] border border-zinc-200/80 p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300"
               >
                 {/* Product Header */}
                 <div className="flex justify-between items-start gap-4">
@@ -505,7 +505,7 @@ export default function ProductStockPage() {
                       <p className="text-xs text-zinc-400 font-bold italic">No stock records initialized.</p>
                       <button
                         onClick={() => handleOpenProductAdjust(product, sizes[0])}
-                        className="mt-3 px-4 py-2 bg-white border border-[#fce4d4] hover:bg-zinc-50 rounded-xl text-[10px] font-black uppercase tracking-wider text-[#3a525d] transition-all flex items-center gap-1.5 mx-auto shadow-sm"
+                        className="mt-3 px-4 py-2 bg-white border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-[10px] font-black uppercase tracking-wider text-[#3a525d] transition-all flex items-center gap-1.5 mx-auto shadow-sm"
                       >
                         <Plus size={12} className="text-[#2d8d9b]" />
                         Initialize Stock
@@ -525,7 +525,7 @@ export default function ProductStockPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#fce4d4] rounded-[3rem] p-16 text-center">
+        <div className="bg-white border border-zinc-200/80 rounded-[3rem] p-16 text-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-16 h-16 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
               <Box size={32} />
@@ -547,21 +547,21 @@ export default function ProductStockPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div 
-              className={`w-full ${isAccessory ? 'max-w-3xl' : 'max-w-lg'} bg-white rounded-[3rem] p-8 border border-[#fce4d4] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500`}
+              className={`w-full ${isAccessory ? 'max-w-3xl' : 'max-w-lg'} bg-white rounded-[3rem] p-8 border border-zinc-200/80 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header decor */}
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#3a525d] via-[#2d8d9b] to-[#fce4d4]" />
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
               
               <div className="flex items-center gap-3 border-b border-zinc-100 pb-5 mt-2">
-                <div className="w-12 h-12 bg-[#2d8d9b]/10 rounded-2xl flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
+                <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-white border border-zinc-800">
                   <SlidersHorizontal size={20} />
                 </div>
                 <div>
                   <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">
                     {isInitializing ? 'Initialize Stock Level' : 'Adjust Stock Levels'}
                   </h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] mt-0.5">
                     {selectedProduct.name}
                   </p>
                 </div>
@@ -619,7 +619,7 @@ export default function ProductStockPage() {
                                   type="number"
                                   value={adj.quantity_delta}
                                   onChange={(e) => updateAdj('quantity_delta', parseInt(e.target.value) || 0)}
-                                  className="w-14 h-7 bg-white border border-[#fce4d4] rounded-md text-center font-black text-xs outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                                  className="w-14 h-7 bg-white border border-zinc-200/80 rounded-md text-center font-black text-xs outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                                 />
                                 <button
                                   type="button"
@@ -639,7 +639,7 @@ export default function ProductStockPage() {
                                 min="0"
                                 value={adj.low_stock_threshold}
                                 onChange={(e) => updateAdj('low_stock_threshold', Math.max(0, parseInt(e.target.value) || 0))}
-                                className="w-20 h-7 bg-white border border-[#fce4d4] rounded-md text-center font-black text-xs outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                                className="w-20 h-7 bg-white border border-zinc-200/80 rounded-md text-center font-black text-xs outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                               />
                             </div>
                           </div>
@@ -702,7 +702,7 @@ export default function ProductStockPage() {
                           step="1"
                           value={physicalDelta}
                           onChange={(e) => setPhysicalDelta(parseInt(e.target.value) || 0)}
-                          className="flex-1 h-12 bg-white border border-[#fce4d4] rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                          className="flex-1 h-12 bg-white border border-zinc-200/80 rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                           placeholder="0"
                         />
 
@@ -742,7 +742,7 @@ export default function ProductStockPage() {
                           step="1"
                           value={newThreshold}
                           onChange={(e) => setNewThreshold(parseInt(e.target.value) || 0)}
-                          className="flex-1 accent-[#2d8d9b]"
+                          className="flex-1 accent-[#C82A2B]"
                         />
                         <input
                           type="number"
@@ -750,7 +750,7 @@ export default function ProductStockPage() {
                           step="1"
                           value={newThreshold}
                           onChange={(e) => setNewThreshold(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-24 h-12 bg-white border border-[#fce4d4] rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                          className="w-24 h-12 bg-white border border-zinc-200/80 rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                         />
                       </div>
                       <p className="text-[9px] text-zinc-400 font-bold">
@@ -772,7 +772,7 @@ export default function ProductStockPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 h-14 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#3a525d]/20 flex items-center justify-center gap-2"
+                    className="flex-1 h-14 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#C82A2B]/25 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     {isSubmitting ? (
                       <Loader2 className="animate-spin text-white" size={16} />

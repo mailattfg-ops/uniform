@@ -279,7 +279,7 @@ export default function TrimsStockPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="bg-white border border-[#fce4d4] rounded-2xl p-1 flex items-center shadow-sm">
+          <div className="bg-white border border-zinc-200/80 rounded-2xl p-1 flex items-center shadow-sm">
             <button
               onClick={() => setViewMode('CARDS')}
               className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
@@ -301,7 +301,7 @@ export default function TrimsStockPage() {
           <button 
             onClick={fetchStockData}
             disabled={isLoading}
-            className="h-11 px-5 bg-white hover:bg-zinc-50 border border-[#fce4d4] rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="h-11 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
             Sync Stock
@@ -313,7 +313,7 @@ export default function TrimsStockPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
         {/* Total Trim Profiles */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-[#2d8d9b]/5 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shrink-0">
             <Layers size={20} />
           </div>
@@ -327,7 +327,7 @@ export default function TrimsStockPage() {
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100 shrink-0">
             <AlertTriangle size={20} />
           </div>
@@ -341,7 +341,7 @@ export default function TrimsStockPage() {
         </div>
 
         {/* Out of Stock */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
             <XCircle size={20} />
           </div>
@@ -364,7 +364,7 @@ export default function TrimsStockPage() {
             className={`h-11 px-5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
               categoryFilter === 'ALL'
                 ? 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20'
-                : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-[#fce4d4]'
+                : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200/80'
             }`}
           >
             <span>All Trims Stock</span>
@@ -387,7 +387,7 @@ export default function TrimsStockPage() {
                 className={`h-11 px-5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
                   isSelected
                     ? 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-[#fce4d4]'
+                    : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200/80'
                 }`}
               >
                 <span className="font-mono text-[10px] text-[#2d8d9b] font-bold">[{cat.code_prefix}]</span>
@@ -401,7 +401,7 @@ export default function TrimsStockPage() {
         </div>
 
         {/* Filter and Search Bar matching Fabric Stock */}
-        <div className="bg-white border border-[#fce4d4] rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
+        <div className="bg-white border border-zinc-200/80 rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
           
           {/* Search */}
           <div className="relative group w-full xl:w-96">
@@ -411,7 +411,7 @@ export default function TrimsStockPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search"
-              className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
+              className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
             />
           </div>
 
@@ -421,7 +421,7 @@ export default function TrimsStockPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="h-11 px-4 bg-white border border-[#fce4d4] rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
+                className="h-11 px-4 bg-white border border-zinc-200/80 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
               >
                 <option value="ALL">All Categories ({trims.length})</option>
                 {categories.map(c => {
@@ -443,7 +443,7 @@ export default function TrimsStockPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="h-11 px-4 bg-white border border-[#fce4d4] rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
+                className="h-11 px-4 bg-white border border-zinc-200/80 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
               >
                 <option value="ALL">All Stock Statuses</option>
                 <option value="IN_STOCK">In Stock ({stats.inStockCount})</option>
@@ -458,12 +458,12 @@ export default function TrimsStockPage() {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center p-24 bg-white border border-[#fce4d4] rounded-[3rem] gap-4">
+        <div className="flex flex-col items-center justify-center p-24 bg-white border border-zinc-200/80 rounded-[3rem] gap-4">
           <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
           <p className="text-sm font-bold text-[#3a525d]">Parsing trims stock ledger...</p>
         </div>
       ) : filteredTrims.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-20 bg-white border border-[#fce4d4] rounded-[3rem] text-center space-y-3">
+        <div className="flex flex-col items-center justify-center p-20 bg-white border border-zinc-200/80 rounded-[3rem] text-center space-y-3">
           <Package size={48} className="text-zinc-300" />
           <h3 className="text-lg font-black text-[#3a525d]">No Trim Stock Records Found</h3>
           <p className="text-xs text-zinc-400 max-w-sm">No items match your filter criteria. Try adjusting the search term or category tabs.</p>
@@ -577,7 +577,7 @@ export default function TrimsStockPage() {
         </div>
       ) : (
         /* High Density Table View */
-        <div className="bg-white rounded-[2.5rem] border border-[#fce4d4] overflow-hidden shadow-sm">
+        <div className="bg-white rounded-[2.5rem] border border-zinc-200/80 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -728,7 +728,7 @@ export default function TrimsStockPage() {
                   value={inputDelta} 
                   onChange={e => setInputDelta(e.target.value)} 
                   placeholder="e.g. 50"
-                  className="w-full text-sm font-black text-[#3a525d] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-[#2d8d9b] outline-none" 
+                  className="w-full text-sm font-black text-[#3a525d] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   required
                 />
 
@@ -758,7 +758,7 @@ export default function TrimsStockPage() {
                   min="0"
                   value={newThreshold} 
                   onChange={e => setNewThreshold(parseFloat(e.target.value) || 0)} 
-                  className="w-full text-xs font-bold text-[#3a525d] px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                  className="w-full text-xs font-bold text-[#3a525d] px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                 />
                 <p className="text-[10px] text-zinc-400 mt-1">Trims with quantity at or below this level trigger amber alert cards.</p>
               </div>
@@ -775,7 +775,7 @@ export default function TrimsStockPage() {
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="px-7 py-3 bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-[#2d8d9b]/25 disabled:opacity-50 cursor-pointer"
+                  className="px-7 py-3 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {isSubmitting ? 'Saving...' : 'Apply Stock Entry'}
                 </button>

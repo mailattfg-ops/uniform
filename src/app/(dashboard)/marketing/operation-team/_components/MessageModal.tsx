@@ -163,28 +163,30 @@ Forma Apparels Co.`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] border border-zinc-150 shadow-2xl p-8 flex flex-col space-y-6 overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] border border-zinc-200/80 shadow-2xl p-8 flex flex-col space-y-6 overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
 
         {/* Loading Overlay */}
         {isSendingMessage && (
           <div className="absolute inset-0 bg-white/85 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300">
             <div className="relative w-16 h-16">
-              <div className="absolute inset-0 rounded-full border-4 border-[#2d8d9b]/10 border-t-[#2d8d9b] animate-spin"></div>
-              <div className="absolute inset-2 rounded-full border-4 border-dashed border-[#3a525d]/10 border-t-[#3a525d] animate-spin [animation-duration:3s]"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-[#C82A2B]/10 border-t-[#C82A2B] animate-spin"></div>
+              <div className="absolute inset-2 rounded-full border-4 border-dashed border-zinc-900/10 border-t-zinc-900 animate-spin [animation-duration:3s]"></div>
             </div>
             <div className="text-center space-y-1">
-              <p className="text-xs font-black uppercase tracking-widest text-[#3a525d]">Secure Transmission Active</p>
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-900">Secure Transmission Active</p>
               <p className="text-[10px] font-bold text-zinc-400">Verifying keys & compiling proposal attachments...</p>
             </div>
           </div>
         )}
 
         {/* Modal Header */}
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start pt-1">
           <div className="flex items-center gap-4">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-              channel === 'email' ? 'bg-[#2d8d9b]/10 text-[#2d8d9b]' : 'bg-emerald-50 text-emerald-600'
+              channel === 'email' ? 'bg-[#FFF1F1] text-[#9E1B1D]' : 'bg-emerald-50 text-emerald-600'
             }`}>
               {channel === 'email' ? (
                 <Mail size={22} className="animate-pulse" />
@@ -193,7 +195,7 @@ Forma Apparels Co.`;
               )}
             </div>
             <div>
-              <h3 className="text-xl font-black tracking-tight text-[#3a525d]">
+              <h3 className="text-xl font-black tracking-tight text-zinc-900">
                 {channel === 'email' ? 'Send Proposal to Customer' : 'Send Proposal via WhatsApp'}
               </h3>
               <p className="text-xs text-zinc-400 font-semibold mt-0.5">
@@ -206,7 +208,7 @@ Forma Apparels Co.`;
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-zinc-650 transition-colors border border-zinc-150"
+            className="w-8 h-8 rounded-full bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-zinc-650 transition-colors border border-zinc-150 cursor-pointer"
           >
             <span className="text-sm font-black">&times;</span>
           </button>
@@ -217,9 +219,9 @@ Forma Apparels Co.`;
           <button
             type="button"
             onClick={switchToEmail}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
               channel === 'email'
-                ? 'bg-white text-[#2d8d9b] shadow-sm border border-zinc-200 font-black'
+                ? 'bg-white text-[#C82A2B] shadow-sm border border-zinc-200 font-black'
                 : 'text-zinc-400 hover:text-zinc-650 font-bold'
             }`}
           >
@@ -229,7 +231,7 @@ Forma Apparels Co.`;
           <button
             type="button"
             onClick={switchToWhatsApp}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
               channel === 'whatsapp'
                 ? 'bg-white text-emerald-600 shadow-sm border border-zinc-200 font-black'
                 : 'text-zinc-400 hover:text-zinc-650 font-bold'
@@ -241,34 +243,34 @@ Forma Apparels Co.`;
         </div>
 
         {/* Modal Body / Inputs */}
-        <div className="space-y-4 text-xs font-semibold text-[#3a525d]">
+        <div className="space-y-4 text-xs font-semibold text-zinc-800">
           {channel === 'email' ? (
             <>
               <div className="space-y-1.5 animate-in fade-in duration-300">
-                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-450">Recipient Email address</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Recipient Email address</label>
                 <Input
                   type="email"
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
                   placeholder="customer@domain.com"
-                  className="bg-zinc-50 border-zinc-200 focus:border-[#2d8d9b] rounded-2xl p-4 font-bold text-xs"
+                  className="bg-zinc-50 border-zinc-200 focus:border-[#C82A2B] rounded-2xl p-4 font-bold text-xs"
                 />
               </div>
 
               <div className="space-y-1.5 animate-in fade-in duration-300">
-                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-450">Email Subject Heading</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Email Subject Heading</label>
                 <Input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Quotation Proposal Proposal"
-                  className="bg-zinc-50 border-zinc-200 focus:border-[#2d8d9b] rounded-2xl p-4 font-bold text-xs"
+                  className="bg-zinc-50 border-zinc-200 focus:border-[#C82A2B] rounded-2xl p-4 font-bold text-xs"
                 />
               </div>
             </>
           ) : (
             <div className="space-y-1.5 animate-in fade-in duration-300">
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-450">Customer Mobile Number (With Country Code)</label>
+              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Customer Mobile Number (With Country Code)</label>
               <Input
                 type="tel"
                 value={phone}
@@ -280,13 +282,13 @@ Forma Apparels Co.`;
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-450">Message Body Content</label>
+            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Message Body Content</label>
             <textarea
               rows={8}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Write message details..."
-              className="w-full bg-zinc-50 hover:bg-zinc-100 focus:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-2xl p-4 font-bold text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 transition-all leading-relaxed animate-in fade-in duration-300"
+              className="w-full bg-zinc-50 hover:bg-zinc-100 focus:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-2xl p-4 font-bold text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/15 transition-all leading-relaxed animate-in fade-in duration-300"
             />
           </div>
 
@@ -294,7 +296,7 @@ Forma Apparels Co.`;
           <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${
-                channel === 'email' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'
+                channel === 'email' ? 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B]/15' : 'bg-emerald-50 text-emerald-500 border-emerald-100'
               }`}>
                 <Paperclip size={18} />
               </div>
@@ -308,7 +310,7 @@ Forma Apparels Co.`;
               </div>
             </div>
             <span className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg border ${
-              channel === 'email' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b]/20'
+              channel === 'email' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B]/20'
             }`}>
               {channel === 'email' ? 'Ready & Signed' : 'Portal Linked'}
             </span>
@@ -326,14 +328,14 @@ Forma Apparels Co.`;
           <Button
             variant="outline"
             onClick={onClose}
-            className="rounded-xl border border-zinc-200 text-[#3a525d] font-black hover:bg-zinc-50 px-5"
+            className="rounded-xl border border-zinc-200 text-zinc-600 font-black hover:bg-zinc-50 px-5 cursor-pointer"
           >
             Cancel
           </Button>
           {channel === 'email' ? (
             <Button
               onClick={handleSendMessage}
-              className="bg-[#2d8d9b] text-white hover:bg-[#3a525d] rounded-xl font-black px-6 flex items-center gap-2 shadow transition-all"
+              className="bg-[#C82A2B] text-white hover:bg-[#A81D1E] rounded-xl font-black px-6 flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Send size={14} />
               Send Secure Package
@@ -341,7 +343,7 @@ Forma Apparels Co.`;
           ) : (
             <Button
               onClick={handleSendWhatsApp}
-              className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-black px-6 flex items-center gap-2 shadow transition-all"
+              className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-black px-6 flex items-center gap-2 shadow transition-all cursor-pointer"
             >
               <MessageCircle size={14} />
               Open WhatsApp Chat

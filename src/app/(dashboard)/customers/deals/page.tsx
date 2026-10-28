@@ -576,7 +576,7 @@ export default function DealsRegistryPage() {
           <button
             type="button"
             onClick={() => setViewingLead(l)}
-            className="px-3 py-1.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
+            className="px-3 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95"
             title="View deal timeline and follow-up history"
           >
             <Eye size={12} />

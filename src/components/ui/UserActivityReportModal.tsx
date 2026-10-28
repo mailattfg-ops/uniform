@@ -515,15 +515,15 @@ export function UserActivityReportModal<T = any>({
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
           body { padding: 32px; color: #1e293b; background: #fff; font-size: 12px; }
-          .header { border-bottom: 2px solid #2d8d9b; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
-          .title-area h1 { font-size: 20px; font-weight: 900; color: #3a525d; text-transform: uppercase; letter-spacing: -0.5px; }
-          .title-area h2 { font-size: 13px; font-weight: 700; color: #2d8d9b; margin-top: 4px; }
+          .header { border-bottom: 2px solid #C82A2B; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+          .title-area h1 { font-size: 20px; font-weight: 900; color: #09090B; text-transform: uppercase; letter-spacing: -0.5px; }
+          .title-area h2 { font-size: 13px; font-weight: 700; color: #C82A2B; margin-top: 4px; }
           .meta-area { text-align: right; font-size: 11px; color: #64748b; line-height: 1.5; }
           .meta-area strong { color: #1e293b; }
           .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
           .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
           .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
-          .kpi-val { font-size: 20px; font-weight: 900; color: #2d8d9b; margin-top: 4px; }
+          .kpi-val { font-size: 20px; font-weight: 900; color: #C82A2B; margin-top: 4px; }
           table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px; }
           th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 10px 8px; border-bottom: 2px solid #cbd5e1; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
           td { padding: 9px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
@@ -673,27 +673,30 @@ export function UserActivityReportModal<T = any>({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-4xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-4xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
+        {/* Subtle Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
+
         {/* Modal Header */}
         <div className="px-6 py-4.5 border-b border-zinc-100 flex items-center justify-between bg-gradient-to-r from-zinc-50 via-white to-zinc-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#2d8d9b]/10 border border-[#2d8d9b]/30 flex items-center justify-center text-[#2d8d9b] shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shrink-0 shadow-xs">
               <User size={20} strokeWidth={2.5} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-[#3a525d] tracking-tight">
+                <h3 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
                   Updated Reports for User
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#2d8d9b]/15 text-[#2d8d9b]">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                   {title}
                 </span>
               </div>
               <p className="text-xs text-zinc-500 font-medium">
-                Showing activity records for <strong className="text-[#3a525d]">{userName}</strong>
+                Showing activity records for <strong className="text-zinc-900 font-bold">{userName}</strong>
               </p>
             </div>
           </div>
@@ -715,7 +718,7 @@ export function UserActivityReportModal<T = any>({
             {/* Presets */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-                <Calendar size={13} className="text-[#2d8d9b]" /> Date Filter:
+                <Calendar size={13} className="text-[#C82A2B]" /> Date Filter:
               </span>
               {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth', 'custom'] as DatePreset[]).map(preset => {
                 const labels: Record<DatePreset, string> = {
@@ -734,7 +737,7 @@ export function UserActivityReportModal<T = any>({
                     onClick={() => setPresetDates(preset)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[#2d8d9b] text-white shadow-xs'
+                        ? 'bg-[#C82A2B] text-white shadow-xs'
                         : 'bg-white text-zinc-600 hover:bg-zinc-200/60 border border-zinc-200/80'
                     }`}
                   >
@@ -783,7 +786,7 @@ export function UserActivityReportModal<T = any>({
                   type="checkbox"
                   checked={includeAdded}
                   onChange={e => setIncludeAdded(e.target.checked)}
-                  className="rounded text-[#2d8d9b] focus:ring-[#2d8d9b] cursor-pointer"
+                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
                 />
                 <span>Added / Created</span>
               </label>
@@ -792,7 +795,7 @@ export function UserActivityReportModal<T = any>({
                   type="checkbox"
                   checked={includeUpdated}
                   onChange={e => setIncludeUpdated(e.target.checked)}
-                  className="rounded text-[#2d8d9b] focus:ring-[#2d8d9b] cursor-pointer"
+                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
                 />
                 <span>Updated / Modified</span>
               </label>
@@ -801,7 +804,7 @@ export function UserActivityReportModal<T = any>({
                   type="checkbox"
                   checked={includeFollowups}
                   onChange={e => setIncludeFollowups(e.target.checked)}
-                  className="rounded text-[#2d8d9b] focus:ring-[#2d8d9b] cursor-pointer"
+                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
                 />
                 <span>Follow-ups & Notes Logged</span>
               </label>
@@ -815,7 +818,7 @@ export function UserActivityReportModal<T = any>({
                 placeholder="Search report..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-700 placeholder:text-zinc-400 focus:outline-none focus:border-[#2d8d9b] focus:ring-1 focus:ring-[#2d8d9b]"
+                className="w-full pl-8 pr-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-700 placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]"
               />
             </div>
           </div>
@@ -825,7 +828,7 @@ export function UserActivityReportModal<T = any>({
         <div className="px-6 py-3 bg-white border-b border-zinc-100 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
           <div className="p-2.5 rounded-2xl bg-zinc-50 border border-zinc-200/80">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Matched Records</span>
-            <div className="text-xl font-black text-[#3a525d] mt-0.5">{counts.total}</div>
+            <div className="text-xl font-black text-zinc-900 mt-0.5">{counts.total}</div>
           </div>
           <div className="p-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/60">
             <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Added / Created</span>
@@ -863,7 +866,7 @@ export function UserActivityReportModal<T = any>({
                   <div key={act.id} className="p-3.5 hover:bg-zinc-50/80 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                     <div className="space-y-1 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-[#3a525d] text-sm">
+                        <span className="font-extrabold text-zinc-900 text-sm">
                           {act.itemTitle}
                         </span>
                         
@@ -896,7 +899,7 @@ export function UserActivityReportModal<T = any>({
                       )}
 
                       {act.nextFollowUpDate && (
-                        <p className="text-[11px] font-bold text-[#2d8d9b] flex items-center gap-1 mt-1">
+                        <p className="text-[11px] font-bold text-[#9E1B1D] flex items-center gap-1 mt-1">
                           <Clock size={12} />
                           <span>Next Follow-up Scheduled: {formatISTDateOnly(act.nextFollowUpDate)}</span>
                         </p>
@@ -968,7 +971,7 @@ export function UserActivityReportModal<T = any>({
                 size="sm"
                 onClick={handleApplyToTable}
                 disabled={matchedItemsMap.size === 0}
-                className="bg-[#2d8d9b] hover:bg-[#236e79] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md shadow-[#C82A2B]/20 cursor-pointer"
               >
                 <Filter size={14} />
                 <span>Filter Table ({matchedItemsMap.size})</span>

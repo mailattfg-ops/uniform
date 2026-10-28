@@ -416,7 +416,7 @@ function ClientPortalSidebar({
               !isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}
           >
-            <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#CC9448]' : ''}`} />
+            <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#C82A2B]' : ''}`} />
           </button>
         </div>
 
@@ -424,9 +424,9 @@ function ClientPortalSidebar({
         <div className={`mx-4 overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
           isExpanded ? 'max-h-12 opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0 pointer-events-none'
         }`}>
-          <div className="px-3 py-2 rounded-xl bg-[#CC9448]/10 border border-[#CC9448]/20 flex items-center gap-2 whitespace-nowrap">
-            <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse shrink-0" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#CC9448]">{portalLabel}</span>
+          <div className="px-3 py-2 rounded-xl bg-[#C82A2B]/10 border border-[#C82A2B]/20 flex items-center gap-2 whitespace-nowrap">
+            <div className="w-2 h-2 rounded-full bg-[#C82A2B] animate-pulse shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C82A2B]">{portalLabel}</span>
           </div>
         </div>
 
@@ -446,7 +446,7 @@ function ClientPortalSidebar({
                       }
                     }}
                     className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${isActive
-                      ? '!bg-[#CC9448] text-white shadow-xl font-semibold'
+                      ? '!bg-[#C82A2B] text-white shadow-xl font-semibold'
                       : 'hover:bg-white/5 text-white/60 hover:text-white'
                     }`}
                   >
@@ -488,7 +488,7 @@ function ClientPortalSidebar({
                   }}
                   className={`flex items-center p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${
                     pathname === '/settings/profile'
-                      ? '!bg-[#CC9448] text-white shadow-xl font-semibold'
+                      ? '!bg-[#C82A2B] text-white shadow-xl font-semibold'
                       : 'hover:bg-white/5 text-white/60 hover:text-white'
                   }`}
                 >
@@ -518,7 +518,7 @@ function ClientPortalSidebar({
                   onClick={() => { setIsDropdownOpen(false); if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false); }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <User size={16} className="text-[#CC9448]" />
+                  <User size={16} className="text-[#C82A2B]" />
                   <span>Profile Settings</span>
                 </Link>
                 <button
@@ -534,14 +534,14 @@ function ClientPortalSidebar({
 
           <div
             onClick={() => isExpanded && setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between p-2 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer transition-all duration-300 w-full overflow-hidden"
+            className="flex items-center justify-between p-2 rounded-2xl bg-[#C82A2B] text-white shadow-lg cursor-pointer transition-all duration-300 w-full overflow-hidden"
           >
             <div className="flex items-center min-w-0">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 shadow-inner">
                 {isClientEntity ? (
-                  <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
+                  <User size={16} className="text-[#C82A2B]" strokeWidth={2.5} />
                 ) : (
-                  <Building2 size={16} className="text-[#CC9448]" strokeWidth={2.5} />
+                  <Building2 size={16} className="text-[#C82A2B]" strokeWidth={2.5} />
                 )}
               </div>
               <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
@@ -737,7 +737,7 @@ export const Sidebar: React.FC = () => {
               !isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}
           >
-            <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#CC9448]' : ''}`} />
+            <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#C82A2B]' : ''}`} />
           </button>
         </div>
 
@@ -784,7 +784,7 @@ export const Sidebar: React.FC = () => {
                 >
                   <div
                     onClick={() => handleModuleClick(item)}
-                    className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full cursor-pointer overflow-hidden ${isPathActive ? '!bg-[#CC9448] text-white shadow-xl font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'
+                    className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full cursor-pointer overflow-hidden ${isPathActive ? '!bg-[#C82A2B] text-white shadow-xl font-semibold' : 'hover:bg-white/5 text-white/60 hover:text-white'
                       }`}
                   >
                     <div className="flex items-center min-w-0">
@@ -809,7 +809,7 @@ export const Sidebar: React.FC = () => {
                   </div>
 
                   {item.subsections.length > 0 && (
-                    <div className={`relative ml-8 pl-4 border-l border-[#CC9448]/30 space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                    <div className={`relative ml-8 pl-4 border-l border-[#C82A2B]/30 space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${
                       isExpanded && isOpen ? 'max-h-96 opacity-100 mt-2 pb-2 pt-1' : 'max-h-0 opacity-0 mt-0 pb-0 pt-0 pointer-events-none'
                     }`}>
                       {item.subsections.map((sub, idx) => {
@@ -832,13 +832,13 @@ export const Sidebar: React.FC = () => {
                               }
                             }}
                             className={`relative flex items-center gap-2.5 group text-[12.5px] transition-all py-1.5 px-3 rounded-xl whitespace-nowrap ${isSubActive
-                              ? 'text-white bg-[#CC9448]/20 font-bold shadow-inner'
+                              ? 'text-white bg-[#C82A2B]/20 font-bold shadow-inner'
                               : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'
                               }`}
                           >
-                            {/* Horizontal gold line connector */}
+                            {/* Horizontal line connector */}
                             <div
-                              className={`absolute -left-4 transition-all duration-300 ${isSubActive ? 'w-4 h-[2px] bg-[#CC9448]' : 'w-3.5 h-[1px] bg-[#CC9448]/30'
+                              className={`absolute -left-4 transition-all duration-300 ${isSubActive ? 'w-4 h-[2px] bg-[#C82A2B]' : 'w-3.5 h-[1px] bg-[#C82A2B]/30'
                                 }`}
                               style={{ top: '50%' }}
                             />
@@ -869,7 +869,7 @@ export const Sidebar: React.FC = () => {
                   }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <User size={16} className="text-[#CC9448]" />
+                  <User size={16} className="text-[#C82A2B]" />
                   <span>Profile Settings</span>
                 </Link>
                 <button
@@ -885,11 +885,11 @@ export const Sidebar: React.FC = () => {
 
           <div
             onClick={() => isExpanded && setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between p-2 rounded-2xl bg-[#CC9448] text-white shadow-lg cursor-pointer transition-all duration-300 w-full overflow-hidden"
+            className="flex items-center justify-between p-2 rounded-2xl bg-[#C82A2B] text-white shadow-lg cursor-pointer transition-all duration-300 w-full overflow-hidden"
           >
             <div className="flex items-center min-w-0">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 shadow-inner">
-                <User size={16} className="text-[#CC9448]" strokeWidth={2.5} />
+                <User size={16} className="text-[#C82A2B]" strokeWidth={2.5} />
               </div>
               <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
                 isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'

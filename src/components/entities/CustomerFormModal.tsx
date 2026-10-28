@@ -202,22 +202,25 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
 
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.35)] border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col my-8 z-10 max-h-[92vh]">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#3a525d] to-[#24343b] px-8 py-6 text-white relative flex justify-between items-start shrink-0">
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
+
+        {/* Executive Brand Obsidian Header */}
+        <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full bg-[#2d8d9b]/30 text-teal-200 border border-[#2d8d9b]/40 text-[9px] font-black uppercase tracking-wider">
+              <span className="px-3 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
                 {editingCustomer ? (editingCustomer.customer_code || `Customer #${editingCustomer.id}`) : 'Customer Directory'}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-white/90 text-[9px] font-black uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-white/90 border border-white/10 text-[9px] font-black uppercase tracking-wider">
                 {editingCustomer ? 'Edit Profile' : 'New Customer'}
               </span>
             </div>
-            <h3 className="text-2xl font-black italic tracking-tight">
+            <h3 className="text-2xl font-black italic tracking-tight text-white">
               {editingCustomer ? 'Edit Customer Profile' : 'Add New Customer'}
             </h3>
-            <p className="text-xs text-white/70 font-semibold mt-0.5">
+            <p className="text-xs text-zinc-400 font-semibold mt-0.5">
               {editingCustomer ? `Update account record for ${editingCustomer.name}` : 'Configure a new institutional, corporate, or retail customer'}
             </p>
           </div>
@@ -235,7 +238,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {/* Customer / Institution Name */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Building2 size={13} className="text-[#2d8d9b]" />
+              <Building2 size={13} className="text-[#9E1B1D]" />
               Customer / Institution Name *
             </label>
             <input
@@ -252,14 +255,14 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
               }}
               autoCapitalize="words"
               placeholder="e.g. St. Xavier International, Apollo Healthcare"
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
             />
           </div>
 
           {/* Contact Person Details: Title + Full Name + Designation */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <User size={13} className="text-[#2d8d9b]" />
+              <User size={13} className="text-[#9E1B1D]" />
               Contact Person Details
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -267,7 +270,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 <select
                   value={contactTitle}
                   onChange={(e) => setContactTitle(e.target.value)}
-                  className="w-full px-3 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+                  className="w-full px-3 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
                 >
                   <option value="Mr.">Mr.</option>
                   <option value="Mrs.">Mrs.</option>
@@ -283,7 +286,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   onChange={(e) => setContactPerson(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
                   placeholder="Full Name (e.g. Rajesh Sharma)"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="sm:col-span-4">
@@ -293,7 +296,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
                   placeholder="Designation (e.g. Principal / Purchase Head)"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -303,7 +306,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Phone size={13} className="text-[#2d8d9b]" />
+                <Phone size={13} className="text-[#9E1B1D]" />
                 Primary Phone Number *
               </label>
               <input
@@ -312,12 +315,12 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. +91 98765 43210"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Mail size={13} className="text-[#2d8d9b]" />
+                <Mail size={13} className="text-[#9E1B1D]" />
                 Email Address (Optional)
               </label>
               <input
@@ -325,7 +328,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. billing@institution.com"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
           </div>
@@ -334,14 +337,14 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#2d8d9b]" />
+                <Briefcase size={13} className="text-[#9E1B1D]" />
                 Customer Sector / Type *
               </label>
               <select
                 required
                 value={industryId}
                 onChange={(e) => setIndustryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
               >
                 <option value="">Select Sector</option>
                 {industries.map((i) => (
@@ -351,13 +354,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Star size={13} className="text-[#2d8d9b]" />
+                <Star size={13} className="text-[#9E1B1D]" />
                 Classification
               </label>
               <select
                 value={clientTag}
                 onChange={(e) => setClientTag(e.target.value as any)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
               >
                 <option value="standard">Standard Customer</option>
                 <option value="special">★ Favourite Customer</option>
@@ -366,13 +369,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-[#2d8d9b]" />
+                <CheckCircle2 size={13} className="text-[#9E1B1D]" />
                 Account Status
               </label>
               <select
                 value={isActive ? 'true' : 'false'}
                 onChange={(e) => setIsActive(e.target.value === 'true')}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
               >
                 <option value="true">Active Account</option>
                 <option value="false">Inactive Account</option>
@@ -384,7 +387,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Building2 size={13} className="text-[#2d8d9b]" />
+                <Building2 size={13} className="text-[#9E1B1D]" />
                 Assigned Branch
               </label>
               <select
@@ -393,7 +396,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   setBranchId(e.target.value);
                   setZoneId('');
                 }}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
               >
                 <option value="">HQ / Unassigned Branch</option>
                 {branchesList.map((b) => (
@@ -404,14 +407,14 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <MapPin size={13} className="text-[#2d8d9b]" />
+                <MapPin size={13} className="text-[#9E1B1D]" />
                 Assigned Zone {branchId ? `(${availableZones.length})` : ''}
               </label>
               <select
                 value={zoneId}
                 onChange={(e) => setZoneId(e.target.value)}
                 disabled={!branchId}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all bg-white disabled:bg-zinc-50 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white disabled:bg-zinc-50 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
               >
                 <option value="">{branchId ? (availableZones.length > 0 ? 'Select Zone' : 'No zones for this branch') : 'Select Branch first'}</option>
                 {availableZones.map((z) => (
@@ -427,7 +430,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {!editingCustomer && (
             <div className="space-y-1.5 p-4 rounded-2xl bg-zinc-50 border border-zinc-150">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
-                <Key size={13} className="text-[#2d8d9b]" />
+                <Key size={13} className="text-[#9E1B1D]" />
                 Portal Login Username *
               </label>
               <input
@@ -440,7 +443,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   setIsUsernameManuallyEdited(true);
                 }}
                 placeholder="e.g. stxavier_admin"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400 bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400 bg-white"
               />
               <p className="text-[10px] text-zinc-500 font-medium pt-0.5">
                 A secure login password will be generated upon registration and shown immediately to share with the client.
@@ -451,7 +454,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {/* Address Details: Street, City, State, Pin Code, Country */}
           <div className="space-y-3 pt-1 border-t border-zinc-100">
             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              <MapPin size={13} className="text-[#2d8d9b]" />
+              <MapPin size={13} className="text-[#9E1B1D]" />
               Address Details
             </div>
 
@@ -467,7 +470,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
                 autoCapitalize="words"
                 placeholder="Campus address, Street, Building"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
 
@@ -484,7 +487,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
                   placeholder="e.g. Mumbai, Bengaluru"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="space-y-1.5">
@@ -498,7 +501,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
                   placeholder="e.g. Maharashtra, Karnataka"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -515,7 +518,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
                   placeholder="e.g. 560001"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="space-y-1.5">
@@ -529,7 +532,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   onChange={(e) => setCountry(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
                   placeholder="e.g. India"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -538,7 +541,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {/* Initial Financial Ledger Balances */}
           <div className="space-y-3 pt-1 border-t border-zinc-100">
             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              <CreditCard size={13} className="text-[#2d8d9b]" />
+              <CreditCard size={13} className="text-[#9E1B1D]" />
               Initial Financial Balances (Optional)
             </div>
 
@@ -553,7 +556,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   value={receivables}
                   onChange={(e) => setReceivables(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="space-y-1.5">
@@ -567,13 +570,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   value={credits}
                   onChange={(e) => setCredits(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#2d8d9b] flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-700 flex items-center justify-between">
                   <span>Credit Period</span>
-                  <span className="text-[9px] font-black uppercase bg-[#2d8d9b]/10 px-1.5 py-0.5 rounded text-[#2d8d9b]">Days</span>
+                  <span className="text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/15 px-1.5 py-0.5 rounded">Days</span>
                 </label>
                 <input
                   type="number"
@@ -582,7 +585,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   value={creditPeriodDays}
                   onChange={(e) => setCreditPeriodDays(e.target.value)}
                   placeholder="30"
-                  className="w-full px-4 py-3 rounded-2xl border border-teal-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400 bg-teal-50/20"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400 bg-white"
                 />
               </div>
             </div>
@@ -604,7 +607,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#3a525d] hover:bg-[#2d8d9b] transition-all shadow-lg shadow-[#3a525d]/20 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+              className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
               {isSubmitting ? 'Saving...' : editingCustomer ? 'Save Changes' : 'Add Customer'}
             </button>

@@ -149,7 +149,7 @@ export default function BranchTransfersPage() {
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 h-14 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-indigo-600/30 cursor-pointer"
+            className="flex items-center gap-2 h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#C82A2B]/25 cursor-pointer"
           >
             <Plus size={18} strokeWidth={3} />
             New Stock Transfer Dispatch
@@ -335,7 +335,7 @@ export default function BranchTransfersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold shadow-md"
+                  className="px-5 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-sm font-semibold shadow-md shadow-[#C82A2B]/25"
                 >
                   Dispatch Transfer
                 </button>

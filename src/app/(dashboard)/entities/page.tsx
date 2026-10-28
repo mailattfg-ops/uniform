@@ -49,9 +49,9 @@ export default function EntitiesRoot() {
       description: 'Record body measurements, assign standard size charts, and verify entity uniform fittings.',
       href: '/measurements/entry',
       icon: Ruler,
-      color: 'bg-[#CC9448]',
-      lightColor: 'bg-[#CC9448]/10',
-      textColor: 'text-[#8b6b5a]',
+      color: 'bg-[#C82A2B]',
+      lightColor: 'bg-[#C82A2B]/10',
+      textColor: 'text-[#9E1B1D]',
       actionText: 'Enter Sizes'
     },
     {

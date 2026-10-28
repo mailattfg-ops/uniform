@@ -12,8 +12,8 @@ export default function RootHome() {
   }, [router]);
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F4F2] gap-4">
-      <Loader2 className="animate-spin text-[#CC9448]" size={42} />
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#FAFAFA] gap-4">
+      <Loader2 className="animate-spin text-[#C82A2B]" size={42} />
       <p className="text-xs font-black uppercase tracking-widest text-zinc-500">
         Loading Forma Apparels ERP...
       </p>

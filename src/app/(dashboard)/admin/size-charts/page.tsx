@@ -207,10 +207,10 @@ export default function SizeChartPage() {
       <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in zoom-in duration-500 pb-40">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-black italic tracking-tighter text-[#3a525d]">
+            <h1 className="text-3xl font-black italic tracking-tighter text-zinc-900">
               {editingId ? 'Modify Size Chart' : 'Architect Size Chart'}
             </h1>
-            <p className="text-[10px] font-black uppercase text-[#2d8d9b] tracking-widest mt-1">Multi-Table Configuration</p>
+            <p className="text-[10px] font-black uppercase text-[#C82A2B] tracking-widest mt-1">Multi-Table Configuration</p>
           </div>
           <Button
             onClick={() => {
@@ -225,11 +225,11 @@ export default function SizeChartPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="p-8 space-y-6 text-[#3a525d]">
+          <Card className="p-8 space-y-6 text-zinc-900">
             <div className="space-y-4">
               <label className="text-[10px] font-black uppercase tracking-widest">Chart Name</label>
               <Input
-                className="w-full h-14 bg-zinc-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-[#2d8d9b] transition-all outline-none text-[#333]"
+                className="w-full h-14 bg-zinc-50 border-none rounded-2xl px-6 text-sm font-bold focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all outline-none text-[#333]"
                 placeholder="e.g. Premium Casual Trousers"
                 value={newChart.name}
                 onChange={e => setNewChart({ ...newChart, name: e.target.value })}
@@ -262,7 +262,7 @@ export default function SizeChartPage() {
                     onClick={() => setNewChart({ ...newChart, unit: 'cm' })}
                     variant="secondary"
                     size="h-auto"
-                    className={`flex-1 rounded-xl text-[10px] font-black uppercase transition-all border-none shadow-none ${newChart.unit === 'cm' ? 'bg-[#2d8d9b] text-white shadow-md' : 'text-zinc-400 bg-transparent'}`}
+                    className={`flex-1 rounded-xl text-[10px] font-black uppercase transition-all border-none shadow-none ${newChart.unit === 'cm' ? 'bg-zinc-900 text-white shadow-md' : 'text-zinc-400 bg-transparent'}`}
                   >
                     cm
                   </Button>
@@ -270,7 +270,7 @@ export default function SizeChartPage() {
                     onClick={() => setNewChart({ ...newChart, unit: 'in' })}
                     variant="secondary"
                     size="h-auto"
-                    className={`flex-1 rounded-xl text-[10px] font-black uppercase transition-all border-none shadow-none ${newChart.unit === 'in' ? 'bg-[#2d8d9b] text-white shadow-md' : 'text-zinc-400 bg-transparent'}`}
+                    className={`flex-1 rounded-xl text-[10px] font-black uppercase transition-all border-none shadow-none ${newChart.unit === 'in' ? 'bg-zinc-900 text-white shadow-md' : 'text-zinc-400 bg-transparent'}`}
                   >
                     in
                   </Button>
@@ -279,7 +279,7 @@ export default function SizeChartPage() {
             </div>
           </Card>
 
-          <Card className="p-8 space-y-6 bg-[#3a525d] text-white relative overflow-hidden">
+          <Card className="p-8 space-y-6 bg-zinc-900 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Maximize2 size={120} />
             </div>
@@ -296,21 +296,21 @@ export default function SizeChartPage() {
           <Card key={gIdx} className="p-10 border-none shadow-2xl rounded-[3rem]">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4 flex-1 max-w-sm">
-                <h3 className="text-sm font-black uppercase tracking-widest text-[#3a525d] shrink-0">Table {gIdx + 1}:</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-900 shrink-0">Table {gIdx + 1}:</h3>
                 <Input
-                  className="bg-transparent border-b-2 border-dashed border-zinc-200 focus:border-[#2d8d9b] text-sm font-black text-[#3a525d] pb-1 w-full rounded-none"
+                  className="bg-transparent border-b-2 border-dashed border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-sm font-black text-zinc-900 pb-1 w-full rounded-none"
                   value={group.label}
                   onChange={e => updateGroupLabel(gIdx, e.target.value)}
                   allowSpecialCharacters
                 />
-                <span className="text-[10px] font-black text-[#2d8d9b] opacity-40">({newChart.unit})</span>
+                <span className="text-[10px] font-black text-[#C82A2B] opacity-40">({newChart.unit})</span>
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={() => addSizeOption(gIdx)}
                   variant="secondary"
                   size="h-auto"
-                  className="h-8 rounded-lg px-3 text-[10px] font-black gap-2 bg-zinc-50 text-[#2d8d9b]"
+                  className="h-8 rounded-lg px-3 text-[10px] font-black gap-2 bg-zinc-50 text-[#C82A2B]"
                 >
                   <PlusCircle size={12} /> Add Size
                 </Button>
@@ -334,7 +334,7 @@ export default function SizeChartPage() {
                     allowSpecialCharacters
                   />
                   <Input
-                    className="w-full h-12 bg-zinc-50 border-2 border-transparent focus:border-[#2d8d9b] rounded-xl text-center text-xs font-black transition-all shadow-sm px-2"
+                    className="w-full h-12 bg-zinc-50 border-2 border-transparent focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 rounded-xl text-center text-xs font-black transition-all shadow-sm px-2"
                     placeholder="Range"
                     value={d.value}
                     onChange={e => updateMetricValue(gIdx, i, e.target.value)}
@@ -358,13 +358,13 @@ export default function SizeChartPage() {
           <Button
             onClick={addMetricGroup}
             variant="outline"
-            className="h-14 px-8 rounded-2xl border-2 border-dashed border-zinc-200 text-[#3a525d] font-black uppercase text-[10px] tracking-widest hover:border-[#2d8d9b] hover:text-[#2d8d9b] transition-all gap-2"
+            className="h-14 px-8 rounded-2xl border-2 border-dashed border-zinc-200 text-zinc-900 font-black uppercase text-[10px] tracking-widest hover:border-[#C82A2B] hover:text-[#C82A2B] transition-all gap-2"
           >
             <PlusCircle size={16} /> Add Additional Table
           </Button>
           <Button
             onClick={handleSave}
-            className="h-16 px-12 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl flex gap-3"
+            className="h-16 px-12 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#C82A2B]/25 flex gap-3 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             {editingId ? 'Update Size Chart' : 'Register Size Chart'}
@@ -379,18 +379,18 @@ export default function SizeChartPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">US Size Chart</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">US Size Chart</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C82A2B] mt-1 opacity-70">
             Standardized Tailoring Reference
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-[#fce4d4] shadow-sm">
+        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-zinc-200 shadow-sm">
           <Button
             onClick={() => setUnit('cm')}
             variant="secondary"
             size="h-auto"
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none shadow-none ${unit === 'cm' ? '!bg-[#f2994a] text-white shadow-lg' : 'text-[#3a525d]/40 !bg-transparent'}`}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none shadow-none ${unit === 'cm' ? '!bg-[#f2994a] text-white shadow-lg' : 'text-zinc-900/40 !bg-transparent'}`}
           >
             cm
           </Button>
@@ -398,7 +398,7 @@ export default function SizeChartPage() {
             onClick={() => setUnit('in')}
             variant="secondary"
             size="h-auto"
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none shadow-none ${unit === 'in' ? '!bg-[#f2994a] text-white shadow-lg' : 'text-[#3a525d]/40 !bg-transparent'}`}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none shadow-none ${unit === 'in' ? '!bg-[#f2994a] text-white shadow-lg' : 'text-zinc-900/40 !bg-transparent'}`}
           >
             in
           </Button>
@@ -411,26 +411,26 @@ export default function SizeChartPage() {
           onClick={() => setActiveTab('top_wear')}
           variant="secondary"
           size="h-auto"
-          className={`pb-4 px-4 transition-all relative border-none shadow-none bg-transparent rounded-none ${activeTab === 'top_wear' ? 'text-[#2d8d9b]' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`pb-4 px-4 transition-all relative border-none shadow-none bg-transparent rounded-none ${activeTab === 'top_wear' ? 'text-[#C82A2B]' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           Top Wear (Chest/Length)
-          {activeTab === 'top_wear' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#2d8d9b] rounded-t-full" />}
+          {activeTab === 'top_wear' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-900 rounded-t-full" />}
         </Button>
         <Button
           onClick={() => setActiveTab('bottom_wear')}
           variant="secondary"
           size="h-auto"
-          className={`pb-4 px-4 transition-all relative border-none shadow-none bg-transparent rounded-none ${activeTab === 'bottom_wear' ? 'text-[#2d8d9b]' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`pb-4 px-4 transition-all relative border-none shadow-none bg-transparent rounded-none ${activeTab === 'bottom_wear' ? 'text-[#C82A2B]' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           Bottom Wear (Waist/Length)
-          {activeTab === 'bottom_wear' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#2d8d9b] rounded-t-full" />}
+          {activeTab === 'bottom_wear' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-900 rounded-t-full" />}
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-12">
         {isLoading ? (
           <div className="py-20 flex justify-center">
-            <div className="w-10 h-10 border-4 border-[#2d8d9b]/10 border-t-[#2d8d9b] rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-zinc-200 border-t-[#C82A2B] rounded-full animate-spin" />
           </div>
         ) : paginatedCharts.length === 0 ? (
           <div className="grid justify-center py-20 text-center border-2 border-dashed border-zinc-100 rounded-[3rem]">
@@ -442,7 +442,7 @@ export default function SizeChartPage() {
                 setEditingId(null);
                 setIsAdding(true);
               }}
-              className="mt-6 bg-[#3a525d] rounded-2xl px-8 h-12 uppercase text-[10px] font-black tracking-widest"
+              className="mt-6 bg-zinc-900 rounded-2xl px-8 h-12 uppercase text-[10px] font-black tracking-widest"
             >
               Add New Chart
             </Button>
@@ -452,27 +452,27 @@ export default function SizeChartPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Measuring Advice */}
               <Card className="p-8 lg:col-span-3 border-none shadow-xl bg-gradient-to-br from-white to-zinc-50 h-full">
-                <h3 className="text-lg font-black text-[#3a525d] mb-4 flex items-center gap-2">
-                  <Info size={18} className="text-[#2d8d9b]" />
+                <h3 className="text-lg font-black text-zinc-900 mb-4 flex items-center gap-2">
+                  <Info size={18} className="text-[#C82A2B]" />
                   Measuring Advice
                 </h3>
                 <div className="flex justify-center flex-col items-center py-8">
                   {activeTab === 'top_wear' ? (
                     <>
-                      <div className="w-24 h-24 bg-white shadow-inner rounded-full flex items-center justify-center text-[#2d8d9b] mb-4">
+                      <div className="w-24 h-24 bg-white shadow-inner rounded-full flex items-center justify-center text-[#C82A2B] mb-4">
                         <Shirt size={48} strokeWidth={1} />
                       </div>
-                      <p className="text-xs font-black text-[#3a525d]">US Standard Sizing</p>
+                      <p className="text-xs font-black text-zinc-900">US Standard Sizing</p>
                       <p className="text-[9px] text-zinc-400 text-center mt-3 font-medium leading-relaxed">
                         Check chest circumference and body length for top wear.
                       </p>
                     </>
                   ) : (
                     <>
-                      <div className="w-24 h-24 bg-white shadow-inner rounded-full flex items-center justify-center text-[#2d8d9b] mb-4">
+                      <div className="w-24 h-24 bg-white shadow-inner rounded-full flex items-center justify-center text-[#C82A2B] mb-4">
                         <Maximize2 size={48} strokeWidth={1} />
                       </div>
-                      <p className="text-xs font-black text-[#3a525d]">US Bottom Sizing</p>
+                      <p className="text-xs font-black text-zinc-900">US Bottom Sizing</p>
                       <p className="text-[9px] text-zinc-400 text-center mt-3 font-medium leading-relaxed">
                         Check waist measurement and leg length options.
                       </p>
@@ -485,7 +485,7 @@ export default function SizeChartPage() {
               <div className="lg:col-span-9 space-y-6">
                 {chart.metric_groups.map((group, idx) => (
                   <Card key={idx} className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
-                    <div className="bg-[#3a525d] p-5 text-white flex justify-between items-center">
+                    <div className="bg-zinc-900 p-5 text-white flex justify-between items-center">
                       <div>
                         <h2 className="text-lg font-black italic tracking-tighter uppercase">{chart.name} - {group.label}</h2>
                         <p className="text-[8px] font-black tracking-widest opacity-60">REF TABLE {idx + 1} • {chart.unit?.toUpperCase() || unit.toUpperCase()}</p>
@@ -521,7 +521,7 @@ export default function SizeChartPage() {
                           <tr className="border-b border-zinc-50 bg-zinc-50/30">
                             <th className="p-5 text-[9px] font-black uppercase text-zinc-300">Size Label</th>
                             {group.data.map((d, si) => (
-                              <th key={si} className="p-5 text-[10px] font-black uppercase text-[#3a525d] text-center border-l border-zinc-50">
+                              <th key={si} className="p-5 text-[10px] font-black uppercase text-zinc-900 text-center border-l border-zinc-50">
                                 {d.size}
                               </th>
                             ))}
@@ -530,10 +530,10 @@ export default function SizeChartPage() {
                         <tbody>
                           <tr>
                             <td className="p-5">
-                              <p className="text-[10px] font-black text-[#3a525d]">{group.label}</p>
+                              <p className="text-[10px] font-black text-zinc-900">{group.label}</p>
                             </td>
                             {group.data.map((d, i) => (
-                              <td key={i} className="p-5 text-[10px] font-bold text-[#2d8d9b] text-center border-l border-zinc-50">
+                              <td key={i} className="p-5 text-[10px] font-bold text-[#C82A2B] text-center border-l border-zinc-50">
                                 {d.value}
                               </td>
                             ))}
@@ -566,7 +566,7 @@ export default function SizeChartPage() {
                   onClick={() => setCurrentPage(i + 1)}
                   variant="secondary"
                   size="h-auto"
-                  className={`w-10 h-10 rounded-xl font-black text-xs transition-all border-none shadow-none ${currentPage === i + 1 ? 'bg-[#2d8d9b] text-white shadow-lg' : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'}`}
+                  className={`w-10 h-10 rounded-xl font-black text-xs transition-all border-none shadow-none ${currentPage === i + 1 ? 'bg-zinc-900 text-white shadow-lg' : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'}`}
                 >
                   {i + 1}
                 </Button>
@@ -590,7 +590,7 @@ export default function SizeChartPage() {
               setEditingId(null);
               setIsAdding(true);
             }}
-            className="h-14 px-8 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#2d8d9b]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             Register New Size Chart

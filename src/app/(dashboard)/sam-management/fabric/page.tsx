@@ -303,7 +303,7 @@ export default function FabricSAMConfigPage() {
             </div>
             <Button
               onClick={handleAddNewInwardRate}
-              className="h-10 px-4 text-[10px] font-black uppercase tracking-wider bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl gap-1.5"
+              className="h-10 px-4 text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl gap-1.5 shadow-sm shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={14} strokeWidth={3} />
               Add Row
@@ -450,7 +450,7 @@ export default function FabricSAMConfigPage() {
             </div>
             <Button
               onClick={handleAddNewMargin}
-              className="h-10 px-4 text-[10px] font-black uppercase tracking-wider bg-[#3a525d] hover:bg-[#8b6b5a] text-white rounded-xl gap-1.5"
+              className="h-10 px-4 text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl gap-1.5 shadow-sm shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={14} strokeWidth={3} />
               Add Slab

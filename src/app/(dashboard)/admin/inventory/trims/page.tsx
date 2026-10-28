@@ -147,11 +147,11 @@ const VendorChecklistInput: React.FC<{
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
-        <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Supplying Vendors</label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Select Supplying Vendors</label>
         <button 
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="text-[10px] font-black text-[#2d8d9b] hover:text-[#3a525d] hover:underline uppercase tracking-wider transition-all cursor-pointer bg-transparent border-none outline-none"
+          className="text-[10px] font-black text-[#9E1B1D] hover:text-[#C82A2B] hover:underline uppercase tracking-wider transition-all cursor-pointer bg-transparent border-none outline-none"
         >
           + Add New Vendor
         </button>
@@ -168,7 +168,7 @@ const VendorChecklistInput: React.FC<{
                 key={vendor.id}
                 className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none text-left ${
                   isChecked 
-                    ? 'bg-[#2d8d9b]/10 border-[#2d8d9b]/40 text-[#3a525d] font-bold shadow-sm' 
+                    ? 'bg-[#FFF1F1] border-[#C82A2B] text-[#9E1B1D] font-bold shadow-2xs' 
                     : 'bg-white border-zinc-200/80 hover:border-zinc-300 text-zinc-600'
                 }`}
               >
@@ -176,12 +176,12 @@ const VendorChecklistInput: React.FC<{
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => handleToggle(vendor.id)}
-                  className="mt-0.5 rounded border-zinc-300 text-[#2d8d9b] focus:ring-[#2d8d9b] h-3.5 w-3.5"
+                  className="mt-0.5 rounded border-zinc-300 text-[#C82A2B] focus:ring-[#C82A2B] accent-[#C82A2B] h-3.5 w-3.5"
                 />
                 <div className="flex-1 min-w-0 leading-tight">
                   <p className="text-xs truncate font-bold">{vendor.name}</p>
                   {vendor.code && (
-                    <span className="text-[9px] text-[#2d8d9b] uppercase tracking-wider font-mono font-bold block mt-0.5">
+                    <span className="text-[9px] text-[#9E1B1D] uppercase tracking-wider font-mono font-bold block mt-0.5">
                       {vendor.code}
                     </span>
                   )}
@@ -195,7 +195,7 @@ const VendorChecklistInput: React.FC<{
       {/* Modal for Quick Vendor Creation */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-100 relative space-y-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200 relative space-y-4 overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             <button 
               type="button"
               onClick={() => setIsModalOpen(false)}
@@ -204,62 +204,62 @@ const VendorChecklistInput: React.FC<{
               <X size={18} />
             </button>
             <div>
-              <h3 className="text-lg font-black text-[#3a525d]">Quick Register Vendor</h3>
+              <h3 className="text-lg font-black text-zinc-900">Quick Register Vendor</h3>
               <p className="text-xs text-zinc-400 mt-0.5">Add a new supplier profile directly to the catalog.</p>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Company / Vendor Name *</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Company / Vendor Name *</label>
                 <input 
                   type="text" 
                   value={name} 
                   onChange={e => setName(e.target.value)} 
                   placeholder="e.g. Apex Fasteners Ltd"
-                  className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                  className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Vendor Code</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Vendor Code</label>
                   <input 
                     type="text" 
                     value={code} 
                     onChange={e => setCode(e.target.value)} 
                     placeholder="e.g. V-001"
-                    className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Contact Person</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Contact Person</label>
                   <input 
                     type="text" 
                     value={contactPerson} 
                     onChange={e => setContactPerson(e.target.value)} 
                     placeholder="e.g. Rahul"
-                    className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Phone</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Phone</label>
                   <input 
                     type="text" 
                     value={phone} 
                     onChange={e => setPhone(e.target.value)} 
                     placeholder="+91..."
-                    className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Email</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Email</label>
                   <input 
                     type="email" 
                     value={email} 
                     onChange={e => setEmail(e.target.value)} 
                     placeholder="sales@..."
-                    className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   />
                 </div>
               </div>
@@ -276,7 +276,7 @@ const VendorChecklistInput: React.FC<{
                 type="button" 
                 onClick={() => handleRegisterVendor()}
                 disabled={isSaving}
-                className="px-6 py-2.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#2d8d9b]/20 disabled:opacity-50"
+                className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer active:scale-95"
               >
                 {isSaving ? 'Registering...' : 'Save & Select'}
               </button>
@@ -578,7 +578,7 @@ export default function TrimsCatalogPage() {
     { 
       header: 'Trim No.', 
       accessor: 'code', 
-      className: 'font-black text-[#2d8d9b]',
+      className: 'font-black text-[#9E1B1D]',
       sortValue: (item) => item.code
     },
     { 
@@ -593,7 +593,7 @@ export default function TrimsCatalogPage() {
             )}
           </div>
           <div>
-            <p className="font-bold text-sm text-[#3a525d]">{item.name}</p>
+            <p className="font-bold text-sm text-zinc-900">{item.name}</p>
             {item.category?.name && (
               <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">{item.category.name}</span>
             )}
@@ -622,7 +622,7 @@ export default function TrimsCatalogPage() {
     {
       header: 'Unit Price',
       accessor: ((item: TrimItem) => (
-        <span className="font-bold text-xs text-[#3a525d]">
+        <span className="font-bold text-xs text-zinc-900">
           {item.unit_price ? formatCurrency(item.unit_price) : '—'}
         </span>
       )) as any,
@@ -631,7 +631,7 @@ export default function TrimsCatalogPage() {
     {
       header: 'Quantity',
       accessor: ((item: TrimItem) => (
-        <span className="font-black text-sm text-[#3a525d]">
+        <span className="font-black text-sm text-zinc-900">
           {formatQuantity(item.quantity)} {item.uom}
         </span>
       )) as any,
@@ -647,7 +647,7 @@ export default function TrimsCatalogPage() {
               setView('edit');
             }}
             variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-zinc-900 hover:bg-[#3a525d] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
             title="Edit Trim"
           >
             <Edit2 size={16} />
@@ -676,7 +676,7 @@ export default function TrimsCatalogPage() {
             setEditingItem(null);
           }}
           variant="secondary"
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] hover:text-[#3a525d] transition-colors bg-transparent border-none shadow-none px-0 cursor-pointer"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-900 transition-colors bg-transparent border-none shadow-none px-0 cursor-pointer"
         >
           <ArrowLeft size={14} />
           Back to List
@@ -806,8 +806,8 @@ export default function TrimsCatalogPage() {
         {/* Top Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Trim Catalog</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Trim Catalog</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-70">
               Thread, Buttons, Zippers, Labels &amp; Finishing Accessories
             </p>
           </div>
@@ -816,9 +816,9 @@ export default function TrimsCatalogPage() {
             <Button
               onClick={() => setIsCategoryModalOpen(true)}
               variant="secondary"
-              className="h-14 px-5 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] bg-white hover:bg-zinc-50 text-[#3a525d] border border-zinc-200/80 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="h-14 px-5 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] bg-white hover:bg-zinc-50 text-zinc-900 border border-zinc-200/80 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <FolderPlus size={16} className="text-[#2d8d9b]" />
+              <FolderPlus size={16} className="text-[#C82A2B]" />
               Manage Categories
             </Button>
             <Button
@@ -826,7 +826,7 @@ export default function TrimsCatalogPage() {
                 setEditingItem(null);
                 setView('add');
               }}
-              className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={18} strokeWidth={3} />
               New Trim
@@ -862,7 +862,7 @@ export default function TrimsCatalogPage() {
               <select
                 value={selectedCategoryId}
                 onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Categories ({trims.length})</option>
                 {categories.map(c => {
@@ -879,7 +879,7 @@ export default function TrimsCatalogPage() {
               <select
                 value={filterSize}
                 onChange={(e) => setFilterSize(e.target.value)}
-                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Sizes</option>
                 {uniqueSizes.map(sz => (
@@ -891,7 +891,7 @@ export default function TrimsCatalogPage() {
               <select
                 value={filterColour}
                 onChange={(e) => setFilterColour(e.target.value)}
-                className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Colours</option>
                 {uniqueColours.map(cl => (
@@ -916,7 +916,7 @@ export default function TrimsCatalogPage() {
       {/* Quick Add Trim Category Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-100 relative space-y-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200 relative space-y-4 overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             <button 
               type="button"
               onClick={() => setIsCategoryModalOpen(false)}
@@ -925,13 +925,13 @@ export default function TrimsCatalogPage() {
               <X size={18} />
             </button>
             <div>
-              <h3 className="text-lg font-black text-[#3a525d]">New Trim Category</h3>
+              <h3 className="text-lg font-black text-zinc-900">New Trim Category</h3>
               <p className="text-xs text-zinc-400 mt-0.5">Define a new article group (e.g. Elastic, Velcro, Buckle, Label).</p>
             </div>
 
             <form onSubmit={handleCreateCategory} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                   Category Name *
                 </label>
                 <input 
@@ -939,14 +939,14 @@ export default function TrimsCatalogPage() {
                   value={newCatData.name} 
                   onChange={e => setNewCatData(prev => ({ ...prev, name: e.target.value }))} 
                   placeholder="e.g. Elastic, Metal Buckles, Hang Tags"
-                  className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none" 
+                  className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                     Code Prefix
                   </label>
                   <input 
@@ -955,17 +955,17 @@ export default function TrimsCatalogPage() {
                     onChange={e => setNewCatData(prev => ({ ...prev, code_prefix: e.target.value.toUpperCase() }))} 
                     placeholder="e.g. ELA, BCK"
                     maxLength={5}
-                    className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none uppercase" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none uppercase" 
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                     Default UOM
                   </label>
                   <select
                     value={newCatData.default_uom}
                     onChange={e => setNewCatData(prev => ({ ...prev, default_uom: e.target.value }))}
-                    className="w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#2d8d9b] outline-none"
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   >
                     <option value="Pcs">Pcs (Pieces)</option>
                     <option value="Meters">Meters</option>
@@ -988,7 +988,7 @@ export default function TrimsCatalogPage() {
                 <button 
                   type="submit" 
                   disabled={isSavingCategory}
-                  className="px-6 py-2.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#2d8d9b]/20 disabled:opacity-50 cursor-pointer"
+                  className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer active:scale-95"
                 >
                   {isSavingCategory ? 'Saving...' : 'Create Category'}
                 </button>

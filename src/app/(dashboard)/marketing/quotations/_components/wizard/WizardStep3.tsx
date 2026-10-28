@@ -524,7 +524,7 @@ export default function WizardStep3({
         <Button
           disabled={hasMeasurements ? !selectedProductTypeId : false}
           onClick={onNext}
-          className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3"
+          className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           Timeline & Profit <ArrowRight size={16} />
         </Button>

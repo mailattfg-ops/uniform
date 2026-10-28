@@ -25,20 +25,20 @@ export const Button: React.FC<ButtonProps> = ({
     variantClass = '';
   } else if (variant) {
     const variants = {
-      primary: 'bg-[#2d8d9b] text-white shadow-xl shadow-[#2d8d9b]/20 hover:bg-[#236e7a] hover:shadow-2xl hover:scale-105 focus:ring-[#2d8d9b]/30',
-      secondary: 'bg-white text-[#8b6b5a] border-2 border-[#fce4d4] hover:bg-[#fce4d4]/10 focus:ring-[#fce4d4]/50',
-      danger: 'bg-error text-white shadow-xl shadow-error/20 hover:bg-error/90 focus:ring-error/50',
-      ghost: 'bg-transparent text-muted-foreground hover:bg-muted/50 focus:ring-muted/50',
-      outline: 'bg-transparent border-2 border-[#3a525d]/10 text-[#3a525d] hover:bg-[#3a525d]/5'
+      primary: 'bg-[#C82A2B] text-white shadow-lg shadow-[#C82A2B]/25 hover:bg-[#A81D1E] hover:shadow-xl hover:shadow-[#C82A2B]/35 hover:scale-[1.02] focus:ring-[#C82A2B]/30',
+      secondary: 'bg-[#FEF2F2] text-[#9E1B1D] border-2 border-red-200/90 hover:bg-red-100/80 hover:border-red-300 hover:text-[#7F1D1D] focus:ring-red-200/50 shadow-xs hover:shadow-sm',
+      danger: 'bg-[#DC2626] text-white shadow-lg shadow-red-600/20 hover:bg-[#B91C1C] hover:shadow-xl hover:scale-[1.02] focus:ring-red-500/30',
+      ghost: 'bg-transparent text-zinc-600 hover:bg-[#FEF2F2] hover:text-[#C82A2B] focus:ring-red-100',
+      outline: 'bg-transparent border-2 border-[#C82A2B]/40 text-[#C82A2B] hover:bg-[#C82A2B]/10 hover:border-[#C82A2B] hover:text-[#A81D1E] focus:ring-[#C82A2B]/20'
     };
-    // If secondary was passed but custom styling is provided, avoid forcing border-[#fce4d4] and bg-white
+    // If secondary was passed but custom styling is provided, avoid forcing custom border and bg
     if (variant === 'secondary' && (hasCustomBg || hasCustomText || hasCustomBorder)) {
       variantClass = '';
     } else {
       variantClass = variants[variant] || '';
     }
   } else if (!hasCustomBg && !hasCustomText) {
-    variantClass = 'bg-[#2d8d9b] text-white shadow-xl shadow-[#2d8d9b]/20 hover:bg-[#236e7a] hover:shadow-2xl hover:scale-105 focus:ring-[#2d8d9b]/30';
+    variantClass = 'bg-[#C82A2B] text-white shadow-lg shadow-[#C82A2B]/25 hover:bg-[#A81D1E] hover:shadow-xl hover:scale-[1.02] focus:ring-[#C82A2B]/30';
   }
 
   let sizeClass = '';

@@ -156,13 +156,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   }[columns];
 
   return (
-    <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-[#fce4d4] shadow-2xl max-w-5xl mx-auto transition-all duration-300">
+    <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-zinc-200/80 shadow-2xl max-w-5xl mx-auto transition-all duration-300">
       
       {(title || subtitle) && (
-        <div className="bg-[#fce4d4]/20 p-5 md:p-8 border-b border-[#fce4d4] rounded-t-[2rem] md:rounded-t-[3rem]">
-          {title && <h3 className="text-xl md:text-2xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
+        <div className="bg-zinc-50/60 p-5 md:p-8 border-b border-zinc-200 rounded-t-[2rem] md:rounded-t-[3rem]">
+          {title && <h3 className="text-xl md:text-2xl font-black tracking-tight text-zinc-900">{title}</h3>}
           {subtitle && (
-            <p className="text-[9px] md:text-[10px] text-[#2d8d9b] font-black uppercase tracking-[0.3em] opacity-80 mt-1">
+            <p className="text-[9px] md:text-[10px] text-[#9E1B1D] font-black uppercase tracking-[0.3em] opacity-80 mt-1">
               {subtitle}
             </p>
           )}
@@ -187,7 +187,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 />
               ) : field.type === 'checkbox-group' ? (
                 <div className={`space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 transition-all ${field.disabled ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
-                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1">
+                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1">
                      {field.label}
                    </label>
                    <div className="grid grid-cols-2 gap-4">
@@ -200,9 +200,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                             checked={checkboxState[field.name]?.includes(opt.value) || false}
                             disabled={field.disabled}
                             onChange={(e) => handleCheckboxChange(field.name, opt.value, e.target.checked)}
-                            className="w-5 h-5 rounded-lg border-2 border-zinc-200 text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                            className="w-5 h-5 rounded-lg border-2 border-zinc-200 text-[#9E1B1D] focus:ring-[#C82A2B]"
                           />
-                          <span className="text-xs font-bold text-[#3a525d] group-hover:text-[#2d8d9b] transition-colors">
+                          <span className="text-xs font-bold text-zinc-900 group-hover:text-[#9E1B1D] transition-colors">
                             {opt.label}
                           </span>
                        </label>
@@ -211,7 +211,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 </div>
               ) : field.type === 'image-upload' ? (
                 <div className={`space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 transition-all ${field.disabled ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
-                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1">
+                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1">
                      {field.label}
                    </label>
                    
@@ -256,7 +256,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                            />
                            <label 
                              htmlFor={`file-upload-${field.name}`}
-                             className={`h-12 px-6 bg-white border-2 border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm ${currentImages.length >= maxImg ? 'opacity-50 cursor-not-allowed' : ''}`}
+                             className={`h-12 px-6 bg-white border-2 border-zinc-200 text-zinc-900 hover:bg-zinc-50 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm ${currentImages.length >= maxImg ? 'opacity-50 cursor-not-allowed' : ''}`}
                            >
                              <Camera size={16} />
                              <span>{labelText}</span>
@@ -295,7 +295,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 </div>
               ) : field.type === 'custom' ? (
                 <div className={`space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 transition-all ${field.disabled ? 'opacity-30 grayscale pointer-events-none' : ''} ${field.className || ''}`}>
-                  <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 block mb-2">
+                  <label className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1 block mb-2">
                     {field.label}
                   </label>
                   {field.render && field.render(
@@ -309,7 +309,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               ) : field.type === 'textarea' ? (
                 <div className={`flex flex-col gap-2 w-full group ${field.disabled ? 'opacity-40' : ''}`}>
                   {field.label && (
-                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 transition-colors group-focus-within:text-[#2d8d9b]">
+                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1 transition-colors group-focus-within:text-[#9E1B1D]">
                       {field.label}
                     </label>
                   )}
@@ -330,7 +330,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                       if (field.onChange) field.onChange(val);
                     }}
                     autoCapitalize="sentences"
-                    className="w-full px-5 py-3.5 bg-white border-2 border-zinc-200 hover:border-[#2d8d9b]/50 rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#2d8d9b]/10 focus:border-[#2d8d9b] transition-all text-sm font-bold text-[#3a525d] placeholder:text-zinc-400 shadow-sm"
+                    className="w-full px-5 py-3.5 bg-white border-2 border-zinc-200 hover:border-[#C82A2B]/40 rounded-[1.2rem] focus:outline-none focus:ring-4 focus:ring-[#C82A2B]/10 focus:border-[#C82A2B] transition-all text-sm font-bold text-zinc-900 placeholder:text-zinc-400 shadow-sm"
                   />
                 </div>
               ) : (
@@ -362,12 +362,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         </div>
 
         {/* Improved high-visibility footer */}
-        <div className="flex justify-end items-center gap-4 pt-8 border-t border-[#fce4d4]/40">
+        <div className="flex justify-end items-center gap-4 pt-8 border-t border-zinc-200">
           {onCancel && (
             <button 
               type="button"
               onClick={onCancel}
-              className="text-xs font-black text-[#8b6b5a] uppercase tracking-widest hover:text-[#3a525d] transition-colors"
+              className="text-xs font-black text-zinc-700 uppercase tracking-widest hover:text-zinc-900 transition-colors"
             >
               Cancel Entry
             </button>
@@ -375,7 +375,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           <Button 
             type="submit" 
             variant="primary" 
-            className="px-12 py-4 h-auto shadow-2xl shadow-[#2d8d9b]/40 bg-[#2d8d9b] text-white"
+            className="px-12 py-4 h-auto shadow-2xl shadow-[#C82A2B]/25 bg-[#C82A2B] hover:bg-[#A81D1E] text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             {submitLabel}
           </Button>

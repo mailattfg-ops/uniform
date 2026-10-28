@@ -193,10 +193,10 @@ export default function CompanySettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Card 1: Company & Contact Details */}
           <Card className="p-8 border-none shadow-[0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2.5rem] bg-white flex flex-col gap-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-[#2d8d9b]/5 rounded-full translate-x-16 -translate-y-16 blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-zinc-50 rounded-full translate-x-16 -translate-y-16 blur-2xl pointer-events-none" />
             
             <div className="flex items-center gap-4 border-b border-zinc-100 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
+              <div className="w-10 h-10 rounded-xl bg-[#FFF1F1] flex items-center justify-center text-[#9E1B1D]">
                 <Building2 size={20} />
               </div>
               <div>
@@ -347,7 +347,7 @@ export default function CompanySettingsPage() {
                     <p className="text-[10px] font-bold text-zinc-500 leading-tight">
                       Upload your GPay, PhonePe, UPI, or Bank Account QR code. This will be shown on invoices and payments.
                     </p>
-                    <label className="inline-flex items-center justify-center h-10 px-6 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase tracking-wider text-[9px] cursor-pointer transition-all active:scale-95 shadow-sm">
+                    <label className="inline-flex items-center justify-center h-10 px-6 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase tracking-wider text-[9px] cursor-pointer transition-all active:scale-95 shadow-md shadow-[#C82A2B]/20">
                       Choose Image
                       <input 
                         type="file"
@@ -470,7 +470,7 @@ export default function CompanySettingsPage() {
         {/* Modal: Add Tax Slab */}
         {showAddTaxModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-zinc-200 relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
               <h3 className="text-lg font-bold text-zinc-900">Add New GST Tax Slab</h3>
               <div className="space-y-3 text-xs">
                 <div>
@@ -481,7 +481,7 @@ export default function CompanySettingsPage() {
                     placeholder="e.g. GST 5% - Apparel below ₹1,000"
                     value={newTaxName}
                     onChange={e => setNewTaxName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl"
+                    className="w-full px-3 py-2 border border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none rounded-xl text-zinc-900 font-bold"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -494,7 +494,7 @@ export default function CompanySettingsPage() {
                       placeholder="e.g. 5.00"
                       value={newTaxRate}
                       onChange={e => setNewTaxRate(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-xl"
+                      className="w-full px-3 py-2 border border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none rounded-xl text-zinc-900 font-bold"
                     />
                   </div>
                   <div>
@@ -504,7 +504,7 @@ export default function CompanySettingsPage() {
                       placeholder="e.g. 6203"
                       value={newTaxHsn}
                       onChange={e => setNewTaxHsn(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-xl"
+                      className="w-full px-3 py-2 border border-zinc-200 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none rounded-xl text-zinc-900 font-bold"
                     />
                   </div>
                 </div>
@@ -533,7 +533,7 @@ export default function CompanySettingsPage() {
                   type="button"
                   disabled={isSavingTax}
                   onClick={handleAddTax}
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow-md"
+                  className="px-5 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold text-xs shadow-md shadow-[#C82A2B]/20 cursor-pointer active:scale-95 transition-all"
                 >
                   {isSavingTax ? 'Saving...' : 'Save Tax Slab'}
                 </button>
@@ -547,7 +547,7 @@ export default function CompanySettingsPage() {
           <Button
             type="submit"
             isLoading={isSaving}
-            className="h-14 rounded-2xl px-12 font-black uppercase text-xs tracking-[0.25em] bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xl shadow-[#2d8d9b]/20 flex items-center gap-2"
+            className="h-14 rounded-2xl px-12 font-black uppercase text-xs tracking-[0.25em] bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Save size={16} />
             Save Profile

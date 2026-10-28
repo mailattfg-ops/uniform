@@ -253,8 +253,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="h-[80vh] flex items-center justify-center bg-[#F5F4F2]">
-        <Loader2 className="animate-spin text-[#CC9448]" size={48} />
+      <div className="h-[80vh] flex items-center justify-center bg-[#FAFAFA]">
+        <Loader2 className="animate-spin text-[#C82A2B]" size={48} />
       </div>
     );
   }
@@ -330,12 +330,12 @@ export default function DashboardPage() {
       <div className="space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700 pb-12">
         {/* Entity Hero Banner */}
         <div className="relative bg-[#030303] rounded-[2.5rem] p-8 md:p-12 overflow-hidden text-white shadow-2xl border border-white/5">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #CC9448 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #C82A2B 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
           <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-[#CC9448]/20 text-[#CC9448] border border-[#CC9448]/30 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CC9448] animate-pulse" />
+                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-[#C82A2B]/20 text-[#C82A2B] border border-[#C82A2B]/30 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] animate-pulse" />
                   Member Portal
                 </span>
                 {admissionNo && (
@@ -352,7 +352,7 @@ export default function DashboardPage() {
 
               <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
                 Welcome back,<br />
-                <span className="text-[#CC9448]">{memberName}</span>
+                <span className="text-[#C82A2B]">{memberName}</span>
               </h1>
               <p className="text-white/60 text-sm font-medium leading-relaxed">
                 Your official uniform fitting profile, biometric measurements, and tailored size recommendations for <strong className="text-white">{orgName}</strong>.
@@ -362,7 +362,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/measurements/history"
-                className="px-6 py-3.5 bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-[#CC9448]/25 active:scale-95"
+                className="px-6 py-3.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-[#C82A2B]/25 active:scale-95"
               >
                 <span>My Measurements</span>
                 <ArrowRight size={15} />
@@ -396,10 +396,10 @@ export default function DashboardPage() {
           {/* Card 2: Recommended Size */}
           <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all space-y-3">
             <div className="flex items-center justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-[#CC9448]/10 text-[#CC9448] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#C82A2B]/10 text-[#C82A2B] flex items-center justify-center">
                 <Tag size={22} />
               </div>
-              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-[#CC9448]/10 text-[#CC9448]">
+              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-[#C82A2B]/10 text-[#C82A2B]">
                 Assigned Size
               </span>
             </div>
@@ -459,7 +459,7 @@ export default function DashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 pb-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Ruler size={18} className="text-[#CC9448]" />
+                <Ruler size={18} className="text-[#C82A2B]" />
                 <h2 className="text-lg font-black text-[#030303] tracking-tight">Active Biometric Profile</h2>
               </div>
               <p className="text-xs text-zinc-400 font-medium">
@@ -471,7 +471,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/measurements/history"
-                  className="px-4 py-2 bg-[#CC9448]/10 hover:bg-[#CC9448]/20 text-[#CC9448] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#C82A2B]/10 hover:bg-[#C82A2B]/20 text-[#C82A2B] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
                 >
                   <span>Full History</span>
                   <ChevronRight size={14} />
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                   <div key={idx} className="bg-zinc-50/80 border border-zinc-100 rounded-3xl p-6 space-y-4">
                     <div className="flex items-center justify-between border-b border-zinc-200/60 pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#CC9448]" />
+                        <div className="w-2 h-2 rounded-full bg-[#C82A2B]" />
                         <h3 className="text-xs font-black uppercase tracking-widest text-[#030303]">{group.garment}</h3>
                       </div>
                       <span className="text-[9px] font-bold text-zinc-400 bg-white px-2.5 py-0.5 rounded-md border border-zinc-100 uppercase tracking-wider">
@@ -497,7 +497,7 @@ export default function DashboardPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {group.items.map((item: any, i: number) => (
-                        <div key={i} className="bg-white border border-zinc-150/70 rounded-2xl p-3.5 text-center shadow-sm hover:border-[#CC9448]/30 transition-all">
+                        <div key={i} className="bg-white border border-zinc-150/70 rounded-2xl p-3.5 text-center shadow-sm hover:border-[#C82A2B]/30 transition-all">
                           <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 capitalize">{item.name}</p>
                           <p className="text-xl font-black text-[#030303] mt-1">
                             {item.value} <span className="text-[10px] text-zinc-400 font-normal">in</span>
@@ -510,10 +510,10 @@ export default function DashboardPage() {
               </div>
 
               {notes && (
-                <div className="bg-[#FAF7F2] border border-[#CC9448]/20 rounded-2xl p-4 flex items-start gap-3">
-                  <Sparkles size={16} className="text-[#CC9448] shrink-0 mt-0.5" />
+                <div className="bg-[#FFF5F5] border border-[#C82A2B]/20 rounded-2xl p-4 flex items-start gap-3">
+                  <Sparkles size={16} className="text-[#C82A2B] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#CC9448]">Tailor & Fitting Notes</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B]">Tailor & Fitting Notes</p>
                     <p className="text-xs text-zinc-700 font-medium mt-0.5">{notes}</p>
                   </div>
                 </div>
@@ -521,7 +521,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="text-center py-12 px-4 space-y-4 max-w-lg mx-auto">
-              <div className="w-16 h-16 rounded-3xl bg-[#CC9448]/10 text-[#CC9448] flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 rounded-3xl bg-[#C82A2B]/10 text-[#C82A2B] flex items-center justify-center mx-auto">
                 <Ruler size={32} />
               </div>
               <div className="space-y-1">
@@ -533,7 +533,7 @@ export default function DashboardPage() {
               <div className="pt-2">
                 <Link
                   href="/measurements/history"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#030303] hover:bg-[#CC9448] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#030303] hover:bg-[#C82A2B] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
                 >
                   <Ruler size={14} />
                   <span>View Measurement Records</span>
@@ -551,14 +551,14 @@ export default function DashboardPage() {
               href="/measurements/history"
               className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex items-center gap-5"
             >
-              <div className="w-14 h-14 rounded-2xl bg-[#CC9448] flex items-center justify-center shrink-0 shadow-lg shadow-[#CC9448]/20">
+              <div className="w-14 h-14 rounded-2xl bg-[#C82A2B] flex items-center justify-center shrink-0 shadow-lg shadow-[#C82A2B]/20">
                 <Ruler size={22} className="text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black text-[#030303] leading-tight">My Measurement History</p>
                 <p className="text-[10px] text-zinc-400 font-semibold mt-1">Review complete fitting logs, garments & size details</p>
               </div>
-              <ArrowRight size={16} className="text-zinc-300 group-hover:text-[#CC9448] group-hover:translate-x-1 transition-all shrink-0" />
+              <ArrowRight size={16} className="text-zinc-300 group-hover:text-[#C82A2B] group-hover:translate-x-1 transition-all shrink-0" />
             </Link>
 
             <div className="bg-white border border-zinc-100 rounded-[2rem] p-6 shadow-sm flex items-center gap-5">
@@ -574,10 +574,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Support Help Banner */}
-        <div className="bg-[#F7EBE1] border border-[#CC9448]/20 rounded-[2rem] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="bg-[#FFF1F1] border border-[#C82A2B]/20 rounded-[2rem] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#CC9448]/20 flex items-center justify-center shrink-0">
-              <Star size={18} className="text-[#CC9448]" fill="#CC9448" />
+            <div className="w-10 h-10 rounded-xl bg-[#C82A2B]/20 flex items-center justify-center shrink-0">
+              <Star size={18} className="text-[#C82A2B]" fill="#C82A2B" />
             </div>
             <div>
               <p className="text-xs font-black text-[#030303]">Need sizing assistance or replacement?</p>
@@ -586,7 +586,7 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#CC9448] bg-white px-4 py-2 rounded-xl border border-[#CC9448]/20">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#C82A2B] bg-white px-4 py-2 rounded-xl border border-[#C82A2B]/20">
             <Phone size={14} />
             <span>+91 7902 499 990</span>
           </div>
@@ -607,14 +607,14 @@ export default function DashboardPage() {
     };
 
     const quickLinks = [
-      { icon: Users, label: 'Members Directory', sub: 'View all registered members', href: `/customers/${orgId}?tab=entities`, color: 'bg-[#2d8d9b]' },
-      { icon: ReceiptText, label: 'Account Statement', sub: 'View invoices & payments', href: `/customers/${orgId}?tab=ledger`, color: 'bg-[#CC9448]' },
+      { icon: Users, label: 'Members Directory', sub: 'View all registered members', href: `/customers/${orgId}?tab=entities`, color: 'bg-[#9E1B1D]' },
+      { icon: ReceiptText, label: 'Account Statement', sub: 'View invoices & payments', href: `/customers/${orgId}?tab=ledger`, color: 'bg-[#C82A2B]' },
       { icon: History, label: 'Measurement History', sub: 'View captured measurements', href: '/measurements/history', color: 'bg-[#3a525d]' },
     ];
 
     const statCards = [
-      { label: 'Total Members', value: clientStats.members, icon: Users, color: 'text-[#2d8d9b]', bg: 'bg-[#2d8d9b]/10' },
-      { label: 'Measurements Taken', value: clientStats.measurements, icon: Ruler, color: 'text-[#CC9448]', bg: 'bg-[#CC9448]/10' },
+      { label: 'Total Members', value: clientStats.members, icon: Users, color: 'text-[#C82A2B]', bg: 'bg-[#C82A2B]/10' },
+      { label: 'Measurements Taken', value: clientStats.measurements, icon: Ruler, color: 'text-[#9E1B1D]', bg: 'bg-red-50' },
       { label: 'Outstanding Balance', value: `₹${Number(clientStats.outstandingBalance).toLocaleString()}`, icon: ReceiptText, color: 'text-red-500', bg: 'bg-red-50' },
       { label: 'Pending Measurements', value: clientStats.pendingMeasurements, icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-50' },
     ];
@@ -624,16 +624,16 @@ export default function DashboardPage() {
         {/* Welcome Banner */}
         <div className="relative bg-[#030303] rounded-[2.5rem] p-8 md:p-12 overflow-hidden text-white shadow-2xl">
           {/* background grid decoration */}
-          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, #CC9448 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, #C82A2B 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#CC9448]">Client Portal</span>
+                <div className="w-2 h-2 rounded-full bg-[#C82A2B] animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C82A2B]">Client Portal</span>
               </div>
               <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
                 Welcome back,<br />
-                <span className="text-[#CC9448]">{orgName}</span>
+                <span className="text-[#C82A2B]">{orgName}</span>
               </h1>
               <p className="text-white/50 text-sm font-medium mt-2">
                 Manage your team, track measurements and review your account statement.
@@ -643,7 +643,7 @@ export default function DashboardPage() {
               {orgId && (
                 <Link
                   href={`/customers/${orgId}`}
-                  className="px-6 py-3 bg-[#CC9448] hover:bg-[#b88036] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-[#CC9448]/25"
+                  className="px-6 py-3 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-[#C82A2B]/25"
                 >
                   View My Account
                   <ArrowRight size={14} />
@@ -690,7 +690,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-black text-[#030303] leading-tight">{link.label}</p>
                     <p className="text-[10px] text-zinc-400 font-semibold mt-1 leading-snug">{link.sub}</p>
                   </div>
-                  <ArrowRight size={16} className="text-zinc-300 group-hover:text-[#CC9448] group-hover:translate-x-1 transition-all shrink-0" />
+                  <ArrowRight size={16} className="text-zinc-300 group-hover:text-[#C82A2B] group-hover:translate-x-1 transition-all shrink-0" />
                 </Link>
               );
             })}
@@ -698,14 +698,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Help Banner */}
-        <div className="bg-[#F7EBE1] border border-[#CC9448]/20 rounded-[2rem] p-6 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#CC9448]/20 flex items-center justify-center shrink-0">
-            <Star size={18} className="text-[#CC9448]" fill="#CC9448" />
+        <div className="bg-red-50/70 border border-[#C82A2B]/20 rounded-[2rem] p-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#C82A2B]/15 flex items-center justify-center shrink-0">
+            <Star size={18} className="text-[#C82A2B]" fill="#C82A2B" />
           </div>
           <div>
             <p className="text-xs font-black text-[#030303]">Need help or have questions?</p>
             <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
-              Contact <span className="font-bold text-[#CC9448]">Forma Apparels</span> at <span className="font-mono font-bold">+91 7902 499 990</span> or <span className="font-mono font-bold">info@formaapparels.com</span>
+              Contact <span className="font-bold text-[#C82A2B]">Forma Apparels</span> at <span className="font-mono font-bold">+91 7902 499 990</span> or <span className="font-mono font-bold">info@formaapparels.com</span>
             </p>
           </div>
         </div>
@@ -738,7 +738,7 @@ export default function DashboardPage() {
       description: 'Institutional accounts, deals, pipeline feeds and client organizations',
       icon: Users,
       href: '/customers',
-      color: 'bg-amber-500/10 text-[#CC9448] border-amber-500/20 hover:border-[#CC9448]',
+      color: 'bg-red-50 text-[#C82A2B] border-red-200 hover:border-[#C82A2B]',
       badge: `${stats?.totalOrganizations || 0} Organizations`,
       allowed: isAdmin || hasPerm(['view_schools', 'manage_schools', 'view_organizations', 'manage_quotations', 'view_quotations', 'branch_sales', 'view_leads'])
     },
@@ -1004,10 +1004,10 @@ export default function DashboardPage() {
       
       {/* ── 1. PAGE HEADER (MATCHES OTHER HUBS) ─────────────────────────────── */}
       <DashboardHeader
-        title="Home / Dashboard"
+        title="Home"
         subtitle="Overview of your sales orders, receivables, daily operations, and deliveries."
         icon={Building2}
-        badge="Home"
+
         category={null}
         onRefresh={fetchDashboardData}
         isRefreshing={loading}
@@ -1210,7 +1210,7 @@ export default function DashboardPage() {
       </DashboardCardGroup>
 
       {/* ── 5. DELIVERY SCHEDULE REGISTRY & CALENDAR ─────────────────────────── */}
-      <div className="bg-white/80 backdrop-blur-xs rounded-[2rem] border border-[#fce4d4] p-6 shadow-xs hover:border-[#CC9448]/30 transition-all duration-300 space-y-5">
+      <div className="bg-white/80 backdrop-blur-xs rounded-[2rem] border border-[#fce4d4] p-6 shadow-xs hover:border-[#C82A2B]/30 transition-all duration-300 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#fce4d4]/60">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-[#3a525d]/5 text-[#3a525d] flex items-center justify-center shrink-0 border border-[#3a525d]/10">
@@ -1308,7 +1308,7 @@ export default function DashboardPage() {
           className={`w-12 py-5 rounded-l-2xl shadow-xl flex flex-col items-center gap-3 transition-colors border-l border-y ${
             isTaskDrawerPinned || isTaskDrawerHovered
               ? 'bg-[#3a525d] text-white border-[#3a525d]'
-              : 'bg-[#CC9448] text-white border-[#CC9448] hover:bg-[#b88036]'
+              : 'bg-[#C82A2B] text-white border-[#C82A2B] hover:bg-[#A81D1E]'
           }`}
           title="My Priority Tasks (Hover or Click to toggle)"
         >
@@ -1317,7 +1317,7 @@ export default function DashboardPage() {
             My Tasks
           </span>
           {pendingCount > 0 && (
-            <span className="w-5 h-5 rounded-full bg-white text-[#CC9448] font-black text-[10px] flex items-center justify-center shadow-xs">
+            <span className="w-5 h-5 rounded-full bg-white text-[#C82A2B] font-black text-[10px] flex items-center justify-center shadow-xs">
               {pendingCount}
             </span>
           )}
@@ -1328,7 +1328,7 @@ export default function DashboardPage() {
           {/* Drawer Header */}
           <div className="p-5 border-b border-[#fce4d4] bg-[#fdfbf7] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#CC9448]/15 text-[#CC9448] flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-[#C82A2B]/15 text-[#C82A2B] flex items-center justify-center">
                 <CheckSquare size={18} />
               </div>
               <div>
@@ -1374,13 +1374,13 @@ export default function DashboardPage() {
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
                 Completion Rate
               </span>
-              <span className="text-xs font-black font-mono text-[#CC9448]">
+              <span className="text-xs font-black font-mono text-[#C82A2B]">
                 {completedCount}/{allowedTasks.length} ({progressPercent}%)
               </span>
             </div>
             <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
               <div 
-                className="bg-[#CC9448] h-1.5 rounded-full transition-all duration-300"
+                className="bg-[#C82A2B] h-1.5 rounded-full transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -1439,7 +1439,7 @@ export default function DashboardPage() {
                     className={`p-3.5 rounded-2xl border transition-all ${
                       isDone 
                         ? 'bg-zinc-50/70 border-zinc-200 opacity-65' 
-                        : 'bg-white border-[#fce4d4] hover:border-[#CC9448] shadow-2xs'
+                        : 'bg-white border-[#fce4d4] hover:border-[#C82A2B] shadow-2xs'
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -1453,7 +1453,7 @@ export default function DashboardPage() {
                             <Check size={11} strokeWidth={3} />
                           </div>
                         ) : (
-                          <div className="w-4 h-4 rounded-md border-2 border-zinc-300 hover:border-[#CC9448] bg-white transition-colors" />
+                          <div className="w-4 h-4 rounded-md border-2 border-zinc-300 hover:border-[#C82A2B] bg-white transition-colors" />
                         )}
                       </button>
 
@@ -1462,7 +1462,7 @@ export default function DashboardPage() {
                           <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">
                             {task.category}
                           </span>
-                          <span className="text-[9px] font-bold font-mono text-[#CC9448]">
+                          <span className="text-[9px] font-bold font-mono text-[#C82A2B]">
                             {task.badge}
                           </span>
                         </div>
@@ -1506,10 +1506,10 @@ export default function DashboardPage() {
             {/* Modal Header */}
             <div className="flex justify-between items-center px-8 py-6 border-b border-zinc-100 bg-zinc-50/50">
               <div>
-                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/15 tracking-widest font-mono">
+                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 tracking-widest font-mono">
                   {selectedQuoteDetail.quotation_no || `ID: ${selectedQuoteDetail.id}`}
                 </span>
-                <h3 className="text-xl font-black italic text-[#3a525d] mt-2 tracking-tight">
+                <h3 className="text-xl font-black italic text-zinc-900 mt-2 tracking-tight">
                   {selectedQuoteDetail.title}
                 </h3>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
@@ -1698,7 +1698,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setSelectedQuoteDetail(null)}
-                className="px-6 py-2.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors"
+                className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors shadow-md shadow-[#C82A2B]/20"
               >
                 Close View
               </button>
@@ -1711,7 +1711,7 @@ export default function DashboardPage() {
       {isLoadingDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/20 backdrop-blur-[1px]">
           <div className="bg-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-zinc-150">
-            <div className="w-5 h-5 border-2 border-[#2d8d9b] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-2 border-[#C82A2B] border-t-transparent rounded-full animate-spin"></div>
             <span className="font-bold text-xs text-[#3a525d]">Loading order details...</span>
           </div>
         </div>

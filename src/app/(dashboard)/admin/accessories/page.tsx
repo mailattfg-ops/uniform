@@ -178,7 +178,7 @@ const MultiEntryInput: React.FC<{
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 h-10 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold outline-none focus:border-indigo-500 text-[#3a525d]"
+          className="flex-1 h-10 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold outline-none focus:border-indigo-500 text-zinc-800"
         />
         <button
           type="button"
@@ -248,14 +248,14 @@ const ImageUploadField: React.FC<{
     }
   };
 
-  const accentBg = colorTheme === 'indigo' ? 'hover:border-indigo-400 focus:border-indigo-500' : 'hover:border-[#2d8d9b] focus:border-[#2d8d9b]';
-  const accentColor = colorTheme === 'indigo' ? 'text-indigo-600' : 'text-[#2d8d9b]';
-  const dragActiveBorder = colorTheme === 'indigo' ? 'border-indigo-500 bg-indigo-50/50' : 'border-[#2d8d9b] bg-[#2d8d9b]/5';
+  const accentBg = colorTheme === 'indigo' ? 'hover:border-indigo-400 focus:border-indigo-500' : 'hover:border-[#C82A2B] focus:border-[#C82A2B]';
+  const accentColor = colorTheme === 'indigo' ? 'text-indigo-600' : 'text-[#9E1B1D]';
+  const dragActiveBorder = colorTheme === 'indigo' ? 'border-indigo-500 bg-indigo-50/50' : 'border-[#C82A2B] bg-[#FFF1F1]/50';
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-700">
           {label}
         </label>
         {value && (
@@ -327,12 +327,12 @@ const ImageUploadField: React.FC<{
           }`}
         >
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform hover:scale-110 shadow-2xs ${
-            colorTheme === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-[#2d8d9b]/10 text-[#2d8d9b]'
+            colorTheme === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-[#FFF1F1] text-[#9E1B1D]'
           }`}>
             <UploadCloud size={24} />
           </div>
           <div>
-            <p className="text-xs font-black text-[#3a525d]">
+            <p className="text-xs font-black text-zinc-900">
               Click to browse or drag & drop image here
             </p>
             <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
@@ -858,7 +858,7 @@ export default function AccessoriesAndTradeCatalogPage() {
   <title>Accessories Catalog</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
-    h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
+    h1 { margin: 0 0 6px 0; color: #18181b; font-size: 22px; font-style: italic; }
     p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
@@ -909,11 +909,11 @@ export default function AccessoriesAndTradeCatalogPage() {
             {item.images && item.images.length > 0 ? (
               <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
             ) : (
-              <Tag size={18} className="text-[#2d8d9b]" />
+              <Tag size={18} className="text-[#9E1B1D]" />
             )}
           </div>
           <div>
-            <div className="font-bold text-[#3a525d] text-sm">{item.name}</div>
+            <div className="font-bold text-zinc-800 text-sm">{item.name}</div>
             <div className="text-[11px] text-zinc-400 font-mono flex items-center gap-1.5">
               <span>{item.art_number}</span>
               {item.gender && (
@@ -998,7 +998,7 @@ export default function AccessoriesAndTradeCatalogPage() {
         <div className="flex items-center gap-1">
           <button 
             onClick={() => handleOpenEditArticle(item)}
-            className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-500 hover:text-[#2d8d9b] transition-colors cursor-pointer"
+            className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-500 hover:text-[#9E1B1D] transition-colors cursor-pointer"
             title="Edit Article"
           >
             <Edit2 size={14} />
@@ -1384,9 +1384,9 @@ export default function AccessoriesAndTradeCatalogPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Accessories</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-800">Accessories</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-70">
             Accessories &amp; Readymade (Trade)
           </p>
         </div>
@@ -1395,25 +1395,25 @@ export default function AccessoriesAndTradeCatalogPage() {
           <button 
             onClick={fetchCatalogData}
             disabled={isLoading}
-            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-zinc-800 shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             title="Refresh Catalog"
           >
-            <RotateCw size={15} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
+            <RotateCw size={15} className={isLoading ? 'animate-spin text-[#9E1B1D]' : 'text-zinc-800'} />
             Sync
           </button>
 
           <button 
             onClick={() => setIsManageCatModalOpen(true)}
-            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-zinc-800 shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             title="Customize & Edit Categories"
           >
-            <FolderPlus size={16} className="text-[#2d8d9b]" />
+            <FolderPlus size={16} className="text-[#9E1B1D]" />
             Categories
           </button>
 
           <button 
             onClick={() => handleOpenAddArticle()}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Plus size={18} strokeWidth={3} />
             New Accessories
@@ -1454,7 +1454,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 setActiveCatalogTab(e.target.value as any);
                 setSelectedCategory('ALL');
               }}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Types ({stats.total})</option>
               <option value="ACCESSORIES">Accessories ({stats.accessoriesCount})</option>
@@ -1465,7 +1465,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs max-w-[200px]"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs max-w-[200px]"
             >
               <option value="ALL">All Categories</option>
               {displayedCategories.map(cat => {
@@ -1482,7 +1482,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             <select
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Genders</option>
               {uniqueGenders.map(g => (
@@ -1494,7 +1494,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             <select
               value={filterSize}
               onChange={(e) => setFilterSize(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Sizes</option>
               {uniqueSizes.map(s => (
@@ -1506,7 +1506,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             <select
               value={filterColour}
               onChange={(e) => setFilterColour(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Colours</option>
               {uniqueColours.map(c => (
@@ -1522,7 +1522,9 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {isArticleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-4xl bg-white rounded-[2.5rem] border border-[#fce4d4] p-6 md:p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
+          <div className="w-full max-w-4xl bg-white rounded-[2.5rem] border border-zinc-200/80 p-6 md:p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
+            {/* Top Brand Accent Rail */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             
             {/* Modal Header with Title & Type Toggle Switch */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-zinc-100 gap-4">
@@ -1530,19 +1532,19 @@ export default function AccessoriesAndTradeCatalogPage() {
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
                   articleType === 'TRADE_READYMADE'
                     ? 'bg-indigo-50 border border-indigo-200 text-indigo-600'
-                    : 'bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b]'
+                    : 'bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D]'
                 }`}>
                   {articleType === 'TRADE_READYMADE' ? <ShoppingBag size={24} /> : <Tag size={24} />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d]">
+                    <h3 className="text-2xl font-black italic tracking-tight text-zinc-900">
                       {editingItem ? 'Edit Article' : 'New Catalog Article'}
                     </h3>
                     <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                       articleType === 'TRADE_READYMADE'
                         ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        : 'bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20'
+                        : 'bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20'
                     }`}>
                       {articleType === 'TRADE_READYMADE' ? 'Readymade (Trade)' : 'Accessory'}
                     </span>
@@ -1563,8 +1565,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                     onClick={() => handleSwitchArticleType('ACCESSORY')}
                     className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                       articleType === 'ACCESSORY'
-                        ? 'bg-[#2d8d9b] text-white shadow-md shadow-[#2d8d9b]/25'
-                        : 'text-zinc-500 hover:text-[#3a525d]'
+                        ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
+                        : 'text-zinc-500 hover:text-zinc-900'
                     }`}
                   >
                     <Tag size={13} />
@@ -1577,7 +1579,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                     className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                       articleType === 'TRADE_READYMADE'
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                        : 'text-zinc-500 hover:text-[#3a525d]'
+                        : 'text-zinc-500 hover:text-zinc-900'
                     }`}
                   >
                     <ShoppingBag size={13} />
@@ -1601,14 +1603,14 @@ export default function AccessoriesAndTradeCatalogPage() {
               <div className="p-5 bg-white rounded-2xl border border-zinc-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Tag size={16} className={articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#2d8d9b]'} />
-                    <span className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    <Tag size={16} className={articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'} />
+                    <span className="text-xs font-black uppercase tracking-wider text-zinc-800">
                       Article Identity
                     </span>
                   </div>
                   {articleType === 'ACCESSORY' && (
                     <span className="text-[10px] font-bold text-zinc-400">
-                      SKU Code: <span className="font-mono font-black text-[#2d8d9b]">{articleFormData.art_number || 'Auto-generated'}</span>
+                      SKU Code: <span className="font-mono font-black text-[#9E1B1D]">{articleFormData.art_number || 'Auto-generated'}</span>
                     </span>
                   )}
                 </div>
@@ -1616,7 +1618,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Name */}
                   <div className={articleType === 'TRADE_READYMADE' ? 'md:col-span-2' : 'md:col-span-1'}>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       {articleType === 'TRADE_READYMADE' ? 'Garment / Product Name *' : 'Accessory Name *'}
                     </label>
                     <input 
@@ -1625,8 +1627,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                       placeholder={articleType === 'TRADE_READYMADE' ? 'e.g. Poly-Cotton Round Neck T-Shirt, Corporate Blazer...' : 'e.g. Navy Striped Woven Tie, School Crest Badge...'}
                       value={articleFormData.name}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
+                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
                       }`}
                     />
                   </div>
@@ -1634,7 +1636,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   {/* Art Number (Only for Accessory) */}
                   {articleType === 'ACCESSORY' && (
                     <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                         Art Number / SKU Code
                       </label>
                       <input 
@@ -1642,7 +1644,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                         value={articleFormData.art_number}
                         onChange={(e) => setArticleFormData(prev => ({ ...prev, art_number: e.target.value }))}
                         placeholder="ACC-TIE-1001"
-                        className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none"
+                        className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-800 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
                       />
                     </div>
                   )}
@@ -1650,7 +1652,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   {/* Category Dropdown (Contextual) */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-700">
                         {articleType === 'TRADE_READYMADE' ? 'Trade Garment Category *' : 'Accessory Category *'}
                       </label>
                       <button
@@ -1662,7 +1664,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                           setIsAddCatModalOpen(true);
                         }}
                         className={`text-[10px] font-black uppercase tracking-wider hover:underline cursor-pointer ${
-                          articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#2d8d9b]'
+                          articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#C82A2B]'
                         }`}
                       >
                         + New
@@ -1671,8 +1673,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                     <select
                       value={articleFormData.category_name}
                       onChange={(e) => handleFormCategoryChange(e.target.value)}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer ${
+                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
                       }`}
                     >
                       {(articleType === 'TRADE_READYMADE' ? tradeCategories : categories).map(cat => (
@@ -1683,14 +1685,14 @@ export default function AccessoriesAndTradeCatalogPage() {
 
                   {/* Target Gender */}
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Target Gender
                     </label>
                     <select
                       value={articleFormData.gender}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, gender: e.target.value }))}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer ${
+                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
                       }`}
                     >
                       {uniqueGenders.map(g => (
@@ -1702,7 +1704,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   {/* Trader Name (For Trade Product) */}
                   {articleType === 'TRADE_READYMADE' && (
                     <div className="md:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                         Trader / Vendor Source (Optional)
                       </label>
                       <input 
@@ -1710,14 +1712,14 @@ export default function AccessoriesAndTradeCatalogPage() {
                         placeholder="e.g. Apex Apparel Hub Tirupur, Classic Uniform Suppliers..."
                         value={articleFormData.trader_name}
                         onChange={(e) => setArticleFormData(prev => ({ ...prev, trader_name: e.target.value }))}
-                        className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-indigo-500 focus:outline-none"
+                        className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-indigo-500 focus:outline-none"
                       />
                     </div>
                   )}
 
                   {/* Colour / Shade */}
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Colour / Shade
                     </label>
                     <input 
@@ -1725,8 +1727,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                       placeholder="e.g. Navy Blue, Sky Blue, Heather Grey, Bottle Green..."
                       value={articleFormData.color}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
+                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
                       }`}
                     />
                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -1737,7 +1739,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                           onClick={() => setArticleFormData(prev => ({ ...prev, color: col }))}
                           className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
                             articleFormData.color === col 
-                              ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[#2d8d9b] text-white shadow-xs')
+                              ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[#C82A2B] text-white shadow-xs')
                               : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
                           }`}
                         >
@@ -1753,8 +1755,8 @@ export default function AccessoriesAndTradeCatalogPage() {
               <div className="p-5 bg-white rounded-2xl border border-zinc-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <SlidersHorizontal size={16} className={articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#2d8d9b]'} />
-                    <span className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    <SlidersHorizontal size={16} className={articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'} />
+                    <span className="text-xs font-black uppercase tracking-wider text-zinc-800">
                       Sizing & Fit Specification
                     </span>
                   </div>
@@ -1766,8 +1768,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                       onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'FREE_SIZE' }))}
                       className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                         articleFormData.sizing_mode === 'FREE_SIZE'
-                          ? 'bg-white text-[#3a525d] shadow-sm font-black'
-                          : 'text-zinc-500 hover:text-[#3a525d]'
+                          ? 'bg-white text-zinc-800 shadow-sm font-black'
+                          : 'text-zinc-500 hover:text-zinc-900'
                       }`}
                     >
                       Free Size
@@ -1777,8 +1779,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                       onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'MULTI_SIZE' }))}
                       className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                         articleFormData.sizing_mode === 'MULTI_SIZE'
-                          ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-[#2d8d9b] text-white shadow-sm')
-                          : 'text-zinc-500 hover:text-[#3a525d]'
+                          ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-[#C82A2B] text-white shadow-sm')
+                          : 'text-zinc-500 hover:text-zinc-900'
                       }`}
                     >
                       Multiple Sizes
@@ -1789,7 +1791,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 {articleFormData.sizing_mode === 'MULTI_SIZE' ? (
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                         Available Size Options (Comma-Separated)
                       </label>
                       <input 
@@ -1797,8 +1799,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                         value={articleFormData.sizes}
                         onChange={(e) => setArticleFormData(prev => ({ ...prev, sizes: e.target.value }))}
                         placeholder={articleType === 'TRADE_READYMADE' ? 'S, M, L, XL, 2XL' : '28, 30, 32, 34, 36'}
-                        className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none ${
-                          articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                        className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
+                          articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
                         }`}
                       />
                     </div>
@@ -1817,7 +1819,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                               onClick={() => toggleQuickSize(sz)}
                               className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                                 isSelected
-                                  ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[#2d8d9b] text-white shadow-xs')
+                                  ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[#C82A2B] text-white shadow-xs')
                                   : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
                               }`}
                             >
@@ -1840,7 +1842,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <DollarSign size={16} className="text-emerald-600" />
-                    <span className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    <span className="text-xs font-black uppercase tracking-wider text-zinc-800">
                       Commercials & Profit Margin
                     </span>
                   </div>
@@ -1855,7 +1857,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Procurement Price */}
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Cost / Procurement Price (₹)
                     </label>
                     <div className="relative">
@@ -1866,14 +1868,14 @@ export default function AccessoriesAndTradeCatalogPage() {
                         placeholder="e.g. 150.00"
                         value={articleFormData.cost_price}
                         onChange={(e) => setArticleFormData(prev => ({ ...prev, cost_price: e.target.value }))}
-                        className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-emerald-500 focus:outline-none"
+                        className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-emerald-500 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   {/* Selling Price */}
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Selling / Base Price (₹)
                     </label>
                     <div className="relative">
@@ -1884,7 +1886,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                         placeholder="e.g. 290.00"
                         value={articleFormData.selling_price}
                         onChange={(e) => setArticleFormData(prev => ({ ...prev, selling_price: e.target.value }))}
-                        className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-emerald-500 focus:outline-none"
+                        className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-emerald-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1901,7 +1903,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 />
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                     Specifications & Description
                   </label>
                   <textarea 
@@ -1909,8 +1911,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                     placeholder={articleType === 'TRADE_READYMADE' ? 'Fabric composition, GSM, washcare, packaging specifications...' : 'Material composition, embroidery or crest details, dimensions...'}
                     value={articleFormData.description}
                     onChange={(e) => setArticleFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className={`w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none ${
-                      articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                    className={`w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
+                      articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
                     }`}
                   />
                 </div>
@@ -1931,7 +1933,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   className={`px-6 py-2.5 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all disabled:opacity-50 cursor-pointer ${
                     articleType === 'TRADE_READYMADE'
                       ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30'
-                      : 'bg-[#2d8d9b] hover:bg-[#236f7a] shadow-[#2d8d9b]/30'
+                      : 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20'
                   }`}
                 >
                   {isSubmitting 
@@ -1951,18 +1953,20 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {isAddCatModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#fce4d4] relative space-y-5 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200/80 relative space-y-5 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+            {/* Top Brand Accent Rail */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-3">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${
                   addCatType === 'TRADE' 
                     ? 'bg-indigo-50 border border-indigo-200 text-indigo-600' 
-                    : 'bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b]'
+                    : 'bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D]'
                 }`}>
                   {addCatType === 'TRADE' ? <ShoppingBag size={20} /> : <Tag size={20} />}
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-[#3a525d]">New Category</h3>
+                  <h3 className="text-xl font-black text-zinc-900">New Category</h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     {addCatType === 'TRADE' ? 'Add readymade garment group' : 'Add custom accessory group'}
                   </p>
@@ -1984,8 +1988,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                 onClick={() => setAddCatType('ACCESSORY')}
                 className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   addCatType === 'ACCESSORY'
-                    ? 'bg-[#2d8d9b] text-white shadow-md shadow-[#2d8d9b]/25'
-                    : 'text-zinc-500 hover:text-[#3a525d]'
+                    ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 <Tag size={13} />
@@ -1997,7 +2001,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   addCatType === 'TRADE'
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'text-zinc-500 hover:text-[#3a525d]'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 <ShoppingBag size={13} />
@@ -2007,7 +2011,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 
             <form onSubmit={(e) => handleCreateCategory(e, addCatType)} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                   {addCatType === 'TRADE' ? 'Garment Category Name *' : 'Accessory Category Name *'}
                 </label>
                 <input 
@@ -2016,14 +2020,14 @@ export default function AccessoriesAndTradeCatalogPage() {
                   placeholder={addCatType === 'TRADE' ? 'e.g. Polo T-Shirt, Round Neck Tee, Corporate Blazer...' : 'e.g. Scarf, Dupatta, Badge, Belt, Socks...'}
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
-                  className={`w-full text-xs font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${
-                    addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                  className={`w-full text-xs font-bold text-zinc-800 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${
+                    addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                   SKU Prefix (3-4 Letters)
                 </label>
                 <input 
@@ -2032,8 +2036,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                   value={newCatPrefix}
                   onChange={e => setNewCatPrefix(e.target.value.toUpperCase())}
                   maxLength={5}
-                  className={`w-full text-xs font-mono font-bold text-[#3a525d] px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${
-                    addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                  className={`w-full text-xs font-mono font-bold text-zinc-800 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${
+                    addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
                   }`}
                 />
               </div>
@@ -2052,7 +2056,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   className={`px-5 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 cursor-pointer ${
                     addCatType === 'TRADE' 
                       ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30' 
-                      : 'bg-[#2d8d9b] hover:bg-[#236f7a] shadow-[#2d8d9b]/30'
+                      : 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20'
                   }`}
                 >
                   {isSavingCat ? 'Creating...' : 'Create Category'}
@@ -2068,15 +2072,17 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {isManageCatModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-[#fce4d4] relative space-y-5 max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-200/80 relative space-y-5 max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+            {/* Top Brand Accent Rail */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-zinc-100 flex items-center justify-center text-[#3a525d] border border-zinc-200">
+                <div className="w-11 h-11 rounded-2xl bg-zinc-900 flex items-center justify-center text-white border border-zinc-800">
                   <SlidersHorizontal size={18} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-[#3a525d]">Manage Categories</h3>
+                  <h3 className="text-xl font-black text-zinc-900">Manage Categories</h3>
                   <p className="text-xs text-zinc-400 mt-0.5">Customize categories, SKU prefixes & delete unused tags.</p>
                 </div>
               </div>
@@ -2102,8 +2108,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   manageCatTab === 'ACCESSORY'
-                    ? 'bg-[#2d8d9b] text-white shadow-md shadow-[#2d8d9b]/25'
-                    : 'text-zinc-500 hover:text-[#3a525d]'
+                    ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 <Tag size={13} />
@@ -2124,7 +2130,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   manageCatTab === 'TRADE'
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'text-zinc-500 hover:text-[#3a525d]'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 <ShoppingBag size={13} />
@@ -2144,7 +2150,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 : 'bg-zinc-50 border-zinc-200/80'
             }`}>
               <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${
-                manageCatTab === 'TRADE' ? 'text-indigo-600' : 'text-[#2d8d9b]'
+                manageCatTab === 'TRADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'
               }`}>
                 + Add {manageCatTab === 'TRADE' ? 'Readymade Garment' : 'Accessory'} Category
               </p>
@@ -2154,8 +2160,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                   placeholder={manageCatTab === 'TRADE' ? 'Garment Category (e.g. Polo T-Shirt)' : 'Accessory Category (e.g. Scarf)'}
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
-                  className={`flex-1 text-xs font-bold text-[#3a525d] px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${
-                    manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                  className={`flex-1 text-xs font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${
+                    manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
                   }`}
                 />
                 <input 
@@ -2164,8 +2170,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                   value={newCatPrefix}
                   onChange={e => setNewCatPrefix(e.target.value.toUpperCase())}
                   maxLength={5}
-                  className={`w-20 text-xs font-mono font-bold text-[#3a525d] px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${
-                    manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#2d8d9b]'
+                  className={`w-20 text-xs font-mono font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${
+                    manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
                   }`}
                 />
                 <button
@@ -2175,7 +2181,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   className={`px-4 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all disabled:opacity-50 cursor-pointer ${
                     manageCatTab === 'TRADE'
                       ? 'bg-indigo-600 hover:bg-indigo-700 shadow-sm'
-                      : 'bg-[#2d8d9b] hover:bg-[#236f7a] shadow-sm'
+                      : 'bg-zinc-900 hover:bg-zinc-800 shadow-sm'
                   }`}
                 >
                   Add
@@ -2194,7 +2200,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                     <div key={cat.id} className={`p-3 rounded-2xl border space-y-2 ${
                       manageCatTab === 'TRADE'
                         ? 'bg-indigo-50/70 border-indigo-200'
-                        : 'bg-[#2d8d9b]/10 border-[#2d8d9b]/30'
+                        : 'bg-[#FFF1F1] border-[#C82A2B]/30'
                     }`}>
                       <div className="flex items-center gap-2">
                         <input 
@@ -2202,7 +2208,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                           value={editCatName}
                           onChange={e => setEditCatName(e.target.value)}
                           placeholder="Category Name"
-                          className="flex-1 text-xs font-bold text-[#3a525d] px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none"
+                          className="flex-1 text-xs font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none"
                         />
                         <input 
                           type="text" 
@@ -2210,7 +2216,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                           onChange={e => setEditCatPrefix(e.target.value.toUpperCase())}
                           placeholder="Prefix"
                           maxLength={5}
-                          className="w-20 text-xs font-mono font-bold text-[#3a525d] px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none"
+                          className="w-20 text-xs font-mono font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none"
                         />
                       </div>
                       <div className="flex justify-end gap-2">
@@ -2225,7 +2231,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                           type="button"
                           onClick={() => handleSaveEditCat(cat.id, manageCatTab === 'TRADE')}
                           className={`px-4 py-1.5 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm cursor-pointer flex items-center gap-1 ${
-                            manageCatTab === 'TRADE' ? 'bg-indigo-600' : 'bg-[#2d8d9b]'
+                            manageCatTab === 'TRADE' ? 'bg-indigo-600' : 'bg-[#C82A2B]'
                           }`}
                         >
                           <Check size={11} /> Save
@@ -2244,12 +2250,12 @@ export default function AccessoriesAndTradeCatalogPage() {
                       <span className={`font-mono text-xs font-black px-2 py-1 rounded-lg ${
                         manageCatTab === 'TRADE'
                           ? 'text-indigo-600 bg-indigo-50 border border-indigo-100'
-                          : 'text-[#2d8d9b] bg-[#2d8d9b]/10'
+                          : 'text-[#9E1B1D] bg-[#FFF1F1] border border-[#C82A2B]/20'
                       }`}>
                         {cat.code_prefix}
                       </span>
                       <div>
-                        <p className="font-bold text-xs text-[#3a525d]">{cat.name}</p>
+                        <p className="font-bold text-xs text-zinc-800">{cat.name}</p>
                         <span className="text-[10px] text-zinc-400 font-semibold">
                           {count} article{count === 1 ? '' : 's'} linked
                         </span>
@@ -2261,7 +2267,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                         type="button"
                         onClick={() => handleStartEditCat(cat)}
                         className={`p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors cursor-pointer ${
-                          manageCatTab === 'TRADE' ? 'hover:text-indigo-600' : 'hover:text-[#2d8d9b]'
+                          manageCatTab === 'TRADE' ? 'hover:text-indigo-600' : 'hover:text-[#9E1B1D]'
                         }`}
                         title="Edit Name & Prefix"
                       >
@@ -2289,7 +2295,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   setEditingCatId(null);
                   setIsManageCatModalOpen(false);
                 }}
-                className="px-6 py-2.5 bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer hover:bg-[#2b3e47] transition-all"
+                className="px-6 py-2.5 bg-zinc-900 text-white rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer hover:bg-zinc-800 transition-all"
               >
                 Done
               </button>
@@ -2307,7 +2313,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-3">
               <Trash2 size={24} />
             </div>
-            <h4 className="text-lg font-black text-[#3a525d]">
+            <h4 className="text-lg font-black text-zinc-900">
               {getItemClassification(deleteConfirm.item) === 'TRADE_READYMADE' ? 'Delete Readymade Article?' : 'Delete Accessory?'}
             </h4>
             <p className="text-xs text-zinc-500 mt-1 mb-5">

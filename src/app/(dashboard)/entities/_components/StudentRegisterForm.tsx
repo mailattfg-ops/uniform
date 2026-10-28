@@ -156,27 +156,27 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
   if (generatedCreds) {
     return (
       <div className="max-w-2xl mx-auto animate-in zoom-in duration-500">
-        <div className="bg-white rounded-[3rem] border-4 border-[#2d8d9b]/10 shadow-2xl overflow-hidden">
-          <div className="bg-[#2d8d9b] p-10 text-white text-center">
+        <div className="bg-white rounded-[3rem] border border-zinc-200 shadow-2xl overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
+          <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 p-10 text-white text-center border-b border-white/10">
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <UserCheck size={40} />
             </div>
             <h2 className="text-3xl font-black tracking-tight italic">Registration Successful!</h2>
-            <p className="text-[#fce4d4] font-bold uppercase tracking-widest text-xs mt-2 opacity-80">Access Portal Account Generated</p>
+            <p className="text-zinc-300 font-bold uppercase tracking-widest text-xs mt-2">Access Portal Account Generated</p>
           </div>
 
           <div className="p-10 space-y-8">
             <div className="space-y-4">
                <div className="p-6 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Entity Access Portal</span>
-                    <LogIn size={16} className="text-[#2d8d9b]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Entity Access Portal</span>
+                    <LogIn size={16} className="text-[#9E1B1D]" />
                   </div>
                   
                   <div className="space-y-4">
                     <div className="flex flex-col">
                        <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Login Username</label>
-                       <span className="text-lg font-black text-[#3a525d] tracking-tight">{generatedCreds.username}</span>
+                       <span className="text-lg font-black text-zinc-900 tracking-tight">{generatedCreds.username}</span>
                     </div>
                     <div className="flex flex-col">
                        <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Temporary Password</label>
@@ -193,7 +193,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                <Button 
                 onClick={handleCopy}
                 className={`h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-3 transition-all ${
-                  hasCopied ? 'bg-green-500 text-white' : 'bg-[#3a525d] text-white hover:bg-[#2d8d9b]'
+                  hasCopied ? 'bg-emerald-600 text-white' : 'bg-[#C82A2B] text-white hover:bg-[#A81D1E]'
                 }`}
                >
                  {hasCopied ? <Check size={16} /> : <Clipboard size={16} />}
@@ -206,7 +206,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
                    else router.push('/entities/directory');
                  }}
                  variant="outline"
-                 className="h-14 rounded-2xl border-2 border-[#3a525d]/10 font-black uppercase tracking-widest text-[10px] gap-3"
+                 className="h-14 rounded-2xl border-2 border-zinc-200 font-black uppercase tracking-widest text-[10px] gap-3"
                >
                  Finish & Exit
                  <ArrowRight size={16} />
@@ -214,7 +214,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
 
                <Button 
                  onClick={() => router.push(`/measurements/entry?studentId=${generatedCreds.studentId}`)}
-                 className="h-16 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-[11px] gap-3 col-span-2 shadow-xl shadow-orange-500/20 mt-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                 className="h-16 rounded-2xl bg-[#9E1B1D] hover:bg-[#7F1D1D] text-white font-black uppercase tracking-widest text-[11px] gap-3 col-span-2 shadow-xl shadow-[#9E1B1D]/25 mt-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                >
                  <Ruler size={18} />
                  Capture Sizing Records Now
@@ -229,7 +229,7 @@ export const StudentRegisterForm: React.FC<StudentRegisterFormProps> = ({ onCanc
   if (isLoading) {
       return (
           <div className="flex items-center justify-center p-20">
-              <div className="w-10 h-10 border-4 border-[#2d8d9b]/20 border-t-[#2d8d9b] rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-zinc-200 border-t-[#C82A2B] rounded-full animate-spin" />
           </div>
       )
   }
