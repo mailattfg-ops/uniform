@@ -387,7 +387,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
             </Button>
             <Button 
               onClick={onRegister}
-              className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white border-none shadow-lg shadow-[#3a525d]/20 transition-all hover:scale-105 active:scale-95"
+              className="gap-2 text-[10px] rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#C82A2B] hover:bg-[#A81D1E] text-white border-none shadow-lg shadow-[#C82A2B]/25 transition-all hover:scale-105 active:scale-95"
             >
               <UserPlus size={15} strokeWidth={3} />
               + Add New Staff

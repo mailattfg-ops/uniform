@@ -374,7 +374,7 @@ export default function QuotationDetails({
             <p class="text-xs font-bold text-gray-600">Quotation Proposal PDF ready for printing/saving.</p>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="window.print()" class="px-5 py-2 bg-[#2d8d9b] hover:bg-[#3a525d] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow transition-all">
+            <button onclick="window.print()" class="px-5 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow shadow-[#C82A2B]/20 transition-all">
               Print / Save as PDF
             </button>
             <button onclick="window.close()" class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-600 text-xs font-bold rounded-xl transition-all">
@@ -744,7 +744,7 @@ export default function QuotationDetails({
             {isOpsApproved && (
               <Button
                 onClick={() => handleDownloadPDF(selectedQuotation)}
-                className="flex items-center gap-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#2d8d9b]/10 border-none h-9"
+                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 📥 Proposal PDF
               </Button>

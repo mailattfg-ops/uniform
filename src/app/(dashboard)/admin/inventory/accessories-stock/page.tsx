@@ -231,14 +231,14 @@ export default function AccessoriesStockPage() {
           <button 
             onClick={fetchStockData}
             disabled={isLoading}
-            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-[#fce4d4] rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
             Sync Stock
           </button>
           <a 
             href="/admin/accessories"
-            className="h-14 px-6 bg-white hover:bg-zinc-50 border border-[#fce4d4] rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+            className="h-14 px-6 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
           >
             Manage Catalog <ChevronRight size={14} />
           </a>
@@ -247,7 +247,7 @@ export default function AccessoriesStockPage() {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d] border border-[#3a525d]/10 shrink-0">
             <Package size={20} />
           </div>
@@ -257,7 +257,7 @@ export default function AccessoriesStockPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100 shrink-0">
             <AlertTriangle size={20} />
           </div>
@@ -267,7 +267,7 @@ export default function AccessoriesStockPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
             <XCircle size={20} />
           </div>
@@ -277,7 +277,7 @@ export default function AccessoriesStockPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-5 shadow-sm flex items-center gap-4">
+        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
             <ShieldCheck size={20} />
           </div>
@@ -289,7 +289,7 @@ export default function AccessoriesStockPage() {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-96">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input 
@@ -297,7 +297,7 @@ export default function AccessoriesStockPage() {
             placeholder="Search" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#2d8d9b] transition-all"
+            className="w-full h-12 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
           />
         </div>
 
@@ -307,7 +307,7 @@ export default function AccessoriesStockPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-11 px-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:border-[#2d8d9b] cursor-pointer"
+              className="h-11 px-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 cursor-pointer"
             >
               <option value="ALL">All Categories</option>
               {categories.map(c => (
@@ -356,7 +356,7 @@ export default function AccessoriesStockPage() {
             return (
               <div 
                 key={product.id}
-                className="bg-white border border-[#fce4d4] rounded-[2.5rem] p-6 shadow-sm hover:border-[#2d8d9b]/30 transition-all duration-300 flex flex-col justify-between"
+                className="bg-white border border-zinc-200/80 rounded-[2.5rem] p-6 shadow-sm hover:border-[#2d8d9b]/30 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
                   {/* Top Bar */}
@@ -454,7 +454,7 @@ export default function AccessoriesStockPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#fce4d4] rounded-[3rem] p-16 text-center">
+        <div className="bg-white border border-zinc-200/80 rounded-[3rem] p-16 text-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-16 h-16 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
               <Tag size={32} />
@@ -476,13 +476,13 @@ export default function AccessoriesStockPage() {
       {/* Adjust Stock Modal */}
       {isAdjustModalOpen && selectedAccessory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-[#fce4d4] p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
+          <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-zinc-200/80 p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
             
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
               <div>
                 <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d]">Adjust Stock</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-0.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] mt-0.5">
                   {selectedAccessory.name} ({adjustingSize})
                 </p>
               </div>
@@ -536,7 +536,7 @@ export default function AccessoriesStockPage() {
                   required
                   value={inputDelta}
                   onChange={(e) => setInputDelta(e.target.value)}
-                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none"
+                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
                 />
               </div>
 
@@ -549,7 +549,7 @@ export default function AccessoriesStockPage() {
                   min="0"
                   value={newThreshold}
                   onChange={(e) => setNewThreshold(parseInt(e.target.value, 10) || 0)}
-                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none"
+                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
                 />
               </div>
 
@@ -564,7 +564,7 @@ export default function AccessoriesStockPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-[#2d8d9b] hover:bg-[#236f7a] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                  className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-[#C82A2B]/20 transition-all disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : 'Confirm Adjustment'}
                 </button>

@@ -273,7 +273,7 @@ export default function InitialPaymentPage() {
       header: 'Quote Value',
       className: 'whitespace-nowrap',
       accessor: (item) => (
-        <span className="font-black text-[#2d8d9b] text-xs md:text-sm font-mono">
+        <span className="font-black text-[#9E1B1D] text-xs md:text-sm font-mono">
           ₹{parseFloat(item.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       )
@@ -358,7 +358,7 @@ export default function InitialPaymentPage() {
               variant="secondary"
               size="sm"
               onClick={() => handleOpenHistoryModal(item)}
-              className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider border-[#fce4d4] h-7 px-2"
+              className="rounded-lg flex items-center gap-1 text-[10px] font-black tracking-wider border-zinc-200 h-7 px-2"
             >
               <History size={11} />
               History
@@ -374,10 +374,10 @@ export default function InitialPaymentPage() {
       {/* Top Title Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">
             Initial Payment Collection
           </h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-70">
             Fulfillment Pipeline &gt; Payment Registries
           </p>
         </div>
@@ -386,12 +386,12 @@ export default function InitialPaymentPage() {
       {/* Stats Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
+          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#9E1B1D]">
             <IndianRupee size={24} />
           </div>
           <div>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Contract Value</p>
-            <p className="text-xl font-black text-[#3a525d] mt-0.5">
+            <p className="text-xl font-black text-zinc-900 mt-0.5">
               ₹{stats.totalApprovedVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -422,7 +422,7 @@ export default function InitialPaymentPage() {
         </Card>
 
         <Card variant="solid" className="p-6 rounded-3xl border border-zinc-100 flex items-center gap-4 bg-white shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#9E1B1D] shrink-0">
             <TrendingUp size={24} />
           </div>
           <div>
@@ -546,7 +546,7 @@ export default function InitialPaymentPage() {
         searchPlaceholder="Filter by quotation no, customer, title..."
         headerAction={
           activeSubTab === 'awaiting' ? (
-            <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-[#fce4d4] shadow-xs flex-wrap">
+            <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-zinc-200 shadow-xs flex-wrap">
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 pl-2 pr-1 hidden sm:inline">
                 Status:
               </span>
@@ -593,11 +593,11 @@ export default function InitialPaymentPage() {
       {/* 1. Record Payment Modal Dialog */}
       {isPaymentModalOpen && selectedQuotation && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <Card variant="solid" className="w-full max-w-lg p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 rounded-[2.5rem] border border-[#fce4d4] max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between mb-6 border-b border-[#fce4d4]/60 pb-4 shrink-0">
+          <Card variant="solid" className="w-full max-w-lg p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 rounded-[2.5rem] border border-zinc-200 max-h-[90vh] flex flex-col relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
+            <div className="flex items-center justify-between mb-6 border-b border-zinc-100 pb-4 shrink-0">
               <div>
-                <h3 className="text-xl font-black italic tracking-tight text-[#3a525d]">Record Payment</h3>
-                <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-wider mt-0.5">
+                <h3 className="text-xl font-black italic tracking-tight text-zinc-900">Record Payment</h3>
+                <p className="text-[10px] text-[#9E1B1D] font-black uppercase tracking-wider mt-0.5">
                   Quote: {selectedQuotation.quotation_no} - {selectedQuotation.title}
                 </p>
               </div>
@@ -616,7 +616,7 @@ export default function InitialPaymentPage() {
                     <label className="block text-[10px] font-black tracking-widest uppercase text-zinc-400 mb-1.5">
                       Quotation Final Value
                     </label>
-                    <div className="bg-zinc-50 rounded-2xl py-3.5 px-4 font-mono font-black text-[#3a525d] border border-zinc-100 text-sm">
+                    <div className="bg-zinc-50 rounded-2xl py-3.5 px-4 font-mono font-black text-zinc-900 border border-zinc-100 text-sm">
                       ₹{parseFloat(selectedQuotation.final_quote_value as any || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
@@ -641,7 +641,7 @@ export default function InitialPaymentPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black tracking-widest uppercase text-[#8b6b5a] mb-1.5">
+                  <label className="block text-[10px] font-black tracking-widest uppercase text-zinc-700 mb-1.5">
                     Payment Amount (₹) *
                   </label>
                   <Input
@@ -658,7 +658,7 @@ export default function InitialPaymentPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black tracking-widest uppercase text-[#8b6b5a] mb-1.5">
+                    <label className="block text-[10px] font-black tracking-widest uppercase text-zinc-700 mb-1.5">
                       Payment Method *
                     </label>
                     <Select
@@ -675,7 +675,7 @@ export default function InitialPaymentPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black tracking-widest uppercase text-[#8b6b5a] mb-1.5">
+                    <label className="block text-[10px] font-black tracking-widest uppercase text-zinc-700 mb-1.5">
                       Transaction Ref / Cheque No
                     </label>
                     <Input
@@ -689,7 +689,7 @@ export default function InitialPaymentPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black tracking-widest uppercase text-[#8b6b5a] mb-1.5">
+                  <label className="block text-[10px] font-black tracking-widest uppercase text-zinc-700 mb-1.5">
                     Payment Date *
                   </label>
                   <div className="relative">
@@ -705,7 +705,7 @@ export default function InitialPaymentPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black tracking-widest uppercase text-[#8b6b5a] mb-1.5">
+                  <label className="block text-[10px] font-black tracking-widest uppercase text-zinc-700 mb-1.5">
                     Notes
                   </label>
                   <textarea
@@ -713,12 +713,12 @@ export default function InitialPaymentPage() {
                     placeholder="Record bank codes, depositor identity, etc."
                     value={paymentNotes}
                     onChange={(e) => setPaymentNotes(e.target.value)}
-                    className="w-full bg-white border border-[#fce4d4] rounded-2xl p-4 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 transition-all text-foreground shadow-sm"
+                    className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-xs font-bold outline-none focus:ring-4 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all text-foreground shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4 border-t border-[#fce4d4]/60 mt-4 shrink-0">
+              <div className="flex gap-4 pt-4 border-t border-zinc-100 mt-4 shrink-0">
                 <Button
                   type="button"
                   variant="secondary"
@@ -744,11 +744,11 @@ export default function InitialPaymentPage() {
       {/* 2. View Payment History Modal Dialog */}
       {isHistoryModalOpen && selectedQuotation && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <Card variant="solid" className="w-full max-w-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 rounded-[2.5rem] border border-[#fce4d4] max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between mb-6 border-b border-[#fce4d4]/60 pb-4 shrink-0">
+          <Card variant="solid" className="w-full max-w-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 rounded-[2.5rem] border border-zinc-200 max-h-[85vh] flex flex-col relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
+            <div className="flex items-center justify-between mb-6 border-b border-zinc-100 pb-4 shrink-0">
               <div>
-                <h3 className="text-xl font-black italic tracking-tight text-[#3a525d]">Payment Transactions</h3>
-                <p className="text-[10px] text-[#2d8d9b] font-black uppercase tracking-wider mt-0.5">
+                <h3 className="text-xl font-black italic tracking-tight text-zinc-900">Payment Transactions</h3>
+                <p className="text-[10px] text-[#9E1B1D] font-black uppercase tracking-wider mt-0.5">
                   History for {selectedQuotation.quotation_no} - {selectedQuotation.title}
                 </p>
               </div>
@@ -761,10 +761,10 @@ export default function InitialPaymentPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 space-y-4 no-scrollbar py-2">
-              <div className="grid grid-cols-3 gap-4 bg-[#fce4d4]/10 rounded-2xl p-4 border border-[#fce4d4]/40 shrink-0 text-center">
+              <div className="grid grid-cols-3 gap-4 bg-zinc-50 rounded-2xl p-4 border border-zinc-200 shrink-0 text-center">
                 <div>
                   <span className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest">Quote Value</span>
-                  <span className="font-black text-sm text-[#3a525d]">₹{parseFloat(selectedQuotation.final_quote_value as any || 0).toFixed(2)}</span>
+                  <span className="font-black text-sm text-zinc-900">₹{parseFloat(selectedQuotation.final_quote_value as any || 0).toFixed(2)}</span>
                 </div>
                 <div>
                   <span className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest font-black">Total Paid</span>
@@ -836,7 +836,7 @@ export default function InitialPaymentPage() {
               ) : (
                 <div className="text-center py-16 border border-dashed border-zinc-200 rounded-2xl">
                   <FileText className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-                  <p className="text-sm font-black italic text-[#3a525d]">No payments recorded yet</p>
+                  <p className="text-sm font-black italic text-zinc-900">No payments recorded yet</p>
                   <p className="text-xs text-zinc-400 font-bold mt-1">
                     Click &quot;Record Payment&quot; to register a deposit line.
                   </p>
@@ -844,7 +844,7 @@ export default function InitialPaymentPage() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-[#fce4d4]/60 mt-6 shrink-0">
+            <div className="pt-4 border-t border-zinc-100 mt-6 shrink-0">
               <Button
                 type="button"
                 variant="secondary"

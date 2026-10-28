@@ -910,7 +910,7 @@ export default function IndustryTemplatesPage() {
                 <div className="flex justify-end pt-10">
                   <Button 
                     onClick={handleSubmit}
-                    className="h-20 px-20 text-lg font-black italic rounded-[2rem] bg-[#3a525d] hover:bg-[#2d8d9b] text-white shadow-2xl shadow-[#3a525d]/30 gap-4"
+                    className="h-20 px-20 text-lg font-black italic rounded-[2rem] bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xl shadow-[#C82A2B]/30 gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Publish Template <ArrowRight />
                   </Button>
@@ -934,7 +934,7 @@ export default function IndustryTemplatesPage() {
         </div>
         <Button 
           onClick={() => setIsAdding(true)}
-          className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus size={18} strokeWidth={3} />
           Architect New Set

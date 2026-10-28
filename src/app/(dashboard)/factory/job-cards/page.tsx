@@ -307,7 +307,7 @@ export default function JobCardsPage() {
           </button>
           <button
             onClick={() => { fetchEligibleOrders(); setShowRaiseModal(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition shadow-md"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-bold rounded-xl text-xs transition shadow-md shadow-[#C82A2B]/25"
           >
             <Plus className="w-4 h-4" />
             Raise Job Cards
@@ -554,7 +554,7 @@ export default function JobCardsPage() {
               <button
                 onClick={handleRaiseJobCards}
                 disabled={!selectedOrder || items.length === 0 || isRaising}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition"
+                className="flex-1 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#C82A2B]/25 transition"
               >
                 <Package2 className="w-3.5 h-3.5" />
                 {isRaising ? 'Raising...' : `Raise ${items.length} Job Card${items.length !== 1 ? 's' : ''}`}

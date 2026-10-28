@@ -661,7 +661,7 @@ export default function OrderPlacementPage() {
           variant="primary"
           size="sm"
           onClick={() => handleOpenPlaceOrder(item)}
-          className="rounded-lg flex items-center gap-1 bg-[#2d8d9b] text-[10px] font-black tracking-wider h-7 px-2.5 ml-auto"
+          className="rounded-lg flex items-center gap-1 bg-[#C82A2B] hover:bg-[#A81D1E] text-[10px] font-black tracking-wider h-7 px-2.5 ml-auto text-white shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus size={11} strokeWidth={3} />
           Convert to SO
@@ -1503,7 +1503,7 @@ export default function OrderPlacementPage() {
                     type="button"
                     variant="primary"
                     onClick={triggerBrowserPrint}
-                    className="flex-1 rounded-2xl h-12 bg-[#2d8d9b] flex items-center justify-center gap-2"
+                    className="flex-1 rounded-2xl h-12 bg-[#C82A2B] hover:bg-[#A81D1E] text-white flex items-center justify-center gap-2 shadow-lg shadow-[#C82A2B]/20"
                   >
                     <Printer size={16} />
                     Send to Printer
@@ -1518,10 +1518,10 @@ export default function OrderPlacementPage() {
       {/* PRD M5.7 & Section 5.2 Customer Notification Modal */}
       {isNotifyModalOpen && notifyOrder && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <Card className="max-w-md w-full p-6 bg-white rounded-3xl shadow-2xl border-zinc-200 space-y-5">
+          <Card className="max-w-md w-full p-6 bg-white rounded-3xl shadow-2xl border-zinc-200 space-y-5 relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+                <div className="w-9 h-9 rounded-xl bg-zinc-900 flex items-center justify-center text-white shadow-xs">
                   <Mail size={18} />
                 </div>
                 <div>
@@ -1562,7 +1562,7 @@ export default function OrderPlacementPage() {
               <label className="block text-xs font-bold text-zinc-700">Dispatch Channel</label>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <label className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer font-semibold transition ${
-                  notifyChannel === 'email' ? 'border-teal-500 bg-teal-50/50 text-teal-900' : 'border-zinc-200 text-zinc-600'
+                  notifyChannel === 'email' ? 'border-[#C82A2B] bg-[#FFF1F1] text-[#9E1B1D]' : 'border-zinc-200 text-zinc-600'
                 }`}>
                   <input
                     type="radio"
@@ -1570,12 +1570,12 @@ export default function OrderPlacementPage() {
                     value="email"
                     checked={notifyChannel === 'email'}
                     onChange={() => setNotifyChannel('email')}
-                    className="text-teal-600"
+                    className="text-[#C82A2B] accent-[#C82A2B]"
                   />
                   <span>Email Dispatch</span>
                 </label>
                 <label className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer font-semibold transition ${
-                  notifyChannel === 'link' ? 'border-teal-500 bg-teal-50/50 text-teal-900' : 'border-zinc-200 text-zinc-600'
+                  notifyChannel === 'link' ? 'border-[#C82A2B] bg-[#FFF1F1] text-[#9E1B1D]' : 'border-zinc-200 text-zinc-600'
                 }`}>
                   <input
                     type="radio"
@@ -1583,7 +1583,7 @@ export default function OrderPlacementPage() {
                     value="link"
                     checked={notifyChannel === 'link'}
                     onChange={() => setNotifyChannel('link')}
-                    className="text-teal-600"
+                    className="text-[#C82A2B] accent-[#C82A2B]"
                   />
                   <span>Manual Link Share</span>
                 </label>
@@ -1615,7 +1615,7 @@ export default function OrderPlacementPage() {
                 variant="primary"
                 isLoading={isSendingNotify}
                 onClick={handleSendNotification}
-                className="flex-1 rounded-xl h-11 bg-teal-600 hover:bg-teal-500 text-xs font-bold flex items-center justify-center gap-2 text-white shadow-md shadow-teal-600/20"
+                className="flex-1 rounded-xl h-11 bg-[#C82A2B] hover:bg-[#A81D1E] text-xs font-bold flex items-center justify-center gap-2 text-white shadow-md shadow-[#C82A2B]/20 cursor-pointer active:scale-95"
               >
                 <Send size={14} />
                 Confirm &amp; Log Notice

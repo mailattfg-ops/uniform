@@ -90,7 +90,7 @@ export default function MeasurementTokensPage() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.15em] text-[11px] rounded-[1.25rem] shadow-xl shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 cursor-pointer"
+          className="flex items-center gap-2 h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase tracking-[0.15em] text-[11px] rounded-[1.25rem] shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 cursor-pointer"
         >
           <Plus size={18} strokeWidth={3} />
           Assign New Token

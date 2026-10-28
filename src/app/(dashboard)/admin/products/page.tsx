@@ -180,7 +180,7 @@ const MultiEntryInput: React.FC<{
         <button
           type="button"
           onClick={handleAdd}
-          className="h-12 px-6 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center shadow-md active:scale-95"
+          className="h-12 px-6 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center shadow-md shadow-[#C82A2B]/20 active:scale-95 cursor-pointer"
         >
           {buttonText}
         </button>
@@ -274,7 +274,7 @@ const AttachmentFabricsEditor: React.FC<{
         <button
           type="button"
           onClick={handleAdd}
-          className="px-3.5 py-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+          className="px-3.5 py-1.5 bg-[#A81D1E] hover:bg-[#8F1618] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-[#A81D1E]/20 active:scale-95 cursor-pointer"
         >
           <Plus size={14} /> Add Attachment Fabric
         </button>
@@ -428,7 +428,7 @@ const TrimsEditor: React.FC<{
         <button
           type="button"
           onClick={handleAdd}
-          className="px-3.5 py-1.5 bg-[#2d8d9b] hover:bg-[#3a525d] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+          className="px-3.5 py-1.5 bg-[#A81D1E] hover:bg-[#8F1618] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-[#A81D1E]/20 active:scale-95 cursor-pointer"
         >
           <Plus size={14} /> Add Trim
         </button>
@@ -1385,7 +1385,7 @@ export default function ProductManagement() {
               <button
                 type="button"
                 onClick={handleAddRemark}
-                className="py-2.5 px-5 bg-[#2d8d9b] text-white hover:bg-[#3a525d] rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+                className="py-2.5 px-5 bg-[#A81D1E] text-white hover:bg-[#8F1618] rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm shadow-[#A81D1E]/20 active:scale-95 cursor-pointer"
               >
                 <Plus size={14} /> Add Remark Entry
               </button>
@@ -1972,9 +1972,6 @@ export default function ProductManagement() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Readymades</h1>
-            <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 text-[#2d8d9b] rounded-full text-[10px] font-black uppercase tracking-wider">
-              In-House Manufactured Only
-            </span>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Readymades Specification Hub</p>
         </div>
@@ -2015,9 +2012,9 @@ export default function ProductManagement() {
                 <Link
                   href="/admin/art-number-hub"
                   onClick={() => setIsMoreHubsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#CC9448]/10 text-[#3a525d] hover:text-[#CC9448] transition-all group"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#C82A2B]/10 text-[#3a525d] hover:text-[#C82A2B] transition-all group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#CC9448]/20 flex items-center justify-center text-[#CC9448] transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#C82A2B]/20 flex items-center justify-center text-[#C82A2B] transition-colors">
                     <Bookmark size={16} />
                   </div>
                   <div>
@@ -2049,7 +2046,7 @@ export default function ProductManagement() {
               setIsAdding(true);
               fetchData();
             }}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 gap-2 cursor-pointer"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={3} />
             New Readymade
@@ -2161,7 +2158,7 @@ export default function ProductManagement() {
                   <button
                     type="button"
                     onClick={() => setIsDetailsActionsOpen(prev => !prev)}
-                    className="h-10 px-4 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase tracking-wider text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+                    className="h-10 px-4 bg-[#FEF2F2] hover:bg-red-100/80 text-[#9E1B1D] border border-red-200/90 rounded-xl font-black uppercase tracking-wider text-xs shadow-xs flex items-center gap-2 transition-all cursor-pointer"
                   >
                     <span>Actions</span>
                     <ChevronDown size={14} className={`transition-transform duration-200 ${isDetailsActionsOpen ? 'rotate-180' : ''}`} />

@@ -325,7 +325,7 @@ export const MeasurementTable: React.FC = () => {
           <Button 
             variant="secondary" 
             onClick={downloadCSV}
-            className="h-12 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-black rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#3a525d]/20 gap-3 w-full xl:w-auto"
+            className="h-12 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-[#C82A2B]/20 gap-3 w-full xl:w-auto transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Download size={16} />
             Export CSV

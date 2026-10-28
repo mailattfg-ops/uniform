@@ -49,7 +49,7 @@ export default function LoginPage() {
         {/* Left Side: Dark Premium Gradient */}
         <div className="hidden lg:flex flex-col justify-between p-8 lg:p-10 relative overflow-hidden bg-gradient-to-b from-[#1c1a17] via-[#151311] to-[#0f0e0d]">
           {/* Radial light source glow */}
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[300px] h-[300px] bg-[#614728] opacity-25 rounded-full blur-[90px] pointer-events-none" />
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[300px] h-[300px] bg-[#C82A2B] opacity-25 rounded-full blur-[90px] pointer-events-none" />
 
           <div className="relative z-10">
             {/* Top Empty Space */}
@@ -89,7 +89,7 @@ export default function LoginPage() {
 
             {/* Right Top Sign up link */}
             <p className="text-xs font-semibold text-zinc-550">
-              Don't have an account? <span className="underline cursor-pointer font-bold text-black hover:text-[#EA8F08]">Sign Up</span>
+              Don't have an account? <span className="underline cursor-pointer font-bold text-black hover:text-[#C82A2B]">Sign Up</span>
             </p>
           </div>
 
@@ -120,7 +120,7 @@ export default function LoginPage() {
                     placeholder="johndoe@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold border border-zinc-200 rounded-xl text-black placeholder:text-zinc-350 focus:outline-none focus:border-[#EA8F08] focus:ring-1 focus:ring-[#EA8F08]/20 bg-white transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold border border-zinc-200 rounded-xl text-black placeholder:text-zinc-350 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 bg-white transition-all"
                   />
                 </div>
               </div>
@@ -137,7 +137,7 @@ export default function LoginPage() {
                     placeholder="minimum 8 character"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs font-semibold border border-zinc-200 rounded-xl text-black placeholder:text-zinc-350 focus:outline-none focus:border-[#EA8F08] focus:ring-1 focus:ring-[#EA8F08]/20 bg-white transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs font-semibold border border-zinc-200 rounded-xl text-black placeholder:text-zinc-350 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 bg-white transition-all"
                   />
                   <button
                     type="button"
@@ -153,7 +153,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 bg-[#EA8F08] hover:bg-[#EA8F08]/90 text-white rounded-xl font-black tracking-wide text-xs shadow-lg shadow-[#EA8F08]/15 border-none transition-all flex items-center justify-center gap-2 group"
+                  className="w-full h-11 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black tracking-wide text-xs shadow-lg shadow-[#C82A2B]/20 border-none transition-all flex items-center justify-center gap-2 group"
                 >
                   {isLoading ? 'Sign In...' : 'Sign In'}
                   {!isLoading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />}

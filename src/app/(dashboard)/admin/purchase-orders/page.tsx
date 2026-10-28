@@ -381,7 +381,7 @@ export default function PurchaseOrdersPage() {
           
           <button 
             onClick={() => setIsCreateOpen(true)}
-            className="h-14 px-8 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#3a525d]/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Plus size={18} strokeWidth={3} />
             Create Purchase Order
@@ -393,7 +393,7 @@ export default function PurchaseOrdersPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Total POs */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-6 shadow-sm flex items-center gap-5 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200 p-6 shadow-sm flex items-center gap-5 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
           <div className="w-14 h-14 rounded-2xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d] border border-[#3a525d]/10">
             <ClipboardList size={24} />
           </div>
@@ -407,7 +407,7 @@ export default function PurchaseOrdersPage() {
         </div>
 
         {/* Draft/Pending */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-6 shadow-sm flex items-center gap-5 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200 p-6 shadow-sm flex items-center gap-5 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100">
             <Clock size={24} />
           </div>
@@ -421,7 +421,7 @@ export default function PurchaseOrdersPage() {
         </div>
 
         {/* Auto Triggered */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-6 shadow-sm flex items-center gap-5 hover:border-teal-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200 p-6 shadow-sm flex items-center gap-5 hover:border-teal-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center text-[#2d8d9b] border border-teal-100">
             <Sparkles size={24} />
           </div>
@@ -435,7 +435,7 @@ export default function PurchaseOrdersPage() {
         </div>
 
         {/* Fully Received */}
-        <div className="bg-white rounded-[2rem] border border-[#fce4d4] p-6 shadow-sm flex items-center gap-5 hover:border-emerald-200 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-zinc-200 p-6 shadow-sm flex items-center gap-5 hover:border-emerald-200 transition-all duration-300 relative overflow-hidden group">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
             <CheckCircle2 size={24} />
           </div>
@@ -451,7 +451,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-[#fce4d4] rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
+      <div className="bg-white border border-zinc-200 rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
         
         {/* Search */}
         <div className="relative group w-full xl:w-96">
@@ -461,7 +461,7 @@ export default function PurchaseOrdersPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search"
-            className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
+            className="w-full bg-white border border-zinc-200 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
           />
         </div>
 
@@ -524,12 +524,12 @@ export default function PurchaseOrdersPage() {
 
       {/* Main PO Table */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center p-24 bg-white border border-[#fce4d4] rounded-[3rem] gap-4">
-          <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
+        <div className="flex flex-col items-center justify-center p-24 bg-white border border-zinc-200 rounded-[3rem] gap-4">
+          <Loader2 className="animate-spin text-[#C82A2B]" size={40} />
           <p className="text-sm font-bold text-[#3a525d]">Reconstructing purchase orders ledger...</p>
         </div>
       ) : filteredPOs.length > 0 ? (
-        <div className="bg-white rounded-[2.5rem] border border-[#fce4d4] overflow-hidden shadow-sm">
+        <div className="bg-white rounded-[2.5rem] border border-zinc-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
@@ -622,7 +622,7 @@ export default function PurchaseOrdersPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-[#fce4d4] rounded-[3rem] p-24 text-center">
+        <div className="bg-white border border-zinc-200 rounded-[3rem] p-24 text-center">
           <div className="flex flex-col items-center gap-4 opacity-30">
             <Truck size={48} className="text-[#2d8d9b]" />
             <p className="text-xl font-black italic text-[#3a525d]">No matching purchase orders logged</p>
@@ -635,11 +635,11 @@ export default function PurchaseOrdersPage() {
       {isDetailsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div 
-            className="w-full max-w-3xl bg-white rounded-[3rem] p-8 border border-[#fce4d4] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500"
+            className="w-full max-w-3xl bg-white rounded-[3rem] p-8 border border-zinc-200/80 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header decor */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-[#2d8d9b] to-[#fce4d4]" />
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
             
             {/* Close button */}
             <button 
@@ -670,7 +670,7 @@ export default function PurchaseOrdersPage() {
                         </span>
                       )}
                     </div>
-                    <h3 className="text-2xl font-black italic text-[#3a525d] tracking-tight mt-1.5">
+                    <h3 className="text-2xl font-black italic text-zinc-900 tracking-tight mt-1.5">
                       {selectedPO.po_number}
                     </h3>
                     <p className="text-[10px] font-bold text-zinc-400 mt-0.5">
@@ -693,7 +693,7 @@ export default function PurchaseOrdersPage() {
 
                 {/* Notes box */}
                 {selectedPO.notes && (
-                  <div className="bg-[#fce4d4]/10 rounded-2xl p-4 border border-[#fce4d4]/30 text-xs font-bold text-[#8b6b5a]">
+                  <div className="bg-[#fce4d4]/10 rounded-2xl p-4 border border-zinc-200/30 text-xs font-bold text-[#8b6b5a]">
                     <span className="font-black block uppercase text-[9px] tracking-wider text-[#3a525d] mb-1">Fulfillment instructions / Notes:</span>
                     {selectedPO.notes}
                   </div>
@@ -833,7 +833,7 @@ export default function PurchaseOrdersPage() {
                     <button
                       type="button"
                       onClick={() => handleUpdateStatus(selectedPO.id, 'Ordered')}
-                      className="flex-1 h-14 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#3a525d]/10 flex items-center justify-center gap-1.5"
+                      className="flex-1 h-14 bg-[#9E1B1D] hover:bg-[#7F1D1D] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#9E1B1D]/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                     >
                       <Truck size={14} />
                       Mark as Ordered
@@ -845,7 +845,7 @@ export default function PurchaseOrdersPage() {
                     <button
                       type="button"
                       onClick={() => handleUpdateStatus(selectedPO.id, 'Received')}
-                      className="flex-1 h-14 bg-[#2d8d9b] hover:bg-[#2d8d9b]/90 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#2d8d9b]/15 flex items-center justify-center gap-1.5"
+                      className="flex-1 h-14 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-zinc-900/15 flex items-center justify-center gap-1.5"
                     >
                       <CheckCircle2 size={14} />
                       Receive Shipment
@@ -863,11 +863,11 @@ export default function PurchaseOrdersPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div 
-            className="w-full max-w-2xl bg-white rounded-[3rem] p-8 border border-[#fce4d4] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh] overflow-y-auto no-scrollbar"
+            className="w-full max-w-2xl bg-white rounded-[3rem] p-8 border border-zinc-200 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh] overflow-y-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header decor */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-[#3a525d]" />
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
             
             {/* Close button */}
             <button 
@@ -878,12 +878,12 @@ export default function PurchaseOrdersPage() {
             </button>
 
             <div className="flex items-center gap-3 border-b border-zinc-100 pb-5 mt-2">
-              <div className="w-12 h-12 bg-[#3a525d]/10 rounded-2xl flex items-center justify-center text-[#3a525d] border border-[#3a525d]/20">
+              <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-white border border-zinc-800">
                 <PlusCircle size={20} />
               </div>
               <div>
-                <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">Create Purchase Order</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-0.5">
+                <h3 className="text-xl font-black italic text-zinc-900 tracking-tight">Create Purchase Order</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] mt-0.5">
                   Procure Finished Products, Fabrics, or Trims &amp; Accessories
                 </p>
               </div>
@@ -901,7 +901,7 @@ export default function PurchaseOrdersPage() {
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
                     placeholder="e.g. Acme Garment Makers, Main Textiles"
-                    className="w-full h-12 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                    className="w-full h-12 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   />
                 </div>
                 <div className="space-y-2">
@@ -911,7 +911,7 @@ export default function PurchaseOrdersPage() {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="e.g. Standard delivery window, handle with care"
-                    className="w-full h-12 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20"
+                    className="w-full h-12 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   />
                 </div>
               </div>
@@ -924,7 +924,7 @@ export default function PurchaseOrdersPage() {
                   <button
                     type="button"
                     onClick={handleAddItemRow}
-                    className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] hover:text-[#2d8d9b]/80 flex items-center gap-1 transition-colors"
+                    className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] hover:text-[#C82A2B] flex items-center gap-1 transition-colors"
                   >
                     <Plus size={12} /> Add Item Row
                   </button>
@@ -942,7 +942,7 @@ export default function PurchaseOrdersPage() {
                         <select
                           value={item.item_type}
                           onChange={(e) => handleItemTypeChange(idx, e.target.value as any)}
-                          className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-2.5 text-xs font-bold outline-none"
+                          className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-2.5 text-xs font-bold outline-none"
                         >
                           <option value="fabric">Fabric</option>
                           <option value="trim">Trim / Acc</option>
@@ -961,7 +961,7 @@ export default function PurchaseOrdersPage() {
                             required
                             value={item.fabric_id || ''}
                             onChange={(e) => handleItemFieldChange(idx, 'fabric_id', e.target.value)}
-                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                            className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold outline-none"
                           >
                             <option value="">Select a Fabric...</option>
                             {fabricList.map(f => (
@@ -977,7 +977,7 @@ export default function PurchaseOrdersPage() {
                             required
                             value={item.trim_id || ''}
                             onChange={(e) => handleItemFieldChange(idx, 'trim_id', e.target.value)}
-                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                            className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold outline-none"
                           >
                             <option value="">Select a Trim / Accessory...</option>
                             {trimsList.map(t => (
@@ -993,7 +993,7 @@ export default function PurchaseOrdersPage() {
                             required
                             value={item.product_id || ''}
                             onChange={(e) => handleItemFieldChange(idx, 'product_id', e.target.value)}
-                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-bold outline-none"
+                            className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold outline-none"
                           >
                             <option value="">Select a Product...</option>
                             {productsList.map(p => (
@@ -1012,7 +1012,7 @@ export default function PurchaseOrdersPage() {
                           <select
                             value={item.size || 'M'}
                             onChange={(e) => handleItemFieldChange(idx, 'size', e.target.value)}
-                            className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-2.5 text-xs font-bold outline-none"
+                            className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-2.5 text-xs font-bold outline-none"
                           >
                             {['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '28', '30', '32', '34', '36', '38', '40', '42'].map(sz => (
                               <option key={sz} value={sz}>{sz}</option>
@@ -1033,7 +1033,7 @@ export default function PurchaseOrdersPage() {
                           min={1}
                           value={item.quantity}
                           onChange={(e) => handleItemFieldChange(idx, 'quantity', Math.max(1, parseFloat(e.target.value) || 0))}
-                          className="w-full h-10 bg-white border border-[#fce4d4] rounded-xl px-3 text-xs font-black outline-none"
+                          className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-black outline-none"
                         />
                       </div>
 
@@ -1066,7 +1066,7 @@ export default function PurchaseOrdersPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-14 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#3a525d]/20 flex items-center justify-center gap-2"
+                  className="flex-1 h-14 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-[#C82A2B]/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
                   {isSubmitting ? (
                     <Loader2 className="animate-spin text-white" size={16} />

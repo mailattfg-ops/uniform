@@ -628,10 +628,11 @@ function DesignNumbersContent() {
       {/* DNS Edit Modal */}
       {editingDNS && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <Card className="p-8 border border-zinc-100 rounded-[2.5rem] shadow-2xl bg-white max-w-lg w-full space-y-6">
+          <Card className="p-8 border border-zinc-200/80 rounded-[2.5rem] shadow-2xl bg-white max-w-lg w-full space-y-6 relative overflow-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             <div className="flex justify-between items-start">
               <div>
-                <span className="px-2.5 py-0.5 text-[9px] font-black uppercase rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                <span className="px-2.5 py-0.5 text-[9px] font-black uppercase rounded-lg bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                   Edit Individual Design
                 </span>
                 <h3 className="text-2xl font-black text-[#3a525d] mt-2">
@@ -653,7 +654,7 @@ function DesignNumbersContent() {
                   required
                   value={editingDNS.name || ''}
                   onChange={(e) => setEditingDNS({ ...editingDNS, name: e.target.value })}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-bold text-zinc-700 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   placeholder="e.g. DNS-0001 Standard Collar Cut"
                 />
               </div>
@@ -665,7 +666,7 @@ function DesignNumbersContent() {
                 <textarea
                   value={editingDNS.description || ''}
                   onChange={(e) => setEditingDNS({ ...editingDNS, description: e.target.value })}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#2d8d9b]"
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   rows={4}
                   placeholder="Describe details regarding fabric finish, contrast stitch thread, button spacing..."
                 />
@@ -681,7 +682,7 @@ function DesignNumbersContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#3a525d] hover:bg-[#2d8d9b] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-md shadow-[#C82A2B]/20 active:scale-95"
                 >
                   Save Specification
                 </button>
@@ -694,7 +695,8 @@ function DesignNumbersContent() {
       {/* DNG Edit Modal */}
       {editingDNG && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <Card className="p-8 border border-zinc-100 rounded-[2.5rem] shadow-2xl bg-white max-w-xl w-full space-y-6">
+          <Card className="p-8 border border-zinc-200/80 rounded-[2.5rem] shadow-2xl bg-white max-w-xl w-full space-y-6 relative overflow-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             <div className="flex justify-between items-start">
               <div>
                 <span className="px-2.5 py-0.5 text-[9px] font-black uppercase rounded-lg bg-amber-100 text-amber-800 border border-amber-200">

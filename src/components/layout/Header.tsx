@@ -69,14 +69,14 @@ export const Header: React.FC = () => {
         <Button
           onClick={toggleSidebar}
           variant="secondary"
-          className="p-3 rounded-2xl bg-white shadow-xl shadow-zinc-200/50 border border-zinc-100 hover:bg-[#CC9448] hover:text-white transition-all lg:hidden active:scale-90"
+          className="p-3 rounded-2xl bg-white shadow-xl shadow-zinc-200/50 border border-zinc-100 hover:bg-[#C82A2B] hover:text-white transition-all lg:hidden active:scale-90"
         >
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
 
         <div className="hidden sm:flex flex-col">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#CC9448] animate-pulse shadow-[0_0_8px_#CC9448]" />
+            <div className="w-2 h-2 rounded-full bg-[#C82A2B] animate-pulse shadow-[0_0_8px_#C82A2B]" />
             <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#030303]">Forma Apparels Enterprise</h1>
           </div>
         </div>
@@ -91,9 +91,9 @@ export const Header: React.FC = () => {
           <Button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             variant="secondary"
-            className="flex items-center gap-3 p-1.5 pr-4 rounded-[1.5rem] bg-white shadow-sm border border-zinc-100 hover:shadow-xl hover:border-[#CC9448]/20 transition-all active:scale-95 group h-auto"
+            className="flex items-center gap-3 p-1.5 pr-4 rounded-[1.5rem] bg-white shadow-sm border border-zinc-100 hover:shadow-xl hover:border-[#C82A2B]/20 transition-all active:scale-95 group h-auto"
           >
-            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-[#CC9448]/10 group-hover:border-[#CC9448]/40 transition-all shadow-inner flex items-center justify-center bg-zinc-50 font-black text-[#CC9448]">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-[#C82A2B]/10 group-hover:border-[#C82A2B]/40 transition-all shadow-inner flex items-center justify-center bg-zinc-50 font-black text-[#C82A2B]">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -121,14 +121,14 @@ export const Header: React.FC = () => {
                 <Link
                   href="/settings/profile"
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-black text-zinc-700 hover:text-white hover:bg-[#CC9448] transition-all group border-none"
+                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs font-black text-zinc-700 hover:text-white hover:bg-[#C82A2B] transition-all group border-none"
                 >
-                  <User size={18} className="text-[#CC9448] group-hover:text-white transition-colors" />
+                  <User size={18} className="text-[#C82A2B] group-hover:text-white transition-colors" />
                   Profile Settings
                 </Link>
                 <Button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#030303] hover:bg-[#CC9448] transition-all shadow-lg hover:shadow-[#CC9448]/20 group border-none h-auto"
+                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-xs hover:text-sm font-black text-white bg-[#030303] hover:bg-[#C82A2B] transition-all shadow-lg hover:shadow-[#C82A2B]/20 group border-none h-auto"
                 >
                   <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
                   Secure Logout

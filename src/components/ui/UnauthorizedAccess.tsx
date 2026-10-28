@@ -26,9 +26,9 @@ export const UnauthorizedAccess: React.FC<UnauthorizedAccessProps> = ({
         
         {/* Shield Icon Badge with Glow */}
         <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
-          <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl" />
-          <div className="w-20 h-20 bg-gradient-to-tr from-[#1c1a17] to-[#2d2720] border-2 border-[#CC9448] rounded-2xl flex items-center justify-center shadow-lg relative z-10">
-            <ShieldAlert className="w-10 h-10 text-[#CC9448]" />
+          <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl" />
+          <div className="w-20 h-20 bg-gradient-to-tr from-[#1c1a17] to-[#2d1b1b] border-2 border-[#C82A2B] rounded-2xl flex items-center justify-center shadow-lg relative z-10">
+            <ShieldAlert className="w-10 h-10 text-[#C82A2B]" />
           </div>
         </div>
 
@@ -73,7 +73,7 @@ export const UnauthorizedAccess: React.FC<UnauthorizedAccessProps> = ({
               <span className="font-semibold text-slate-500">Required Capability:</span>
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {requiredPermissions.map(p => (
-                  <span key={p} className="px-2 py-0.5 bg-[#CC9448]/15 text-[#885c22] border border-[#CC9448]/30 rounded font-mono text-[11px] font-semibold">
+                  <span key={p} className="px-2 py-0.5 bg-[#C82A2B]/10 text-[#9E1B1D] border border-[#C82A2B]/20 rounded font-mono text-[11px] font-semibold">
                     {p}
                   </span>
                 ))}
@@ -93,7 +93,7 @@ export const UnauthorizedAccess: React.FC<UnauthorizedAccessProps> = ({
 
           <Link
             href="/dashboard"
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#CC9448] hover:bg-[#b8823b] text-white font-bold rounded-xl text-sm transition shadow-md shadow-[#CC9448]/25"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-bold rounded-xl text-sm transition shadow-md shadow-[#C82A2B]/25"
           >
             <Home size={16} /> Dashboard
           </Link>

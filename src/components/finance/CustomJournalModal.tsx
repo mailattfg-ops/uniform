@@ -197,12 +197,15 @@ export default function CustomJournalModal({
     <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden relative z-10 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-zinc-200/80 overflow-hidden relative z-10 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
+
         {/* Top Header */}
         <div className="px-8 py-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/60 shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-black tracking-tight text-zinc-900">New Journal</h2>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-200/80 text-zinc-700">
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/15">
               General Finance Voucher
             </span>
           </div>
@@ -229,7 +232,7 @@ export default function CustomJournalModal({
                 value={journalDate}
                 onChange={e => setJournalDate(e.target.value)}
                 required
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] transition-all"
+                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
               />
             </div>
 
@@ -243,7 +246,7 @@ export default function CustomJournalModal({
                 onChange={e => setJournalNo(e.target.value)}
                 required
                 placeholder="e.g. JN-2026-0001"
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-mono font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] transition-all"
+                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-mono font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
               />
             </div>
 
@@ -256,7 +259,7 @@ export default function CustomJournalModal({
                 value={referenceNo}
                 onChange={e => setReferenceNo(e.target.value)}
                 placeholder="e.g. REF-0941 or Bank Ref"
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] transition-all"
+                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
               />
             </div>
           </div>
@@ -273,7 +276,7 @@ export default function CustomJournalModal({
                 onChange={e => setTitle(e.target.value)}
                 required
                 placeholder="e.g. Uniform Advance Settlement, Material Adjustment, Credit Concession"
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] transition-all"
+                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
               />
             </div>
 
@@ -282,7 +285,7 @@ export default function CustomJournalModal({
               <select
                 value={currency}
                 onChange={e => setCurrency(e.target.value)}
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] transition-all cursor-pointer"
+                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all cursor-pointer"
               >
                 <option value="INR - Indian Rupee">INR - Indian Rupee</option>
                 <option value="USD - United States Dollar">USD - United States Dollar</option>
@@ -303,7 +306,7 @@ export default function CustomJournalModal({
               onChange={e => setNotes(e.target.value)}
               required
               placeholder="e.g. Transfer or loan adjustment / customer settlement narration"
-              className="w-full p-3 bg-white border border-zinc-300 rounded-xl text-xs font-medium text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 focus:border-[#2d8d9b] transition-all resize-y"
+              className="w-full p-3 bg-white border border-zinc-300 rounded-xl text-xs font-medium text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all resize-y"
             />
           </div>
 
@@ -329,7 +332,7 @@ export default function CustomJournalModal({
                         <select
                           value={row.account}
                           onChange={e => handleRowChange(row.id, 'account', e.target.value)}
-                          className="w-full h-9 px-2.5 bg-white border border-zinc-250 rounded-lg text-xs font-semibold text-zinc-800 outline-none focus:border-[#2d8d9b] transition-all cursor-pointer"
+                          className="w-full h-9 px-2.5 bg-white border border-zinc-250 rounded-lg text-xs font-semibold text-zinc-800 outline-none focus:border-[#C82A2B] transition-all cursor-pointer"
                         >
                           {accountOptions.map(acc => (
                             <option key={acc} value={acc}>
@@ -346,7 +349,7 @@ export default function CustomJournalModal({
                           value={row.description}
                           onChange={e => handleRowChange(row.id, 'description', e.target.value)}
                           placeholder="Description"
-                          className="w-full p-2 bg-white border border-zinc-250 rounded-lg text-xs text-zinc-700 outline-none focus:border-[#2d8d9b] transition-all resize-y min-h-[36px]"
+                          className="w-full p-2 bg-white border border-zinc-250 rounded-lg text-xs text-zinc-700 outline-none focus:border-[#C82A2B] transition-all resize-y min-h-[36px]"
                         />
                       </td>
 
@@ -355,7 +358,7 @@ export default function CustomJournalModal({
                         <select
                           value={row.contact}
                           onChange={e => handleRowChange(row.id, 'contact', e.target.value)}
-                          className="w-full h-9 px-2.5 bg-white border border-zinc-250 rounded-lg text-xs font-medium text-zinc-700 outline-none focus:border-[#2d8d9b] transition-all cursor-pointer"
+                          className="w-full h-9 px-2.5 bg-white border border-zinc-250 rounded-lg text-xs font-medium text-zinc-700 outline-none focus:border-[#C82A2B] transition-all cursor-pointer"
                         >
                           {customerName && <option value={customerName}>{customerName}</option>}
                           <option value="Inland Uniforms">Inland Uniforms</option>
@@ -371,7 +374,7 @@ export default function CustomJournalModal({
                           value={row.debit}
                           onChange={e => handleRowChange(row.id, 'debit', e.target.value)}
                           placeholder="0.00"
-                          className="w-full h-9 px-2.5 text-right font-mono font-bold bg-white border border-zinc-250 rounded-lg text-xs text-zinc-900 outline-none focus:border-[#2d8d9b] transition-all"
+                          className="w-full h-9 px-2.5 text-right font-mono font-bold bg-white border border-zinc-250 rounded-lg text-xs text-zinc-900 outline-none focus:border-[#C82A2B] transition-all"
                         />
                       </td>
 
@@ -384,7 +387,7 @@ export default function CustomJournalModal({
                           value={row.credit}
                           onChange={e => handleRowChange(row.id, 'credit', e.target.value)}
                           placeholder="0.00"
-                          className="w-full h-9 px-2.5 text-right font-mono font-bold bg-white border border-zinc-250 rounded-lg text-xs text-emerald-700 outline-none focus:border-[#2d8d9b] transition-all"
+                          className="w-full h-9 px-2.5 text-right font-mono font-bold bg-white border border-zinc-250 rounded-lg text-xs text-emerald-700 outline-none focus:border-[#C82A2B] transition-all"
                         />
                       </td>
 
@@ -411,7 +414,7 @@ export default function CustomJournalModal({
                 type="button"
                 onClick={handleAddRow}
                 variant="secondary"
-                className="h-8 px-3 rounded-lg text-xs font-bold text-[#2d8d9b] hover:text-white hover:bg-[#2d8d9b] border border-[#2d8d9b]/30 bg-white flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="h-8 px-3 rounded-lg text-xs font-bold text-[#C82A2B] hover:text-white hover:bg-[#C82A2B] border border-[#C82A2B]/30 bg-white flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
               >
                 <Plus size={14} /> Add New Row
               </Button>
@@ -463,7 +466,7 @@ export default function CustomJournalModal({
             <Button
               type="submit"
               disabled={!isBalanced}
-              className="h-10 px-8 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#7f1d1d] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all cursor-pointer"
+              className="h-10 px-8 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#C82A2B]/20 transition-all cursor-pointer"
             >
               Save
             </Button>

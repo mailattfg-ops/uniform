@@ -82,14 +82,14 @@ export default function BranchesPage() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowBatchModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm font-semibold transition shadow-md"
+            className="flex items-center gap-2 px-4 py-2 bg-[#9E1B1D] hover:bg-[#7F1D1D] rounded-xl text-sm font-semibold transition shadow-md shadow-[#9E1B1D]/20 text-white"
           >
             <Truck className="w-4 h-4" />
             New Purchase Batch (Bill + Lump)
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold transition shadow-md"
+            className="flex items-center gap-2 px-4 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] rounded-xl text-sm font-semibold transition shadow-md shadow-[#C82A2B]/25 text-white"
           >
             <Plus className="w-4 h-4" />
             Add Branch
@@ -277,7 +277,7 @@ export default function BranchesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-md"
+                  className="px-5 py-2 bg-[#9E1B1D] hover:bg-[#7F1D1D] text-white rounded-xl text-sm font-semibold shadow-md shadow-[#9E1B1D]/20"
                 >
                   Create Batch Entry
                 </button>

@@ -31,7 +31,7 @@ export const DashboardCardGroup: React.FC<DashboardCardGroupProps> = ({
   }[columns];
 
   return (
-    <div className="bg-white/80 backdrop-blur-xs rounded-[2rem] border border-[#fce4d4] p-6 shadow-xs hover:border-[#CC9448]/30 transition-all duration-300 space-y-5">
+    <div className="bg-white/80 backdrop-blur-xs rounded-[2rem] border border-[#fce4d4] p-6 shadow-xs hover:border-[#C82A2B]/30 transition-all duration-300 space-y-5">
       {/* Group Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#fce4d4]/60">
         <div className="flex items-center gap-3 min-w-0">
@@ -46,7 +46,7 @@ export const DashboardCardGroup: React.FC<DashboardCardGroupProps> = ({
                 {title}
               </h2>
               {badge && (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#C82A2B]/10 text-[#C82A2B] border border-[#C82A2B]/20">
                   {badge}
                 </span>
               )}
@@ -63,7 +63,7 @@ export const DashboardCardGroup: React.FC<DashboardCardGroupProps> = ({
         {targetHref && (
           <Link
             href={targetHref}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#3a525d] text-[#3a525d] hover:text-white border border-[#fce4d4] hover:border-[#3a525d] text-xs font-black uppercase tracking-wider shadow-xs hover:shadow-md transition-all duration-200 shrink-0 group"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#C82A2B] text-[#3a525d] hover:text-white border border-[#fce4d4] hover:border-[#C82A2B] text-xs font-black uppercase tracking-wider shadow-xs hover:shadow-md transition-all duration-200 shrink-0 group"
           >
             <span>{targetLabel || 'View Details'}</span>
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />

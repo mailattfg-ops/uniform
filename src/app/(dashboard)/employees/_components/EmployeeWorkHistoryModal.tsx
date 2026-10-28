@@ -232,24 +232,26 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
   const eligibleDestinationBranches = branches.filter(b => String(b.id) !== String(currentHomeBranchId));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-zinc-200/80 flex flex-col max-h-[92vh] overflow-hidden relative">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
         
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+        <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between bg-gradient-to-r from-zinc-50 to-white">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b]">
-              <History size={22} />
+            <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-xs">
+              <History size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Staff Career & Movement Ledger</h3>
-                <span className="text-[10px] font-mono font-bold bg-[#fce4d4]/60 text-[#3a525d] px-2 py-0.5 rounded-full border border-[#fce4d4]">
+                <h3 className="text-lg font-black text-zinc-900 tracking-tight">Staff Career & Movement Ledger</h3>
+                <span className="text-[10px] font-mono font-bold bg-[#FFF1F1] text-[#9E1B1D] px-2.5 py-0.5 rounded-full border border-[#C82A2B]/15">
                   {currentEmp.employee_id}
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                <strong className="text-slate-800">{currentEmp.full_name}</strong> • {currentEmp.designation || 'Staff'} ({currentEmp.department || 'General'})
+                <strong className="text-zinc-900">{currentEmp.full_name}</strong> • {currentEmp.designation || 'Staff'} ({currentEmp.department || 'General'})
               </p>
             </div>
           </div>
@@ -270,7 +272,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                 <span className="text-xl">{getTierIcon(currentHomeBranch?.tier)}</span>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Home Base Branch</p>
-                  <p className="text-xs font-black text-[#3a525d] truncate max-w-[170px]">
+                  <p className="text-xs font-black text-zinc-900 truncate max-w-[170px]">
                     {currentHomeBranch?.name || 'Unassigned HQ'}
                   </p>
                 </div>
@@ -317,9 +319,9 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
           <div className="flex gap-2 mt-4">
             <button
               onClick={() => setActiveTab('timeline')}
-              className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'timeline'
-                  ? 'bg-white text-[#2d8d9b] shadow-xs border border-slate-200'
+                  ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200 font-black'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -328,9 +330,9 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
             </button>
             <button
               onClick={() => setActiveTab('transfer')}
-              className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'transfer'
-                  ? 'bg-[#2d8d9b] text-white shadow-xs'
+                  ? 'bg-[#C82A2B] text-white shadow-xs font-black'
                   : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
               }`}
             >
@@ -346,12 +348,12 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
             <div>
               {loading ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-                  <div className="w-8 h-8 border-3 border-[#2d8d9b] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-3 border-[#C82A2B] border-t-transparent rounded-full animate-spin" />
                   <p className="text-xs font-bold">Loading career movement ledger...</p>
                 </div>
               ) : history.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
-                  <History size={36} className="mx-auto mb-2 opacity-30 text-[#2d8d9b]" />
+                  <History size={36} className="mx-auto mb-2 opacity-30 text-zinc-400" />
                   <p className="text-sm font-bold text-slate-600">No movement history recorded yet</p>
                   <p className="text-xs text-slate-400 mt-1">Movement records are automatically appended on placement, deputation, and transfer.</p>
                 </div>
@@ -372,7 +374,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                         {/* Card Content */}
                         <div className={`p-4 rounded-2xl border transition-all ${
                           record.is_current 
-                            ? 'bg-white border-[#2d8d9b]/30 shadow-md ring-1 ring-[#2d8d9b]/20' 
+                            ? 'bg-white border-[#C82A2B]/30 shadow-md ring-1 ring-[#C82A2B]/15' 
                             : 'bg-slate-50/70 border-slate-200/80 hover:bg-white'
                         }`}>
                           <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -381,7 +383,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                                 {cfg.label}
                               </span>
                               {record.is_current && (
-                                <span className="text-[9px] font-black uppercase tracking-wider bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 px-2 py-0.5 rounded-full">
+                                <span className="text-[9px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 px-2 py-0.5 rounded-full">
                                   Current Station
                                 </span>
                               )}
@@ -392,7 +394,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                               <Calendar size={12} className="text-slate-400" />
                               <span>{record.start_date ? formatDate(record.start_date) : 'Initial'}</span>
                               <ChevronRight size={12} className="text-slate-300" />
-                              <span className={record.is_current ? 'text-[#2d8d9b] font-bold' : ''}>
+                              <span className={record.is_current ? 'text-[#9E1B1D] font-bold' : ''}>
                                 {record.is_current ? 'Present' : (record.end_date ? formatDate(record.end_date) : 'Completed')}
                               </span>
                             </div>
@@ -402,7 +404,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                           <div className="mt-3 flex items-center gap-2">
                             <span className="text-base">{getTierIcon(b?.tier)}</span>
                             <div>
-                              <p className="text-xs font-black text-[#3a525d]">
+                              <p className="text-xs font-black text-zinc-900">
                                 {b?.name || 'Branch Office'}
                                 {b?.code && <span className="ml-1.5 text-[10px] font-mono text-slate-400 font-bold">({b.code})</span>}
                               </p>
@@ -418,8 +420,8 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                           {/* Designation & Department */}
                           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
                             <div className="flex items-center gap-1.5">
-                              <Briefcase size={12} className="text-[#2d8d9b]" />
-                              <span className="font-bold text-[#3a525d]">{record.designation || currentEmp.designation || 'Staff'}</span>
+                              <Briefcase size={12} className="text-[#9E1B1D]" />
+                              <span className="font-bold text-zinc-900">{record.designation || currentEmp.designation || 'Staff'}</span>
                               <span className="text-slate-300">•</span>
                               <span className="text-slate-500">{record.department || currentEmp.department || 'General'}</span>
                             </div>
@@ -474,7 +476,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                   value={newBranchId}
                   onChange={e => setNewBranchId(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                 >
                   <option value="">Select Destination Branch</option>
                   {eligibleDestinationBranches.map(b => (
@@ -495,7 +497,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                   value={effectiveDate}
                   onChange={e => setEffectiveDate(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                 />
               </div>
 
@@ -508,7 +510,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                     value={newDesignation}
                     onChange={e => setNewDesignation(e.target.value)}
                     placeholder="e.g. Branch Supervisor"
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                   />
                 </div>
                 <div>
@@ -518,7 +520,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                     value={newDepartment}
                     onChange={e => setNewDepartment(e.target.value)}
                     placeholder="e.g. Retail Operations"
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                   />
                 </div>
               </div>
@@ -531,7 +533,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                   value={transferRemarks}
                   onChange={e => setTransferRemarks(e.target.value)}
                   placeholder="e.g. Promoted to Senior Outlet Incharge / Regular rotational transfer"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#2d8d9b]/20 focus:border-[#2d8d9b]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                 />
               </div>
 
@@ -547,7 +549,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                 <button
                   type="submit"
                   disabled={transferLoading}
-                  className="px-5 py-2.5 bg-[#2d8d9b] hover:bg-[#257682] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-bold rounded-xl shadow-lg shadow-[#C82A2B]/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {transferLoading ? (
                     <>

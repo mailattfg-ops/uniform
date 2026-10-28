@@ -68,7 +68,7 @@ export const ClassTable: React.FC = () => {
       headerAction={
         <Button 
           onClick={() => setView('add')}
-          className="gap-2 text-[10px] items-center rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#f2994a] text-white hover:bg-[#d97d2d] shadow-lg hover:scale-105 transition-all"
+          className="gap-2 text-[10px] items-center rounded-2xl h-11 uppercase font-black tracking-[0.2em] px-6 bg-[#C82A2B] text-white hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/25 hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
           <PlusCircle size={16} />
           Add Class

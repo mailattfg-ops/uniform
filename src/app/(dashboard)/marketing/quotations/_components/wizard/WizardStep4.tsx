@@ -612,7 +612,7 @@ export default function WizardStep4({
         </Button>
         <Button
           onClick={onNext}
-          className="h-16 px-10 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3"
+          className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           Review Summary <ArrowRight size={16} />
         </Button>
@@ -627,16 +627,19 @@ export default function WizardStep4({
           <div 
             ref={modalRef}
             tabIndex={-1}
-            className="bg-white border border-zinc-100 rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 outline-none"
+            className="bg-white border border-zinc-100 rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 outline-none relative"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Top Brand Accent Rail */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
+
             {/* Modal Header */}
             <div className="flex justify-between items-center px-8 py-6 border-b border-zinc-100 bg-zinc-50/50">
               <div>
-                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/15 tracking-widest font-mono">
+                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 tracking-widest font-mono">
                   {selectedQuoteDetail.quotation_no || `ID: ${selectedQuoteDetail.id}`}
                 </span>
-                <h3 className="text-xl font-black italic text-[#3a525d] mt-2 tracking-tight">
+                <h3 className="text-xl font-black italic text-zinc-900 mt-2 tracking-tight">
                   {selectedQuoteDetail.title}
                 </h3>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
@@ -663,7 +666,7 @@ export default function WizardStep4({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
-                      <p className="text-xs font-black text-[#3a525d] mt-1">
+                      <p className="text-xs font-black text-zinc-900 mt-1">
                         {(selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' || selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE' || !selectedQuoteDetail.metrics_summary?.quotation_type) && 'Readymades'}
                         {selectedQuoteDetail.metrics_summary?.quotation_type === 'FABRIC' && 'fabrics'}
                         {selectedQuoteDetail.metrics_summary?.quotation_type === 'ACCESSORIES' && 'accessories'}
@@ -676,7 +679,7 @@ export default function WizardStep4({
 
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Production Time</p>
-                      <p className="text-xs font-black text-[#3a525d] mt-1">
+                      <p className="text-xs font-black text-zinc-900 mt-1">
                         {selectedQuoteDetail.total_estimated_time || `${selectedQuoteDetail.production_days_estimate * 8} Hours`}
                       </p>
                       <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
@@ -684,16 +687,16 @@ export default function WizardStep4({
                       </p>
                     </div>
 
-                    <div className="p-4 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]">Target Delivery Date</p>
-                      <p className="text-xs font-black text-[#2d8d9b] mt-1">
+                    <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Target Delivery Date</p>
+                      <p className="text-xs font-black text-zinc-900 mt-1">
                         {formatDate(selectedQuoteDetail.expected_delivery_date)}
                       </p>
                     </div>
 
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Group Design Collection</p>
-                      <p className="text-xs font-black text-[#2d8d9b] mt-1 font-mono">
+                      <p className="text-xs font-black text-[#9E1B1D] mt-1 font-mono">
                         {selectedQuoteDetail.group_design_number?.code || '—'}
                       </p>
                     </div>
@@ -701,11 +704,11 @@ export default function WizardStep4({
 
                   {/* Products / Sets Listing */}
                   <div className="space-y-3">
-                    <h4 className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Garment Line Items Breakdown</h4>
+                    <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-700">Garment Line Items Breakdown</h4>
                     <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white shadow-sm">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                          <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-600 border-b border-zinc-150">
                             <th className="p-3 pl-4">Garment Line</th>
                             <th className="p-3">Fabric Style</th>
                             <th className="p-3">Design Ref</th>
@@ -729,7 +732,7 @@ export default function WizardStep4({
                                 const productsList = item.size_breakdown.products || [];
                                 firstCell = (
                                   <div className="space-y-1 py-1">
-                                    <div className="font-black text-[#2d8d9b] uppercase text-[11px]">🎁 SET: {setName}</div>
+                                    <div className="font-black text-[#9E1B1D] uppercase text-[11px]">🎁 SET: {setName}</div>
                                     <ul className="list-disc list-inside pl-2 text-zinc-500 text-[10px] space-y-0.5 font-bold">
                                       {productsList.map((p: any, pIdx: number) => (
                                         <li key={pIdx}>
@@ -743,7 +746,7 @@ export default function WizardStep4({
                               } else if (deptName) {
                                 firstCell = (
                                   <div className="space-y-0.5 py-1">
-                                    <div className="font-black text-[#3a525d] uppercase text-[11px]">{deptName}</div>
+                                    <div className="font-black text-zinc-900 uppercase text-[11px]">{deptName}</div>
                                     <div className="text-zinc-600 text-xs font-semibold">{pTypeName}</div>
                                   </div>
                                 );
@@ -751,7 +754,7 @@ export default function WizardStep4({
                                 const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
                                 fabricCell = <span className="text-zinc-600">{formatFabricDisplayName(fabric) || 'Custom Fabric'}</span>;
                               } else {
-                                firstCell = <span className="font-black text-[#3a525d]">{pTypeName}</span>;
+                                firstCell = <span className="font-black text-zinc-900">{pTypeName}</span>;
                                 const fabricId = item.size_breakdown?.fabric_id;
                                 const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
                                 fabricCell = <span className="text-zinc-655">{formatFabricDisplayName(fabric) || 'Custom Fabric'}</span>;
@@ -765,7 +768,7 @@ export default function WizardStep4({
                                     {item.size_breakdown?.product_design_number || item.size_breakdown?.design_number || '—'}
                                   </td>
                                   <td className="p-3 text-right font-black">{qty}</td>
-                                  <td className="p-3 text-right font-black text-[#2d8d9b] font-mono pr-4">
+                                  <td className="p-3 text-right font-black text-zinc-900 font-mono pr-4">
                                     ₹{Number(item.total_price || 0).toFixed(0)}
                                   </td>
                                 </tr>
@@ -778,11 +781,11 @@ export default function WizardStep4({
 
                   {selectedQuoteDetail.metrics_summary?.separate_fabrics && selectedQuoteDetail.metrics_summary.separate_fabrics.length > 0 && (
                     <div className="space-y-3 pt-4">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Separate Fabric Materials Supplied</h4>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Separate Fabric Materials Supplied</h4>
                       <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                            <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-600 border-b border-zinc-100">
                               <th className="p-3 pl-4">Fabric Details</th>
                               <th className="p-3 text-right">Meters</th>
                               <th className="p-3 text-right">Rate/Meter</th>
@@ -799,10 +802,10 @@ export default function WizardStep4({
 
                               return (
                                 <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
-                                  <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}</td>
+                                  <td className="p-3 pl-4 font-black text-zinc-900">{fabricName}</td>
                                   <td className="p-3 text-right">{meters} m</td>
                                   <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
-                                  <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
+                                  <td className="p-3 text-right font-black text-zinc-900 pr-4 font-mono">₹{total.toFixed(2)}</td>
                                 </tr>
                               );
                             })}
@@ -814,38 +817,38 @@ export default function WizardStep4({
                 </div>
 
                 {/* Financial overview column */}
-                <div className="p-6 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-[2rem] flex flex-col justify-between h-full">
+                <div className="p-6 bg-zinc-900 text-white rounded-[2rem] flex flex-col justify-between h-full border border-zinc-800 shadow-xl">
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-[#3a525d] border-b border-zinc-200/50 pb-3">
-                      <Scale size={16} />
-                      <h4 className="text-[10px] font-black uppercase tracking-widest">Financial Breakdown</h4>
+                    <div className="flex items-center gap-2 text-white/90 border-b border-zinc-800 pb-3">
+                      <Scale size={16} className="text-[#C82A2B]" />
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-200">Financial Breakdown</h4>
                     </div>
 
-                    <div className="space-y-3 font-semibold text-zinc-600">
+                    <div className="space-y-3 font-semibold text-zinc-300">
                       <div className="flex justify-between">
                         <span>Total Items:</span>
-                        <span className="font-black text-[#3a525d]">{selectedQuoteDetail.metrics_summary?.total_entities || 0} Units</span>
+                        <span className="font-black text-white">{selectedQuoteDetail.metrics_summary?.total_entities || 0} Units</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Total Expenses:</span>
-                        <span className="font-mono font-black text-[#3a525d]">₹{Number(selectedQuoteDetail.estimated_expenses || 0).toFixed(2)}</span>
+                        <span className="font-mono font-black text-zinc-200">₹{Number(selectedQuoteDetail.estimated_expenses || 0).toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between text-emerald-400">
                         <span>Profit Markup:</span>
                         <span className="font-black">+{selectedQuoteDetail.profit_margin_percent}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span>GST Tax ({selectedQuoteDetail.metrics_summary?.gst_percent != null ? selectedQuoteDetail.metrics_summary.gst_percent : 0}%):</span>
-                        <span className="font-mono text-red-500 font-black">
+                        <span className="font-mono text-rose-300 font-black">
                           ₹{Number(Number(selectedQuoteDetail.final_quote_value) - Number(selectedQuoteDetail.metrics_summary?.pre_tax_subtotal || 0)).toFixed(2)}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-t border-zinc-200/60 pt-4 mt-6">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">Total Contract Value</p>
-                    <p className="text-3xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-1">
+                  <div className="border-t border-zinc-800 pt-4 mt-6">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B]">Total Contract Value</p>
+                    <p className="text-3xl font-black italic tracking-tighter text-white font-mono mt-1">
                       ₹{Number(selectedQuoteDetail.final_quote_value || 0).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -862,7 +865,7 @@ export default function WizardStep4({
               <Button
                 type="button"
                 onClick={() => setSelectedQuoteDetail(null)}
-                className="px-6 py-2 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-black uppercase text-[10px] tracking-widest"
+                className="px-6 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 Close View
               </Button>
@@ -881,7 +884,7 @@ export default function WizardStep4({
         }`}
         title="Hover to view Delivery Schedule Registry"
       >
-        <div className="bg-[#3a525d] hover:bg-[#2d8d9b] text-white shadow-2xl rounded-l-2xl py-4 px-2.5 flex flex-col items-center gap-2.5 border-y border-l border-white/20 transition-all select-none group">
+        <div className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xl shadow-[#C82A2B]/30 rounded-l-2xl py-4 px-2.5 flex flex-col items-center gap-2.5 border-y border-l border-white/20 transition-all select-none group">
           <div className="relative">
             <Calendar size={18} className="text-emerald-300 group-hover:scale-110 transition-transform" />
             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -996,8 +999,8 @@ export default function WizardStep4({
       {isLoadingDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/20 backdrop-blur-[1px]">
           <div className="bg-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-zinc-150">
-            <div className="w-5 h-5 border-2 border-[#2d8d9b] border-t-transparent rounded-full animate-spin"></div>
-            <span className="font-bold text-xs text-[#3a525d]">Loading order details...</span>
+            <div className="w-5 h-5 border-2 border-[#C82A2B] border-t-transparent rounded-full animate-spin"></div>
+            <span className="font-bold text-xs text-zinc-900">Loading order details...</span>
           </div>
         </div>
       )}

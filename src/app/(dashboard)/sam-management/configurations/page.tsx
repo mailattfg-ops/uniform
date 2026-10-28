@@ -363,7 +363,7 @@ export default function SAMConfigurations() {
             <Button
               type="submit"
               disabled={isSaving}
-              className="h-12 px-6 bg-[#3a525d] hover:bg-[#2d8d9b] text-white rounded-xl font-bold uppercase tracking-wider text-xs flex items-center gap-2"
+              className="h-12 px-6 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold uppercase tracking-wider text-xs flex items-center gap-2 shadow-lg shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Save size={14} />
               {isSaving ? 'Saving...' : 'Save Settings'}

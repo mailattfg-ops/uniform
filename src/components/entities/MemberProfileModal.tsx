@@ -45,24 +45,26 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-zinc-900/60 backdrop-blur-md transition-opacity" 
+        className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
       
-      <div className="relative w-full max-w-4xl bg-[#f8fafc] rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col md:flex-row h-[85vh]">
+      <div className="relative w-full max-w-4xl bg-[#f8fafc] rounded-[3rem] shadow-2xl border border-zinc-200/80 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col md:flex-row h-[85vh]">
+        {/* Top Brand Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0 z-20" />
         
         {/* Left Sidebar - Profile Summary */}
         <div className="w-full md:w-80 bg-white border-r border-slate-200 p-8 flex flex-col items-center">
             <Button
                 onClick={onClose}
                 variant="secondary"
-                className="absolute top-6 left-6 md:hidden w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center border-none shadow-none text-slate-400"
+                className="absolute top-6 left-6 md:hidden w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center border-none shadow-none text-slate-400 cursor-pointer"
             >
                 <X size={20} />
             </Button>
 
             <div className="relative mt-8 mb-6">
-                <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-[#2d8d9b] to-[#3a525d] p-1 shadow-2xl shadow-[#2d8d9b]/20">
+                <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-zinc-950 via-zinc-900 to-[#9E1B1D] p-1 shadow-2xl shadow-zinc-900/20">
                     <div className="w-full h-full rounded-[2.2rem] bg-white flex items-center justify-center overflow-hidden">
                         <img 
                             src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.admission_no}`} 
@@ -80,7 +82,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
 
             <div className="text-center space-y-1 mb-8">
                 <h3 className="text-2xl font-black italic tracking-tighter text-slate-800 leading-tight">{member.full_name}</h3>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] opacity-80">{member.admission_no}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] font-mono">{member.admission_no}</p>
             </div>
 
             <div className="w-full space-y-4">
@@ -120,8 +122,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                     <Button
                         onClick={() => setActiveTab('profile')}
                         variant="secondary"
-                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-none shadow-none h-auto ${
-                            activeTab === 'profile' ? 'bg-[#3a525d] text-white shadow-xl shadow-[#3a525d]/20 hover:bg-[#2d8d9b]' : 'text-slate-500 hover:bg-slate-50 bg-transparent'
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-none shadow-none h-auto cursor-pointer ${
+                            activeTab === 'profile' ? 'bg-[#C82A2B] text-white shadow-xl shadow-[#C82A2B]/20 hover:bg-[#A81D1E]' : 'text-slate-500 hover:bg-slate-50 bg-transparent'
                         }`}
                     >
                         <div className="flex items-center gap-3">
@@ -133,8 +135,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                     <Button
                         onClick={() => setActiveTab('measurements')}
                         variant="secondary"
-                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-none shadow-none h-auto ${
-                            activeTab === 'measurements' ? 'bg-[#3a525d] text-white shadow-xl shadow-[#3a525d]/20 hover:bg-[#2d8d9b]' : 'text-slate-500 hover:bg-slate-50 bg-transparent'
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-none shadow-none h-auto cursor-pointer ${
+                            activeTab === 'measurements' ? 'bg-[#C82A2B] text-white shadow-xl shadow-[#C82A2B]/20 hover:bg-[#A81D1E]' : 'text-slate-500 hover:bg-slate-50 bg-transparent'
                         }`}
                     >
                         <div className="flex items-center gap-3">
@@ -160,18 +162,19 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                 <Button
                     onClick={onClose}
                     variant="secondary"
-                    className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all border-none shadow-none"
+                    className="w-10 h-10 rounded-2xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors shadow-none cursor-pointer"
                 >
                     <X size={20} />
                 </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8">
+            {/* Dynamic Content Views */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar">
                 {activeTab === 'profile' ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                                <div className="flex items-center gap-3 text-[#2d8d9b]">
+                                <div className="flex items-center gap-3 text-[#9E1B1D]">
                                     <Activity size={18} />
                                     <h4 className="text-[10px] font-black uppercase tracking-widest">Membership Status</h4>
                                 </div>
@@ -196,83 +199,58 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                             </div>
 
                             <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                                <div className="flex items-center gap-3 text-[#2d8d9b]">
+                                <div className="flex items-center gap-3 text-[#9E1B1D]">
                                     <MapPin size={18} />
                                     <h4 className="text-[10px] font-black uppercase tracking-widest">Academic Mapping</h4>
                                 </div>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center py-2 border-b border-slate-100">
                                         <span className="text-[10px] font-bold text-slate-400">INSTITUTION</span>
-                                        <span className="text-[10px] font-black text-slate-700 uppercase">{member.organizations?.name || 'N/A'}</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase">{member.organizations?.name || 'Main Hub'}</span>
                                     </div>
                                     <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                        <span className="text-[10px] font-bold text-slate-400">DEPT / SECTION</span>
-                                        <span className="text-[10px] font-black text-slate-700 uppercase">{member.departments?.name || 'N/A'}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">CLASS / DIVISION</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase">{member.class_division || 'Universal'}</span>
                                     </div>
                                     <div className="flex justify-between items-center py-2">
-                                        <span className="text-[10px] font-bold text-slate-400">JOIN DATE</span>
-                                        <span className="text-[10px] font-black text-slate-700 uppercase">{formatDate(member.created_at)}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">ENROLLMENT YEAR</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase">{member.academic_year || new Date().getFullYear()}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {latestMeasurement && (
-                            <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white shadow-2xl space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
-                                            <Ruler size={20} />
-                                        </div>
-                                        <h4 className="text-xs font-black uppercase tracking-widest">Active Sizing on File</h4>
-                                    </div>
-                                    <span className="text-[9px] font-black uppercase px-3 py-1 bg-white/10 rounded-lg">
-                                        Recorded {formatDate(latestMeasurement.recorded_at, true)}
-                                    </span>
-                                </div>
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Active Size</p>
-                                        <p className="text-2xl font-black italic">{latestMeasurement.suggested_size}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Review Status</p>
-                                        <p className="text-sm font-black uppercase text-emerald-400">{latestMeasurement.status}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Recorded By</p>
-                                        <p className="text-sm font-black uppercase truncate">{latestMeasurement.user_profiles?.full_name || 'System'}</p>
-                                    </div>
-                                </div>
-                                <div className="pt-2 flex justify-between items-center border-t border-white/10">
-                                    <span className="text-[9px] text-white/60 font-medium">Reused automatically for subsequent orders</span>
-                                    <Button
-                                        onClick={() => {
-                                            onClose();
-                                            router.push(`/measurements/entry?studentId=${member.id}`);
-                                        }}
-                                        className="h-9 px-4 rounded-xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase text-[9px] tracking-wider flex items-center gap-2 border-none"
-                                    >
-                                        <Ruler size={13} />
-                                        Update Fitting
-                                    </Button>
-                                </div>
+                        {/* Recent Fitment Card */}
+                        <div className="p-8 bg-zinc-900 text-white rounded-[2.5rem] shadow-xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div className="space-y-2 relative z-10">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#E03E40]">Recent Production Fit</span>
+                                <h3 className="text-3xl font-black italic tracking-tighter">
+                                    {latestMeasurement ? latestMeasurement.suggested_size : 'No Measurements Taken'}
+                                </h3>
+                                <p className="text-xs text-zinc-400 max-w-sm">
+                                    {latestMeasurement 
+                                        ? `Last updated on ${formatDate(latestMeasurement.recorded_at)} with customized grading metrics.`
+                                        : 'Take digital measurements to calculate tailored grading and production blueprints.'}
+                                </p>
                             </div>
-                        )}
+                            <Button
+                                onClick={() => setActiveTab('measurements')}
+                                className="relative z-10 px-8 py-4 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase text-xs tracking-widest border-none shadow-xl shadow-[#C82A2B]/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                            >
+                                View Specs
+                            </Button>
+                        </div>
                     </div>
                 ) : (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                        <div className="flex items-center justify-between">
+                        <div className="flex justify-between items-center">
                             <div>
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Measurement Audit Trail</h3>
-                                <p className="text-[9px] text-slate-400 font-medium">Active measurements are reused for repeat orders. Add a new fitting if sizing changes.</p>
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">Historical Metric Logs</h4>
+                                <p className="text-xs text-slate-400 mt-1">Audit log of all anatomical parameters recorded over time</p>
                             </div>
                             <Button
-                                onClick={() => {
-                                    onClose();
-                                    router.push(`/measurements/entry?studentId=${member.id}`);
-                                }}
-                                className="h-10 px-5 rounded-2xl bg-[#2d8d9b] hover:bg-[#3a525d] text-white font-black uppercase text-[10px] tracking-widest flex items-center gap-2 border-none shadow-md shadow-[#2d8d9b]/20"
+                                onClick={() => router.push(`/measurements?memberId=${member.id}`)}
+                                className="h-10 px-5 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase text-[10px] tracking-widest flex items-center gap-2 border-none shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                             >
                                 <Ruler size={14} />
                                 {history.length > 0 ? 'Update / Log New Fitting' : 'Capture Measurement'}
@@ -280,7 +258,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                         </div>
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
+                                <Loader2 className="animate-spin text-[#C82A2B]" size={40} />
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fetching Audit History...</p>
                             </div>
                         ) : history.length === 0 ? (
@@ -296,10 +274,10 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                         ) : (
                             <div className="space-y-6">
                                 {history.map((h, idx) => (
-                                    <div key={h.id} className="group bg-white p-6 rounded-[2.5rem] border border-slate-200 hover:border-[#2d8d9b] transition-all hover:shadow-xl hover:shadow-[#2d8d9b]/5">
+                                    <div key={h.id} className="group bg-white p-6 rounded-[2.5rem] border border-slate-200 hover:border-[#C82A2B]/40 transition-all hover:shadow-xl hover:shadow-[#C82A2B]/5">
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#2d8d9b]/10 group-hover:text-[#2d8d9b] transition-all">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#FFF1F1] group-hover:text-[#9E1B1D] transition-all">
                                                     <Ruler size={24} />
                                                 </div>
                                                 <div>
@@ -310,7 +288,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <span className="text-2xl font-black italic text-[#3a525d] leading-none">{h.suggested_size}</span>
+                                                <span className="text-2xl font-black italic text-zinc-900 leading-none">{h.suggested_size}</span>
                                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1.5">SUGGESTED SIZE</p>
                                             </div>
                                         </div>
@@ -331,8 +309,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ isOpen, 
                                         </div>
 
                                         {h.notes && (
-                                            <div className="mt-6 p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
-                                                <p className="text-[10px] font-bold text-orange-800 leading-relaxed italic">"{h.notes}"</p>
+                                            <div className="mt-6 p-4 bg-[#FFF1F1]/70 rounded-2xl border border-[#C82A2B]/15">
+                                                <p className="text-[10px] font-bold text-[#9E1B1D] leading-relaxed italic">"{h.notes}"</p>
                                             </div>
                                         )}
                                     </div>

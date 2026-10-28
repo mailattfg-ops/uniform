@@ -103,10 +103,10 @@ export default function DashboardLayout({
 
   if (isAuthChecking) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#030303]">
+      <div className="flex h-screen w-full items-center justify-center bg-[#09090B]">
         <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 border-4 border-[#CC9448]/30 border-t-[#CC9448] rounded-full animate-spin shadow-2xl" />
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#CC9448] opacity-50">Checking Authorization</p>
+          <div className="w-16 h-16 border-4 border-[#C82A2B]/30 border-t-[#C82A2B] rounded-full animate-spin shadow-2xl" />
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#C82A2B] opacity-70">Checking Authorization</p>
         </div>
       </div>
     );
