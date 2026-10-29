@@ -1971,75 +1971,13 @@ export default function ProductManagement() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Readymades</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Readymades</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">Readymades Specification Hub</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-80">Readymades Specification Hub</p>
         </div>
         
         {/* Catalog Navigation & Actions */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* More Options Dropdown (Product Categories, ART Number Hub, Design Numbers) */}
-          <div className="relative" ref={moreHubsRef}>
-            <button
-              type="button"
-              onClick={() => setIsMoreHubsOpen(prev => !prev)}
-              className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] text-[#3a525d] hover:text-[#2d8d9b] rounded-[1.25rem] font-black uppercase tracking-[0.12em] text-[10px] shadow-xs flex items-center gap-2.5 transition-all cursor-pointer"
-            >
-              <Layers size={16} className="text-[#2d8d9b]" />
-              <span>More Options</span>
-              <ChevronDown size={14} className={`transition-transform duration-200 ${isMoreHubsOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isMoreHubsOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-zinc-200 p-2 z-30 animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-3 py-2 border-b border-zinc-100 mb-1">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Catalog Management</p>
-                </div>
-                <Link
-                  href="/admin/product-types"
-                  onClick={() => setIsMoreHubsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#2d8d9b]/10 text-[#3a525d] hover:text-[#2d8d9b] transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b] transition-colors">
-                    <FolderTree size={16} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black">Product Categories</p>
-                    <p className="text-[10px] text-zinc-400 font-medium">Garment & Product Types</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/admin/art-number-hub"
-                  onClick={() => setIsMoreHubsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#C82A2B]/10 text-[#3a525d] hover:text-[#C82A2B] transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#C82A2B]/20 flex items-center justify-center text-[#C82A2B] transition-colors">
-                    <Bookmark size={16} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black">ART Number Hub</p>
-                    <p className="text-[10px] text-zinc-400 font-medium">Prefixes, Patterns & Fits</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/admin/design-numbers"
-                  onClick={() => setIsMoreHubsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#2d8d9b]/10 text-[#3a525d] hover:text-[#2d8d9b] transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 group-hover:bg-[#2d8d9b]/20 flex items-center justify-center text-[#2d8d9b] transition-colors">
-                    <Sparkles size={16} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black">Design Numbers</p>
-                    <p className="text-[10px] text-zinc-400 font-medium">DNS & DNG Configs</p>
-                  </div>
-                </Link>
-              </div>
-            )}
-          </div>
-
           <Button
             onClick={() => {
               setEditingProduct(null);
@@ -2063,6 +2001,26 @@ export default function ProductManagement() {
             printLabel="Print Readymades"
             onUserReport={() => userReportTriggerRef.current?.()}
             userReportLabel="My Updated Report"
+            extraActions={[
+              {
+                label: 'Product Categories',
+                description: 'Garment & Product Types',
+                href: '/admin/product-types',
+                icon: <FolderTree size={16} className="text-[#9E1B1D]" />
+              },
+              {
+                label: 'ART Number Hub',
+                description: 'Prefixes, Patterns & Fits',
+                href: '/admin/art-number-hub',
+                icon: <Bookmark size={16} className="text-[#9E1B1D]" />
+              },
+              {
+                label: 'Design Numbers',
+                description: 'DNS & DNG Configs',
+                href: '/admin/design-numbers',
+                icon: <Sparkles size={16} className="text-[#9E1B1D]" />
+              }
+            ]}
           />
         </div>
       </div>
