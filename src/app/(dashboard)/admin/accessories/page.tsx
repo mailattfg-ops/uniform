@@ -8,7 +8,6 @@ import {
   Edit2, 
   Trash2, 
   Search, 
-  RotateCw, 
   X,
   Package,
   Layers,
@@ -1392,15 +1391,6 @@ export default function AccessoriesAndTradeCatalogPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <button 
-            onClick={fetchCatalogData}
-            disabled={isLoading}
-            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-zinc-800 shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-            title="Refresh Catalog"
-          >
-            <RotateCw size={15} className={isLoading ? 'animate-spin text-[#9E1B1D]' : 'text-zinc-800'} />
-            Sync
-          </button>
 
           <button 
             onClick={() => setIsManageCatModalOpen(true)}

@@ -549,19 +549,7 @@ function DesignNumbersContent() {
       {/* Search and Dropdown Filter Bar */}
       <div className="bg-white border border-[#fce4d4] rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
         
-        {/* Search */}
-        <div className="relative group w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/60 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-          <input 
-            type="text" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search"
-            className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-4 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d]"
-          />
-        </div>
-
-        {/* Filters */}
+        {/* Filters on Left */}
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
           
           {/* USER'S REQUEST: Dropdown Filter for DNS / DNG */}
@@ -614,6 +602,18 @@ function DesignNumbersContent() {
             </button>
           </div>
 
+        </div>
+
+        {/* Search on Right */}
+        <div className="relative group w-full md:w-96 md:ml-auto">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/60 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
+          <input 
+            type="text" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search"
+            className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-12 pr-4 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d]"
+          />
         </div>
       </div>
 

@@ -27,6 +27,7 @@ const SIZE_FABRIC_MULTIPLIERS: Record<string, number> = {
 
 interface QuotationWizardProps {
   editingQuotationId: number | null;
+  initialOrgId?: number | string | null;
   organizations: Organization[];
   productTypes: ProductType[];
   fabricsList: any[];
@@ -44,6 +45,7 @@ interface QuotationWizardProps {
 
 export default function QuotationWizard({
   editingQuotationId,
+  initialOrgId,
   organizations,
   productTypes,
   fabricsList,
@@ -649,6 +651,12 @@ export default function QuotationWizard({
     }
   };
 
+  useEffect(() => {
+    if (!editingQuotationId && initialOrgId && organizations.length > 0) {
+      handleOrgSelection(String(initialOrgId));
+    }
+  }, [editingQuotationId, initialOrgId, organizations.length]);
+
   const handleStep1Next = () => {
     if (!isSetType) {
       // Clear selected departments for Normal/Flat types
@@ -1217,6 +1225,7 @@ export default function QuotationWizard({
             thread_id: item.thread_id || null,
             trims: item.trims || [],
             design_number: item.design_number || null,
+            materials: item.materials || actualProduct?.materials || null,
             size_breakdown: {
               is_manual: true,
               department_id: dept.id,
@@ -1245,7 +1254,8 @@ export default function QuotationWizard({
               art_number: item.art_number || actualProduct?.art_number || null,
               computed_unit_cost: price,
               selected_size: item.size_breakdown?.selected_size || null,
-              is_accessory: isAccessory
+              is_accessory: isAccessory,
+              materials: item.materials || actualProduct?.materials || null
             },
             fabric_cost_per_item: isAccessory ? 0 : (
               ((item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost))) ? parseFloat(item.main_fabric_cost) : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id)) +
@@ -1308,8 +1318,10 @@ export default function QuotationWizard({
                 computed_unit_cost: unitCost,
                 is_readymade: true,
                 is_accessory: isAccessory,
-                selected_size: item.size_breakdown?.selected_size || null
+                selected_size: item.size_breakdown?.selected_size || null,
+                materials: item.materials || actualProduct?.materials || null
               },
+              materials: item.materials || actualProduct?.materials || null,
               fabric_cost_per_item: 0,
               accessories_cost_per_item: isAccessory ? unitCost : 0,
               labor_cost_per_item: 0

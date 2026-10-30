@@ -1000,7 +1000,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               }}
               printLabel="Print Fabrics"
               onUserReport={() => userReportTriggerRef.current?.()}
-              userReportLabel="My Updated Report"
+              userReportLabel="My Report"
             />
           )}
         </div>

@@ -729,27 +729,22 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[150px] max-w-[200px] whitespace-nowrap',
+      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
-          <div className="flex items-center gap-2 min-w-0 max-w-[190px]">
-            <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
-              <ShieldCheck size={13} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#3a525d] truncate block" title={l.employees.full_name}>
-                {l.employees.full_name}
-              </p>
+          <div className="min-w-0 max-w-[190px]">
+            <p className="text-xs font-bold text-zinc-800 truncate block" title={l.employees.full_name}>
+              {l.employees.full_name}
+            </p>
+            {l.employees.employee_id && (
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
                 {l.employees.employee_id}
               </p>
-            </div>
+            )}
           </div>
         ) : (
-          <span className="px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
-            Unassigned
-          </span>
+          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
         )
       )
     },
@@ -1022,7 +1017,7 @@ export default function LeadsRegistryPage() {
             }}
             printLabel="Print Leads"
             onUserReport={() => userReportTriggerRef.current?.()}
-            userReportLabel="My Updated Report"
+            userReportLabel="My Report"
           />
         </div>
       </div>

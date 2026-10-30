@@ -247,14 +247,14 @@ export default function QuotationList({
         return (
           <div className="flex flex-col min-w-0 max-w-[190px]">
             {person && (
-              <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${title ? title + ' ' : ''}${person}${desig ? ` (${desig})` : ''}`}>
+              <span className="text-xs font-bold text-zinc-800 truncate block" title={`${title ? title + ' ' : ''}${person}${desig ? ` (${desig})` : ''}`}>
                 {title ? `${title} ` : ''}{person}
               </span>
             )}
             {ph ? (
               <a
                 href={`tel:${ph}`}
-                className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors mt-0.5"
+                className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-zinc-800 hover:text-[#2d8d9b] transition-colors mt-0.5"
                 title={`Call ${ph}`}
               >
                 <Phone size={11} className="text-[#2d8d9b] shrink-0" />
@@ -278,7 +278,7 @@ export default function QuotationList({
         return sp ? (
           <div className="flex items-center gap-1.5 min-w-0 max-w-[180px]">
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#3a525d] truncate block" title={sp.name}>
+              <p className="text-xs font-bold text-zinc-800 truncate block" title={sp.name}>
                 {sp.name}
               </p>
               {sp.code && (
@@ -289,9 +289,7 @@ export default function QuotationList({
             </div>
           </div>
         ) : (
-          <span className="px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
-            Unassigned
-          </span>
+          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
         );
       }
     },
@@ -539,7 +537,7 @@ export default function QuotationList({
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
             >
               <option value="ALL">All Branches ({quotations.length})</option>
               {branches.map((b) => {
@@ -556,7 +554,7 @@ export default function QuotationList({
             <select
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value as any)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
             >
               <option value="all">All Quote ({counts.all})</option>
               <option value="pending_bm">Waiting for BM's Approval ({counts.pending_bm})</option>
@@ -569,7 +567,7 @@ export default function QuotationList({
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
             >
               <option value="ALL">All Zones ({quotations.length})</option>
               {availableFilterZones.map(z => {
@@ -586,7 +584,7 @@ export default function QuotationList({
             <select
               value={selectedIndustry}
               onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
+              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
             >
               <option value="ALL">All Sectors ({quotations.length})</option>
               {industries.map((ind) => {

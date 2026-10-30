@@ -47,6 +47,9 @@ export interface TaxInvoiceData {
   tax_amount?: number;
   total_amount?: number;
   paid_amount?: number;
+  existing_credits?: number;
+  due_amount?: number;
+  remaining_amount?: number;
   payment_status?: string;
   is_tax_inclusive?: boolean;
   notes?: string;
@@ -234,7 +237,7 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
 
   const halfTax = totalTaxCalculated / 2;
 
-  // Amount in words
+  // Amount in words reflects complete invoice total
   const amountWords = numberToWordsINR(grandTotal);
 
   return (

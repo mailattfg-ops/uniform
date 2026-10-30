@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
-import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, Layers, FolderTree, Bookmark, Sparkles, X, AlertTriangle, CheckCircle2, Info, ExternalLink, Scissors, FileText, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Copy, Check, Layers, FolderTree, Bookmark, Sparkles, X, AlertTriangle, CheckCircle2, Info, ExternalLink, Scissors, FileText, MoreHorizontal, Ruler } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { splitSpecificationLines, formatSpecificationDisplay } from '@/lib/formatters';
 
 interface RemarkEntry {
   title: string;
+  text?: string;
   changes: string;
   added: string;
   removed: string;
@@ -123,15 +125,150 @@ const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patte
 };
 
 export const parseMaterialsField = (rawText: string | undefined | null) => {
-  if (!rawText) return { type: '', materials: '' };
-  const match = rawText.match(/^\[ProductType:\s*([^\]]+)\]\s*(.*)$/i);
-  if (match) {
-    return { type: match[1], materials: match[2] };
+  if (!rawText) return { type: '', materials: '', description: '' };
+  let text = String(rawText);
+  let description = '';
+  const descMatch = text.match(/\[Description:\s*([^\]]+)\]/i);
+  if (descMatch) {
+    description = descMatch[1].trim();
+    text = text.replace(/\[Description:\s*([^\]]+)\]/i, '').trim();
   }
-  return { type: '', materials: rawText };
+  let type = '';
+  const typeMatch = text.match(/\[ProductType:\s*([^\]]+)\]/i);
+  if (typeMatch) {
+    type = typeMatch[1].trim();
+    text = text.replace(/\[ProductType:\s*([^\]]+)\]/i, '').trim();
+  }
+  // Strip any remaining bracket tags
+  text = text.replace(/\[[A-Za-z0-9_]+:\s*[^\]]+\]\s*/gi, '').trim();
+  return { type, materials: text, description };
 };
 
 
+
+
+const MultiLineSpecificationEditor: React.FC<{
+  lines: string[];
+  onChange: (lines: string[]) => void;
+}> = ({ lines, onChange }) => {
+  const effectiveLines = lines && lines.length > 0 ? lines : [''];
+
+  const handleLineChange = (index: number, val: string) => {
+    // If text containing newlines or slashes was pasted, auto-split
+    if (val.includes('\n')) {
+      const parts = val.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        const next = [...effectiveLines];
+        next.splice(index, 1, ...parts);
+        onChange(next);
+        return;
+      }
+    }
+    const next = [...effectiveLines];
+    next[index] = val;
+    onChange(next);
+  };
+
+  const handleAddLine = () => {
+    onChange([...effectiveLines, '']);
+  };
+
+  const handleRemoveLine = (index: number) => {
+    if (effectiveLines.length <= 1) {
+      onChange(['']);
+      return;
+    }
+    const next = effectiveLines.filter((_, i) => i !== index);
+    onChange(next);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const next = [...effectiveLines];
+      next.splice(index + 1, 0, '');
+      onChange(next);
+    }
+  };
+
+  return (
+    <div className="space-y-3 p-5 bg-zinc-50/70 rounded-3xl border border-zinc-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">
+            Specifications & Materials (Multi-Line)
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-200/60 text-zinc-600">
+            {effectiveLines.filter(Boolean).length} {effectiveLines.filter(Boolean).length === 1 ? 'Line' : 'Lines'}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleAddLine}
+          className="h-8 px-3.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-[#C82A2B]/20 active:scale-95 cursor-pointer"
+        >
+          <Plus size={14} strokeWidth={3} />
+          Add Line
+        </button>
+      </div>
+
+      <p className="text-[10px] text-zinc-500 font-medium">
+        Enter each specification feature on a separate line (e.g. Fabric Composition, Fabric GSM, Weave / Texture, Special Treatment). These will be displayed separated by &ldquo; / &rdquo; across catalogs and quotation documents.
+      </p>
+
+      <div className="space-y-2">
+        {effectiveLines.map((line, idx) => (
+          <div key={idx} className="flex items-center gap-2 group">
+            <span className="w-6 text-center text-[10px] font-mono font-bold text-zinc-400">
+              {idx + 1}.
+            </span>
+            <input
+              type="text"
+              value={line}
+              onChange={(e) => handleLineChange(idx, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, idx)}
+              placeholder={
+                idx === 0
+                  ? "Line 1 (e.g. 100% Combed Cotton)"
+                  : idx === 1
+                  ? "Line 2 (e.g. 180 GSM Single Jersey Knit)"
+                  : idx === 2
+                  ? "Line 3 (e.g. Bio-washed & Pre-shrunk)"
+                  : `Line ${idx + 1} (e.g. Anti-pilling finish)`
+              }
+              className="flex-1 h-11 bg-white border border-zinc-200 rounded-xl px-3.5 text-xs font-semibold text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => handleRemoveLine(idx)}
+              className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              title="Remove Line"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-1 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={handleAddLine}
+          className="text-xs font-bold text-[#C82A2B] hover:text-[#9E1B1D] inline-flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-[#C82A2B]/5 transition cursor-pointer"
+        >
+          <Plus size={14} strokeWidth={2.5} />
+          <span>Add another specification line</span>
+        </button>
+        {effectiveLines.some(l => l.trim()) && (
+          <div className="text-[10px] font-mono text-zinc-500 truncate max-w-md">
+            <span className="font-bold text-zinc-400">Preview: </span>
+            {effectiveLines.filter(l => l.trim()).join(' / ')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const MultiEntryInput: React.FC<{
   value: string;
@@ -730,8 +867,17 @@ export default function ProductManagement() {
 
   // Product Details Modal & Action Dropdown states
   const [selectedProductForDetails, setSelectedProductForDetails] = useState<Product | null>(null);
+  const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isCopiedArtNo, setIsCopiedArtNo] = useState(false);
   const [isDetailsActionsOpen, setIsDetailsActionsOpen] = useState(false);
   const detailsActionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setActiveDetailImageIndex(0);
+    setIsLightboxOpen(false);
+    setIsCopiedArtNo(false);
+  }, [selectedProductForDetails]);
 
   // Top header More Options dropdown state
   const [isMoreHubsOpen, setIsMoreHubsOpen] = useState(false);
@@ -749,6 +895,7 @@ export default function ProductManagement() {
 
   // Local state for dynamic form reactivity
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['manual']);
+  const [specLines, setSpecLines] = useState<string[]>(['']);
   const [selectedDress, setSelectedDress] = useState('');
   const [selectedGender, setSelectedGender] = useState('');
   const [selectedPattern, setSelectedPattern] = useState('');
@@ -757,7 +904,7 @@ export default function ProductManagement() {
   const [selectedButtonId, setSelectedButtonId] = useState('');
   const [selectedThreadId, setSelectedThreadId] = useState('');
   const [baseSize, setBaseSize] = useState('');
-  const [fit, setFit] = useState('');
+  const [fit, setFit] = useState('Regular Fit');
   const [allowance, setAllowance] = useState('');
   const [nextPatternCode, setNextPatternCode] = useState('');
   const [productType, setProductType] = useState('');
@@ -912,14 +1059,7 @@ export default function ProductManagement() {
       setSelectedButtonId(editingProduct.button_id?.toString() || '');
       setSelectedThreadId(editingProduct.thread_id?.toString() || '');
       setBaseSize(editingProduct.base_size || '');
-      if (editingProduct.fit) {
-        setFit(editingProduct.fit);
-      } else if (parsed.fitCode) {
-        const matched = fitsList.find(f => f.code === parsed.fitCode);
-        setFit(matched ? matched.name : (parsed.fitCode === 'S' ? 'Slim Fit' : parsed.fitCode === 'L' ? 'Loose Fit' : 'Regular Fit'));
-      } else {
-        setFit('');
-      }
+      setFit(editingProduct.fit || 'Regular Fit');
       setAllowance(editingProduct.allowance ? String(editingProduct.allowance) : (parsed.allowance || ''));
       setOtherSizes(editingProduct.other_sizes || '');
       setOtherFits(editingProduct.other_fits || '');
@@ -977,7 +1117,10 @@ export default function ProductManagement() {
 
       const parsedMat = parseMaterialsField(editingProduct.materials);
       setProductType(parsedMat.type || '');
+      const parsedLines = splitSpecificationLines(parsedMat.materials);
+      setSpecLines(parsedLines.length > 0 ? parsedLines : ['']);
     } else {
+      setSpecLines(['']);
       setSelectedMethods(['manual']);
       setSelectedDress('');
       setSelectedGender('');
@@ -987,7 +1130,7 @@ export default function ProductManagement() {
       setSelectedButtonId('');
       setSelectedThreadId('');
       setBaseSize('');
-      setFit('');
+      setFit('Regular Fit');
       setAllowance('');
       setOtherSizes('');
       setOtherFits('');
@@ -1079,6 +1222,16 @@ export default function ProductManagement() {
       required: true
     },
     {
+      name: 'allowance',
+      label: 'Allowance (inches)',
+      type: 'text',
+      placeholder: 'e.g. 2 or 1.5',
+      required: false,
+      value: allowance,
+      onChange: (val) => setAllowance(val),
+      hidden: productType === 'accessories'
+    },
+    {
       name: 'art_number',
       label: 'Generated Art Number',
       type: 'text',
@@ -1086,14 +1239,12 @@ export default function ProductManagement() {
         if (!selectedDress || !selectedGender) return '';
         const patRaw = (selectedPattern || nextPatternCode || '001').trim();
         const pat = /^\d+$/.test(patRaw) && patRaw.length < 3 ? patRaw.padStart(3, '0') : patRaw;
-        const fitCode = fit
-          ? (fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase())?.code || (fit.toLowerCase().includes('slim') ? 'S' : fit.toLowerCase().includes('loose') ? 'L' : 'R'))
-          : 'R';
+        const fitCode = 'R';
         const cleanAllowance = allowance && allowance.trim() ? allowance.trim() : '';
         return `${selectedDress}-${selectedGender}${pat}-${fitCode}${cleanAllowance}`;
       })(),
       readOnly: true,
-      placeholder: 'Will generate automatically from Prefix, Gender, Pattern, Fit & Allowance (e.g. 4J-1012-R2)...',
+      placeholder: 'Will generate automatically from Prefix, Gender, Pattern & Allowance (e.g. 4J-1012-R2)...',
       required: true
     },
     {
@@ -1105,19 +1256,24 @@ export default function ProductManagement() {
       defaultValue: editingProduct?.name
     },
     {
+      name: 'materials',
+      label: 'Specifications',
+      type: 'custom',
+      className: 'md:col-span-2',
+      defaultValue: specLines,
+      render: () => (
+        <MultiLineSpecificationEditor
+          lines={specLines}
+          onChange={(newLines) => setSpecLines(newLines)}
+        />
+      )
+    },
+    {
       name: 'description',
       label: 'Description',
       type: 'textarea',
       placeholder: 'Enter product description, styling details, care instructions...',
-      defaultValue: editingProduct?.description || '',
-      className: 'md:col-span-2'
-    },
-    {
-      name: 'materials',
-      label: 'Specifications',
-      type: 'textarea',
-      placeholder: 'e.g. 100% Combed Cotton, 180 GSM, Single Jersey Knit',
-      defaultValue: parseMaterialsField(editingProduct?.materials).materials,
+      defaultValue: editingProduct?.description || parseMaterialsField(editingProduct?.materials).description || '',
       className: 'md:col-span-2'
     },
     {
@@ -1128,36 +1284,6 @@ export default function ProductManagement() {
       required: false,
       value: baseSize,
       onChange: (val) => setBaseSize(val)
-    },
-
-    {
-      name: 'fit',
-      label: 'Base Fit',
-      type: 'select',
-      options: [
-        { label: 'Select Fit Type', value: '' },
-        ...(fitsList.length > 0
-          ? fitsList.map(f => ({ label: `[${f.code}] ${f.name}`, value: f.name }))
-          : [
-            { label: '[R] Regular Fit', value: 'Regular Fit' },
-            { label: '[S] Slim Fit', value: 'Slim Fit' },
-            { label: '[L] Loose Fit', value: 'Loose Fit' }
-          ])
-      ],
-      required: false,
-      value: fit,
-      onChange: (val) => setFit(val),
-      hidden: productType === 'accessories'
-    },
-    {
-      name: 'allowance',
-      label: 'Allowance (inches)',
-      type: 'text',
-      placeholder: 'e.g. 2 or 1.5',
-      required: false,
-      value: allowance,
-      onChange: (val) => setAllowance(val),
-      hidden: productType === 'accessories'
     },
     {
       name: 'other_sizes',
@@ -1173,22 +1299,6 @@ export default function ProductManagement() {
         />
       ),
       defaultValue: otherSizes,
-      required: false
-    },
-    {
-      name: 'other_fits',
-      label: 'Other Fits',
-      type: 'custom',
-      className: 'md:col-span-2',
-      render: (val, onChange) => (
-        <MultiEntryInput
-          value={otherFits}
-          onChange={(newVal) => setOtherFits(newVal)}
-          placeholder="Type a fit (e.g. Loose Fit, Comfort Fit) and press Enter"
-          buttonText="Add Fit"
-        />
-      ),
-      defaultValue: otherFits,
       required: false
     },
     {
@@ -1302,7 +1412,10 @@ export default function ProductManagement() {
       type: 'select',
       options: [
         { label: 'Select Preferred Chart', value: '' },
-        ...sizeCharts.map(c => ({ label: `${c.name} (${c.category.replace('_', ' ')})`, value: c.id }))
+        ...sizeCharts.map(c => ({
+          label: `${c.name}${c.category ? ` (${c.category.replace('_', ' ')})` : (c.gender ? ` (${c.gender})` : '')}`,
+          value: c.id
+        }))
       ],
       defaultValue: editingProduct?.size_chart_id || '',
       className: 'md:col-span-1',
@@ -1598,7 +1711,7 @@ export default function ProductManagement() {
 
     // Map new fields
     data.other_sizes = otherSizes.trim() || null;
-    data.other_fits = otherFits.trim() || null;
+    data.other_fits = null;
     data.measurement_type = measurementType || 'both';
     data.class_fabric_consumption = data.class_fabric_consumption || {};
     data.remarks = remarks && remarks.length > 0 ? remarks : null;
@@ -1611,15 +1724,7 @@ export default function ProductManagement() {
 
     // Generate dynamic art_number: Option 1 [Prefix]-[Gender][Pattern]-[Fit]-[Allowance] (e.g. 4J-1012-R-2)
     const effectivePattern = selectedPattern || nextPatternCode || '001';
-    let fitCode = 'R';
-    if (fit) {
-      const matched = fitsList.find(f => f.name.toLowerCase() === fit.toLowerCase() || f.code === fit.toUpperCase());
-      if (matched) {
-        fitCode = matched.code;
-      } else {
-        fitCode = fit.toLowerCase().includes('slim') ? 'S' : fit.toLowerCase().includes('loose') ? 'L' : 'R';
-      }
-    }
+    const fitCode = 'R';
     data.pattern_code = effectivePattern;
     const cleanAllowance = allowance ? allowance.trim() : '';
     data.allowance = cleanAllowance || null;
@@ -1645,13 +1750,15 @@ export default function ProductManagement() {
 
     // Set base size and fit
     data.base_size = baseSize.trim() || null;
-    data.fit = productType === 'accessories' ? null : (fit || null);
+    data.fit = productType === 'accessories' ? null : 'Regular Fit';
     data.design_number = null;
 
-    // Serialize product_type into materials
-    const pType = data.product_type || '';
-    const pMats = data.materials || '';
-    data.materials = pType ? `[ProductType: ${pType}] ${pMats}` : pMats;
+    // Clean specifications and set product_type
+    const pType = data.product_type || productType || 'readymade';
+    data.product_type = pType;
+    const cleanSpecs = (specLines && specLines.length > 0 ? specLines : (Array.isArray(data.materials) ? data.materials : splitSpecificationLines(data.materials))).map((s: string) => s.trim()).filter(Boolean);
+    const pMats = cleanSpecs.join('\n');
+    data.materials = (pType && pType !== 'readymade') ? `[ProductType: ${pType}] ${pMats}` : pMats;
 
     try {
       if (editingProduct) {
@@ -1871,20 +1978,11 @@ export default function ProductManagement() {
     {
       header: 'Item Name',
       accessor: (p) => (
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 bg-zinc-50 rounded-2xl flex items-center justify-center text-[#3a525d] border border-zinc-100 shadow-inner overflow-hidden flex-shrink-0">
-            {p.images && p.images.length > 0 ? (
-              <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-            ) : (
-              <Box size={20} className="text-[#2d8d9b]" />
-            )}
-          </div>
-          <div>
-            <p className="font-black text-sm tracking-tight text-[#3a525d]">{p.name}</p>
-            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-              {p.product_types?.name || p.category?.replace('_', ' ') || ''}
-            </span>
-          </div>
+        <div>
+          <p className="font-black text-sm tracking-tight text-zinc-900">{p.name}</p>
+          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+            {p.product_types?.name || p.category?.replace('_', ' ') || ''}
+          </span>
         </div>
       ),
       sortValue: (p) => p.name
@@ -1921,7 +2019,7 @@ export default function ProductManagement() {
     {
       header: 'Specifications',
       accessor: (p) => {
-        const spec = parseMaterialsField(p.materials).materials || p.materials || '—';
+        const spec = formatSpecificationDisplay(p.materials);
         return (
           <div className="max-w-xs">
             <p className="text-xs font-medium text-zinc-600 line-clamp-2" title={spec}>
@@ -1930,7 +2028,7 @@ export default function ProductManagement() {
           </div>
         );
       },
-      sortValue: (p) => parseMaterialsField(p.materials).materials || p.materials || ''
+      sortValue: (p) => formatSpecificationDisplay(p.materials)
     },
     {
       header: 'Base Size',
@@ -2000,7 +2098,7 @@ export default function ProductManagement() {
             }}
             printLabel="Print Readymades"
             onUserReport={() => userReportTriggerRef.current?.()}
-            userReportLabel="My Updated Report"
+            userReportLabel="My Report"
             extraActions={[
               {
                 label: 'Product Categories',
@@ -2078,383 +2176,591 @@ export default function ProductManagement() {
       />
 
       {/* Product Details Modal */}
-      {selectedProductForDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl border border-zinc-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-zinc-150 flex items-start justify-between gap-4 bg-gradient-to-r from-zinc-50/80 to-white">
-              <div>
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="px-3 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/25 rounded-xl text-xs font-mono font-black text-[#2d8d9b] tracking-wider">
-                    {selectedProductForDetails.art_number || 'NO ART NUMBER'}
-                  </span>
-                  <span className="px-2.5 py-1 bg-[#fce4d4]/60 border border-[#fce4d4] text-[#3a525d] rounded-xl text-[10px] font-black uppercase tracking-wider">
-                    {selectedProductForDetails.gender || 'Universal'}
-                  </span>
-                  <span className="px-2.5 py-1 bg-zinc-100 border border-zinc-200 text-[#3a525d] rounded-xl text-[10px] font-black uppercase tracking-wider">
-                    {getResolvedProductTypeName(selectedProductForDetails)}
-                  </span>
-                  {selectedProductForDetails.base_size && (
-                    <span className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-[10px] font-black uppercase tracking-wider">
-                      Base Size: {selectedProductForDetails.base_size}
-                    </span>
-                  )}
-                  {selectedProductForDetails.fit && (
-                    <span className="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-[10px] font-black uppercase tracking-wider">
-                      Fit: {selectedProductForDetails.fit}
-                    </span>
-                  )}
-                </div>
-                <h2 className="text-2xl font-black italic tracking-tight text-[#3a525d]">
-                  {selectedProductForDetails.name}
-                </h2>
-              </div>
+      {selectedProductForDetails && (() => {
+        const productImages: string[] = (() => {
+          const imgs = selectedProductForDetails.images;
+          if (!imgs) return [];
+          if (Array.isArray(imgs)) {
+            return imgs.filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
+          }
+          if (typeof imgs === 'string') {
+            try {
+              const parsed = JSON.parse(imgs);
+              if (Array.isArray(parsed)) return parsed.filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
+            } catch {
+              return (imgs as string).split(',').map(s => s.trim()).filter(Boolean);
+            }
+          }
+          return [];
+        })();
 
-              {/* Action Dropdown & Close Button */}
-              <div className="flex items-center gap-2">
-                <div className="relative" ref={detailsActionsRef}>
+        const currentActiveImg = productImages[activeDetailImageIndex] || productImages[0] || null;
+        const mainFabricDetails = getFabricDetails(selectedProductForDetails.main_fabric || selectedProductForDetails.main_fabric_id);
+        const resolvedTypeName = getResolvedProductTypeName(selectedProductForDetails);
+        const parsedSpec = parseMaterialsField(selectedProductForDetails.materials).materials || selectedProductForDetails.materials || '';
+
+        return (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={() => {
+              setSelectedProductForDetails(null);
+              setIsDetailsActionsOpen(false);
+            }}
+          >
+            <div 
+              className="bg-white w-full max-w-5xl max-h-[92vh] rounded-[2rem] shadow-2xl border border-zinc-200/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-5 sm:p-6 border-b border-zinc-150 flex items-start justify-between gap-4 bg-gradient-to-r from-zinc-50/90 to-white">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 bg-[#C82A2B]/10 border border-[#C82A2B]/20 rounded-xl text-xs font-mono font-black text-[#9E1B1D] tracking-wider inline-flex items-center gap-1.5">
+                      {selectedProductForDetails.art_number || 'NO ART NUMBER'}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedProductForDetails.art_number) {
+                            navigator.clipboard.writeText(selectedProductForDetails.art_number);
+                            setIsCopiedArtNo(true);
+                            setTimeout(() => setIsCopiedArtNo(false), 2000);
+                            toast.success('Art number copied to clipboard');
+                          }
+                        }}
+                        className="text-[#9E1B1D]/60 hover:text-[#9E1B1D] p-0.5 rounded transition cursor-pointer"
+                        title="Copy Art Number"
+                      >
+                        {isCopiedArtNo ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                      </button>
+                    </span>
+
+                    <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                      {selectedProductForDetails.gender || 'Universal'}
+                    </span>
+
+                    <span className="px-2.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                      {resolvedTypeName}
+                    </span>
+
+                    {selectedProductForDetails.base_size && (
+                      <span className="px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                        Base Size: {selectedProductForDetails.base_size}
+                      </span>
+                    )}
+
+                    {selectedProductForDetails.fit && (
+                      <span className="px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                        Fit: {selectedProductForDetails.fit}
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 truncate">
+                    {selectedProductForDetails.name}
+                  </h2>
+                </div>
+
+                {/* Header Actions */}
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setIsDetailsActionsOpen(prev => !prev)}
-                    className="h-10 px-4 bg-[#FEF2F2] hover:bg-red-100/80 text-[#9E1B1D] border border-red-200/90 rounded-xl font-black uppercase tracking-wider text-xs shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+                    onClick={() => {
+                      setEditVerificationProduct(selectedProductForDetails);
+                      setIsDetailsActionsOpen(false);
+                    }}
+                    className="h-10 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-xs shadow-md shadow-[#C82A2B]/20 flex items-center gap-2 transition-all cursor-pointer"
                   >
-                    <span>Actions</span>
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isDetailsActionsOpen ? 'rotate-180' : ''}`} />
+                    <Edit2 size={13} />
+                    <span>Edit Article</span>
                   </button>
 
-                  {isDetailsActionsOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsDetailsActionsOpen(false);
-                          setEditVerificationProduct(selectedProductForDetails);
-                        }}
-                        className="w-full px-4 py-2.5 text-left text-xs font-bold text-[#3a525d] hover:bg-[#2d8d9b]/10 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <Edit2 size={15} />
-                        <span>Edit Article</span>
-                      </button>
+                  <div className="relative" ref={detailsActionsRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsDetailsActionsOpen(prev => !prev)}
+                      className="h-10 w-10 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl text-zinc-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                      title="More Options"
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
 
-                      <div className="h-px bg-zinc-150 my-1" />
+                    {isDetailsActionsOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsDetailsActionsOpen(false);
+                            setDeleteVerification({ step: 1, product: selectedProductForDetails });
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                          <span>Delete Article</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsDetailsActionsOpen(false);
-                          setDeleteVerification({ step: 1, product: selectedProductForDetails });
-                        }}
-                        className="w-full px-4 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={15} />
-                        <span>Delete Article</span>
-                      </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedProductForDetails(null);
+                      setIsDetailsActionsOpen(false);
+                    }}
+                    className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close Details"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                {/* 1. HERO SHOWCASE: Images on Left, Core Specs & Overview on Right */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Visual Photos Gallery */}
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="relative aspect-4/3 sm:aspect-square w-full rounded-2xl bg-zinc-50 border border-zinc-200/90 overflow-hidden flex items-center justify-center group shadow-inner">
+                      {currentActiveImg ? (
+                        <>
+                          <img
+                            src={currentActiveImg}
+                            alt={selectedProductForDetails.name}
+                            className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsLightboxOpen(true)}
+                            className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 hover:bg-black/90 text-white rounded-xl backdrop-blur-xs text-xs font-bold flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                            title="Click to Enlarge Fullscreen"
+                          >
+                            <Maximize2 size={13} />
+                            <span className="text-[10px] font-black uppercase tracking-wider">Enlarge</span>
+                          </button>
+                          {productImages.length > 1 && (
+                            <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/60 text-white text-[10px] font-black uppercase tracking-wider rounded-lg backdrop-blur-xs">
+                              {activeDetailImageIndex + 1} / {productImages.length}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+                          <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mb-2">
+                            <Box size={32} />
+                          </div>
+                          <p className="text-xs font-bold text-zinc-600">No Product Photos</p>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Click "Edit Article" to upload garment photos</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Thumbnail Strip */}
+                    {productImages.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        {productImages.map((imgUrl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveDetailImageIndex(idx)}
+                            className={`w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
+                              activeDetailImageIndex === idx
+                                ? 'border-[#C82A2B] ring-2 ring-[#C82A2B]/20 shadow-sm scale-105'
+                                : 'border-zinc-200 opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Key Identity, Description & Quick Metrics */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* Specifications Card (Brought above Description) */}
+                    <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
+                          <Scissors size={13} className="text-[#C82A2B]" />
+                          Specifications & Materials
+                        </h4>
+                        {(() => {
+                          const lines = splitSpecificationLines(selectedProductForDetails.materials);
+                          if (lines.length <= 0) return null;
+                          return (
+                            <span className="text-[10px] font-mono font-bold text-zinc-400">
+                              {lines.length} {lines.length === 1 ? 'Spec' : 'Specs'}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      {(() => {
+                        const lines = splitSpecificationLines(selectedProductForDetails.materials);
+                        if (lines.length > 0) {
+                          return (
+                            <div className="space-y-1.5 pt-0.5">
+                              {lines.map((line, idx) => (
+                                <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-zinc-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] mt-1.5 shrink-0" />
+                                  <span className="leading-snug">{line}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return (
+                          <p className="text-xs text-zinc-400 italic">No materials or composition specifications entered.</p>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Description Card (Brought below Specifications) */}
+                    <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] mb-1.5 flex items-center gap-1.5">
+                        <FileText size={13} className="text-[#C82A2B]" />
+                        Product Description
+                      </h4>
+                      <p className="text-xs text-zinc-700 leading-relaxed font-medium">
+                        {selectedProductForDetails.description || parseMaterialsField(selectedProductForDetails.materials).description || <span className="italic text-zinc-400">No description entered for this article.</span>}
+                      </p>
+                    </div>
+
+                    {/* Quick Metric Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      <div className="p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Art Number</p>
+                        <p className="text-xs font-mono font-black text-zinc-900 mt-0.5 truncate">{selectedProductForDetails.art_number || '—'}</p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Design Number</p>
+                        <p className="text-xs font-black text-zinc-800 mt-0.5 truncate">{selectedProductForDetails.design_number || 'Standard'}</p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Base Size</p>
+                        <p className="text-xs font-black text-zinc-800 mt-0.5">{selectedProductForDetails.base_size || '—'}</p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Fit & Allowance</p>
+                        <p className="text-xs font-black text-zinc-800 mt-0.5 truncate">
+                          {selectedProductForDetails.fit || 'Standard'}{selectedProductForDetails.allowance !== null && selectedProductForDetails.allowance !== undefined && selectedProductForDetails.allowance !== '' ? ` (${selectedProductForDetails.allowance}")` : ''}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Standard SAM</p>
+                        <p className="text-xs font-black text-[#9E1B1D] mt-0.5">
+                          {selectedProductForDetails.sam_value ? `${selectedProductForDetails.sam_value} mins` : '—'}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Retail SAM</p>
+                        <p className="text-xs font-black text-[#9E1B1D] mt-0.5">
+                          {selectedProductForDetails.retail_sam_value ? `${selectedProductForDetails.retail_sam_value} mins` : '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. GARMENT MEASUREMENTS & GRADE SPECS SECTION */}
+                {((selectedProductForDetails.measurements && selectedProductForDetails.measurements.length > 0) ||
+                  (selectedProductForDetails.remarks && selectedProductForDetails.remarks.some((r: any) => (r.title || '').toLowerCase().includes('measurement')))) && (() => {
+                  const measureRemark = selectedProductForDetails.remarks?.find((r: any) => 
+                    (r.title || '').toLowerCase().includes('measurement') || (r.text || '').toLowerCase().includes('measurement')
+                  );
+                  
+                  const realMetricPairs: { label: string; value: string }[] = [];
+                  if (measureRemark?.text) {
+                    const lines = measureRemark.text.split('\n');
+                    lines.forEach((l: string) => {
+                      const match = l.match(/[•\-*]?\s*([^:]+):\s*(.+)/);
+                      if (match && !match[1].toLowerCase().includes('real garment')) {
+                        realMetricPairs.push({ label: match[1].trim(), value: match[2].trim() });
+                      }
+                    });
+                  }
+
+                  return (
+                    <div className="space-y-3 pt-2 border-t border-zinc-150">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
+                          <Ruler size={13} className="text-[#C82A2B]" />
+                          Garment Real Measurements & Grade Specs
+                        </h4>
+                        {selectedProductForDetails.base_size && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-[#C82A2B]/10 text-[#9E1B1D]">
+                            Base Size: {selectedProductForDetails.base_size} {selectedProductForDetails.allowance !== null && selectedProductForDetails.allowance !== undefined && selectedProductForDetails.allowance !== '' ? `(Allowance +${selectedProductForDetails.allowance}")` : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Real Garment Measurement Spec Grid */}
+                      {realMetricPairs.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                          {realMetricPairs.map((pair, idx) => (
+                            <div key={idx} className="p-2.5 bg-zinc-50 rounded-xl border border-zinc-200 shadow-2xs">
+                              <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 truncate">{pair.label}</p>
+                              <p className="text-xs font-mono font-black text-zinc-900 mt-0.5">{pair.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Required Tailor Metric Labels */}
+                      {selectedProductForDetails.measurements && selectedProductForDetails.measurements.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Required Tailor Metrics:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedProductForDetails.measurements.map((metric: string, idx: number) => (
+                              <span key={idx} className="px-2 py-0.5 bg-white border border-zinc-200 rounded-lg text-[10px] font-mono font-bold text-zinc-700 shadow-2xs">
+                                {metric}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 3. FABRICS & BOM SECTION */}
+                <div className="space-y-3 pt-2 border-t border-zinc-150">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D]">
+                    Fabrics & BOM Consumption
+                  </h4>
+                  
+                  {/* Primary Shell Fabric */}
+                  <div className="p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <span className="px-2 py-0.5 bg-[#C82A2B]/10 text-[#9E1B1D] rounded-md text-[9px] font-black uppercase tracking-wider">
+                        Primary Shell Fabric
+                      </span>
+                      <h5 className="text-xs font-black text-zinc-900 mt-1">
+                        {mainFabricDetails?.item_name || mainFabricDetails?.name || 'Primary Fabric Assigned'}
+                      </h5>
+                      <p className="text-[10px] text-zinc-400 font-medium">
+                        {[
+                          mainFabricDetails?.fabric_type && `Type: ${mainFabricDetails.fabric_type}`,
+                          mainFabricDetails?.brand && `Brand: ${mainFabricDetails.brand}`,
+                          mainFabricDetails?.quality_name && `Quality: ${mainFabricDetails.quality_name}`,
+                          mainFabricDetails?.shade && `Shade: ${mainFabricDetails.shade}`,
+                          mainFabricDetails?.width && `Width: ${mainFabricDetails.width}"`
+                        ].filter(Boolean).join(' • ') || 'No extra fabric specs'}
+                      </p>
+                    </div>
+                    {mainFabricDetails?.colour && (
+                      <span className="px-2.5 py-1 bg-white rounded-xl text-xs font-bold text-zinc-700 border border-zinc-200 shadow-2xs">
+                        Colour: {mainFabricDetails.colour}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Attachment Fabrics List */}
+                  {selectedProductForDetails.attachment_fabrics && selectedProductForDetails.attachment_fabrics.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                        Attachment & Contrast Fabrics
+                      </p>
+                      <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-2xl overflow-hidden bg-white">
+                        {selectedProductForDetails.attachment_fabrics.map((att, idx) => {
+                          const attFab = getFabricDetails(att.fabric_id);
+                          return (
+                            <div key={att.id || idx} className="p-3 flex items-center justify-between gap-4 text-xs">
+                              <div>
+                                <p className="font-bold text-zinc-800">{att.role || `Attachment #${idx + 1}`}</p>
+                                <p className="text-[10px] text-zinc-400">{attFab?.item_name || attFab?.name || 'Assigned Fabric'}</p>
+                              </div>
+                              <span className="px-3 py-1 bg-zinc-50 rounded-xl text-xs font-black text-[#9E1B1D] border border-zinc-200">
+                                {att.meters} meters
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Class-wise Fabric Consumption Breakdown */}
+                  {selectedProductForDetails.class_fabric_consumption && typeof selectedProductForDetails.class_fabric_consumption === 'object' && Object.keys(selectedProductForDetails.class_fabric_consumption).length > 0 && (
+                    <div className="space-y-2 mt-3">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                        Class-wise Fabric Consumption Breakdown
+                      </p>
+                      <div className="border border-zinc-200 rounded-2xl overflow-x-auto bg-white">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-400">
+                            <tr>
+                              <th className="p-2.5">Class</th>
+                              <th className="p-2.5">Main Fabric</th>
+                              <th className="p-2.5">Attachment 1</th>
+                              <th className="p-2.5">Attachment 2</th>
+                              <th className="p-2.5">Button Count</th>
+                              <th className="p-2.5">Thread Count</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100 font-medium">
+                            {Object.entries(selectedProductForDetails.class_fabric_consumption)
+                              .filter(([cls]) => !cls.startsWith('_base_'))
+                              .map(([cls, rawValues]: [string, any]) => {
+                                const values = rawValues && typeof rawValues === 'object' ? rawValues : {};
+                                return (
+                                  <tr key={cls} className="hover:bg-zinc-50/60">
+                                    <td className="p-2.5 font-bold text-zinc-900">{cls}</td>
+                                    <td className="p-2.5">{values.main_fabric ? `${values.main_fabric}m` : '—'}</td>
+                                    <td className="p-2.5">{values.attachment_fabric1 ? `${values.attachment_fabric1}m` : '—'}</td>
+                                    <td className="p-2.5">{values.attachment_fabric2 ? `${values.attachment_fabric2}m` : '—'}</td>
+                                    <td className="p-2.5">{values.button_count || '—'}</td>
+                                    <td className="p-2.5">{values.thread_count || '—'}</td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
 
+                {/* 4. TRIMS & ACCESSORIES SPECIFICATION */}
+                <div className="space-y-3 pt-2 border-t border-zinc-150">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D]">
+                    Trims & Accessories Specification
+                  </h4>
+                  {selectedProductForDetails.trims && selectedProductForDetails.trims.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {selectedProductForDetails.trims.map((trim, idx) => (
+                        <div key={trim.id || idx} className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">{trim.category || 'Trim'}</p>
+                            <p className="text-xs font-bold text-zinc-800 mt-0.5">{trim.name || `${trim.category} spec`}</p>
+                          </div>
+                          <span className="px-2.5 py-1 bg-white border border-zinc-200 rounded-xl text-xs font-black text-zinc-900 shadow-2xs">
+                            {trim.count} {trim.uom}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
+                      <p className="text-xs text-zinc-400 italic">No specific trims or accessories configured for this article.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. REVISION HISTORY & REMARKS */}
+                {selectedProductForDetails.remarks && selectedProductForDetails.remarks.length > 0 && (
+                  <div className="space-y-3 pt-2 border-t border-zinc-150">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D]">
+                      Revision History & Remarks
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedProductForDetails.remarks.map((r, idx) => (
+                        <div key={idx} className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 text-xs">
+                          <p className="font-bold text-zinc-900">{r.title || `Revision #${idx + 1}`}</p>
+                          {r.changes && <p className="text-zinc-600 mt-1"><span className="font-bold">Changes:</span> {r.changes}</p>}
+                          {r.added && <p className="text-zinc-600"><span className="font-bold">Added:</span> {r.added}</p>}
+                          {r.removed && <p className="text-zinc-600"><span className="font-bold">Removed:</span> {r.removed}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 px-6 border-t border-zinc-150 bg-zinc-50/70 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-zinc-400">
+                  Registered on: {selectedProductForDetails.created_at ? new Date(selectedProductForDetails.created_at).toLocaleDateString('en-GB') : '—'}
+                </span>
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedProductForDetails(null);
                     setIsDetailsActionsOpen(false);
                   }}
-                  className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
-                  title="Close Details"
+                  className="px-6 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
                 >
-                  <X size={18} />
+                  Close
                 </button>
               </div>
             </div>
+          </div>
+        );
+      })()}
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6">
-              {/* General Information Grid */}
-              <div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mb-3">
-                  Specification Overview
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">ART Number</p>
-                    <p className="text-xs font-mono font-black text-[#2d8d9b] mt-0.5">{selectedProductForDetails.art_number || '—'}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Design Number</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.design_number || 'Standard'}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Gender</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.gender || '—'}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Garment Category</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{getResolvedProductTypeName(selectedProductForDetails)}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Base Size</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.base_size || '—'}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Fit</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5">{selectedProductForDetails.fit || '—'}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Allowance</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5">
-                      {selectedProductForDetails.allowance !== null && selectedProductForDetails.allowance !== undefined && selectedProductForDetails.allowance !== ''
-                        ? `${selectedProductForDetails.allowance}"`
-                        : '—'}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Measurement Type</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5 uppercase">{selectedProductForDetails.measurement_type || 'Both'}</p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Standard SAM</p>
-                    <p className="text-xs font-black text-[#2d8d9b] mt-0.5">
-                      {selectedProductForDetails.sam_value ? `${selectedProductForDetails.sam_value} mins` : '—'}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Retail SAM</p>
-                    <p className="text-xs font-black text-[#2d8d9b] mt-0.5">
-                      {selectedProductForDetails.retail_sam_value ? `${selectedProductForDetails.retail_sam_value} mins` : '—'}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Other Sizes</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5 truncate" title={selectedProductForDetails.other_sizes || 'None'}>
-                      {selectedProductForDetails.other_sizes || '—'}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Other Fits</p>
-                    <p className="text-xs font-black text-[#3a525d] mt-0.5 truncate" title={selectedProductForDetails.other_fits || 'None'}>
-                      {selectedProductForDetails.other_fits || '—'}
-                    </p>
-                  </div>
-                </div>
-              </div>
+      {/* Lightbox Modal (Fullscreen Image Viewer) */}
+      {isLightboxOpen && selectedProductForDetails && (() => {
+        const imgs = (() => {
+          const raw = selectedProductForDetails.images;
+          if (!raw) return [];
+          if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+          if (typeof raw === 'string') {
+            try {
+              const p = JSON.parse(raw);
+              if (Array.isArray(p)) return p.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+            } catch {
+              return (raw as string).split(',').map(s => s.trim()).filter(Boolean);
+            }
+          }
+          return [];
+        })();
+        const activeImg = imgs[activeDetailImageIndex] || imgs[0];
 
-              {/* Description & Specifications Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
-                    <FileText size={14} className="text-[#2d8d9b]" />
-                    Product Description
-                  </h4>
-                  <p className="text-xs text-zinc-600 leading-relaxed font-medium">
-                    {selectedProductForDetails.description || <span className="italic text-zinc-400">No description entered.</span>}
-                  </p>
-                </div>
-
-                <div className="p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-[#3a525d] mb-1.5 flex items-center gap-1.5">
-                    <Scissors size={14} className="text-[#2d8d9b]" />
-                    Specifications / Materials
-                  </h4>
-                  <p className="text-xs text-zinc-600 leading-relaxed font-medium">
-                    {parseMaterialsField(selectedProductForDetails.materials).materials || selectedProductForDetails.materials || (
-                      <span className="italic text-zinc-400">No specifications provided.</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Fabrics & BOM Consumption Section */}
-              <div className="space-y-3">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
-                  Fabrics & Consumption
-                </h4>
-                
-                {/* Main Fabric */}
-                {(() => {
-                  const mFab = getFabricDetails(selectedProductForDetails.main_fabric || selectedProductForDetails.main_fabric_id);
-                  return (
-                    <div className="p-4 bg-white rounded-2xl border border-zinc-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-                      <div>
-                        <span className="px-2 py-0.5 bg-[#2d8d9b]/10 text-[#2d8d9b] rounded-md text-[9px] font-black uppercase tracking-wider">
-                          Primary Shell Fabric
-                        </span>
-                        <h5 className="text-xs font-black text-[#3a525d] mt-1">
-                          {mFab?.item_name || mFab?.name || 'Primary Fabric Assigned'}
-                        </h5>
-                        <p className="text-[10px] text-zinc-400 font-medium">
-                          {[
-                            mFab?.fabric_type && `Type: ${mFab.fabric_type}`,
-                            mFab?.brand && `Brand: ${mFab.brand}`,
-                            mFab?.quality_name && `Quality: ${mFab.quality_name}`,
-                            mFab?.shade && `Shade: ${mFab.shade}`,
-                            mFab?.width && `Width: ${mFab.width}"`
-                          ].filter(Boolean).join(' • ') || 'No extra fabric specs'}
-                        </p>
-                      </div>
-                      {mFab?.colour && (
-                        <span className="px-2.5 py-1 bg-zinc-100 rounded-xl text-xs font-bold text-zinc-600 border border-zinc-200">
-                          Colour: {mFab.colour}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Attachment Fabrics List */}
-                {selectedProductForDetails.attachment_fabrics && selectedProductForDetails.attachment_fabrics.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      Attachment & Contrast Fabrics
-                    </p>
-                    <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-2xl overflow-hidden bg-white">
-                      {selectedProductForDetails.attachment_fabrics.map((att, idx) => {
-                        const attFab = getFabricDetails(att.fabric_id);
-                        return (
-                          <div key={att.id || idx} className="p-3 flex items-center justify-between gap-4 text-xs">
-                            <div>
-                              <p className="font-bold text-[#3a525d]">{att.role || `Attachment #${idx + 1}`}</p>
-                              <p className="text-[10px] text-zinc-400">{attFab?.item_name || attFab?.name || 'Assigned Fabric'}</p>
-                            </div>
-                            <span className="px-3 py-1 bg-zinc-100 rounded-xl text-xs font-black text-[#2d8d9b] border border-zinc-200">
-                              {att.meters} meters
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Class Fabric Consumption Table */}
-                {selectedProductForDetails.class_fabric_consumption && Object.keys(selectedProductForDetails.class_fabric_consumption).length > 0 && (
-                  <div className="space-y-2 mt-3">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      Class-wise Fabric Consumption Breakdown
-                    </p>
-                    <div className="border border-zinc-200 rounded-2xl overflow-x-auto bg-white">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-400">
-                          <tr>
-                            <th className="p-2.5">Class</th>
-                            <th className="p-2.5">Main Fabric</th>
-                            <th className="p-2.5">Attachment 1</th>
-                            <th className="p-2.5">Attachment 2</th>
-                            <th className="p-2.5">Button Count</th>
-                            <th className="p-2.5">Thread Count</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100 font-medium">
-                          {Object.entries(selectedProductForDetails.class_fabric_consumption).map(([cls, values]: [string, any]) => (
-                            <tr key={cls} className="hover:bg-zinc-50/60">
-                              <td className="p-2.5 font-bold text-[#3a525d]">{cls}</td>
-                              <td className="p-2.5">{values.main_fabric ? `${values.main_fabric}m` : '—'}</td>
-                              <td className="p-2.5">{values.attachment_fabric1 ? `${values.attachment_fabric1}m` : '—'}</td>
-                              <td className="p-2.5">{values.attachment_fabric2 ? `${values.attachment_fabric2}m` : '—'}</td>
-                              <td className="p-2.5">{values.button_count || '—'}</td>
-                              <td className="p-2.5">{values.thread_count || '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Trims & Accessories Section */}
-              <div className="space-y-3">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
-                  Trims & Accessories Specification
-                </h4>
-                {selectedProductForDetails.trims && selectedProductForDetails.trims.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                    {selectedProductForDetails.trims.map((trim, idx) => (
-                      <div key={trim.id || idx} className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200 flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">{trim.category || 'Trim'}</p>
-                          <p className="text-xs font-bold text-[#3a525d] mt-0.5">{trim.name || `${trim.category} spec`}</p>
-                        </div>
-                        <span className="px-2.5 py-1 bg-white border border-zinc-200 rounded-xl text-xs font-black text-[#3a525d] shadow-2xs">
-                          {trim.count} {trim.uom}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
-                    <p className="text-xs text-zinc-400 italic">No specific trims or accessories configured.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Reference Images */}
-              {selectedProductForDetails.images && selectedProductForDetails.images.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
-                    Visual References & Photos
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {selectedProductForDetails.images.map((imgUrl, idx) => (
-                      <a
-                        key={idx}
-                        href={imgUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group aspect-square rounded-2xl overflow-hidden border border-zinc-200 relative bg-zinc-50 block"
-                      >
-                        <img
-                          src={imgUrl}
-                          alt={`Product reference ${idx + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
-                          <ExternalLink size={14} /> View
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Modification History / Remarks */}
-              {selectedProductForDetails.remarks && selectedProductForDetails.remarks.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b]">
-                    Revision History & Remarks
-                  </h4>
-                  <div className="space-y-2">
-                    {selectedProductForDetails.remarks.map((r, idx) => (
-                      <div key={idx} className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 text-xs">
-                        <p className="font-bold text-[#3a525d]">{r.title || `Revision #${idx + 1}`}</p>
-                        {r.changes && <p className="text-zinc-600 mt-1"><span className="font-bold">Changes:</span> {r.changes}</p>}
-                        {r.added && <p className="text-zinc-600"><span className="font-bold">Added:</span> {r.added}</p>}
-                        {r.removed && <p className="text-zinc-600"><span className="font-bold">Removed:</span> {r.removed}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 px-6 border-t border-zinc-150 bg-zinc-50/60 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-zinc-400">
-                Registered on: {selectedProductForDetails.created_at ? new Date(selectedProductForDetails.created_at).toLocaleDateString('en-GB') : '—'}
-              </span>
+        return (
+          <div
+            className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <div className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedProductForDetails(null);
-                  setIsDetailsActionsOpen(false);
-                }}
-                className="px-5 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-100 text-[#3a525d] text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+                onClick={() => setIsLightboxOpen(false)}
+                className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white rounded-full bg-white/10 hover:bg-white/20 transition cursor-pointer"
+                title="Close Lightbox"
               >
-                Close
+                <X size={22} />
               </button>
+              <div className="w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black/40 p-2">
+                {activeImg && (
+                  <img
+                    src={activeImg}
+                    alt={selectedProductForDetails.name}
+                    className="max-h-[73vh] max-w-full object-contain rounded-xl shadow-2xl"
+                  />
+                )}
+              </div>
+              {imgs.length > 1 && (
+                <div className="flex items-center gap-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDetailImageIndex(prev => (prev > 0 ? prev - 1 : imgs.length - 1))}
+                    className="p-2 bg-white/15 hover:bg-white/25 text-white rounded-xl transition cursor-pointer"
+                    title="Previous Photo"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <span className="text-white text-xs font-bold font-mono">
+                    {activeDetailImageIndex + 1} / {imgs.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDetailImageIndex(prev => (prev < imgs.length - 1 ? prev + 1 : 0))}
+                    className="p-2 bg-white/15 hover:bg-white/25 text-white rounded-xl transition cursor-pointer"
+                    title="Next Photo"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Double verify: Edit Confirmation */}
       <ConfirmModal

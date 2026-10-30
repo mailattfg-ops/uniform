@@ -9,8 +9,7 @@ import {
   XCircle, 
   Search, 
   Loader2, 
-  RotateCw, 
-  X,
+X,
   Package,
   Plus,
   Minus,
@@ -297,15 +296,6 @@ export default function TrimsStockPage() {
               Table
             </button>
           </div>
-
-          <button 
-            onClick={fetchStockData}
-            disabled={isLoading}
-            className="h-11 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
-          >
-            <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
-            Sync Stock
-          </button>
         </div>
       </div>
 
@@ -403,18 +393,6 @@ export default function TrimsStockPage() {
         {/* Filter and Search Bar matching Fabric Stock */}
         <div className="bg-white border border-zinc-200/80 rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
           
-          {/* Search */}
-          <div className="relative group w-full xl:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-            <input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search"
-              className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
-            />
-          </div>
-
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
             {/* Category Dropdown Filter */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -451,6 +429,18 @@ export default function TrimsStockPage() {
                 <option value="OUT_OF_STOCK">Depleted ({stats.outOfStockCount})</option>
               </select>
             </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative group w-full xl:w-96 xl:ml-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
+            <input 
+              type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search"
+              className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
+            />
           </div>
 
         </div>

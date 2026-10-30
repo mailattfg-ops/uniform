@@ -28,7 +28,7 @@ export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
   onPrint,
   printLabel = 'Print',
   onUserReport,
-  userReportLabel = 'My Updated Report',
+  userReportLabel = 'My Report',
   className = '',
   buttonClassName = '',
   size = 'header',

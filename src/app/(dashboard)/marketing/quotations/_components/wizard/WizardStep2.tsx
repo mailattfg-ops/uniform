@@ -8,6 +8,7 @@ import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { convertFabricMetersByWidth } from '../../_lib/fabricWidthConverter';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
+import { formatSpecificationDisplay } from '@/lib/formatters';
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
   if (!rawText) return { type: '', materials: '' };
@@ -2297,6 +2298,7 @@ export default function WizardStep2({
                         updates.attachment_fabric1_cost = undefined;
                         updates.attachment_fabric2_cost = undefined;
                       }
+                      updates.materials = prod.materials || '';
                       if (prod.gender) {
                         const normG = normalizeGender(prod.gender);
                         if (!item.gender || (normG && normG !== 'unisex')) {
@@ -3548,7 +3550,7 @@ export default function WizardStep2({
                             <th className="p-3 align-middle">Product Name</th>
                             <th className="p-3 align-middle w-40">Gender</th>
                             <th className="p-3 align-middle">Design Number</th>
-                            <th className="p-3 align-middle">Material</th>
+                            <th className="p-3 align-middle">Specifications</th>
                             <th className="p-3 align-middle font-mono">SAM (₹)</th>
                             <th className="p-3 align-middle text-right">Quantity</th>
                             <th className="p-3 align-middle w-28">Price/Unit (₹)</th>
@@ -3606,7 +3608,7 @@ export default function WizardStep2({
                                     <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-zinc-200/60 text-zinc-600">Locked</span>
                                   </div>
                                 </td>
-                                <td className="p-3 text-zinc-400 align-middle">{rowItem.materials || '—'}</td>
+                                <td className="p-3 text-zinc-600 font-medium text-xs align-middle" title={formatSpecificationDisplay(rowItem.materials)}>{formatSpecificationDisplay(rowItem.materials)}</td>
                                 <td className="p-2 align-middle">
                                   <input
                                     type="number" step="0.0001" min="0" placeholder="₹"
@@ -3691,7 +3693,7 @@ export default function WizardStep2({
                       <th className="p-3 align-middle">Product Name</th>
                       <th className="p-3 align-middle">Gender</th>
                       <th className="p-3 align-middle">Design Number</th>
-                      <th className="p-3 align-middle">Material</th>
+                      <th className="p-3 align-middle">Specifications</th>
                       <th className="p-3 align-middle font-mono">SAM (₹)</th>
                       <th className="p-3 align-middle text-right">Quantity</th>
                       <th className="p-3 align-middle w-28">Price/Unit (₹)</th>
@@ -3732,7 +3734,7 @@ export default function WizardStep2({
                               <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-zinc-200/60 text-zinc-600">Locked</span>
                             </div>
                           </td>
-                          <td className="p-3 text-zinc-400 align-middle">{item.materials || '—'}</td>
+                          <td className="p-3 text-zinc-600 font-medium text-xs align-middle" title={formatSpecificationDisplay(item.materials)}>{formatSpecificationDisplay(item.materials)}</td>
                           <td className="p-2 align-middle">
                             <input
                               type="number" step="0.0001" min="0" placeholder="₹"
@@ -4675,6 +4677,7 @@ export default function WizardStep2({
                                                             updates.attachment_fabric1_cost = undefined;
                                                             updates.attachment_fabric2_cost = undefined;
                                                           }
+                                                          updates.materials = prod.materials || '';
                                                           if (prod.gender) {
                                                             const normG = normalizeGender(prod.gender);
                                                             if (!item.gender || (normG && normG !== 'unisex')) {
