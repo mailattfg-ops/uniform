@@ -351,3 +351,37 @@ export function numberToWordsINR(num: number | string | null | undefined): strin
   }
   return `${result} Only`;
 }
+
+/**
+ * Splits a raw specification / materials string into clean individual lines.
+ * Strips [ProductType: ...], [Description: ...] or other bracket metadata.
+ * Recognizes newlines, ' / ', or other line breaks.
+ */
+export function splitSpecificationLines(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  // Strip any bracket metadata tags anywhere in the string (e.g. [ProductType: ...], [Description: ...])
+  let text = String(raw).replace(/\[[A-Za-z0-9_]+:\s*[^\]]+\]\s*/gi, '').trim();
+  if (!text) return [];
+
+  const cleanLine = (s: string) => s.trim().replace(/^\[[A-Za-z0-9_]+:\s*[^\]]+\]\s*/gi, '').trim();
+
+  if (text.includes('\n')) {
+    return text.split(/\r?\n/).map(cleanLine).filter(Boolean);
+  }
+  if (text.includes(' / ')) {
+    return text.split(' / ').map(cleanLine).filter(Boolean);
+  }
+  if (text.includes(' /') || text.includes('/ ')) {
+    return text.split(/\s*\/\s*/).map(cleanLine).filter(Boolean);
+  }
+  return [cleanLine(text)].filter(Boolean);
+}
+
+/**
+ * Formats a raw specification / materials string for display with ' / ' separation.
+ * e.g. "Line 1\nLine 2\nLine 3" -> "Line 1 / Line 2 / Line 3"
+ */
+export function formatSpecificationDisplay(raw: string | null | undefined, fallback: string = '-'): string {
+  const lines = splitSpecificationLines(raw);
+  return lines.length > 0 ? lines.join(' / ') : fallback;
+}

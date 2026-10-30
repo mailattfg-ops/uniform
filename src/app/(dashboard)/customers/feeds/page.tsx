@@ -337,7 +337,7 @@ export default function FeedsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[180px] max-w-[280px]',
+      className: 'min-w-[200px] max-w-[320px]',
       sortValue: (l) => l.name,
       accessor: (l) => (
         <div className="group min-w-0">
@@ -345,7 +345,7 @@ export default function FeedsRegistryPage() {
             <button
               type="button"
               onClick={() => setViewingLead(l)}
-              className="text-left font-black text-xs md:text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
+              className="text-left font-black text-xs md:text-sm tracking-tight text-zinc-900 hover:text-[#C82A2B] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
               title={l.name}
             >
               {l.name}
@@ -356,7 +356,7 @@ export default function FeedsRegistryPage() {
                 e.stopPropagation();
                 window.open(`/customers/leads?id=${l.id}`, '_blank');
               }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
+              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#C82A2B] hover:bg-[#FFF1F1] transition-all cursor-pointer shrink-0"
               title="Open feed details"
             >
               <ExternalLink size={13.5} />
@@ -392,14 +392,14 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Area',
-      className: 'min-w-[120px] max-w-[180px] whitespace-nowrap',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
       sortValue: (l) => l.area || l.city || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return (
           l.area ? (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-[#3a525d] truncate" title={l.area}>
-              <MapPin size={12} className="text-[#2d8d9b] shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
+              <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
               <span className="truncate">{l.area}</span>
             </div>
           ) : l.city ? (
@@ -420,12 +420,12 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Contact Person',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap',
       sortValue: (l) => l.contact_person || '',
       accessor: (l) => (
         l.contact_person ? (
           <div className="flex flex-col min-w-0 max-w-[190px]">
-            <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+            <span className="text-xs font-bold text-zinc-800 truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
               {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
             </span>
             {l.contact_designation && (
@@ -441,16 +441,16 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Contact Phone',
-      className: 'w-[145px] whitespace-nowrap',
+      className: 'w-[135px] min-w-[125px] whitespace-nowrap',
       sortValue: (l) => l.phone || '',
       accessor: (l) => (
         l.phone ? (
           <a
             href={`tel:${l.phone}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-800 hover:text-[#C82A2B] transition-colors"
             title={`Call ${l.phone}`}
           >
-            <Phone size={12} className="text-[#2d8d9b] shrink-0" />
+            <Phone size={12} className="text-[#9E1B1D] shrink-0" />
             <span>{l.phone}</span>
           </a>
         ) : (
@@ -460,27 +460,19 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Follow-up',
-      className: 'min-w-[190px] whitespace-nowrap',
+      className: 'w-[110px] min-w-[105px] whitespace-nowrap text-center',
       accessor: (l) => (
-        <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-          <div className="min-w-0 flex-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-sky-50 text-sky-800 border border-sky-200">
-              Field Intake Pending
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Feed Follow-up Outcome */}
-            <button
-              type="button"
-              onClick={() => setFeedOutcomeLead(l)}
-              className="px-3 py-1.5 bg-[#2d8d9b] hover:bg-[#257a87] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-              title="Record follow-up response outcome for feed"
-            >
-              <MessageSquarePlus size={12} />
-              <span>Follow-up</span>
-            </button>
-          </div>
+        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          {/* Feed Follow-up Outcome */}
+          <button
+            type="button"
+            onClick={() => setFeedOutcomeLead(l)}
+            className="px-3.5 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+            title="Record follow-up outcome for feed"
+          >
+            <MessageSquarePlus size={12} />
+            <span>Update</span>
+          </button>
         </div>
       )
     }
@@ -492,9 +484,9 @@ export default function FeedsRegistryPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Feeds</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Feeds</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 opacity-80">
             Pre-Pipeline Field Prospect Scouting &amp; Commercial Feeds
           </p>
         </div>
@@ -519,7 +511,7 @@ export default function FeedsRegistryPage() {
             }}
             printLabel="Print Feeds"
             onUserReport={() => userReportTriggerRef.current?.()}
-            userReportLabel="My Updated Report"
+            userReportLabel="My Report"
           />
         </div>
       </div>
@@ -543,7 +535,7 @@ export default function FeedsRegistryPage() {
                 setSelectedBranch(e.target.value);
                 setSelectedZone('ALL');
               }}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Branches ({feedsList.length})</option>
               {(() => {
@@ -568,7 +560,7 @@ export default function FeedsRegistryPage() {
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Zones ({availableFilterZones.length})</option>
               {availableFilterZones.map((z) => {
@@ -585,7 +577,7 @@ export default function FeedsRegistryPage() {
             <select
               value={selectedIndustry}
               onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Sectors ({feedsList.length})</option>
               {industries.map(ind => {

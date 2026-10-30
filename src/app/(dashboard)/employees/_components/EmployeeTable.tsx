@@ -398,26 +398,6 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
         {/* Filter & Search Toolbar */}
         <div className="p-6 border-b border-[#fce4d4] bg-[#fce4d4]/5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {/* Search Input */}
-            <div className="relative group lg:col-span-2">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/60 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-              <input 
-                type="text" 
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Search" 
-                className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-11 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 text-[#3a525d] shadow-sm transition-all"
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
             {/* Branch Filter */}
             <div>
               <select
@@ -460,6 +440,26 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative group lg:col-span-2">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/60 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
+              <input 
+                type="text" 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search" 
+                className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 pl-11 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/50 text-[#3a525d] shadow-sm transition-all"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
 

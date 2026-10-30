@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { formatSpecificationDisplay } from '@/lib/formatters';
 import { 
   Box, 
   AlertTriangle, 
@@ -11,8 +12,7 @@ import {
   Search, 
   Plus, 
   Loader2, 
-  RotateCw, 
-  Layers,
+Layers,
   SlidersHorizontal
 } from 'lucide-react';
 
@@ -263,15 +263,6 @@ export default function ProductStockPage() {
             Finished Garments Procured For Trade / Resale & Sizing Stock
           </p>
         </div>
-
-        <button 
-          onClick={fetchStockData}
-          disabled={isLoading}
-          className="h-14 px-6 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-        >
-          <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
-          Sync Product Stock
-        </button>
       </div>
 
       {/* Metrics Row */}
@@ -338,18 +329,6 @@ export default function ProductStockPage() {
       {/* Filter and Search Bar */}
       <div className="bg-white border border-zinc-200/80 rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
         
-        {/* Search */}
-        <div className="relative group w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-          <input 
-            type="text" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search"
-            className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
-          />
-        </div>
-
         {/* Status Filters */}
         <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
           {(['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'] as const).map((status) => {
@@ -386,6 +365,18 @@ export default function ProductStockPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Search */}
+        <div className="relative group w-full md:w-96 md:ml-auto">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
+          <input 
+            type="text" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search"
+            className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
+          />
         </div>
 
       </div>
@@ -516,7 +507,7 @@ export default function ProductStockPage() {
 
                 {/* Footer summary */}
                 <div className="mt-6 pt-4 border-t border-zinc-100 flex justify-between items-center text-[10px] font-bold text-zinc-500">
-                  <p>Materials: <span className="font-black text-[#3a525d]">{parseMaterialsField(product.materials).materials || 'Standard Fabric'}</span></p>
+                  <p>Materials: <span className="font-black text-[#3a525d]">{formatSpecificationDisplay(product.materials, 'Standard Fabric')}</span></p>
                   <p>Physical Stock: <span className="font-black text-[#2d8d9b] text-xs">{totalStock}</span> | Reserved: <span className="font-black text-zinc-700">{totalReserved}</span></p>
                 </div>
 

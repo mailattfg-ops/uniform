@@ -48,6 +48,7 @@ import {
   BookOpen,
   TrendingDown,
   Wallet,
+  IndianRupee,
   Receipt,
   FileCheck,
   Eye,
@@ -254,6 +255,25 @@ function OrganizationDetailsPageContent() {
   const [isLoadingChallans, setIsLoadingChallans] = useState(false);
   const [selectedProForma, setSelectedProForma] = useState<any | null>(null);
   const [isProFormaModalOpen, setIsProFormaModalOpen] = useState(false);
+
+  const handleOpenProforma = (pi: any) => {
+    setSelectedProForma({
+      ...pi,
+      customer: {
+        name: org?.name,
+        address: org?.address,
+        city: org?.city,
+        state: org?.state,
+        pincode: org?.pincode,
+        country: org?.country || 'India',
+        gst_number: org?.gst_number,
+        contact_person: org?.contact_person || (orgDetails?.staff?.[0]?.name),
+        phone: org?.phone,
+        email: org?.email
+      }
+    });
+    setIsProFormaModalOpen(true);
+  };
   const [selectedTaxInvoice, setSelectedTaxInvoice] = useState<any | null>(null);
   const [isTaxInvoiceModalOpen, setIsTaxInvoiceModalOpen] = useState(false);
   const [selectedQuoteForModal, setSelectedQuoteForModal] = useState<any | null>(null);
@@ -286,31 +306,247 @@ function OrganizationDetailsPageContent() {
   const [leadActivities, setLeadActivities] = useState<any[]>([]);
   const [journalCategoryFilter, setJournalCategoryFilter] = useState<string>('ALL');
   const [isAddJournalModalOpen, setIsAddJournalModalOpen] = useState(false);
+
+  // Quick Customer Payment Modal State (supports Quotation or Invoice targets)
+  const [isQuickPaymentModalOpen, setIsQuickPaymentModalOpen] = useState(false);
+  const [paymentTargetType, setPaymentTargetType] = useState<'quotation' | 'invoice'>('quotation');
+  const [paymentQuoteId, setPaymentQuoteId] = useState<string>('');
+  const [paymentInvoiceId, setPaymentInvoiceId] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('Bank Transfer');
+  const [paymentReferenceNo, setPaymentReferenceNo] = useState<string>('');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [paymentNotes, setPaymentNotes] = useState<string>('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState<boolean>(false);
   const [customJournals, setCustomJournals] = useState<any[]>([]);
 
   const fetchCustomJournals = async () => {
     if (!orgId) return;
     try {
       const res = await api.get(`/organizations/${orgId}/journals`);
-      if (res.data?.journals && res.data.journals.length > 0) {
+      if (res.data?.success && Array.isArray(res.data?.journals)) {
         setCustomJournals(res.data.journals);
+        try {
+          localStorage.setItem(`custom_journals_${orgId}`, JSON.stringify(res.data.journals));
+        } catch (e) {}
         return;
       }
     } catch (e) {
       console.warn('Backend journals table not yet populated, falling back to local store');
     }
-    // Fallback to localStorage
+    // Fallback to localStorage only if API failed
     try {
       const saved = localStorage.getItem(`custom_journals_${orgId}`);
       if (saved) {
-        setCustomJournals(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Strictly only manual journals custom added through the Journal tab
+          const customOnly = parsed.filter((j: any) =>
+            !j.id?.toString().startsWith('JN-INV-') &&
+            !j.id?.toString().startsWith('JN-PAY-') &&
+            j.category !== 'Sales Invoice' &&
+            j.category !== 'Customer Payment'
+          );
+          setCustomJournals(customOnly);
+        }
+      } else {
+        setCustomJournals([]);
       }
-    } catch (e) {}
+    } catch (e) {
+      setCustomJournals([]);
+    }
   };
 
   useEffect(() => {
     fetchCustomJournals();
   }, [orgId]);
+
+  const handleOpenQuickPaymentModal = (preferredType?: 'quotation' | 'invoice' | React.MouseEvent, targetId?: string | number) => {
+    const chosenType: 'quotation' | 'invoice' | undefined = (preferredType === 'quotation' || preferredType === 'invoice') ? preferredType : undefined;
+    let resolvedType: 'quotation' | 'invoice' = chosenType || (customerQuotes.length > 0 ? 'quotation' : (customerInvoices.length > 0 ? 'invoice' : 'quotation'));
+
+    if (resolvedType === 'invoice') {
+      setPaymentTargetType('invoice');
+      let targetInv: any = null;
+      if (targetId) {
+        targetInv = customerInvoices.find((inv: any) => String(inv.id) === String(targetId));
+      }
+      if (!targetInv) {
+        targetInv = customerInvoices.find((inv: any) => {
+          const tot = parseFloat(String(inv.total_amount || 0));
+          const pd = parseFloat(String(inv.paid_amount || 0));
+          return tot - pd > 0;
+        }) || customerInvoices[0];
+      }
+
+      if (targetInv) {
+        setPaymentInvoiceId(String(targetInv.id));
+        setPaymentQuoteId('');
+        const tot = parseFloat(String(targetInv.total_amount || 0));
+        const pd = parseFloat(String(targetInv.paid_amount || 0));
+        const due = Math.max(0, tot - pd);
+        setPaymentAmount(due > 0 ? String(due) : (tot > 0 ? String(tot) : ''));
+        setPaymentNotes(`Payment for Invoice #${targetInv.invoice_no || targetInv.invoice_number || targetInv.id}`);
+      } else {
+        setPaymentInvoiceId('');
+        setPaymentQuoteId('');
+        setPaymentAmount('');
+        setPaymentNotes('');
+      }
+    } else {
+      setPaymentTargetType('quotation');
+      let targetQuote: any = null;
+      if (targetId) {
+        targetQuote = customerQuotes.find((q: any) => String(q.id) === String(targetId));
+      }
+      if (!targetQuote) {
+        targetQuote = customerQuotes.find((q: any) => {
+          const total = parseFloat(q.final_quote_value || '0');
+          const paid = parseFloat(q.paid_amount || '0');
+          return total - paid > 0;
+        }) || customerQuotes[0];
+      }
+
+      if (targetQuote) {
+        setPaymentQuoteId(String(targetQuote.id));
+        setPaymentInvoiceId('');
+        const total = parseFloat(targetQuote.final_quote_value || '0');
+        const paid = parseFloat(targetQuote.paid_amount || '0');
+        const due = Math.max(0, total - paid);
+        setPaymentAmount(due > 0 ? String(due) : (total > 0 ? String(total) : ''));
+        setPaymentNotes(`Settlement payment for Quotation #${targetQuote.quotation_no || targetQuote.id}`);
+      } else {
+        setPaymentQuoteId('');
+        setPaymentInvoiceId('');
+        setPaymentAmount('');
+        setPaymentNotes('');
+      }
+    }
+
+    setPaymentMethod('Bank Transfer');
+    setPaymentReferenceNo('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setIsQuickPaymentModalOpen(true);
+  };
+
+  const handleTargetTypeChange = (type: 'quotation' | 'invoice') => {
+    setPaymentTargetType(type);
+    if (type === 'invoice') {
+      const invWithDue = customerInvoices.find((inv: any) => {
+        const tot = parseFloat(String(inv.total_amount || 0));
+        const pd = parseFloat(String(inv.paid_amount || 0));
+        return tot - pd > 0;
+      }) || customerInvoices[0];
+
+      if (invWithDue) {
+        setPaymentInvoiceId(String(invWithDue.id));
+        setPaymentQuoteId('');
+        const tot = parseFloat(String(invWithDue.total_amount || 0));
+        const pd = parseFloat(String(invWithDue.paid_amount || 0));
+        const due = Math.max(0, tot - pd);
+        setPaymentAmount(due > 0 ? String(due) : (tot > 0 ? String(tot) : ''));
+        setPaymentNotes(`Payment for Invoice #${invWithDue.invoice_no || invWithDue.invoice_number || invWithDue.id}`);
+      } else {
+        setPaymentInvoiceId('');
+        setPaymentAmount('');
+      }
+    } else {
+      const quoteWithDue = customerQuotes.find((q: any) => {
+        const total = parseFloat(q.final_quote_value || '0');
+        const paid = parseFloat(q.paid_amount || '0');
+        return total - paid > 0;
+      }) || customerQuotes[0];
+
+      if (quoteWithDue) {
+        setPaymentQuoteId(String(quoteWithDue.id));
+        setPaymentInvoiceId('');
+        const total = parseFloat(quoteWithDue.final_quote_value || '0');
+        const paid = parseFloat(quoteWithDue.paid_amount || '0');
+        const due = Math.max(0, total - paid);
+        setPaymentAmount(due > 0 ? String(due) : (total > 0 ? String(total) : ''));
+        setPaymentNotes(`Settlement payment for Quotation #${quoteWithDue.quotation_no || quoteWithDue.id}`);
+      } else {
+        setPaymentQuoteId('');
+        setPaymentAmount('');
+      }
+    }
+  };
+
+  const handleQuoteSelectionChange = (quoteIdStr: string) => {
+    setPaymentQuoteId(quoteIdStr);
+    const selected = customerQuotes.find((q: any) => String(q.id) === quoteIdStr);
+    if (selected) {
+      const total = parseFloat(selected.final_quote_value || '0');
+      const paid = parseFloat(selected.paid_amount || '0');
+      const due = Math.max(0, total - paid);
+      setPaymentAmount(due > 0 ? String(due) : (total > 0 ? String(total) : ''));
+      setPaymentNotes(`Settlement payment for Quotation #${selected.quotation_no || selected.id}`);
+    }
+  };
+
+  const handleInvoiceSelectionChange = (invIdStr: string) => {
+    setPaymentInvoiceId(invIdStr);
+    const selected = customerInvoices.find((inv: any) => String(inv.id) === invIdStr);
+    if (selected) {
+      const tot = parseFloat(String(selected.total_amount || 0));
+      const pd = parseFloat(String(selected.paid_amount || 0));
+      const due = Math.max(0, tot - pd);
+      setPaymentAmount(due > 0 ? String(due) : (tot > 0 ? String(tot) : ''));
+      setPaymentNotes(`Payment for Invoice #${selected.invoice_no || selected.invoice_number || selected.id}`);
+    }
+  };
+
+  const handleSubmitQuickPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (paymentTargetType === 'quotation' && !paymentQuoteId) {
+      toast.error('Please select an existing quotation to allocate this payment.');
+      return;
+    }
+    if (paymentTargetType === 'invoice' && !paymentInvoiceId) {
+      toast.error('Please select an existing invoice to allocate this payment.');
+      return;
+    }
+
+    const amt = parseFloat(paymentAmount);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error('Please enter a valid payment amount greater than zero.');
+      return;
+    }
+
+    setIsSubmittingPayment(true);
+    try {
+      const payload: any = {
+        amount: amt,
+        payment_method: paymentMethod,
+        reference_no: paymentReferenceNo.trim(),
+        notes: paymentNotes.trim(),
+        paid_at: new Date(paymentDate).toISOString(),
+        target_type: paymentTargetType
+      };
+
+      if (paymentTargetType === 'quotation') {
+        payload.quotation_id = parseInt(paymentQuoteId, 10);
+      } else {
+        payload.invoice_id = parseInt(paymentInvoiceId, 10);
+      }
+
+      await api.post('/payments', payload);
+
+      const targetLabel = paymentTargetType === 'quotation'
+        ? `Quotation #${customerQuotes.find((q: any) => String(q.id) === paymentQuoteId)?.quotation_no || paymentQuoteId}`
+        : `Invoice #${customerInvoices.find((i: any) => String(i.id) === paymentInvoiceId)?.invoice_no || paymentInvoiceId}`;
+
+      toast.success(`Payment of ₹${amt.toLocaleString('en-IN')} recorded successfully against ${targetLabel}!`);
+      setIsQuickPaymentModalOpen(false);
+      await Promise.all([fetchLedgerData(), fetchOrgData()]);
+      setTransactionSubTab('customer_payments');
+    } catch (err: any) {
+      console.error('Failed to record payment', err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to record payment');
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
 
   const handleSaveCustomJournal = async (journalEntry: any) => {
     const loadingToast = toast.loading('Recording journal voucher...');
@@ -403,9 +639,10 @@ function OrganizationDetailsPageContent() {
 
   // Invoice Creation Modal States (Manual Retail vs Sales Order Bulk)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-  const [invoiceType, setInvoiceType] = useState<'bulk' | 'retail'>('bulk');
+  const [invoiceType, setInvoiceType] = useState<'sales_order' | 'quotation' | 'retail'>('sales_order');
   const [isSubmittingInvoice, setIsSubmittingInvoice] = useState(false);
   const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
+  const [selectedQuotationIdForInvoice, setSelectedQuotationIdForInvoice] = useState<number | null>(null);
   const [invoiceCreditPeriod, setInvoiceCreditPeriod] = useState<number>(30);
   const [invoiceDate, setInvoiceDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [invoiceNotes, setInvoiceNotes] = useState<string>('');
@@ -637,13 +874,13 @@ function OrganizationDetailsPageContent() {
     e.preventDefault();
     if (!org) return;
 
-    if (invoiceType === 'bulk') {
+    if (invoiceType === 'sales_order') {
       if (!selectedOrderIdForInvoice) {
         toast.error('Please select a confirmed sales order');
         return;
       }
       setIsSubmittingInvoice(true);
-      const loadingToast = toast.loading('Generating bulk order invoice...');
+      const loadingToast = toast.loading('Generating invoice from sales order...');
       try {
         await api.post('/invoices/from-order', {
           order_id: selectedOrderIdForInvoice,
@@ -651,11 +888,35 @@ function OrganizationDetailsPageContent() {
           invoice_date: invoiceDate,
           notes: invoiceNotes
         });
-        toast.success('Bulk order invoice created successfully!', { id: loadingToast });
+        toast.success('Sales order invoice created successfully!', { id: loadingToast });
         setIsInvoiceModalOpen(false);
         fetchLedgerData();
+        fetchOrgData();
       } catch (err: any) {
-        toast.error(err.response?.data?.error || 'Failed to create bulk invoice', { id: loadingToast });
+        toast.error(err.response?.data?.error || 'Failed to create sales order invoice', { id: loadingToast });
+      } finally {
+        setIsSubmittingInvoice(false);
+      }
+    } else if (invoiceType === 'quotation') {
+      if (!selectedQuotationIdForInvoice) {
+        toast.error('Please select a quotation');
+        return;
+      }
+      setIsSubmittingInvoice(true);
+      const loadingToast = toast.loading('Generating invoice from quotation...');
+      try {
+        await api.post('/invoices/from-order', {
+          quotation_id: selectedQuotationIdForInvoice,
+          credit_period_days: invoiceCreditPeriod,
+          invoice_date: invoiceDate,
+          notes: invoiceNotes
+        });
+        toast.success('Quotation invoice created successfully!', { id: loadingToast });
+        setIsInvoiceModalOpen(false);
+        fetchLedgerData();
+        fetchOrgData();
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to create quotation invoice', { id: loadingToast });
       } finally {
         setIsSubmittingInvoice(false);
       }
@@ -688,6 +949,7 @@ function OrganizationDetailsPageContent() {
         toast.success('Retail invoice created successfully!', { id: loadingToast });
         setIsInvoiceModalOpen(false);
         fetchLedgerData();
+        fetchOrgData();
       } catch (err: any) {
         toast.error(err.response?.data?.error || 'Failed to create retail invoice', { id: loadingToast });
       } finally {
@@ -1303,8 +1565,20 @@ function OrganizationDetailsPageContent() {
   const customerQuotes = quotations;
 
   const customerPayments = React.useMemo(() => {
-    return ledgerData?.payments || [];
-  }, [ledgerData?.payments]);
+    if (ledgerData?.payments && ledgerData.payments.length > 0) {
+      return ledgerData.payments;
+    }
+    return (ledgerData?.transactions?.filter((t: any) => t.type === 'PAYMENT') || []).map((t: any) => ({
+      id: t.raw_id || t.id,
+      amount: t.credit,
+      payment_method: t.payment_mode || 'Bank Transfer',
+      reference_no: t.reference_no,
+      order_ref: t.order_ref,
+      notes: t.notes,
+      paid_at: t.date,
+      created_at: t.date
+    }));
+  }, [ledgerData?.payments, ledgerData?.transactions]);
 
   const customerOrders = React.useMemo(() => {
     if (ledgerData?.orders && ledgerData.orders.length > 0) {
@@ -1382,17 +1656,52 @@ function OrganizationDetailsPageContent() {
       const linkedOrder = allOrders.find(
         (o: any) => o.id === inv.order_id || (inv.quotation_id && o.quotation_id === inv.quotation_id)
       );
+      const linkedQuote = quotations.find((q: any) => 
+        (inv.quotation_id && q.id === inv.quotation_id) || 
+        (linkedOrder?.quotation_id && q.id === linkedOrder.quotation_id)
+      ) || linkedOrder?.quotations;
+
       const resolvedOrderNo = inv.order_no || linkedOrder?.order_no || inv.order_ref || (inv.sale_type === 'retail' ? 'Retail Direct' : '—');
+      const totalAmt = parseFloat(String(inv.total_amount !== undefined ? inv.total_amount : (inv.debit || 0)));
+
+      // Find all payments and advance credits matching this invoice, order, or linked quotation
+      const matchingPayments = customerPayments.filter((p: any) => {
+        if (p.order_id && inv.order_id && String(p.order_id) === String(inv.order_id)) return true;
+        if (linkedQuote?.id && p.quotation_id && String(p.quotation_id) === String(linkedQuote.id)) return true;
+        if (inv.quotation_id && p.quotation_id && String(p.quotation_id) === String(inv.quotation_id)) return true;
+        if (inv.invoice_no && (p.invoice_no === inv.invoice_no || p.order_ref === inv.invoice_no)) return true;
+        if (inv.invoice_no && p.notes && p.notes.includes(inv.invoice_no)) return true;
+        return false;
+      });
+
+      const paymentsSum = matchingPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
+      const quoteCredit = parseFloat(String(linkedQuote?.paid_amount || 0));
+      const directPaid = parseFloat(String(inv.paid_amount || 0));
+      const totalCredits = Math.max(paymentsSum, quoteCredit, directPaid);
+
+      const paidAmt = Math.min(totalAmt, totalCredits > 0 ? totalCredits : ((inv.status === 'Fully Paid' || inv.status === 'Paid') ? totalAmt : 0));
+      const dueAmt = Math.max(0, totalAmt - paidAmt);
+
+      let paymentStatus = inv.payment_status || inv.status || 'Unpaid';
+      if (dueAmt <= 0 && totalAmt > 0) {
+        paymentStatus = 'Fully Paid';
+      } else if (paidAmt > 0) {
+        paymentStatus = 'Partially Paid';
+      }
+
       return {
         ...inv,
-        invoice_no: inv.invoice_no || inv.reference_no,
+        invoice_no: inv.invoice_number || inv.invoice_no || inv.reference_no || `INV-${inv.id}`,
         order_no: resolvedOrderNo,
-        total_amount: inv.total_amount !== undefined ? inv.total_amount : inv.debit,
-        paid_amount: inv.paid_amount !== undefined ? inv.paid_amount : (inv.status === 'Paid' ? inv.debit : 0),
-        payment_status: inv.payment_status || inv.status
+        total_amount: totalAmt,
+        paid_amount: paidAmt,
+        existing_credits: paidAmt,
+        due_amount: dueAmt,
+        remaining_amount: dueAmt,
+        payment_status: paymentStatus
       };
     });
-  }, [ledgerData?.invoices, ledgerData?.transactions, customerOrders, ledgerData?.orders, orgDetails?.orders]);
+  }, [ledgerData?.invoices, ledgerData?.transactions, customerOrders, ledgerData?.orders, orgDetails?.orders, quotations, customerPayments]);
 
   const customerExpenses = React.useMemo(() => {
     const list: any[] = [];
@@ -1494,166 +1803,79 @@ function OrganizationDetailsPageContent() {
     return list;
   }, [customerOrders, quotations]);
 
-  // Memoized Financial Journals (Invoices, Payments & Adjustment JVs only - no contact/CRM logs)
+  // Memoized Financial Journals (Strictly custom added through the Journal tab - no invoices, payments, or other automatic entries)
   const customerJournals = React.useMemo(() => {
     const list: any[] = [];
-    const seenRefs = new Set<string>();
 
-    // 1. Sales Invoices (Debits to Accounts Receivable)
-    customerInvoices.forEach((inv: any) => {
-      const amount = parseFloat(inv.total_amount || 0);
-      const ref = inv.invoice_no || `INV-${inv.id}`;
-      seenRefs.add(ref);
-
-      const linkedOrder = customerOrders.find((o: any) => o.id === inv.order_id);
-      const orderRef = linkedOrder?.order_no || inv.order_no || 'Direct Billing';
-
-      list.push({
-        id: `JN-INV-${inv.id}`,
-        journal_no: `JN-${ref}`,
-        ref: ref,
-        date: inv.invoice_date || inv.created_at,
-        category: 'Sales Invoice',
-        account: 'Accounts Receivable (Dr)',
-        offset_account: 'Sales Revenue (Cr)',
-        title: `Sales Invoice #${ref}`,
-        narration: inv.notes || (inv.sale_type === 'retail' ? 'Retail counter tax invoice' : `Commercial invoice billed for ${orderRef}`),
-        order_ref: orderRef,
-        debit: amount,
-        credit: 0,
-        status: inv.payment_status?.toLowerCase() === 'paid' ? 'Paid & Posted' : 'Posted',
-        icon: ReceiptText,
-        icon_bg: 'bg-blue-50 text-blue-750 border-blue-200'
-      });
-    });
-
-    // 2. Customer Payments (Credits to Accounts Receivable / Debits to Bank or Cash)
-    customerPayments.forEach((pay: any) => {
-      const amount = parseFloat(pay.amount || 0);
-      const ref = pay.reference_no || pay.payment_number || `REC-${pay.id}`;
-      seenRefs.add(ref);
-
-      const quoteMatch = quotations.find((q: any) => q.id === pay.quotation_id);
-      const linkedOrder = customerOrders.find((o: any) => o.quotation_id === pay.quotation_id);
-      const orderRef = linkedOrder?.order_no || quoteMatch?.quotation_no || (pay.notes?.includes('ORD') ? pay.notes : 'Account Settlement');
-
-      list.push({
-        id: `JN-PAY-${pay.id}`,
-        journal_no: `JN-${ref}`,
-        ref: ref,
-        date: pay.payment_date || pay.paid_at || pay.created_at,
-        category: 'Customer Payment',
-        account: `${pay.payment_method || pay.payment_mode || 'Bank Account'} (Dr)`,
-        offset_account: 'Accounts Receivable (Cr)',
-        title: `Payment Receipt #${ref}`,
-        narration: pay.notes || `Settlement received via ${pay.payment_method || 'Bank Transfer'}${orderRef ? ` for ${orderRef}` : ''}`,
-        order_ref: orderRef,
-        debit: 0,
-        credit: amount,
-        status: 'Posted',
-        icon: CreditCard,
-        icon_bg: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      });
-    });
-
-    // 3. Standalone Accounting Ledger Entries & Journal Vouchers (from ledgerData.transactions)
-    if (ledgerData?.transactions) {
-      ledgerData.transactions.forEach((tx: any, idx: number) => {
-        if (tx.reference_no && seenRefs.has(tx.reference_no)) return;
-
-        const isDebit = Boolean(tx.debit && tx.debit > 0);
-        const ref = tx.reference_no || `JV-${tx.type || 'ADJ'}-${tx.raw_id || idx + 1}`;
-        const amount = isDebit ? parseFloat(tx.debit) : parseFloat(tx.credit || 0);
-        const txType = (tx.type || '').toUpperCase();
-
-        const isInvoiceType = txType === 'INVOICE';
-        const isPaymentType = txType === 'PAYMENT';
-
-        let category = 'Manual Journal';
-        let account = 'Accounts Adjustment';
-        let offsetAccount = 'General Ledger';
-
-        if (isInvoiceType) {
-          category = 'Sales Invoice';
-          account = 'Accounts Receivable (Dr)';
-          offsetAccount = 'Sales Revenue (Cr)';
-        } else if (isPaymentType) {
-          category = 'Customer Payment';
-          account = `${tx.payment_mode || 'Bank'} (Dr)`;
-          offsetAccount = 'Accounts Receivable (Cr)';
-        }
-
-        list.push({
-          id: `JN-TX-${tx.id || idx}`,
-          journal_no: `JN-${ref}`,
-          ref: ref,
-          date: tx.date,
-          category: category,
-          account: account,
-          offset_account: offsetAccount,
-          title: isInvoiceType ? `Sales Invoice #${ref}` : isPaymentType ? `Payment Receipt #${ref}` : `Journal Voucher #${ref}`,
-          narration: tx.description || tx.notes || (isDebit ? 'Debit adjustment voucher' : 'Credit adjustment voucher'),
-          order_ref: tx.order_ref || '—',
-          debit: isDebit ? amount : 0,
-          credit: !isDebit ? amount : 0,
-          status: 'Posted',
-          icon: isInvoiceType ? ReceiptText : isPaymentType ? CreditCard : BookOpen,
-          icon_bg: isInvoiceType ? 'bg-blue-50 text-blue-750 border-blue-200' : isPaymentType ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-purple-50 text-purple-700 border-purple-200'
-        });
-      });
-    }
-
-    // 4. Custom Manual Journals created via Custom Journal entry modal
     customJournals.forEach((cj: any) => {
+      // Strictly skip any non-custom entries (e.g. Invoices, Payments, etc.)
+      const cat = (cj.category || '').toLowerCase();
+      const idStr = String(cj.id || '');
+      if (
+        cat === 'sales invoice' ||
+        cat === 'customer payment' ||
+        cat === 'invoice' ||
+        cat === 'payment' ||
+        idStr.startsWith('jn-inv-') ||
+        idStr.startsWith('jn-pay-')
+      ) {
+        return;
+      }
+
+      const debitVal = parseFloat(String(cj.total_debit || cj.debit || 0));
+      const creditVal = parseFloat(String(cj.total_credit || cj.credit || 0));
       list.push({
         id: cj.id,
-        journal_no: cj.journal_no,
-        ref: cj.journal_no,
-        date: cj.date,
+        journal_no: cj.journal_no || `JN-${cj.id}`,
+        ref: cj.reference_no || cj.journal_no || `JN-${cj.id}`,
+        date: cj.date || cj.created_at,
         category: 'Manual Journal',
-        account: cj.account_summary || 'Custom Manual Journal',
-        offset_account: cj.offset_summary || 'General Ledger',
-        title: cj.title || `Manual Journal #${cj.journal_no}`,
-        narration: cj.notes || (cj.rows ? cj.rows.map((r: any) => r.description).filter(Boolean).join('; ') : 'Manual double-entry voucher'),
+        account: cj.account_summary || cj.account || 'Custom Manual Journal',
+        offset_account: cj.offset_summary || cj.offset_account || 'General Ledger',
+        title: cj.title || `Manual Journal #${cj.journal_no || cj.id}`,
+        narration: cj.notes || cj.narration || (cj.rows ? cj.rows.map((r: any) => r.description).filter(Boolean).join('; ') : 'Manual double-entry voucher'),
         order_ref: cj.reference_no || 'Manual JV',
-        debit: cj.total_debit,
-        credit: cj.total_credit,
-        status: 'Posted',
+        debit: debitVal,
+        credit: creditVal,
+        status: cj.status || 'Posted',
         icon: BookOpen,
         icon_bg: 'bg-purple-50 text-purple-700 border-purple-200'
       });
     });
 
-    // Filter by category if selected
-    let filtered = list;
-    if (journalCategoryFilter && journalCategoryFilter !== 'ALL') {
-      filtered = list.filter(item => item.category === journalCategoryFilter);
-    }
-
     // Sorted chronologically (newest to oldest)
-    return filtered.sort((a, b) => {
+    return list.sort((a, b) => {
       const timeA = a.date ? new Date(a.date).getTime() : 0;
       const timeB = b.date ? new Date(b.date).getTime() : 0;
       return timeB - timeA;
     });
-  }, [
-    customerInvoices,
-    customerPayments,
-    customerOrders,
-    quotations,
-    ledgerData?.transactions,
-    journalCategoryFilter,
-    customJournals
-  ]);
+  }, [customJournals]);
 
   const customerProFormaInvoices = React.useMemo(() => {
-    return quotations.map((q: any) => {
+    const allOrders = [
+      ...(Array.isArray(customerOrders) ? customerOrders : []),
+      ...(Array.isArray(ledgerData?.orders) ? ledgerData.orders : []),
+      ...(Array.isArray(orgDetails?.orders) ? orgDetails.orders : [])
+    ];
+
+    const list = quotations.map((q: any) => {
       const piNo = `PI-${q.quotation_no ? q.quotation_no.replace('QT-', '') : q.id}`;
-      const allOrders = customerOrders || ledgerData?.orders || orgDetails?.orders || [];
-      const linkedOrder = allOrders.find(
-        (o: any) => o.quotation_id === q.id || (o.quotations && o.quotations.quotation_no === q.quotation_no)
-      );
-      const hasOrder = Boolean(linkedOrder);
+      
+      const linkedOrder =
+        (Array.isArray(q.orders) && q.orders.length > 0 ? q.orders[0] : null) ||
+        (q.order ? q.order : null) ||
+        allOrders.find(
+          (o: any) =>
+            (o.quotation_id && q.id && String(o.quotation_id) === String(q.id)) ||
+            (o.quotations?.id && q.id && String(o.quotations.id) === String(q.id)) ||
+            (o.quotations?.quotation_no && q.quotation_no && String(o.quotations.quotation_no).trim().toLowerCase() === String(q.quotation_no).trim().toLowerCase()) ||
+            (o.order_no && (q.order_no === o.order_no || q.title?.includes(o.order_no)))
+        ) ||
+        (q.order_no ? { order_no: q.order_no } : null);
+
+      const resolvedOrderNo = linkedOrder?.order_no || (Array.isArray(q.orders) && q.orders[0]?.order_no) || q.order_no || '—';
+      const hasOrder = Boolean(resolvedOrderNo && resolvedOrderNo !== '—');
+
       let piStatus = 'Active PI';
       if (hasOrder) {
         piStatus = 'Converted to Order';
@@ -1670,7 +1892,7 @@ function OrganizationDetailsPageContent() {
       return {
         id: q.id,
         pi_no: piNo,
-        order_no: linkedOrder?.order_no || '—',
+        order_no: resolvedOrderNo,
         date: q.created_at,
         validity_days: org?.credit_period_days || 30,
         title: q.title,
@@ -1680,6 +1902,32 @@ function OrganizationDetailsPageContent() {
         raw: q
       };
     });
+
+    // Also include any customerOrders that might not be mapped to quotations directly
+    allOrders.forEach((ord: any) => {
+      if (!ord || !ord.order_no) return;
+      const alreadyIncluded = list.some(
+        (item: any) =>
+          (ord.quotation_id && String(item.id) === String(ord.quotation_id)) ||
+          item.order_no === ord.order_no
+      );
+      if (!alreadyIncluded) {
+        list.push({
+          id: ord.quotation_id || ord.id,
+          pi_no: `PI-${ord.quotation_id || ord.id}`,
+          order_no: ord.order_no,
+          date: ord.created_at,
+          validity_days: org?.credit_period_days || 30,
+          title: ord.quotations?.title || `Apparel Manufacturing Order ${ord.order_no}`,
+          type: ord.quotations?.quotation_type || 'Commercial Bulk',
+          amount: parseFloat(ord.total_amount || ord.quotations?.final_quote_value || '0'),
+          status: 'Converted to Order',
+          raw: ord.quotations || ord
+        });
+      }
+    });
+
+    return list;
   }, [quotations, customerOrders, ledgerData?.orders, orgDetails?.orders, org?.credit_period_days]);
 
   if (isLoadingOrg) {
@@ -2980,47 +3228,7 @@ function OrganizationDetailsPageContent() {
       {/* Tab 3: Transactions (Commercial History: 9 Sub-Categories) Tab */}
       {!isClientUser && activeTab === 'transactions' && (
         <div className="space-y-6 animate-in fade-in duration-500">
-          {/* Header Action Bar */}
-          {/* <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[2.5rem] border border-zinc-150/50 shadow-sm">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 flex items-center justify-center">
-                  <CreditCard size={20} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-[#3a525d] italic">Commercial Transactions Hub</h3>
-                  <p className="text-xs text-zinc-400 font-bold mt-0.5">
-                    Quotes, payments, sales orders, packaging, dispatches, invoices, expenses, journals & pro forma records for {org.name}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Button
-                onClick={() => router.push('/marketing/quotations')}
-                className="h-11 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-[#C82A2B]/20"
-              >
-                <Plus size={15} /> Create Quote
-              </Button>
-              <Button
-                onClick={() => {
-                  setInvoiceCreditPeriod(org.credit_period_days || 30);
-                  setSelectedOrderIdForInvoice(null);
-                  setIsInvoiceModalOpen(true);
-                }}
-                className="h-11 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-sm shadow-emerald-600/20"
-              >
-                <ReceiptText size={15} /> Create Invoice
-              </Button>
-              <Button
-                onClick={() => router.push('/marketing/order-placement')}
-                variant="secondary"
-                className="h-11 px-4 bg-white border border-zinc-200 text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-2xs"
-              >
-                <ShoppingBag size={15} /> Place Order
-              </Button>
-            </div>
-          </div> */}
+          
 
           {/* Sub-tab Switcher: 9 Transaction Categories */}
           <div className="bg-white p-2.5 rounded-2xl border border-zinc-200/80 shadow-2xs overflow-x-auto custom-scrollbar">
@@ -3072,6 +3280,16 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Customer Quotes"
                 subtitle={`Formal quotation proposals created for ${org.name}`}
+                rightAction={
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/marketing/quotations?action=create&orgId=${org.id}`)}
+                    className="h-9 px-3.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-[#C82A2B]/20 active:scale-95 cursor-pointer"
+                  >
+                    <Plus size={14} strokeWidth={3} />
+                    <span>New Quote</span>
+                  </button>
+                }
                 columns={[
                   {
                     header: 'QT / Ref No',
@@ -3159,6 +3377,16 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Customer Payments"
                 subtitle={`Payment receipts and credit collections recorded for ${org.name}`}
+                rightAction={
+                  <button
+                    type="button"
+                    onClick={() => handleOpenQuickPaymentModal()}
+                    className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 active:scale-95 cursor-pointer"
+                  >
+                    <Plus size={14} strokeWidth={3} />
+                    <span>Record Payment</span>
+                  </button>
+                }
                 columns={[
                   {
                     header: 'Receipt / Ref No',
@@ -3182,7 +3410,7 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Payment Method',
+                    header: 'Method',
                     accessor: (p: any) => (
                       <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200">
                         {p.payment_method || 'Bank Transfer'}
@@ -3190,13 +3418,22 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Linked Quote / Ref',
+                    header: 'Linked Target / Ref',
                     accessor: (p: any) => {
-                      const quoteMatch = quotations.find((q: any) => q.id === p.quotation_id);
+                      const quoteMatch = customerQuotes.find((q: any) => q.id === p.quotation_id);
+                      const invMatch = customerInvoices.find((i: any) => i.id === p.order_id || i.invoice_no === p.order_ref || (p.notes && p.notes.includes(i.invoice_no)));
+                      const displayRef = p.invoice_no || invMatch?.invoice_no || quoteMatch?.quotation_no || p.order_ref || (p.quotation_id ? `QT-${p.quotation_id}` : 'General Settlement');
+                      const isInvoice = Boolean(p.invoice_no || invMatch || (p.notes && p.notes.toLowerCase().includes('invoice')));
+
                       return (
-                        <span className="font-mono font-bold text-xs text-[#2d8d9b]">
-                          {quoteMatch?.quotation_no || (p.quotation_id ? `QT-${p.quotation_id}` : 'Account Credit')}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded ${isInvoice ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                            {isInvoice ? 'Invoice' : 'Quote'}
+                          </span>
+                          <span className="font-mono font-bold text-xs text-zinc-800">
+                            {displayRef}
+                          </span>
+                        </div>
                       );
                     }
                   },
@@ -3239,83 +3476,98 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Sales Orders"
                 subtitle={`Confirmed manufacturing & purchase commitments placed for ${org.name}`}
+                onRowClick={(o: any) => handleViewOrder(Number(o.id))}
                 columns={[
                   {
                     header: 'Order No',
+                    className: 'w-[140px] whitespace-nowrap',
                     accessor: (o: any) => (
-                      <button
-                        type="button"
-                        onClick={() => handleViewOrder(Number(o.id))}
-                        className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5"
-                        title="Click to view full order details"
-                      >
+                      <div className="font-mono font-black text-[#2d8d9b] flex items-center gap-1.5 whitespace-nowrap">
                         <ShoppingBag size={14} className="text-[#2d8d9b] shrink-0" />
                         <span>{o.order_no}</span>
-                      </button>
+                      </div>
                     )
                   },
                   {
                     header: 'Order Date',
+                    className: 'w-[105px] whitespace-nowrap',
                     accessor: (o: any) => (
-                      <span className="text-zinc-600 font-bold">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
                         {formatDate(o.created_at)}
                       </span>
                     )
                   },
                   {
-                    header: 'Target Delivery',
+                    header: 'Product / Scope',
+                    className: 'min-w-[160px]',
                     accessor: (o: any) => (
-                      <span className="text-zinc-500 font-semibold text-xs">
-                        {o.target_delivery_date ? formatDate(o.target_delivery_date) : 'Standard Lead Time'}
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-xs text-[#3a525d] block truncate max-w-[220px]" title={o.quotations?.title || o.order_no}>
+                          {o.quotations?.title || 'Uniform Apparel Order'}
+                        </span>
+                        {o.quotations?.quotation_no && (
+                          <span className="text-[10px] font-mono text-zinc-400 font-medium block">
+                            Ref: {o.quotations.quotation_no}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'Target Delivery',
+                    className: 'w-[115px] whitespace-nowrap',
+                    accessor: (o: any) => (
+                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap">
+                        {o.target_delivery_date ? formatDate(o.target_delivery_date) : 'Standard'}
                       </span>
                     )
                   },
                   {
                     header: 'Linked Quote',
+                    className: 'w-[110px] whitespace-nowrap',
                     accessor: (o: any) => (
-                      <span className="font-mono text-xs font-bold text-zinc-600">
+                      <span className="font-mono text-xs font-bold text-zinc-600 whitespace-nowrap">
                         {o.quotations?.quotation_no || (o.quotation_id ? `QT-${o.quotation_id}` : '—')}
                       </span>
                     )
                   },
                   {
-                    header: 'Order Value',
-                    accessor: (o: any) => (
-                      <span className="font-mono font-black text-zinc-800">
-                        {o.quotations?.final_quote_value ? `₹${parseFloat(o.quotations.final_quote_value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
-                      </span>
-                    )
+                    header: 'Amount',
+                    className: 'w-[125px] whitespace-nowrap text-right',
+                    sortable: true,
+                    sortValue: (o: any) => parseFloat(String(o.total_amount || o.quotations?.final_quote_value || 0)),
+                    accessor: (o: any) => {
+                      const val = parseFloat(String(o.total_amount || o.quotations?.final_quote_value || 0));
+                      return (
+                        <div className="text-right">
+                          <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
+                            {val > 0 ? `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                          </span>
+                        </div>
+                      );
+                    }
                   },
                   {
-                    header: 'Order Status',
+                    header: 'Status',
+                    className: 'w-[95px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
                       const st = o.status || 'Placed';
                       const isDelivered = st === 'Delivered';
                       const isShipped = st === 'Shipped';
                       const isProd = st === 'In Production';
                       return (
-                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
-                          isDelivered ? 'bg-green-50 text-green-700 border-green-200' :
-                          isShipped ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          isProd ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                          'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
-                          {st}
-                        </span>
+                        <div className="flex justify-center">
+                          <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                            isDelivered ? 'bg-green-50 text-green-700 border-green-200' :
+                            isShipped ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            isProd ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {st}
+                          </span>
+                        </div>
                       );
                     }
-                  },
-                  {
-                    header: 'Actions',
-                    accessor: (o: any) => (
-                      <Button
-                        onClick={() => handleViewOrder(Number(o.id))}
-                        variant="secondary"
-                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#3a525d] hover:bg-[#3a525d] hover:text-white transition-all flex items-center gap-1.5"
-                      >
-                        <Eye size={12} /> View Order
-                      </Button>
-                    )
                   }
                 ]}
                 data={customerOrders}
@@ -3509,120 +3761,94 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Proforma Invoices (PI)"
                 subtitle={`Advance commercial quotes & proforma billing estimates for ${org.name}`}
+                onRowClick={(pi: any) => handleOpenProforma(pi)}
                 columns={[
                   {
-                    header: 'Proforma No (PI)',
-                    accessor: (pi) => (
+                    header: 'Order No',
+                    className: 'w-[160px] whitespace-nowrap',
+                    accessor: (pi: any) => (
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedProForma({
-                            ...pi,
-                            customer: {
-                              name: org.name,
-                              address: org.address,
-                              city: org.city,
-                              state: org.state,
-                              pincode: org.pincode,
-                              country: org.country || 'India',
-                              gst_number: org.gst_number,
-                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
-                              phone: org.phone,
-                              email: org.email
-                            }
-                          });
-                          setIsProFormaModalOpen(true);
-                        }}
-                        className="font-mono font-black text-[#991b1b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5"
+                        onClick={() => handleOpenProforma(pi)}
+                        className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5 whitespace-nowrap"
                         title="Click to view official Proforma Invoice"
                       >
-                        <FileSpreadsheet size={14} className="text-[#991b1b] shrink-0" />
-                        <span>{pi.pi_no}</span>
+                        <ShoppingBag size={14} className="text-[#2d8d9b] shrink-0" />
+                        <span>{pi.order_no}</span>
                       </button>
                     )
                   },
                   {
-                    header: 'Order No',
-                    accessor: (pi) => (
-                      <span className="font-mono text-xs font-bold text-zinc-800">
-                        {pi.order_no || '—'}
-                      </span>
-                    )
-                  },
-                  {
                     header: 'Issue Date',
-                    accessor: (pi) => (
-                      <span className="text-zinc-600 font-bold text-xs">
+                    className: 'w-[110px] whitespace-nowrap',
+                    accessor: (pi: any) => (
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
                         {formatDate(pi.date)}
                       </span>
                     )
                   },
                   {
                     header: 'Validity',
-                    accessor: (pi) => (
-                      <span className="text-xs font-bold text-zinc-500">
+                    className: 'w-[100px] whitespace-nowrap',
+                    accessor: (pi: any) => (
+                      <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">
                         {pi.validity_days} Days
                       </span>
                     )
                   },
                   {
-                    header: 'Scope / Items',
-                    accessor: (pi) => (
+                    header: 'Title',
+                    className: 'min-w-[180px]',
+                    accessor: (pi: any) => (
                       <span className="text-xs font-bold text-[#3a525d] truncate max-w-sm block" title={pi.title}>
                         {pi.title || 'Institutional Uniforms Specification'}
                       </span>
                     )
                   },
                   {
-                    header: 'Proforma Amount',
-                    accessor: (pi) => (
-                      <span className="font-mono font-black text-zinc-900 text-sm">
-                        ₹{parseFloat(String(pi.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
+                    header: 'Amount',
+                    className: 'w-[130px] whitespace-nowrap text-right',
+                    sortable: true,
+                    sortValue: (pi: any) => parseFloat(String(pi.amount || 0)),
+                    accessor: (pi: any) => (
+                      <div className="text-right">
+                        <span className="font-mono font-black text-zinc-900 text-sm whitespace-nowrap">
+                          ₹{parseFloat(String(pi.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
                     )
                   },
                   {
                     header: 'Status',
-                    accessor: (pi) => {
+                    className: 'w-[130px] whitespace-nowrap text-center',
+                    accessor: (pi: any) => {
                       const isOrder = pi.status.includes('Order');
                       return (
-                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
-                          isOrder
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
-                          {pi.status}
-                        </span>
+                        <div className="flex justify-center">
+                          <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                            isOrder
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {pi.status}
+                          </span>
+                        </div>
                       );
                     }
                   },
                   {
                     header: 'Actions',
-                    accessor: (pi) => (
-                      <Button
-                        onClick={() => {
-                          setSelectedProForma({
-                            ...pi,
-                            customer: {
-                              name: org.name,
-                              address: org.address,
-                              city: org.city,
-                              state: org.state,
-                              pincode: org.pincode,
-                              country: org.country || 'India',
-                              gst_number: org.gst_number,
-                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
-                              phone: org.phone,
-                              email: org.email
-                            }
-                          });
-                          setIsProFormaModalOpen(true);
-                        }}
-                        variant="secondary"
-                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#991b1b] hover:bg-[#991b1b] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Eye size={12} /> View PI
-                      </Button>
+                    className: 'w-[110px] whitespace-nowrap text-center',
+                    accessor: (pi: any) => (
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={() => handleOpenProforma(pi)}
+                          variant="secondary"
+                          className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <Eye size={12} /> View PI
+                        </Button>
+                      </div>
                     )
                   }
                 ]}
@@ -3640,6 +3866,23 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Customer Tax Invoices"
                 subtitle={`Commercial tax invoices and retail cash registers billed to ${org.name}`}
+                rightAction={
+                  !isClientUser && (
+                    <Button
+                      onClick={() => {
+                        setInvoiceCreditPeriod(org?.credit_period_days || 30);
+                        setSelectedOrderIdForInvoice(null);
+                        setSelectedQuotationIdForInvoice(null);
+                        setInvoiceType('sales_order');
+                        setIsInvoiceModalOpen(true);
+                      }}
+                      className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Create Invoice</span>
+                    </Button>
+                  )
+                }
                 columns={[
                   {
                     header: 'Invoice No',
@@ -3756,31 +3999,41 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Actions',
                     accessor: (inv: any) => (
-                      <Button
-                        onClick={() => {
-                          setSelectedTaxInvoice({
-                            ...inv,
-                            order_no: inv.order_no,
-                            customer: {
-                              name: org.name,
-                              address: org.address,
-                              city: org.city,
-                              state: org.state,
-                              pincode: org.pincode,
-                              country: org.country || 'India',
-                              gst_number: org.gst_number,
-                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
-                              phone: org.phone,
-                              email: org.email
-                            }
-                          });
-                          setIsTaxInvoiceModalOpen(true);
-                        }}
-                        variant="secondary"
-                        className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#991b1b] hover:bg-[#991b1b] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Eye size={12} /> View Invoice
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          onClick={() => {
+                            setSelectedTaxInvoice({
+                              ...inv,
+                              order_no: inv.order_no,
+                              customer: {
+                                name: org.name,
+                                address: org.address,
+                                city: org.city,
+                                state: org.state,
+                                pincode: org.pincode,
+                                country: org.country || 'India',
+                                gst_number: org.gst_number,
+                                contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
+                                phone: org.phone,
+                                email: org.email
+                              }
+                            });
+                            setIsTaxInvoiceModalOpen(true);
+                          }}
+                          variant="secondary"
+                          className="h-8 px-2.5 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#991b1b] hover:bg-[#991b1b] hover:text-white transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Eye size={12} /> View
+                        </Button>
+                        <Button
+                          onClick={() => handleOpenQuickPaymentModal('invoice', String(inv.id))}
+                          variant="secondary"
+                          className="h-8 px-2.5 rounded-lg border border-emerald-200 text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="Record payment against this invoice"
+                        >
+                          <CreditCard size={12} /> Pay
+                        </Button>
+                      </div>
                     )
                   }
                 ]}
@@ -3940,14 +4193,14 @@ function OrganizationDetailsPageContent() {
 
                     {/* Summary Cards */}
                     <div className="space-y-2.5">
-                      {/* 1. Total Debits (Billed) */}
+                      {/* 1. Total Debits */}
                       <div className="p-3.5 bg-rose-50/50 hover:bg-rose-50 rounded-2xl border border-rose-150/70 flex items-center justify-between transition-all">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
                             <ArrowUpRight size={16} />
                           </div>
                           <div>
-                            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Debits (Billed)</p>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Debits</p>
                             <p className="text-base font-black font-mono text-rose-700 leading-none mt-1">
                               ₹{debits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
@@ -3958,14 +4211,14 @@ function OrganizationDetailsPageContent() {
                         </span>
                       </div>
 
-                      {/* 2. Total Credits (Paid) */}
+                      {/* 2. Total Credits */}
                       <div className="p-3.5 bg-emerald-50/50 hover:bg-emerald-50 rounded-2xl border border-emerald-150/70 flex items-center justify-between transition-all">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                             <ArrowDownLeft size={16} />
                           </div>
                           <div>
-                            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Credits (Paid)</p>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Credits</p>
                             <p className="text-base font-black font-mono text-emerald-700 leading-none mt-1">
                               ₹{credits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
@@ -4012,8 +4265,8 @@ function OrganizationDetailsPageContent() {
                 {/* General Journal Table */}
                 <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6">
                 <DataTable
-                  title="General Journal"
-                  subtitle={`Financial double-entry vouchers, debits (invoices), credits (receipts) & adjustments for ${org?.name}`}
+                  title="Journals"
+                  subtitle={`Custom double-entry journal vouchers added through the journal tab for ${org?.name}`}
                   columns={[
                     {
                       header: 'Date',
@@ -4047,19 +4300,11 @@ function OrganizationDetailsPageContent() {
                       header: 'Journal Type',
                       className: 'w-[140px] whitespace-nowrap',
                       sortValue: (j: any) => j.category,
-                      accessor: (j: any) => {
-                        const isInvoice = j.category === 'Sales Invoice';
-                        const isPayment = j.category === 'Customer Payment';
-                        return (
-                          <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
-                            isInvoice ? 'bg-blue-50 text-blue-750 border-blue-200' :
-                            isPayment ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            'bg-purple-50 text-purple-700 border-purple-200'
-                          }`}>
-                            {j.category}
-                          </span>
-                        );
-                      }
+                      accessor: (j: any) => (
+                        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border bg-purple-50 text-purple-700 border-purple-200">
+                          {j.category || 'Manual Journal'}
+                        </span>
+                      )
                     },
                     {
                       header: 'Account / Ledger',
@@ -4144,20 +4389,11 @@ function OrganizationDetailsPageContent() {
                   data={customerJournals}
                   isLoading={isLoadingLedger || isLoadingOrg}
                   searchPlaceholder="Search journals..."
-                  emptyMessage="No financial journal entries recorded yet for this customer."
+                  emptyMessage="No custom journal entries added yet for this customer. Click + Add Journal to record one."
                   headerAction={
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <select
-                        value={journalCategoryFilter}
-                        onChange={(e) => setJournalCategoryFilter(e.target.value)}
-                        className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-                      >
-                        <option value="ALL">All Financial Journals ({customerJournals.length})</option>
-                        <option value="Sales Invoice">Sales Invoices (Debits)</option>
-                        <option value="Customer Payment">Customer Payments (Credits)</option>
-                        <option value="Manual Journal">Manual Adjustments (JVs)</option>
-                      </select>
-                    </div>
+                    <span className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-xl text-[11px] font-black uppercase tracking-wider">
+                      {customerJournals.length} Custom {customerJournals.length === 1 ? 'Journal' : 'Journals'}
+                    </span>
                   }
                   rightAction={
                     <div className="flex items-center gap-2 flex-wrap">
@@ -4167,12 +4403,7 @@ function OrganizationDetailsPageContent() {
                       >
                         <Plus size={14} strokeWidth={2.5} /> Add Journal
                       </Button>
-                      <Button
-                        onClick={() => setActiveTab('ledger')}
-                        className="h-9 px-3.5 bg-[#9E1B1D] hover:bg-[#7F1D1D] text-white rounded-xl font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5 shadow-sm shadow-[#9E1B1D]/20 transition-all"
-                      >
-                        <ReceiptText size={14} /> Customer Statement
-                      </Button>
+                      
                     </div>
                   }
                 />
@@ -4211,6 +4442,8 @@ function OrganizationDetailsPageContent() {
                   onClick={() => {
                     setInvoiceCreditPeriod(org.credit_period_days || 30);
                     setSelectedOrderIdForInvoice(null);
+                    setSelectedQuotationIdForInvoice(null);
+                    setInvoiceType('sales_order');
                     setIsInvoiceModalOpen(true);
                   }}
                   className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all"
@@ -4987,31 +5220,43 @@ function OrganizationDetailsPageContent() {
               </button>
             </div>
 
-            {/* Sale Type Selector (Bulk Order vs Retail Sale) */}
-            <div className="mt-5 p-1.5 bg-zinc-100 rounded-2xl flex gap-1">
+            {/* Sale / Invoice Source Selector (Sales Order vs Quotation vs Retail) */}
+            <div className="mt-5 p-1.5 bg-zinc-100 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-1">
               <button
                 type="button"
-                onClick={() => setInvoiceType('bulk')}
-                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
-                  invoiceType === 'bulk'
+                onClick={() => setInvoiceType('sales_order')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                  invoiceType === 'sales_order'
                     ? 'bg-white text-[#3a525d] shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
-                <Package size={16} className={invoiceType === 'bulk' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
-                Bulk Order (From Sales Order)
+                <Package size={15} className={invoiceType === 'sales_order' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
+                <span className="truncate">Against Sales Order</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInvoiceType('quotation')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                  invoiceType === 'quotation'
+                    ? 'bg-white text-[#3a525d] shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
+                }`}
+              >
+                <FileText size={15} className={invoiceType === 'quotation' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
+                <span className="truncate">Against Quotation</span>
               </button>
               <button
                 type="button"
                 onClick={() => setInvoiceType('retail')}
-                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                className={`py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
                   invoiceType === 'retail'
                     ? 'bg-white text-[#3a525d] shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
-                <ReceiptText size={16} className={invoiceType === 'retail' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
-                Retail Sale (Manual Invoicing)
+                <ReceiptText size={15} className={invoiceType === 'retail' ? 'text-[#9E1B1D]' : 'text-zinc-400'} />
+                <span className="truncate">Retail (Manual Items)</span>
               </button>
             </div>
 
@@ -5058,58 +5303,283 @@ function OrganizationDetailsPageContent() {
                 * Rule: The credit period extends {invoiceCreditPeriod} days from invoice date. On the last day ({formatDate(getCalculatedDueDate(invoiceDate, invoiceCreditPeriod))}), the invoice is marked as <strong className="text-amber-600">Due</strong>. The next day onwards, it becomes <strong className="text-rose-600">Overdue</strong>.
               </p>
 
-              {/* Bulk Order Selection Mode */}
-              {invoiceType === 'bulk' && (
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block">
-                    Select Confirmed Sales Order *
-                  </label>
-                  {(orgDetails?.orders || []).length > 0 ? (
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {(orgDetails?.orders || []).map((order: any) => {
-                        const isSelected = selectedOrderIdForInvoice === order.id;
-                        const quote = order.quotations;
-                        return (
-                          <div
-                            key={order.id}
-                            onClick={() => setSelectedOrderIdForInvoice(order.id)}
-                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                              isSelected
-                                ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] shadow-sm'
-                                : 'bg-white border-zinc-200 hover:border-zinc-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                                isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'
-                              }`}>
-                                {isSelected && <Check size={12} strokeWidth={4} />}
+              {/* Mode 1: Against Confirmed Sales Order */}
+              {invoiceType === 'sales_order' && (() => {
+                const availableOrders = Array.from(
+                  new Map([
+                    ...(Array.isArray(customerOrders) ? customerOrders : []),
+                    ...(Array.isArray(ledgerData?.orders) ? ledgerData.orders : []),
+                    ...(Array.isArray(orgDetails?.orders) ? orgDetails.orders : [])
+                  ].filter((o: any) => o && o.id).map((o: any) => [o.id, o])).values()
+                );
+
+                return (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block">
+                      Select Confirmed Sales Order *
+                    </label>
+                    {availableOrders.length > 0 ? (
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {availableOrders.map((order: any) => {
+                          const isSelected = selectedOrderIdForInvoice === order.id;
+                          const quote = order.quotations || quotations.find((q: any) => q.id === order.quotation_id);
+                          const orderTot = parseFloat(String(quote?.final_quote_value || order.total_amount || 0));
+                          const matchingPays = customerPayments.filter((p: any) => 
+                            (p.order_id && p.order_id === order.id) || 
+                            (quote?.id && p.quotation_id === quote.id)
+                          );
+                          const orderCredits = Math.max(
+                            matchingPays.reduce((s: number, p: any) => s + parseFloat(String(p.amount || 0)), 0),
+                            parseFloat(String(quote?.paid_amount || 0))
+                          );
+                          const orderRemaining = Math.max(0, orderTot - orderCredits);
+
+                          return (
+                            <div
+                              key={order.id}
+                              onClick={() => setSelectedOrderIdForInvoice(order.id)}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                                isSelected
+                                  ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] shadow-sm'
+                                  : 'bg-white border-zinc-200 hover:border-zinc-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'
+                                }`}>
+                                  {isSelected && <Check size={12} strokeWidth={4} />}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-black text-zinc-900 font-mono">{order.order_no}</p>
+                                  <p className="text-[11px] font-semibold text-zinc-500">
+                                    {quote?.title || quote?.quotation_no || 'Standard Order'} · Status: <span className="text-[#2d8d9b] font-bold">{order.status}</span>
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-xs font-black text-zinc-900 font-mono">{order.order_no}</p>
-                                <p className="text-[11px] font-semibold text-zinc-500">
-                                  {quote?.title || quote?.quotation_no || 'Standard Order'} · Status: <span className="text-[#2d8d9b] font-bold">{order.status}</span>
-                                </p>
+                              <div className="text-right shrink-0">
+                                <span className="font-mono text-xs font-black text-zinc-900">
+                                  ₹{orderTot.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                                {orderCredits > 0 ? (
+                                  <p className="text-[10px] text-emerald-700 font-black">
+                                    Remaining: ₹{orderRemaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </p>
+                                ) : (
+                                  <p className="text-[9px] text-zinc-400 font-medium">{formatDate(order.created_at)}</p>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className="font-mono text-xs font-black text-zinc-900">
-                                ₹{parseFloat(quote?.final_quote_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                              </span>
-                              <p className="text-[9px] text-zinc-400 font-medium">{formatDate(order.created_at)}</p>
-                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
+                        <p className="text-xs font-bold text-zinc-500">No sales orders placed for this customer yet.</p>
+                        <p className="text-[11px] text-zinc-400 mt-1">Switch to "Against Quotation" or "Retail (Manual Items)" above.</p>
+                      </div>
+                    )}
+
+                    {/* Deduction breakdown for Selected Sales Order */}
+                    {(() => {
+                      if (!selectedOrderIdForInvoice) return null;
+                      const pickedOrder = availableOrders.find((o: any) => o.id === selectedOrderIdForInvoice);
+                      if (!pickedOrder) return null;
+                      const pickedQuote = pickedOrder.quotations || quotations.find((q: any) => q.id === pickedOrder.quotation_id);
+                      const pickedOrderTot = parseFloat(String(pickedQuote?.final_quote_value || pickedOrder.total_amount || 0));
+                      const pickedPays = customerPayments.filter((p: any) => 
+                        (p.order_id && p.order_id === pickedOrder.id) || 
+                        (pickedQuote?.id && p.quotation_id === pickedQuote.id)
+                      );
+                      const pickedCredits = Math.max(
+                        pickedPays.reduce((s: number, p: any) => s + parseFloat(String(p.amount || 0)), 0),
+                        parseFloat(String(pickedQuote?.paid_amount || 0))
+                      );
+                      const pickedRemaining = Math.max(0, pickedOrderTot - pickedCredits);
+
+                      return (
+                        <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2 mt-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-zinc-600">Sales Order Total ({pickedOrder.order_no}):</span>
+                            <span className="font-mono font-bold text-zinc-900">
+                              ₹{pickedOrderTot.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
-                      <p className="text-xs font-bold text-zinc-500">No sales orders found for this customer.</p>
-                      <p className="text-[11px] text-zinc-400 mt-1">Switch to "Retail Sale (Manual Invoicing)" above to generate a direct manual invoice.</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                          {pickedCredits > 0 && (
+                            <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                              <span className="font-bold flex items-center gap-1.5">
+                                <Check size={13} className="text-emerald-600" />
+                                Less: Existing Credits / Advance Received:
+                              </span>
+                              <span className="font-mono font-black text-emerald-700">
+                                - ₹{pickedCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+                          <div className="pt-2 border-t border-zinc-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-black uppercase tracking-wider text-[#3a525d] block">
+                                Remaining Payment Due:
+                              </span>
+                              {pickedCredits > 0 && (
+                                <span className="text-[10px] text-zinc-400 font-medium">
+                                  Existing advance credits will be automatically deducted
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-base font-black font-mono text-[#991b1b]">
+                              ₹{pickedRemaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })()}
+
+              {/* Mode 2: Against Commercial Quotation */}
+              {invoiceType === 'quotation' && (() => {
+                const availableOrders = Array.from(
+                  new Map([
+                    ...(Array.isArray(customerOrders) ? customerOrders : []),
+                    ...(Array.isArray(ledgerData?.orders) ? ledgerData.orders : []),
+                    ...(Array.isArray(orgDetails?.orders) ? orgDetails.orders : [])
+                  ].filter((o: any) => o && o.id).map((o: any) => [o.id, o])).values()
+                );
+
+                return (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block">
+                      Select Commercial Quotation *
+                    </label>
+                    {quotations.length > 0 ? (
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {quotations.map((q: any) => {
+                          const isSelected = selectedQuotationIdForInvoice === q.id;
+                          const quoteTot = parseFloat(String(q.final_quote_value || 0));
+                          const matchingPays = customerPayments.filter((p: any) => 
+                            (p.quotation_id && String(p.quotation_id) === String(q.id)) ||
+                            (p.quote_id && String(p.quote_id) === String(q.id))
+                          );
+                          const quoteCredits = Math.max(
+                            matchingPays.reduce((s: number, p: any) => s + parseFloat(String(p.amount || 0)), 0),
+                            parseFloat(String(q.paid_amount || 0))
+                          );
+                          const quoteRemaining = Math.max(0, quoteTot - quoteCredits);
+                          const linkedOrd = availableOrders.find(
+                            (o: any) => o.quotation_id === q.id || (o.quotations && o.quotations.quotation_no === q.quotation_no)
+                          );
+
+                          return (
+                            <div
+                              key={q.id}
+                              onClick={() => setSelectedQuotationIdForInvoice(q.id)}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                                isSelected
+                                  ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] shadow-sm'
+                                  : 'bg-white border-zinc-200 hover:border-zinc-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'
+                                }`}>
+                                  {isSelected && <Check size={12} strokeWidth={4} />}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-black text-zinc-900 font-mono">{q.quotation_no || `QT-${q.id}`}</p>
+                                    {linkedOrd && (
+                                      <span className="text-[10px] font-mono font-bold text-[#2d8d9b] bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                                        Order: {linkedOrd.order_no}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] font-semibold text-zinc-500 truncate max-w-sm">
+                                    {q.title || 'Apparel Quotation'} · Status: <span className="text-[#2d8d9b] font-bold">{q.status}</span>
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-mono text-xs font-black text-zinc-900">
+                                  ₹{quoteTot.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                                {quoteCredits > 0 ? (
+                                  <p className="text-[10px] text-emerald-700 font-black">
+                                    Remaining: ₹{quoteRemaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </p>
+                                ) : (
+                                  <p className="text-[9px] text-zinc-400 font-medium">{formatDate(q.created_at)}</p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
+                        <p className="text-xs font-bold text-zinc-500">No quotations found for this customer.</p>
+                        <p className="text-[11px] text-zinc-400 mt-1">Switch to "Against Sales Order" or "Retail (Manual Items)" above.</p>
+                      </div>
+                    )}
+
+                    {/* Deduction breakdown for Selected Quotation */}
+                    {(() => {
+                      if (!selectedQuotationIdForInvoice) return null;
+                      const pickedQuote = quotations.find((q: any) => q.id === selectedQuotationIdForInvoice);
+                      if (!pickedQuote) return null;
+                      const pickedQuoteTot = parseFloat(String(pickedQuote.final_quote_value || 0));
+                      const pickedPays = customerPayments.filter((p: any) => 
+                        (p.quotation_id && String(p.quotation_id) === String(pickedQuote.id)) ||
+                        (p.quote_id && String(p.quote_id) === String(pickedQuote.id))
+                      );
+                      const pickedCredits = Math.max(
+                        pickedPays.reduce((s: number, p: any) => s + parseFloat(String(p.amount || 0)), 0),
+                        parseFloat(String(pickedQuote.paid_amount || 0))
+                      );
+                      const pickedRemaining = Math.max(0, pickedQuoteTot - pickedCredits);
+
+                      return (
+                        <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2 mt-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-zinc-600">Quotation Total ({pickedQuote.quotation_no || `QT-${pickedQuote.id}`}):</span>
+                            <span className="font-mono font-bold text-zinc-900">
+                              ₹{pickedQuoteTot.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {pickedCredits > 0 && (
+                            <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                              <span className="font-bold flex items-center gap-1.5">
+                                <Check size={13} className="text-emerald-600" />
+                                Less: Existing Credits / Advance Received:
+                              </span>
+                              <span className="font-mono font-black text-emerald-700">
+                                - ₹{pickedCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+                          <div className="pt-2 border-t border-zinc-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-black uppercase tracking-wider text-[#3a525d] block">
+                                Remaining Payment Due:
+                              </span>
+                              {pickedCredits > 0 && (
+                                <span className="text-[10px] text-zinc-400 font-medium">
+                                  Existing advance credits will be automatically deducted
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-base font-black font-mono text-[#991b1b]">
+                              ₹{pickedRemaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })()}
 
               {/* Retail Manual Items Mode */}
               {invoiceType === 'retail' && (
@@ -5232,10 +5702,21 @@ function OrganizationDetailsPageContent() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmittingInvoice || (invoiceType === 'bulk' && !selectedOrderIdForInvoice)}
-                  className="h-11 px-6 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={
+                    isSubmittingInvoice ||
+                    (invoiceType === 'sales_order' && !selectedOrderIdForInvoice) ||
+                    (invoiceType === 'quotation' && !selectedQuotationIdForInvoice)
+                  }
+                  className="h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 >
-                  {isSubmittingInvoice ? 'Generating...' : invoiceType === 'bulk' ? 'Generate Bulk Invoice' : 'Generate Retail Invoice'}
+                  <ReceiptText size={16} />
+                  {isSubmittingInvoice
+                    ? 'Generating...'
+                    : invoiceType === 'sales_order'
+                    ? 'Generate Invoice from Sales Order'
+                    : invoiceType === 'quotation'
+                    ? 'Generate Invoice from Quotation'
+                    : 'Generate Retail Invoice'}
                 </Button>
               </div>
             </form>
@@ -5244,89 +5725,350 @@ function OrganizationDetailsPageContent() {
       )}
 
       {/* Selected Order Details Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setSelectedOrder(null)} />
+      {selectedOrder && (() => {
+        const items = selectedOrder.items || [];
+        const totalUnits = items.reduce((sum: number, it: any) => sum + (parseInt(it.quantity, 10) || 0), 0);
+        const orderValue = parseFloat(selectedOrder.quotations?.final_quote_value || selectedOrder.total_amount || 0);
 
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 max-h-[85vh] overflow-y-auto custom-scrollbar">
-            <div className="bg-[#2d8d9b] p-8 text-white">
-              <div className="flex items-center justify-between mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <Package size={24} />
-                </div>
-                <Button variant="secondary" onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors bg-transparent border-none shadow-none text-white">
-                  <X size={20} />
-                </Button>
-              </div>
-              <h3 className="text-2xl font-black italic">{selectedOrder.order_no}</h3>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
-                  Status: {selectedOrder.status}
-                </p>
-                <span className="w-1 h-1 rounded-full bg-white/30" />
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
-                  Barcode: {selectedOrder.barcode}
-                </p>
-              </div>
-            </div>
+        return (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-300">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setSelectedOrder(null)} />
 
-            <div className="p-8 space-y-6">
-              {/* Order Info Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Quotation Title</label>
-                  <p className="text-sm font-semibold text-[#3a525d]">{selectedOrder.quotations?.title || 'Untitled Quotation'}</p>
-                </div>
-                <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Total Value</label>
-                  <p className="text-sm font-semibold text-[#3a525d]">₹{parseFloat(selectedOrder.quotations?.final_quote_value || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                </div>
-              </div>
-
-              {/* Order Items */}
-              <div>
-                <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3">Order Items</h4>
-                <div className="space-y-3">
-                  {selectedOrder.items?.map((item: any) => (
-                    <div key={item.id} className="p-4 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-[#3a525d]">{item.product_types?.name || 'Item'}</p>
-                        <p className="text-xs font-medium text-zinc-450 mt-1">Quantity: {item.quantity} units</p>
-                      </div>
-                      {item.size_breakdown && Object.keys(item.size_breakdown).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 justify-end max-w-[200px]">
-                          {Object.entries(item.size_breakdown).map(([size, qty]: any) => (
-                            <span key={size} className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[10px] font-bold">
-                              {size}: {qty}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+            <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative z-10 animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-[#2d8d9b] to-[#3a525d] p-6 sm:p-8 text-white shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white">
+                      <ShoppingBag size={24} />
                     </div>
-                  ))}
-                  {(!selectedOrder.items || selectedOrder.items.length === 0) && (
-                    <p className="text-xs font-medium text-zinc-400">No items listed for this order.</p>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#fce4d4] opacity-90">
+                        Sales Order Details
+                      </span>
+                      <h3 className="text-2xl sm:text-3xl font-black italic tracking-tight">
+                        {selectedOrder.order_no}
+                      </h3>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrder(null)}
+                    className="p-2 hover:bg-white/10 rounded-xl transition-colors bg-transparent border-none text-white cursor-pointer"
+                  >
+                    <X size={22} />
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2 text-xs">
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-white/20 text-white tracking-wider">
+                    Status: {selectedOrder.status}
+                  </span>
+                  {selectedOrder.created_at && (
+                    <span className="text-white/80 font-medium">
+                      Ordered: <strong>{formatDate(selectedOrder.created_at)}</strong>
+                    </span>
+                  )}
+                  {selectedOrder.target_delivery_date && (
+                    <span className="text-white/80 font-medium">
+                      Target Delivery: <strong>{formatDate(selectedOrder.target_delivery_date)}</strong>
+                    </span>
                   )}
                 </div>
               </div>
 
-              {/* Order Notes */}
-              {selectedOrder.order_notes && (
-                <div className="p-5 bg-yellow-50/50 border border-yellow-100 rounded-2xl">
-                  <label className="text-[9px] font-black text-yellow-800/60 uppercase tracking-widest block mb-2">Order Notes</label>
-                  <p className="text-xs font-semibold text-yellow-900 leading-relaxed whitespace-pre-wrap">{selectedOrder.order_notes}</p>
-                </div>
-              )}
+              {/* Modal Body */}
+              <div className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
+                {/* Order Summary KPI Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                      Order No
+                    </label>
+                    <p className="text-sm font-black font-mono text-[#3a525d] truncate">
+                      {selectedOrder.order_no}
+                    </p>
+                  </div>
 
-              <div className="flex justify-end pt-4 border-t border-zinc-100">
-                <Button variant="outline" onClick={() => setSelectedOrder(null)} className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest text-zinc-450">
-                  Close Order Details
+                  <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                      Total Quantity
+                    </label>
+                    <p className="text-sm font-black font-mono text-zinc-900">
+                      {totalUnits} <span className="text-xs font-semibold text-zinc-500">units</span>
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                      Total Products
+                    </label>
+                    <p className="text-sm font-black text-[#2d8d9b]">
+                      {items.length} {items.length === 1 ? 'Item' : 'Items'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                      Total Value
+                    </label>
+                    <p className="text-sm font-black font-mono text-emerald-700">
+                      ₹{orderValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Linked Quotation Proposal Info */}
+                {selectedOrder.quotations && (
+                  <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 flex items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-[#2d8d9b]">
+                        Linked Quotation
+                      </span>
+                      <p className="text-sm font-bold text-[#3a525d]">
+                        {selectedOrder.quotations.title || 'Quotation Proposal'}
+                      </p>
+                    </div>
+                    {selectedOrder.quotations.quotation_no && (
+                      <span className="font-mono font-black text-xs text-[#2d8d9b] bg-white px-2.5 py-1 rounded-xl border border-teal-200">
+                        {selectedOrder.quotations.quotation_no}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Order Products & Quantities List (Art number, Item name, Specification, DNS, DNG, Unit Cost, Total Cost) */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500">
+                      Products & Specifications
+                    </h4>
+                    <span className="text-[10px] font-bold text-zinc-400">
+                      {items.length} line {items.length === 1 ? 'item' : 'items'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {items.map((item: any, idx: number) => {
+                      const sb = item.size_breakdown || {};
+
+                      // 1. Item Name
+                      let itemName = item.manual_item_name || item.product_name || sb.product_name || sb.name || item.product_types?.name || '';
+                      if (!itemName && item.item_description) {
+                        itemName = item.item_description.split(' - ')[0] || item.item_description;
+                      }
+                      if (!itemName) {
+                        itemName = `Product Item #${idx + 1}`;
+                      }
+                      itemName = itemName
+                        .replace(/\[ProductType:[^\]]*\]/gi, '')
+                        .replace(/SAM\s*:\s*[\d.]+/gi, '')
+                        .trim();
+
+                      // 2. Art Number
+                      const artNumber = item.art_number || sb.art_number || sb.art_no || item.products?.art_number || null;
+
+                      // 3. Design Numbers: DNS and DNG
+                      const dnsNumber = item.design_number || sb.design_number || sb.product_design_number || null;
+                      const dngNumber = item.group_design_number || item.dng_number || sb.group_design_number || sb.dng_number || sb.clean_design_number || null;
+
+                      // 4. Specification (Strip fabric/SAM details)
+                      let specification = item.specification || sb.specification || sb.specifications || item.item_description || sb.sub_details || null;
+                      if (specification) {
+                        specification = specification
+                          .replace(/\[ProductType:[^\]]*\]/gi, '')
+                          .replace(/SAM\s*:\s*[\d.]+/gi, '')
+                          .replace(/SAM\s+Value\s*:\s*[\d.]+/gi, '')
+                          .trim();
+                        if (specification.toLowerCase() === itemName.toLowerCase()) {
+                          specification = null;
+                        }
+                      }
+
+                      // 5. Quantity, Unit Cost, and Total Cost
+                      const quantity = parseInt(String(item.quantity || 1), 10);
+                      const unitCost = parseFloat(String(item.unit_price || sb.computed_unit_cost || 0));
+                      const totalCost = parseFloat(String(item.total_price || (quantity * unitCost) || 0));
+
+                      // 6. Sizes Breakdown (Strictly real clothing sizes, excluding all cost, fabric, SAM, and metadata keys)
+                      const sizesSource = (sb.sizes && typeof sb.sizes === 'object' && !Array.isArray(sb.sizes))
+                        ? sb.sizes
+                        : sb;
+
+                      const excludedKeys = new Set([
+                        'trims', 'sizes', 'btn', 'thr', 'thread', 'button', 'buttons',
+                        'fabric_id', 'fabric_name', 'attachment_fabric1_id', 'attachment_fabric2_id',
+                        'button_id', 'button_name', 'button_count', 'button_code',
+                        'thread_id', 'thread_name', 'thread_count', 'thread_code',
+                        'design_number', 'art_number', 'product_design_number', 'clean_design_number',
+                        'group_design_number', 'dng_number', 'group_design',
+                        'sam_value', 'main_fabric_sam', 'attachment_fabric1_sam', 'attachment_fabric2_sam',
+                        'is_manual', 'is_custom', 'is_set', 'set_name', 'products',
+                        'department_id', 'department_name', 'product_id', 'product_name',
+                        'main_fabric_meters', 'consumption', 'notes', 'specifications', 'specification',
+                        'id', 'uom', 'name', 'count', 'trim_id', 'category', 'unit_price',
+                        'computed_unit_cost', 'labor_cost_per_item', 'fabric_cost_per_item', 'accessories_cost_per_item',
+                        'main_fabric_rate', 'attachment_fabric1_rate', 'attachment_fabric2_rate',
+                        'attachment_fabric1_meters', 'attachment_fabric2_meters', 'class_name'
+                      ]);
+
+                      const cleanSizes = Object.entries(sizesSource).filter(([key, val]) => {
+                        if (excludedKeys.has(key)) return false;
+                        if (val === null || val === undefined) return false;
+                        if (typeof val === 'object') return false;
+                        if (typeof val === 'string' && val.trim() === '') return false;
+                        const kLower = key.toLowerCase();
+                        if (kLower.includes('cost') || kLower.includes('sam') || kLower.includes('fabric') || kLower.includes('rate') || kLower.includes('meter')) {
+                          return false;
+                        }
+                        return true;
+                      });
+
+                      return (
+                        <div
+                          key={item.id || idx}
+                          className="p-5 bg-zinc-50 hover:bg-zinc-100/60 border border-zinc-200 rounded-3xl transition-all space-y-4"
+                        >
+                          {/* Title & Design Badges */}
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-base font-black text-[#3a525d] tracking-tight">
+                                  {itemName}
+                                </h4>
+                                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider bg-zinc-200/60 px-2 py-0.5 rounded-md">
+                                  Item #{idx + 1}
+                                </span>
+                              </div>
+
+                              {/* Badges row: Art Number, DNS, DNG */}
+                              <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                                {artNumber && (
+                                  <span className="px-2.5 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-lg text-[10px] font-mono font-black shadow-2xs">
+                                    Art #: {artNumber}
+                                  </span>
+                                )}
+                                {dnsNumber && (
+                                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg text-[10px] font-mono font-black shadow-2xs">
+                                    DNS: {dnsNumber}
+                                  </span>
+                                )}
+                                {dngNumber && (
+                                  <span className="px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg text-[10px] font-mono font-black shadow-2xs">
+                                    DNG: {dngNumber}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Total Cost in Header */}
+                            <div className="text-left sm:text-right shrink-0">
+                              <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-0.5">
+                                Item Total
+                              </label>
+                              <span className="text-base font-mono font-black text-emerald-700">
+                                ₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Specification (if present and meaningful) */}
+                          {specification && (
+                            <div className="p-3 bg-white rounded-xl border border-zinc-200/80 text-xs">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-0.5">
+                                Specification
+                              </span>
+                              <p className="font-semibold text-zinc-700 leading-relaxed">
+                                {specification}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Financials & Quantity Grid */}
+                          <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-zinc-200/60 text-xs">
+                            <div className="p-2.5 bg-white rounded-xl border border-zinc-200">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-0.5">
+                                Quantity
+                              </span>
+                              <span className="font-mono font-black text-zinc-900 text-sm">
+                                {quantity} <span className="text-[11px] font-semibold text-zinc-500">units</span>
+                              </span>
+                            </div>
+
+                            <div className="p-2.5 bg-white rounded-xl border border-zinc-200">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-0.5">
+                                Unit Cost
+                              </span>
+                              <span className="font-mono font-black text-[#2d8d9b] text-sm">
+                                ₹{unitCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+
+                            <div className="p-2.5 bg-emerald-50/60 rounded-xl border border-emerald-200/60">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 block mb-0.5">
+                                Total Cost
+                              </span>
+                              <span className="font-mono font-black text-emerald-700 text-sm">
+                                ₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Size Breakdown (Only if actual clothing sizes exist) */}
+                          {cleanSizes.length > 0 && (
+                            <div className="pt-2 border-t border-zinc-200/60 flex flex-wrap items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 mr-1">
+                                Sizes:
+                              </span>
+                              {cleanSizes.map(([size, qty]) => (
+                                <span
+                                  key={size}
+                                  className="px-2.5 py-0.5 bg-white border border-zinc-200 text-zinc-700 rounded-lg text-[10px] font-bold shadow-2xs"
+                                >
+                                  {size}: <span className="font-mono text-zinc-900">{String(qty)}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {items.length === 0 && (
+                      <div className="p-8 bg-zinc-50 rounded-2xl border border-zinc-200 text-center">
+                        <p className="text-xs font-bold text-zinc-400">No items listed for this order.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Order Notes */}
+                {selectedOrder.order_notes && (
+                  <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl">
+                    <label className="text-[9px] font-black text-amber-800 uppercase tracking-widest block mb-1">
+                      Order Notes
+                    </label>
+                    <p className="text-xs font-medium text-amber-900 leading-relaxed whitespace-pre-wrap">
+                      {selectedOrder.order_notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-5 border-t border-zinc-150 flex items-center justify-end bg-zinc-50/50 shrink-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOrder(null)}
+                  className="h-10 px-6 rounded-xl font-black uppercase text-[10px] tracking-wider text-zinc-600 border-zinc-200"
+                >
+                  Close Order View
                 </Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Real Pro Forma Invoice Template Modal */}
       <ProFormaInvoiceModal
@@ -5395,6 +6137,282 @@ function OrganizationDetailsPageContent() {
       )}
 
       {/* Custom Journal Creation Modal */}
+      {/* Quick Customer Payment Modal (Quotation or Invoice Target) */}
+      {isQuickPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden relative z-10 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                  <CreditCard size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">Record Quick Payment</h3>
+                  <p className="text-xs text-white/80 font-medium">
+                    Payment receipt & settlement for {org.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickPaymentModalOpen(false)}
+                className="p-1.5 hover:bg-white/10 rounded-xl transition-colors text-white cursor-pointer"
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmitQuickPayment} className="p-6 overflow-y-auto space-y-4 text-xs font-semibold">
+              {/* Account Quick Summary Card */}
+              <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-150 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    Customer Account
+                  </span>
+                  <p className="text-xs font-black text-zinc-900 mt-0.5">{org.name}</p>
+                  <p className="text-[10px] font-mono text-zinc-500">{org.customer_code || `CUST-${org.id}`}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    Available Records
+                  </span>
+                  <p className="text-xs font-black text-emerald-700 mt-0.5">
+                    {customerQuotes.length} Quotes • {customerInvoices.length} Invoices
+                  </p>
+                </div>
+              </div>
+
+              {/* Target Selector Switcher: Quotation vs Invoice */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700 flex items-center justify-between">
+                  <span>Allocate Payment Against <span className="text-red-500">*</span></span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Choose document type</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-zinc-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => handleTargetTypeChange('quotation')}
+                    className={`h-9 px-3 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      paymentTargetType === 'quotation'
+                        ? 'bg-white text-emerald-800 shadow-sm border border-emerald-200'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    <FileText size={13} />
+                    Quotation ({customerQuotes.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTargetTypeChange('invoice')}
+                    className={`h-9 px-3 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      paymentTargetType === 'invoice'
+                        ? 'bg-white text-emerald-800 shadow-sm border border-emerald-200'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    <ReceiptText size={13} />
+                    Invoice ({customerInvoices.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Dynamic Target Selection Dropdown */}
+              {paymentTargetType === 'quotation' ? (
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700 flex items-center justify-between">
+                    <span>Select Existing Quotation <span className="text-red-500">*</span></span>
+                    {paymentQuoteId && (
+                      <span className="text-[10px] text-emerald-700 font-bold">
+                        Quote #{customerQuotes.find((q: any) => String(q.id) === paymentQuoteId)?.quotation_no}
+                      </span>
+                    )}
+                  </label>
+                  {customerQuotes.length > 0 ? (
+                    <select
+                      value={paymentQuoteId}
+                      onChange={(e) => handleQuoteSelectionChange(e.target.value)}
+                      required
+                      className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                    >
+                      <option value="">Select Quotation to Settle...</option>
+                      {customerQuotes.map((q: any) => {
+                        const total = parseFloat(q.final_quote_value || '0');
+                        const paid = parseFloat(q.paid_amount || '0');
+                        const due = Math.max(0, total - paid);
+                        return (
+                          <option key={q.id} value={q.id}>
+                            {q.quotation_no} — Total: ₹{total.toLocaleString('en-IN')} (Due: ₹{due.toLocaleString('en-IN')}) • [{q.status || 'Draft'}]
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex items-center justify-between">
+                      <span>No quotations found for this customer.</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsQuickPaymentModalOpen(false);
+                          router.push(`/marketing/quotations?action=create&orgId=${org.id}`);
+                        }}
+                        className="px-2.5 py-1 bg-[#C82A2B] text-white rounded-lg text-[10px] font-black uppercase hover:bg-[#A81D1E] cursor-pointer"
+                      >
+                        + Create Quote
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700 flex items-center justify-between">
+                    <span>Select Existing Invoice <span className="text-red-500">*</span></span>
+                    {paymentInvoiceId && (
+                      <span className="text-[10px] text-emerald-700 font-bold">
+                        Invoice #{customerInvoices.find((i: any) => String(i.id) === paymentInvoiceId)?.invoice_no}
+                      </span>
+                    )}
+                  </label>
+                  {customerInvoices.length > 0 ? (
+                    <select
+                      value={paymentInvoiceId}
+                      onChange={(e) => handleInvoiceSelectionChange(e.target.value)}
+                      required
+                      className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                    >
+                      <option value="">Select Invoice to Settle...</option>
+                      {customerInvoices.map((inv: any) => {
+                        const total = parseFloat(String(inv.total_amount || 0));
+                        const paid = parseFloat(String(inv.paid_amount || 0));
+                        const due = Math.max(0, total - paid);
+                        const orderSuffix = inv.order_no && inv.order_no !== '—' ? ` • Order: ${inv.order_no}` : '';
+                        return (
+                          <option key={inv.id} value={inv.id}>
+                            {inv.invoice_no} — Total: ₹{total.toLocaleString('en-IN')} (Due: ₹{due.toLocaleString('en-IN')})${orderSuffix} • [{inv.payment_status || 'Unpaid'}]
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex items-center justify-between">
+                      <span>No commercial invoices found for this customer.</span>
+                      <span className="text-[10px] text-amber-600 font-medium">Invoices generate upon order confirmation or billing.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Payment Amount & Method */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
+                    Payment Amount (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-xs">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full h-11 pl-8 pr-3.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
+                    Method <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    required
+                    className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                  >
+                    <option value="Bank Transfer">Bank Transfer / NEFT / RTGS</option>
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI / QR Code</option>
+                    <option value="Cheque">Cheque / Demand Draft</option>
+                    <option value="Card">Credit Card / Debit Card</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Reference No & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
+                    Reference / Transaction / UTR No
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentReferenceNo}
+                    onChange={(e) => setPaymentReferenceNo(e.target.value)}
+                    placeholder="e.g. UTR19847294, CHQ-8291"
+                    className="w-full h-11 px-3.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
+                    Payment Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full h-11 px-3.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Notes / Narration */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
+                  Narration / Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="e.g. Advance settlement payment received for uniform order..."
+                  className="w-full p-3 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none"
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickPaymentModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-zinc-200 hover:bg-zinc-100 text-zinc-600 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    isSubmittingPayment ||
+                    (paymentTargetType === 'quotation' && (!paymentQuoteId || customerQuotes.length === 0)) ||
+                    (paymentTargetType === 'invoice' && (!paymentInvoiceId || customerInvoices.length === 0))
+                  }
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm shadow-emerald-600/20 cursor-pointer"
+                >
+                  {isSubmittingPayment ? 'Recording...' : 'Confirm & Record Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <CustomJournalModal
         isOpen={isAddJournalModalOpen}
         onClose={() => setIsAddJournalModalOpen(false)}

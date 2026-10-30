@@ -841,7 +841,7 @@ export default function TrimsCatalogPage() {
               }}
               printLabel="Print Trims"
               onUserReport={() => userReportTriggerRef.current?.()}
-              userReportLabel="My Updated Report"
+              userReportLabel="My Report"
             />
           </div>
         </div>

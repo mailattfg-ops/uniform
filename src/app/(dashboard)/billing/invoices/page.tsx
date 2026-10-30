@@ -500,17 +500,6 @@ export default function InvoicesPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Search & Filters */}
           <div className="flex flex-wrap items-center gap-3 flex-1">
-            <div className="relative min-w-[240px] flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search invoice no, customer, sales order..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50"
-              />
-            </div>
-
             {/* Status Filter */}
             <select
               value={statusFilter}
@@ -534,6 +523,17 @@ export default function InvoicesPage() {
               <option value="BULK">Against Sales Order (Bulk)</option>
               <option value="RETAIL">Counter / OTC Sale</option>
             </select>
+
+            <div className="relative min-w-[240px] flex-1 max-w-md ml-auto">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search invoice no, customer, sales order..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#2d8d9b] bg-zinc-50/50"
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}

@@ -162,6 +162,7 @@ export interface ManualItem {
   main_fabric_cost?: string;
   attachment_fabric1_cost?: string;
   attachment_fabric2_cost?: string;
+  materials?: string | null;
   design_number: string;
   art_number?: string;
   quantity: string;
@@ -207,6 +208,7 @@ export default function QuotationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'details'>('list');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
+  const [preselectedOrgId, setPreselectedOrgId] = useState<number | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Quotation | null>(null);
   const [submitCandidate, setSubmitCandidate] = useState<Quotation | null>(null);
   const [submitToBmCandidate, setSubmitToBmCandidate] = useState<Quotation | null>(null);
@@ -235,10 +237,21 @@ export default function QuotationsPage() {
   }, []);
 
   useEffect(() => {
-    if (searchParams && quotations.length > 0) {
-      const quoteIdParam = searchParams.get('id');
+    if (searchParams) {
       const actionParam = searchParams.get('action');
-      if (quoteIdParam) {
+      const quoteIdParam = searchParams.get('id');
+      const orgIdParam = searchParams.get('orgId') || searchParams.get('organization_id');
+
+      if (actionParam === 'create') {
+        if (orgIdParam) {
+          setPreselectedOrgId(parseInt(orgIdParam, 10));
+        }
+        setEditingQuotationId(null);
+        setActiveTab('create');
+        return;
+      }
+
+      if (quoteIdParam && quotations.length > 0) {
         const id = parseInt(quoteIdParam, 10);
         const match = quotations.find(q => q.id === id);
         if (match) {
@@ -561,7 +574,7 @@ export default function QuotationsPage() {
               }}
               printLabel="Print Quotations"
               onUserReport={() => userReportTriggerRef.current?.()}
-              userReportLabel="My Updated Report"
+              userReportLabel="My Report"
             />
           </div>
         ) : (
@@ -604,6 +617,7 @@ export default function QuotationsPage() {
       {activeTab === 'create' && (
         <QuotationWizard
           editingQuotationId={editingQuotationId}
+          initialOrgId={preselectedOrgId}
           organizations={organizations}
           productTypes={productTypes}
           fabricsList={fabricsList}
@@ -617,6 +631,7 @@ export default function QuotationsPage() {
           samConfigurations={samConfigurations}
           onClose={() => {
             setEditingQuotationId(null);
+            setPreselectedOrgId(null);
             setActiveTab('list');
           }}
           onSaveSuccess={handleSaveSuccess}

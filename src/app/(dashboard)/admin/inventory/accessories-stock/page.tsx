@@ -228,14 +228,6 @@ export default function AccessoriesStockPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
-            onClick={fetchStockData}
-            disabled={isLoading}
-            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-          >
-            <RotateCw size={14} className={isLoading ? 'animate-spin text-[#2d8d9b]' : 'text-[#3a525d]'} />
-            Sync Stock
-          </button>
           <a 
             href="/admin/accessories"
             className="h-14 px-6 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
@@ -290,17 +282,7 @@ export default function AccessoriesStockPage() {
 
       {/* Filters & Search */}
       <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-96">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input 
-            type="text" 
-            placeholder="Search" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
-          />
-        </div>
-
+        {/* Filters on Left */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Category Dropdown */}
           {categories.length > 0 && (
@@ -331,6 +313,18 @@ export default function AccessoriesStockPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Search on Right */}
+        <div className="relative w-full md:w-96 md:ml-auto">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <input 
+            type="text" 
+            placeholder="Search" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-12 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
+          />
         </div>
       </div>
 

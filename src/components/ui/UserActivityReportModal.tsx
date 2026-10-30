@@ -689,7 +689,7 @@ export function UserActivityReportModal<T = any>({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
-                  Updated Reports for User
+                  My Report
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                   {title}

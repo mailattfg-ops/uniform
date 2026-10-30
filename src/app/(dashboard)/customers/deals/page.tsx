@@ -473,20 +473,17 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[145px] whitespace-nowrap',
+      className: 'min-w-[140px] whitespace-nowrap',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
-          <div className="flex items-center gap-2 min-w-0 max-w-[180px]">
-            <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
-              <User size={12} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#3a525d] truncate block">{l.employees.full_name}</p>
+          <div className="min-w-0 max-w-[180px]">
+            <p className="text-xs font-bold text-zinc-800 truncate block" title={l.employees.full_name}>{l.employees.full_name}</p>
+            {l.employees.employee_id && (
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
                 {l.employees.employee_id}
               </p>
-            </div>
+            )}
           </div>
         ) : (
           <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
@@ -611,7 +608,7 @@ export default function DealsRegistryPage() {
             }}
             printLabel="Print Deals"
             onUserReport={() => userReportTriggerRef.current?.()}
-            userReportLabel="My Updated Report"
+            userReportLabel="My Report"
           />
         </div>
       </div>

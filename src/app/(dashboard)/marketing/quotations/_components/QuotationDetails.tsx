@@ -21,7 +21,7 @@ import {
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatSpecificationDisplay } from '@/lib/formatters';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface QuotationDetailsProps {
@@ -191,6 +191,8 @@ export default function QuotationDetails({
             
             const designNotes = item.size_breakdown?.design_number || '';
             const productLine = designNotes ? `* ${pTypeName} - ${designNotes}` : `* ${pTypeName}`;
+            const itemMat = item.materials || item.size_breakdown?.materials;
+            const specLine = formatSpecificationDisplay(itemMat, '');
             
             const fabricId = item.size_breakdown?.fabric_id;
             const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
@@ -211,6 +213,7 @@ export default function QuotationDetails({
               <div class="space-y-0.5 py-1 text-left">
                 <div class="font-bold text-gray-500 uppercase text-[9px] tracking-wider">${deptHeader}</div>
                 <div class="font-bold text-gray-800 text-xs">${productLine}</div>
+                ${specLine ? `<div class="text-gray-500 text-[10px] pl-2 font-medium italic">${specLine}</div>` : ''}
                 ${mainFabricLine ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${mainFabricLine}</div>` : ''}
                 ${att1Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att1Line}</div>` : ''}
                 ${att2Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att2Line}</div>` : ''}
@@ -236,7 +239,9 @@ export default function QuotationDetails({
           const fabricId = item.size_breakdown?.fabric_id;
           const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
           const fabricBrand = formatFabricDisplayName(fabric) || 'Custom Fabric';
-          const firstCellHtml = `<span class="font-bold text-gray-800 text-xs">${pTypeName}</span>`;
+          const itemMat = item.materials || item.size_breakdown?.materials;
+          const specLine = formatSpecificationDisplay(itemMat, '');
+          const firstCellHtml = `<div><span class="font-bold text-gray-800 text-xs">${pTypeName}</span>${specLine ? `<div class="text-gray-500 text-[10px] pl-1 font-medium italic">${specLine}</div>` : ''}</div>`;
 
           const price = Number(item.unit_price) || 0;
           const total = Number(item.total_price) || 0;
@@ -1132,10 +1137,14 @@ export default function QuotationDetails({
                                 return formatFabricDisplayName(f) || 'Custom Fabric';
                               };
 
+                              const itemMat = item.materials || item.size_breakdown?.materials;
+                              const specLine = formatSpecificationDisplay(itemMat, '');
+
                               const firstCellJSX = (
                                 <div className="space-y-0.5 py-1 text-left">
                                   <div className="font-bold text-zinc-400 uppercase text-[9px] tracking-wider">{deptHeader}</div>
                                   <div className="font-bold text-[#3a525d] text-xs">{productLine}</div>
+                                  {specLine && <div className="text-zinc-500 text-[10px] font-medium italic">{specLine}</div>}
                                 </div>
                               );
                               const fabricStyleJSX = (
@@ -1206,7 +1215,15 @@ export default function QuotationDetails({
                             const selectedSize = item.size_breakdown?.selected_size;
                             const sizeLabel = selectedSize ? ` (Size: ${selectedSize})` : '';
                             
-                            const firstCellJSX = <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}{sizeLabel}</span>;
+                            const itemMat = item.materials || item.size_breakdown?.materials;
+                            const specLine = formatSpecificationDisplay(itemMat, '');
+
+                            const firstCellJSX = (
+                              <div>
+                                <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}{sizeLabel}</span>
+                                {specLine && <div className="text-zinc-500 text-[10px] font-medium italic mt-0.5">{specLine}</div>}
+                              </div>
+                            );
                             const fabricStyleJSX = (
                               <div className="space-y-0.5 text-xs font-semibold text-zinc-700">
                                 {fabricId ? <span>{getFabricTitle(fabric)}</span> : <span className="text-zinc-350">—</span>}

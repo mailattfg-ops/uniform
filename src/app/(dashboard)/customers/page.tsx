@@ -993,7 +993,7 @@ export default function CustomersRegistry() {
       className: 'w-[100px] whitespace-nowrap',
       sortValue: (c) => c.customer_code || `#${c.id}`,
       accessor: (c) => (
-        <span className="font-mono text-xs font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 px-2 py-0.5 rounded-md">
+        <span className="font-mono text-xs font-bold text-zinc-700">
           {c.customer_code || `#${c.id}`}
         </span>
       )
@@ -1198,7 +1198,7 @@ export default function CustomersRegistry() {
             }}
             printLabel="Print Customers"
             onUserReport={() => userReportTriggerRef.current?.()}
-            userReportLabel="My Updated Report"
+            userReportLabel="My Report"
           />
         </div>
       </div>

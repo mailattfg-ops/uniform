@@ -344,40 +344,42 @@ export function DataTable<T extends { id: string | number }>({
       {/* Table Header Section - Unified One-Line Toolbar */}
       {(title || subtitle || searchPlaceholder || headerAction || rightAction || (onPrint && !hideTablePrint)) && (
         <div className="px-4 py-2.5 md:px-6 md:py-3 border-b border-[#fce4d4] flex flex-wrap items-center justify-between gap-2.5 bg-[#fce4d4]/10 min-w-0">
-          {/* Left: Title & Subtitle Info (if provided) */}
-          {(title || subtitle) && (
-            <div className="flex items-center gap-2.5 shrink-0">
-              {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
-              {subtitle && (
-                <div className="relative group/info inline-flex items-center">
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    aria-label="Table description info"
-                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
-                  >
-                    <Info size={12} strokeWidth={2.5} />
-                  </button>
-                  <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
-                    <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
-                    <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
-                      {subtitle}
-                    </p>
+          {/* Left: Title & Subtitle Info (if provided) + All Filters aligned to left side */}
+          <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
+            {(title || subtitle) && (
+              <div className="flex items-center gap-2.5 shrink-0 mr-1">
+                {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
+                {subtitle && (
+                  <div className="relative group/info inline-flex items-center">
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      aria-label="Table description info"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
+                    >
+                      <Info size={12} strokeWidth={2.5} />
+                    </button>
+                    <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
+                      <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
+                      <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
+                        {subtitle}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
-          {/* Right: Filters, Search Lens Icon & Popup, Print Button, and Right Action all in one line */}
-          <div className="flex items-center gap-2 flex-wrap justify-end flex-1 min-w-0">
-            {/* Filters */}
+            {/* Filters aligned strictly to left side */}
             {headerAction && (
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 {headerAction}
               </div>
             )}
+          </div>
 
+          {/* Right: Search only on the right side */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto justify-end">
             {/* Search (Lens) Icon & Popup */}
             {searchPlaceholder && (
               <div className="relative shrink-0" ref={searchContainerRef}>
