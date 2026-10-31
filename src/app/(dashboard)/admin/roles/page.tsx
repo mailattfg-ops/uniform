@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Shield, 
   ShieldCheck, 
@@ -470,15 +471,17 @@ export default function RoleManagementPage() {
                       className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
                     />
                   </div>
-                  <select
+                  <FilterDropdown
+                    label="Module"
+                    allLabel="All Modules"
+                    allValue="All"
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat} {cat !== 'All' ? 'Module' : ''}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedCategory(val)}
+                    options={categories.filter(c => c !== "All").map(cat => ({
+                      label: `${cat} Module`,
+                      value: cat
+                    }))}
+                  />
                 </div>
 
                 {/* Categorized Permissions Grid */}

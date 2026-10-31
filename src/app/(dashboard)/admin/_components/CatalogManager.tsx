@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface Item {
   id: string;
@@ -418,20 +419,20 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   }, [items]);
 
   const uniqueBrands = useMemo(() => {
-    return Array.from(new Set(items.map(i => i.brand_name).filter(Boolean))).sort();
+    return (Array.from(new Set(items.map(i => i.brand_name).filter(Boolean))) as string[]).sort();
   }, [items]);
 
   const uniqueQualities = useMemo(() => {
-    return Array.from(new Set(items.map(i => i.quality).filter(Boolean))).sort();
+    return (Array.from(new Set(items.map(i => i.quality).filter(Boolean))) as string[]).sort();
   }, [items]);
 
   const uniqueShades = useMemo(() => {
-    return Array.from(new Set(items.map(i => i.shade).filter(Boolean))).sort();
+    return (Array.from(new Set(items.map(i => i.shade).filter(Boolean))) as string[]).sort();
   }, [items]);
 
 
   const uniqueWidths = useMemo(() => {
-    return Array.from(new Set(items.map(i => i.width).filter(Boolean))).sort();
+    return (Array.from(new Set(items.map(i => i.width).filter(Boolean))) as string[]).sort();
   }, [items]);
 
   const filteredItems = useMemo(() => {
@@ -1021,82 +1022,64 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             {type === 'fabrics' && (
               <>
                 {/* Garment Category Filter */}
-                <select
+                <FilterDropdown
+                  label="Garment Category"
+                  allLabel="All Garment Categories"
                   value={garmentCategoryFilter}
-                  onChange={(e) => setGarmentCategoryFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Garment Category"
-                >
-                  <option value="ALL">All Garment Categories</option>
-                  {uniqueGarmentCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                  onChange={setGarmentCategoryFilter}
+                  options={uniqueGarmentCategories}
+                  maxWidth="max-w-[210px]"
+                />
 
                 {/* Brand Type Filter */}
-                <select
+                <FilterDropdown
+                  label="Brand Type"
+                  allLabel="All Brand Types"
                   value={brandTypeFilter}
-                  onChange={(e) => setBrandTypeFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Brand Type"
-                >
-                  <option value="ALL">All Brand Types</option>
-                  {uniqueBrandTypes.map(bt => (
-                    <option key={bt} value={bt}>{bt}</option>
-                  ))}
-                </select>
+                  onChange={setBrandTypeFilter}
+                  options={uniqueBrandTypes}
+                  maxWidth="max-w-[190px]"
+                />
 
                 {/* Brand Filter */}
-                <select
+                <FilterDropdown
+                  label="Brand"
+                  allLabel="All Brands"
                   value={brandFilter}
-                  onChange={(e) => setBrandFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Brand"
-                >
-                  <option value="ALL">All Brands</option>
-                  {uniqueBrands.map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
+                  onChange={setBrandFilter}
+                  options={uniqueBrands}
+                  maxWidth="max-w-[190px]"
+                />
 
                 {/* Quality Name Filter */}
-                <select
+                <FilterDropdown
+                  label="Quality Name"
+                  allLabel="All Quality Names"
                   value={qualityFilter}
-                  onChange={(e) => setQualityFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Quality Name"
-                >
-                  <option value="ALL">All Quality Names</option>
-                  {uniqueQualities.map(q => (
-                    <option key={q} value={q}>{q}</option>
-                  ))}
-                </select>
+                  onChange={setQualityFilter}
+                  options={uniqueQualities}
+                  maxWidth="max-w-[190px]"
+                />
 
                 {/* Shade Filter */}
-                <select
+                <FilterDropdown
+                  label="Shade"
+                  allLabel="All Shades"
                   value={shadeFilter}
-                  onChange={(e) => setShadeFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Shade"
-                >
-                  <option value="ALL">All Shades</option>
-                  {uniqueShades.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  onChange={setShadeFilter}
+                  options={uniqueShades}
+                  maxWidth="max-w-[180px]"
+                />
 
                 {/* Width Filter */}
-                <select
+                <FilterDropdown
+                  label="Width"
+                  allLabel="All Widths"
                   value={widthFilter}
-                  onChange={(e) => setWidthFilter(e.target.value)}
-                  className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-                  title="Filter by Width"
-                >
-                  <option value="ALL">All Widths</option>
-                  {uniqueWidths.map(w => (
-                    <option key={w} value={w}>{w}&quot;</option>
-                  ))}
-                </select>
+                  onChange={setWidthFilter}
+                  options={uniqueWidths.map(w => ({ label: `${w}"`, value: w }))}
+                  maxWidth="max-w-[160px]"
+                />
 
                 {/* Reset Filters button if any filter is active */}
                 {(garmentCategoryFilter !== 'ALL' || brandTypeFilter !== 'ALL' || brandFilter !== 'ALL' || qualityFilter !== 'ALL' || shadeFilter !== 'ALL' || widthFilter !== 'ALL') && (

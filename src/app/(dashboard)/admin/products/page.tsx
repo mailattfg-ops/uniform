@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { splitSpecificationLines, formatSpecificationDisplay } from '@/lib/formatters';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface RemarkEntry {
   title: string;
@@ -147,14 +148,14 @@ export const parseMaterialsField = (rawText: string | undefined | null) => {
 
 
 
-const MultiLineSpecificationEditor: React.FC<{
+const MultiLineDescriptionEditor: React.FC<{
   lines: string[];
   onChange: (lines: string[]) => void;
 }> = ({ lines, onChange }) => {
   const effectiveLines = lines && lines.length > 0 ? lines : [''];
 
   const handleLineChange = (index: number, val: string) => {
-    // If text containing newlines or slashes was pasted, auto-split
+    // If text containing newlines was pasted, auto-split
     if (val.includes('\n')) {
       const parts = val.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
       if (parts.length > 1) {
@@ -196,7 +197,7 @@ const MultiLineSpecificationEditor: React.FC<{
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">
-            Specifications & Materials (Multi-Line)
+            Description (Multi-Line)
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-200/60 text-zinc-600">
             {effectiveLines.filter(Boolean).length} {effectiveLines.filter(Boolean).length === 1 ? 'Line' : 'Lines'}
@@ -213,7 +214,7 @@ const MultiLineSpecificationEditor: React.FC<{
       </div>
 
       <p className="text-[10px] text-zinc-500 font-medium">
-        Enter each specification feature on a separate line (e.g. Fabric Composition, Fabric GSM, Weave / Texture, Special Treatment). These will be displayed separated by &ldquo; / &rdquo; across catalogs and quotation documents.
+        Enter each product description detail, styling feature, or care instruction on a separate line.
       </p>
 
       <div className="space-y-2">
@@ -229,12 +230,12 @@ const MultiLineSpecificationEditor: React.FC<{
               onKeyDown={(e) => handleKeyDown(e, idx)}
               placeholder={
                 idx === 0
-                  ? "Line 1 (e.g. 100% Combed Cotton)"
+                  ? "Line 1 (e.g. Regular fit styling with spread collar)"
                   : idx === 1
-                  ? "Line 2 (e.g. 180 GSM Single Jersey Knit)"
+                  ? "Line 2 (e.g. Double-needle stitched hems for durability)"
                   : idx === 2
-                  ? "Line 3 (e.g. Bio-washed & Pre-shrunk)"
-                  : `Line ${idx + 1} (e.g. Anti-pilling finish)`
+                  ? "Line 3 (e.g. Breathable all-day comfort wash)"
+                  : `Line ${idx + 1} (e.g. Machine washable)`
               }
               className="flex-1 h-11 bg-white border border-zinc-200 rounded-xl px-3.5 text-xs font-semibold text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] transition-all"
             />
@@ -257,7 +258,7 @@ const MultiLineSpecificationEditor: React.FC<{
           className="text-xs font-bold text-[#C82A2B] hover:text-[#9E1B1D] inline-flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-[#C82A2B]/5 transition cursor-pointer"
         >
           <Plus size={14} strokeWidth={2.5} />
-          <span>Add another specification line</span>
+          <span>Add another description line</span>
         </button>
         {effectiveLines.some(l => l.trim()) && (
           <div className="text-[10px] font-mono text-zinc-500 truncate max-w-md">
@@ -895,7 +896,7 @@ export default function ProductManagement() {
 
   // Local state for dynamic form reactivity
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['manual']);
-  const [specLines, setSpecLines] = useState<string[]>(['']);
+  const [descLines, setDescLines] = useState<string[]>(['']);
   const [selectedDress, setSelectedDress] = useState('');
   const [selectedGender, setSelectedGender] = useState('');
   const [selectedPattern, setSelectedPattern] = useState('');
@@ -1117,10 +1118,10 @@ export default function ProductManagement() {
 
       const parsedMat = parseMaterialsField(editingProduct.materials);
       setProductType(parsedMat.type || '');
-      const parsedLines = splitSpecificationLines(parsedMat.materials);
-      setSpecLines(parsedLines.length > 0 ? parsedLines : ['']);
+      const parsedDescLines = splitSpecificationLines(editingProduct.description || parsedMat.description || '');
+      setDescLines(parsedDescLines.length > 0 ? parsedDescLines : ['']);
     } else {
-      setSpecLines(['']);
+      setDescLines(['']);
       setSelectedMethods(['manual']);
       setSelectedDress('');
       setSelectedGender('');
@@ -1257,24 +1258,24 @@ export default function ProductManagement() {
     },
     {
       name: 'materials',
-      label: 'Specifications',
-      type: 'custom',
-      className: 'md:col-span-2',
-      defaultValue: specLines,
-      render: () => (
-        <MultiLineSpecificationEditor
-          lines={specLines}
-          onChange={(newLines) => setSpecLines(newLines)}
-        />
-      )
+      label: 'Specification (Single Line)',
+      type: 'text',
+      placeholder: 'e.g. 100% Combed Cotton, 180 GSM Single Jersey Knit',
+      defaultValue: editingProduct ? (parseMaterialsField(editingProduct.materials).materials || editingProduct.materials || '') : '',
+      className: 'md:col-span-2'
     },
     {
       name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter product description, styling details, care instructions...',
-      defaultValue: editingProduct?.description || parseMaterialsField(editingProduct?.materials).description || '',
-      className: 'md:col-span-2'
+      label: 'Description (Multi-Line)',
+      type: 'custom',
+      className: 'md:col-span-2',
+      defaultValue: descLines,
+      render: () => (
+        <MultiLineDescriptionEditor
+          lines={descLines}
+          onChange={(newLines) => setDescLines(newLines)}
+        />
+      )
     },
     {
       name: 'base_size',
@@ -1670,7 +1671,6 @@ export default function ProductManagement() {
 
     data.measurements = normalize(data.measurements);
     data.entry_methods = normalize(data.entry_methods);
-    data.description = data.description ? data.description.trim() : null;
 
     if (!data.size_chart_id) data.size_chart_id = null;
     if (!data.main_fabric_id || data.main_fabric_id === '') data.main_fabric_id = null;
@@ -1753,12 +1753,19 @@ export default function ProductManagement() {
     data.fit = productType === 'accessories' ? null : 'Regular Fit';
     data.design_number = null;
 
-    // Clean specifications and set product_type
+    // Clean description (multi-line) and specification (single line)
     const pType = data.product_type || productType || 'readymade';
     data.product_type = pType;
-    const cleanSpecs = (specLines && specLines.length > 0 ? specLines : (Array.isArray(data.materials) ? data.materials : splitSpecificationLines(data.materials))).map((s: string) => s.trim()).filter(Boolean);
-    const pMats = cleanSpecs.join('\n');
-    data.materials = (pType && pType !== 'readymade') ? `[ProductType: ${pType}] ${pMats}` : pMats;
+
+    const rawDescList = (descLines && descLines.length > 0 && descLines.some(l => l.trim()))
+      ? descLines
+      : (Array.isArray(data.description) ? data.description : splitSpecificationLines(data.description));
+    const cleanDesc = rawDescList.map((s: any) => (s || '').toString().trim()).filter(Boolean);
+    data.description = cleanDesc.length > 0 ? cleanDesc.join('\n') : null;
+
+    const rawSpec = typeof data.materials === 'string' ? data.materials.trim() : (Array.isArray(data.materials) ? data.materials.join(' / ') : '');
+    const cleanSpec = parseMaterialsField(rawSpec).materials || rawSpec;
+    data.materials = (pType && pType !== 'readymade') ? `[ProductType: ${pType}] ${cleanSpec}` : cleanSpec;
 
     try {
       if (editingProduct) {
@@ -1817,10 +1824,10 @@ export default function ProductManagement() {
     return product.category ? product.category.replace(/_/g, ' ') : '—';
   };
 
-  // Readymades table filters sourced strictly from database
+  // Readymades table filters: Gender, Product/dress (Dress Prefix), and Garment Type
   const [filterGender, setFilterGender] = useState<string>('ALL');
-  const [filterItemName, setFilterItemName] = useState<string>('ALL');
-  const [filterSpec, setFilterSpec] = useState<string>('ALL');
+  const [filterDress, setFilterDress] = useState<string>('ALL');
+  const [filterGarmentType, setFilterGarmentType] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   const uniqueGenders = useMemo(() => {
@@ -1836,35 +1843,46 @@ export default function ProductManagement() {
     return Array.from(set).sort();
   }, [genders, products]);
 
-  const uniqueItemNames = useMemo(() => {
-    const set = new Set<string>();
-    // Distinct item names from database products table
-    (products || []).forEach(p => {
-      if (p.name) set.add(p.name);
-    });
-    // Distinct dress items from database art_dresses table
+  // Dress prefix (Product/dress) options
+  const uniqueDresses = useMemo(() => {
+    const map = new Map<string, string>(); // code -> name
     (dresses || []).forEach(d => {
-      if (d.name) set.add(d.name);
+      if (d.code) map.set(d.code, d.name || d.code);
     });
-    return Array.from(set).sort();
+    // Also include any dress prefixes present on products' art_number
+    (products || []).forEach(p => {
+      if (p.art_number) {
+        const parts = p.art_number.split('-');
+        if (parts.length >= 2 && parts[0] && !map.has(parts[0])) {
+          map.set(parts[0], parts[0]);
+        }
+      }
+    });
+    return Array.from(map.entries())
+      .map(([code, name]) => ({
+        code,
+        name,
+        label: name && name !== code ? `${code} (${name})` : code
+      }))
+      .sort((a, b) => a.code.localeCompare(b.code));
   }, [dresses, products]);
 
-  const uniqueSpecs = useMemo(() => {
-    const specs = new Set<string>();
-    // Distinct product types from database product_types table
+  // Garment type options
+  const uniqueGarmentTypes = useMemo(() => {
+    const set = new Set<string>();
     (productTypes || []).forEach(pt => {
-      if (pt.name) specs.add(pt.name);
+      if (pt.name) set.add(pt.name);
     });
-    // Distinct categories and specifications from database products table
     (products || []).forEach(p => {
-      if (p.product_types?.name) specs.add(p.product_types.name);
-      if (p.category) specs.add(p.category.replace('_', ' '));
+      const typeName = getResolvedProductTypeName(p);
+      if (typeName && typeName !== '—') set.add(typeName);
     });
-    return Array.from(specs).sort();
+    return Array.from(set).sort();
   }, [productTypes, products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      // 1. Gender Filter
       if (filterGender !== 'ALL') {
         const targetGender = filterGender.toLowerCase();
         const pGender = (p.gender || '').toLowerCase();
@@ -1881,19 +1899,36 @@ export default function ProductManagement() {
 
         if (!matches) return false;
       }
-      if (filterItemName !== 'ALL') {
-        const targetName = filterItemName.toLowerCase();
-        const pName = (p.name || '').toLowerCase();
-        if (!pName.includes(targetName) && targetName !== pName) {
-          return false;
-        }
+
+      // 2. Product/Dress (Dress Prefix) Filter
+      if (filterDress !== 'ALL') {
+        const targetDress = filterDress.toLowerCase();
+        const parsed = parseArtNumber(p.art_number || '', dresses, genders, patterns);
+        const pDressCode = (parsed.dressCode || '').toLowerCase();
+        const artPrefix = (p.art_number || '').split('-')[0]?.toLowerCase() || '';
+
+        const matches = pDressCode === targetDress || 
+          artPrefix === targetDress ||
+          (p.art_number || '').toLowerCase().startsWith(targetDress + '-');
+
+        if (!matches) return false;
       }
-      if (filterSpec !== 'ALL') {
-        const specText = `${p.product_types?.name || ''} ${p.category || ''} ${p.materials || ''} ${p.description || ''}`.toLowerCase();
-        if (!specText.includes(filterSpec.toLowerCase())) {
-          return false;
-        }
+
+      // 3. Garment Type Filter
+      if (filterGarmentType !== 'ALL') {
+        const targetType = filterGarmentType.toLowerCase();
+        const resolvedType = getResolvedProductTypeName(p).toLowerCase();
+        const ptName = (p.product_types?.name || '').toLowerCase();
+        const catName = (p.category || '').toLowerCase().replace(/_/g, ' ');
+
+        const matches = resolvedType === targetType || 
+          ptName === targetType || 
+          catName === targetType;
+
+        if (!matches) return false;
       }
+
+      // Search term filter
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const matches =
@@ -1902,12 +1937,13 @@ export default function ProductManagement() {
           (p.description || '').toLowerCase().includes(term) ||
           (p.materials || '').toLowerCase().includes(term) ||
           (p.base_size || '').toLowerCase().includes(term) ||
-          (p.gender || '').toLowerCase().includes(term);
+          (p.gender || '').toLowerCase().includes(term) ||
+          getResolvedProductTypeName(p).toLowerCase().includes(term);
         if (!matches) return false;
       }
       return true;
     });
-  }, [products, genders, filterGender, filterItemName, filterSpec, searchTerm]);
+  }, [products, genders, dresses, patterns, productTypes, filterGender, filterDress, filterGarmentType, searchTerm]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
   const userReportTriggerRef = useRef<(() => void) | null>(null);
@@ -1952,7 +1988,7 @@ export default function ProductManagement() {
         <th style="text-align: center;">Gender</th>
         <th>Art No.</th>
         <th>Description</th>
-        <th>Specifications</th>
+        <th>Specification</th>
         <th style="text-align: center;">Base Size</th>
       </tr>
     </thead>
@@ -1998,8 +2034,9 @@ export default function ProductManagement() {
     },
     {
       header: 'Art No.',
+      className: 'whitespace-nowrap !px-2 w-px',
       accessor: (p) => (
-        <span className="px-2.5 py-1 bg-[#2d8d9b]/10 border border-[#2d8d9b]/25 rounded-xl text-xs font-mono font-black text-[#2d8d9b] tracking-wider inline-block">
+        <span className="text-xs font-mono font-bold text-[#2d8d9b] whitespace-nowrap">
           {p.art_number || '—'}
         </span>
       ),
@@ -2007,17 +2044,20 @@ export default function ProductManagement() {
     },
     {
       header: 'Description',
-      accessor: (p) => (
-        <div className="max-w-xs">
-          <p className="text-xs font-medium text-zinc-600 line-clamp-2" title={p.description || ''}>
-            {p.description || '—'}
-          </p>
-        </div>
-      ),
+      accessor: (p) => {
+        const descText = formatSpecificationDisplay(p.description, '—');
+        return (
+          <div className="max-w-xs">
+            <p className="text-xs font-medium text-zinc-600 line-clamp-2" title={descText}>
+              {descText}
+            </p>
+          </div>
+        );
+      },
       sortValue: (p) => p.description || ''
     },
     {
-      header: 'Specifications',
+      header: 'Specification',
       accessor: (p) => {
         const spec = formatSpecificationDisplay(p.materials);
         return (
@@ -2136,41 +2176,34 @@ export default function ProductManagement() {
         onRowClick={(product) => setSelectedProductForDetails(product)}
         headerAction={
           <div className="flex flex-wrap items-center gap-2">
-            {/* Gender Filter */}
-            <select
+            {/* 1. Gender Filter */}
+            <FilterDropdown
+              label="Gender"
+              allLabel="All Genders"
               value={filterGender}
-              onChange={(e) => setFilterGender(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Genders</option>
-              {uniqueGenders.map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
+              onChange={setFilterGender}
+              options={uniqueGenders}
+            />
 
-            {/* Item Name Filter */}
-            <select
-              value={filterItemName}
-              onChange={(e) => setFilterItemName(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs max-w-[200px]"
-            >
-              <option value="ALL">All Items</option>
-              {uniqueItemNames.map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
+            {/* 2. Dress Prefix (Product/dress) Filter */}
+            <FilterDropdown
+              label="Product/dress"
+              allLabel="All Product/Dress"
+              value={filterDress}
+              onChange={setFilterDress}
+              options={uniqueDresses.map(d => ({ label: d.label, value: d.code }))}
+              maxWidth="max-w-[260px]"
+            />
 
-            {/* Specification Filter */}
-            <select
-              value={filterSpec}
-              onChange={(e) => setFilterSpec(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs max-w-[200px]"
-            >
-              <option value="ALL">All Specifications</option>
-              {uniqueSpecs.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            {/* 3. Garment Type Filter */}
+            <FilterDropdown
+              label="Garment Type"
+              allLabel="All Garment Types"
+              value={filterGarmentType}
+              onChange={setFilterGarmentType}
+              options={uniqueGarmentTypes}
+              maxWidth="max-w-[220px]"
+            />
           </div>
         }
       />
@@ -2378,25 +2411,36 @@ export default function ProductManagement() {
 
                   {/* Right Column: Key Identity, Description & Quick Metrics */}
                   <div className="lg:col-span-7 space-y-4">
-                    {/* Specifications Card (Brought above Description) */}
+                    {/* Specification Card (Single-Line) */}
+                    <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-1.5">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
+                        <Scissors size={13} className="text-[#C82A2B]" />
+                        Product Specification
+                      </h4>
+                      <p className="text-xs text-zinc-800 font-semibold leading-relaxed">
+                        {formatSpecificationDisplay(selectedProductForDetails.materials, '') || <span className="text-zinc-400 font-normal italic">No specification entered for this article.</span>}
+                      </p>
+                    </div>
+
+                    {/* Description Card (Multi-Line) */}
                     <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
-                          <Scissors size={13} className="text-[#C82A2B]" />
-                          Specifications & Materials
+                          <FileText size={13} className="text-[#C82A2B]" />
+                          Product Description
                         </h4>
                         {(() => {
-                          const lines = splitSpecificationLines(selectedProductForDetails.materials);
+                          const lines = splitSpecificationLines(selectedProductForDetails.description);
                           if (lines.length <= 0) return null;
                           return (
                             <span className="text-[10px] font-mono font-bold text-zinc-400">
-                              {lines.length} {lines.length === 1 ? 'Spec' : 'Specs'}
+                              {lines.length} {lines.length === 1 ? 'Line' : 'Lines'}
                             </span>
                           );
                         })()}
                       </div>
                       {(() => {
-                        const lines = splitSpecificationLines(selectedProductForDetails.materials);
+                        const lines = splitSpecificationLines(selectedProductForDetails.description);
                         if (lines.length > 0) {
                           return (
                             <div className="space-y-1.5 pt-0.5">
@@ -2410,20 +2454,9 @@ export default function ProductManagement() {
                           );
                         }
                         return (
-                          <p className="text-xs text-zinc-400 italic">No materials or composition specifications entered.</p>
+                          <p className="text-xs text-zinc-400 italic">No description entered for this article.</p>
                         );
                       })()}
-                    </div>
-
-                    {/* Description Card (Brought below Specifications) */}
-                    <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] mb-1.5 flex items-center gap-1.5">
-                        <FileText size={13} className="text-[#C82A2B]" />
-                        Product Description
-                      </h4>
-                      <p className="text-xs text-zinc-700 leading-relaxed font-medium">
-                        {selectedProductForDetails.description || parseMaterialsField(selectedProductForDetails.materials).description || <span className="italic text-zinc-400">No description entered for this article.</span>}
-                      </p>
                     </div>
 
                     {/* Quick Metric Cards */}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   UserPlus, 
   Edit2, 
@@ -400,46 +401,53 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Branch Filter */}
             <div>
-              <select
+              <FilterDropdown
+                label="Branch"
+                allLabel="🏢 All Branches & Units"
+                allValue="all"
                 value={filterBranch}
-                onChange={e => setFilterBranch(e.target.value)}
-                className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 px-3 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 shadow-sm transition-all"
-              >
-                <option value="all">🏢 All Branches & Units</option>
-                {branches.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {getTierIcon(b.tier)} {b.name} ({b.code})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setFilterBranch(val)}
+                className="w-full"
+                maxWidth="w-full"
+                options={branches.map(b => ({
+                  label: `${b.name} (${b.code})`,
+                  value: String(b.id)
+                }))}
+              />
             </div>
 
             {/* Department Filter */}
             <div>
-              <select
+              <FilterDropdown
+                label="Department"
+                allLabel="📂 All Departments"
+                allValue="all"
                 value={filterDept}
-                onChange={e => setFilterDept(e.target.value)}
-                className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 px-3 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 shadow-sm transition-all"
-              >
-                <option value="all">📂 All Departments</option>
-                {departments.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+                onChange={(val) => setFilterDept(val)}
+                className="w-full"
+                maxWidth="w-full"
+                options={departments.map(d => ({
+                  label: d,
+                  value: d
+                }))}
+              />
             </div>
 
             {/* Employment Type Filter */}
             <div>
-              <select
+              <FilterDropdown
+                label="Contract Type"
+                allLabel="📄 All Contract Types"
+                allValue="all"
                 value={filterType}
-                onChange={e => setFilterType(e.target.value)}
-                className="w-full bg-white border border-[#fce4d4] rounded-2xl py-3 px-3 text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/50 shadow-sm transition-all"
-              >
-                <option value="all">📄 All Contract Types</option>
-                {employmentTypes.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+                onChange={(val) => setFilterType(val)}
+                className="w-full"
+                maxWidth="w-full"
+                options={employmentTypes.map(t => ({
+                  label: t,
+                  value: t
+                }))}
+              />
             </div>
 
             {/* Search Input */}

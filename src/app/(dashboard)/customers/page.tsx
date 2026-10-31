@@ -28,6 +28,7 @@ import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate } from '@/lib/formatters';
 
 interface Customer {
@@ -1216,65 +1217,58 @@ export default function CustomersRegistry() {
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 1. Branch Filter */}
-            <select
+            <FilterDropdown
+              label="Branch"
+              allLabel="All Branches"
               value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Branches</option>
-              {branches.map((b) => (
-                <option key={b.id} value={String(b.id)}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedBranch}
+              options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
+              maxWidth="max-w-[200px]"
+            />
             
-            {/* 2. Customers Dropdown Filter: All, Active, Inactive, Special, Risk */}
-            <select
+            {/* 2. Customers Status Filter */}
+            <FilterDropdown
+              label="Customer Status"
+              allLabel={`All Customers (${customers.length})`}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Customers ({customers.length})</option>
-              <option value="ACTIVE">Active Customers ({stats.activeCount})</option>
-              <option value="INACTIVE">Inactive Customers ({stats.inactiveCount})</option>
-              <option value="SPECIAL">★ Favourite Customers ({stats.specialCount})</option>
-              <option value="RISK">⚠ Risk Customers ({stats.riskCount})</option>
-            </select>
+              onChange={(val) => setStatusFilter(val as any)}
+              options={[
+                { label: 'All Customers', value: 'ALL', badge: customers.length },
+                { label: 'Active Customers', value: 'ACTIVE', badge: stats.activeCount },
+                { label: 'Inactive Customers', value: 'INACTIVE', badge: stats.inactiveCount },
+                { label: '★ Favourite Customers', value: 'SPECIAL', badge: stats.specialCount },
+                { label: '⚠ Risk Customers', value: 'RISK', badge: stats.riskCount }
+              ]}
+              maxWidth="max-w-[220px]"
+            />
 
             {/* 3. Zone Filter */}
-            <select
+            <FilterDropdown
+              label="Zone"
+              allLabel={`All Zones (${customers.length})`}
               value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Zones ({customers.length})</option>
-              {availableFilterZones.map(z => {
-                const count = customers.filter(c => String(c.zone_id) === String(z.id)).length;
-                return (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedZone}
+              options={availableFilterZones.map(z => ({
+                label: z.name,
+                value: String(z.id),
+                badge: customers.filter(c => String(c.zone_id) === String(z.id)).length
+              }))}
+              maxWidth="max-w-[200px]"
+            />
 
             {/* 4. Sector / Industry Filter */}
-            <select
+            <FilterDropdown
+              label="Sector"
+              allLabel={`All Sectors (${customers.length})`}
               value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Sectors ({customers.length})</option>
-              {industries.map(ind => {
-                const count = customers.filter(c => String(c.industry_id) === String(ind.id)).length;
-                return (
-                  <option key={ind.id} value={String(ind.id)}>
-                    {ind.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedIndustry}
+              options={industries.map(ind => ({
+                label: ind.name,
+                value: String(ind.id),
+                badge: customers.filter(c => String(c.industry_id) === String(ind.id)).length
+              }))}
+              maxWidth="max-w-[200px]"
+            />
           </div>
         }
       />

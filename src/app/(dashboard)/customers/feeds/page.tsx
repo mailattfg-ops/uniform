@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Plus, Compass, MapPin, Phone, Mail, User, ShieldCheck, 
   ExternalLink, Building2, ArrowRight, MessageSquarePlus
@@ -529,66 +530,53 @@ export default function FeedsRegistryPage() {
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Branch Filter */}
-            <select
+            <FilterDropdown
+              label="Branch"
+              allLabel={`All Branches (${feedsList.length})`}
               value={selectedBranch}
-              onChange={(e) => {
-                setSelectedBranch(e.target.value);
+              onChange={(val) => {
+                setSelectedBranch(val);
                 setSelectedZone('ALL');
               }}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Branches ({feedsList.length})</option>
-              {(() => {
-                const hqCount = feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length;
-                return (
-                  <option value="HQ">
-                    Headquarters (HQ Central) ({hqCount})
-                  </option>
-                );
-              })()}
-              {branches.map((b) => {
-                const count = feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length;
-                return (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              options={[
+                {
+                  label: 'Headquarters (HQ Central)',
+                  value: 'HQ',
+                  badge: feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length
+                },
+                ...branches.map((b) => ({
+                  label: b.name,
+                  value: String(b.id),
+                  badge: feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                }))
+              ]}
+            />
 
             {/* Zone Filter */}
-            <select
+            <FilterDropdown
+              label="Zone"
+              allLabel={`All Zones (${availableFilterZones.length})`}
               value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Zones ({availableFilterZones.length})</option>
-              {availableFilterZones.map((z) => {
-                const count = feedsList.filter(l => String(l.zone_id) === String(z.id)).length;
-                return (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} {z.code ? `(${z.code})` : ''} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedZone(val)}
+              options={availableFilterZones.map((z) => ({
+                label: `${z.name}${z.code ? ` (${z.code})` : ''}`,
+                value: String(z.id),
+                badge: feedsList.filter(l => String(l.zone_id) === String(z.id)).length
+              }))}
+            />
 
             {/* Sector / Industry Filter */}
-            <select
+            <FilterDropdown
+              label="Sector"
+              allLabel={`All Sectors (${feedsList.length})`}
               value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Sectors ({feedsList.length})</option>
-              {industries.map(ind => {
-                const count = feedsList.filter(l => String(l.industry_id) === String(ind.id)).length;
-                return (
-                  <option key={ind.id} value={String(ind.id)}>
-                    {ind.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedIndustry(val)}
+              options={industries.map(ind => ({
+                label: ind.name,
+                value: String(ind.id),
+                badge: feedsList.filter(l => String(l.industry_id) === String(ind.id)).length
+              }))}
+            />
           </div>
         }
       />

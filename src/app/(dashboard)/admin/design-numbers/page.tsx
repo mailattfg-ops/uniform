@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Card } from '@/components/ui/Card';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Edit2, 
   Tag, 
@@ -553,20 +554,16 @@ function DesignNumbersContent() {
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
           
           {/* USER'S REQUEST: Dropdown Filter for DNS / DNG */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 whitespace-nowrap hidden sm:inline">
-              Filter:
-            </span>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as any)}
-              className="h-11 px-4 bg-white border border-[#fce4d4] rounded-2xl text-xs font-black uppercase tracking-wider text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-xs w-full sm:w-auto"
-            >
-              <option value="ALL">All Designs (DNS & DNG)</option>
-              <option value="DNS">DNS - Individual Product Designs ({dnsList.length})</option>
-              <option value="DNG">DNG - Group Design Sets ({dngList.length})</option>
-            </select>
-          </div>
+          <FilterDropdown
+            label="Design Type"
+            allLabel="All Designs (DNS & DNG)"
+            value={typeFilter}
+            onChange={(val) => setTypeFilter(val as any)}
+            options={[
+              { label: "DNS - Individual Product Designs", value: "DNS", badge: dnsList.length },
+              { label: "DNG - Group Design Sets", value: "DNG", badge: dngList.length }
+            ]}
+          />
 
           {/* Quick Pill Toggles */}
           <div className="flex items-center gap-1.5 bg-[#fce4d4]/20 p-1 rounded-2xl border border-[#fce4d4]/40">
