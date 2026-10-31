@@ -28,6 +28,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 
@@ -1393,15 +1394,6 @@ export default function AccessoriesAndTradeCatalogPage() {
         <div className="flex flex-wrap items-center gap-2.5">
 
           <button 
-            onClick={() => setIsManageCatModalOpen(true)}
-            className="h-14 px-5 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] text-zinc-800 shadow-sm flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            title="Customize & Edit Categories"
-          >
-            <FolderPlus size={16} className="text-[#9E1B1D]" />
-            Categories
-          </button>
-
-          <button 
             onClick={() => handleOpenAddArticle()}
             className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
@@ -1420,6 +1412,25 @@ export default function AccessoriesAndTradeCatalogPage() {
             printLabel="Print Accessories"
             onUserReport={() => userReportTriggerRef.current?.()}
             userReportLabel="My Updated Report"
+            extraActions={[
+              {
+                label: 'Category Management',
+                description: 'Manage, rename & edit categories',
+                onClick: () => setIsManageCatModalOpen(true),
+                icon: <FolderPlus size={16} className="text-[#9E1B1D]" />
+              },
+              {
+                label: 'Add Category',
+                description: 'Create new accessory or trade category',
+                onClick: () => {
+                  setAddCatType(articleType === 'TRADE_READYMADE' ? 'TRADE' : 'ACCESSORY');
+                  setNewCatName('');
+                  setNewCatPrefix('');
+                  setIsAddCatModalOpen(true);
+                },
+                icon: <Plus size={16} className="text-[#9E1B1D]" />
+              }
+            ]}
           />
         </div>
       </div>
@@ -1438,71 +1449,62 @@ export default function AccessoriesAndTradeCatalogPage() {
         headerAction={
           <div className="flex flex-wrap items-center gap-2">
             {/* Type Filter */}
-            <select
+            <FilterDropdown
+              label="Type"
+              allLabel={`All Types (${stats.total})`}
               value={activeCatalogTab}
-              onChange={(e) => {
-                setActiveCatalogTab(e.target.value as any);
+              onChange={(val) => {
+                setActiveCatalogTab(val as any);
                 setSelectedCategory('ALL');
               }}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Types ({stats.total})</option>
-              <option value="ACCESSORIES">Accessories ({stats.accessoriesCount})</option>
-              <option value="TRADE_READYMADE">Readymade (Trade) ({stats.tradeCount})</option>
-            </select>
+              options={[
+                { label: 'All Types', value: 'ALL', badge: stats.total },
+                { label: 'Accessories', value: 'ACCESSORIES', badge: stats.accessoriesCount },
+                { label: 'Readymade (Trade)', value: 'TRADE_READYMADE', badge: stats.tradeCount }
+              ]}
+              maxWidth="max-w-[220px]"
+            />
 
             {/* Category Filter */}
-            <select
+            <FilterDropdown
+              label="Category"
+              allLabel="All Categories"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs max-w-[200px]"
-            >
-              <option value="ALL">All Categories</option>
-              {displayedCategories.map(cat => {
-                const count = categoryCounts[cat.name] || 0;
-                return (
-                  <option key={cat.id || cat.name} value={cat.name}>
-                    {cat.name} {count > 0 ? `(${count})` : ''}
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedCategory}
+              options={displayedCategories.map(cat => ({
+                label: cat.name,
+                value: cat.name,
+                badge: categoryCounts[cat.name] || undefined
+              }))}
+              maxWidth="max-w-[220px]"
+            />
 
             {/* Gender Filter */}
-            <select
+            <FilterDropdown
+              label="Gender"
+              allLabel="All Genders"
               value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Genders</option>
-              {uniqueGenders.map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
+              onChange={setGenderFilter}
+              options={uniqueGenders}
+            />
 
             {/* Size Filter */}
-            <select
+            <FilterDropdown
+              label="Size"
+              allLabel="All Sizes"
               value={filterSize}
-              onChange={(e) => setFilterSize(e.target.value)}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Sizes</option>
-              {uniqueSizes.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+              onChange={setFilterSize}
+              options={uniqueSizes}
+            />
 
             {/* Colour Filter */}
-            <select
+            <FilterDropdown
+              label="Colour"
+              allLabel="All Colours"
               value={filterColour}
-              onChange={(e) => setFilterColour(e.target.value)}
-              className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Colours</option>
-              {uniqueColours.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+              onChange={setFilterColour}
+              options={uniqueColours}
+            />
           </div>
         }
       />

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import toast from '@/components/ui/toast';
 import { Quotation, Organization } from '../page';
 import { formatDate, capitalizeFirstLetter } from '@/lib/formatters';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -534,68 +535,62 @@ export default function QuotationList({
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 1. Branch Filter */}
-            <select
+            <FilterDropdown
+              label="Branch"
+              allLabel={`All Branches (${quotations.length})`}
               value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Branches ({quotations.length})</option>
-              {branches.map((b) => {
-                const count = quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(b.id)).length;
-                return (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedBranch}
+              options={branches.map(b => ({
+                label: b.name,
+                value: String(b.id),
+                badge: quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(b.id)).length
+              }))}
+              maxWidth="max-w-[220px]"
+            />
 
             {/* 2. All Quote (Status Filter) */}
-            <select
-              value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value as any)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="all">All Quote ({counts.all})</option>
-              <option value="pending_bm">Waiting for BM's Approval ({counts.pending_bm})</option>
-              <option value="pending_ops">Under Ops Review ({counts.pending_ops})</option>
-              <option value="approved">Approved Quotes ({counts.approved})</option>
-              <option value="drafts">Drafts Only ({counts.drafts})</option>
-            </select>
+            <FilterDropdown
+              label="Quote Status"
+              allLabel={`All Quotes (${counts.all})`}
+              value={activeFilter === 'all' ? 'ALL' : activeFilter}
+              onChange={(val) => setActiveFilter(val === 'ALL' ? 'all' : val as any)}
+              options={[
+                { label: 'All Quotes', value: 'ALL', badge: counts.all },
+                { label: "Waiting for BM's Approval", value: 'pending_bm', badge: counts.pending_bm },
+                { label: 'Under Ops Review', value: 'pending_ops', badge: counts.pending_ops },
+                { label: 'Approved Quotes', value: 'approved', badge: counts.approved },
+                { label: 'Drafts Only', value: 'drafts', badge: counts.drafts }
+              ]}
+              maxWidth="max-w-[240px]"
+            />
 
             {/* 3. Zone Filter */}
-            <select
+            <FilterDropdown
+              label="Zone"
+              allLabel={`All Zones (${quotations.length})`}
               value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Zones ({quotations.length})</option>
-              {availableFilterZones.map(z => {
-                const count = quotations.filter(q => String((q as any).zone_id || (q.organizations as any)?.zone_id || '') === String(z.id)).length;
-                return (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedZone}
+              options={availableFilterZones.map(z => ({
+                label: z.name,
+                value: String(z.id),
+                badge: quotations.filter(q => String((q as any).zone_id || (q.organizations as any)?.zone_id || '') === String(z.id)).length
+              }))}
+              maxWidth="max-w-[200px]"
+            />
 
             {/* 4. Sector / Industry Filter */}
-            <select
+            <FilterDropdown
+              label="Sector"
+              allLabel={`All Sectors (${quotations.length})`}
               value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-            >
-              <option value="ALL">All Sectors ({quotations.length})</option>
-              {industries.map((ind) => {
-                const count = quotations.filter((q) => String((q.organizations as any)?.industry_id || '') === String(ind.id)).length;
-                return (
-                  <option key={ind.id} value={String(ind.id)}>
-                    {ind.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedIndustry}
+              options={industries.map(ind => ({
+                label: ind.name,
+                value: String(ind.id),
+                badge: quotations.filter((q) => String((q.organizations as any)?.industry_id || '') === String(ind.id)).length
+              }))}
+              maxWidth="max-w-[200px]"
+            />
           </div>
         }
       />

@@ -22,6 +22,7 @@ export interface PageActionsMenuProps {
   buttonClassName?: string;
   size?: 'header' | 'sm' | 'md';
   extraActions?: PageActionItem[];
+  extraActionsHeader?: string;
 }
 
 export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
@@ -32,7 +33,8 @@ export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
   className = '',
   buttonClassName = '',
   size = 'header',
-  extraActions = []
+  extraActions = [],
+  extraActionsHeader
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -119,7 +121,9 @@ export const PageActionsMenu: React.FC<PageActionsMenuProps> = ({
           {extraActions && extraActions.length > 0 && (
             <div className="py-1">
               <div className="px-3.5 pt-1.5 pb-1">
-                <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Quick Navigation</p>
+                <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">
+                  {extraActionsHeader || (extraActions.some(a => a.onClick && !a.href) ? 'Options & Actions' : 'Quick Navigation')}
+                </p>
               </div>
               {extraActions.map((action, idx) => {
                 const itemClass = `w-full px-3.5 py-2 text-left text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer group ${

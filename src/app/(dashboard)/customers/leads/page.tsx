@@ -17,6 +17,7 @@ import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate, capitalizeFirstLetter, capitalizeWords } from '@/lib/formatters';
 import { supabase } from '@/lib/supabase';
 import { useLayout } from '@/hooks/useLayout';
@@ -1037,101 +1038,93 @@ export default function LeadsRegistryPage() {
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* 1. Branch Dropdown Filter */}
-            <select
+            <FilterDropdown
+              label="Branch"
+              allLabel={`All Branches (${leads.length})`}
               value={selectedBranch}
-              onChange={(e) => {
-                setSelectedBranch(e.target.value);
+              onChange={(val) => {
+                setSelectedBranch(val);
                 setSelectedZone('ALL');
               }}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Branches ({leads.length})</option>
-              {(() => {
-                const hqCount = leads.filter(l => !l.branch_id || l.origin === 'HQ').length;
-                return (
-                  <option value="HQ">
-                    Headquarters (HQ Central) ({hqCount})
-                  </option>
-                );
-              })()}
-              {branches.map((b) => {
-                const count = leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length;
-                return (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              options={[
+                {
+                  label: 'Headquarters (HQ Central)',
+                  value: 'HQ',
+                  badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
+                },
+                ...branches.map((b) => ({
+                  label: b.name,
+                  value: String(b.id),
+                  badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                }))
+              ]}
+            />
 
             {/* 2. Pipeline Stage Status Dropdown Filter */}
-            <select
+            <FilterDropdown
+              label="Stage"
+              allLabel={`All Stages (${stageCounts['ALL'] || 0})`}
               value={activeStageFilter}
-              onChange={(e) => {
-                setActiveStageFilter(e.target.value);
-                if (e.target.value !== 'Follow-ups') {
+              onChange={(val) => {
+                setActiveStageFilter(val);
+                if (val !== 'Follow-ups') {
                   setFollowUpFilter('all');
                 }
               }}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Stages ({stageCounts['ALL'] || 0})</option>
-              {ACTIVE_LEAD_STAGES.map((s, idx) => (
-                <option key={s.key} value={s.key}>
-                  {idx + 1}. {s.label} ({stageCounts[s.key] || 0})
-                </option>
-              ))}
-              <option value="cold_leads">
-                ❄ Cold Leads ({stageCounts['cold_followups'] || 0})
-              </option>
-            </select>
+              options={[
+                ...ACTIVE_LEAD_STAGES.map((s, idx) => ({
+                  label: `${idx + 1}. ${s.label}`,
+                  value: s.key,
+                  badge: stageCounts[s.key] || 0
+                })),
+                {
+                  label: '❄ Cold Leads',
+                  value: 'cold_leads',
+                  badge: stageCounts['cold_followups'] || 0
+                }
+              ]}
+            />
 
             {/* Follow-ups Sub-filter Dropdown (Active vs Cold Leads Tag) */}
             {activeStageFilter === 'Follow-ups' && (
-              <select
+              <FilterDropdown
+                label="Follow-up Type"
+                allLabel={`All Follow-ups (${stageCounts['Follow-ups'] || 0})`}
+                allValue="all"
                 value={followUpFilter}
-                onChange={(e) => setFollowUpFilter(e.target.value as any)}
-                className="h-10 px-3 bg-amber-50 border border-amber-300 rounded-xl text-xs font-bold text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/30 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="all">All Follow-ups ({stageCounts['Follow-ups'] || 0})</option>
-                <option value="active">Active Follow-ups ({stageCounts['active_followups'] || 0})</option>
-                <option value="cold">❄ Cold Leads Tagged ({stageCounts['cold_followups'] || 0})</option>
-              </select>
+                onChange={(val) => setFollowUpFilter(val as any)}
+                options={[
+                  { label: 'Active Follow-ups', value: 'active', badge: stageCounts['active_followups'] || 0 },
+                  { label: '❄ Cold Leads Tagged', value: 'cold', badge: stageCounts['cold_followups'] || 0 }
+                ]}
+              />
             )}
 
             {/* 3. Zone Dropdown Filter */}
-            <select
+            <FilterDropdown
+              label="Zone"
+              allLabel={`All Zones (${leads.length})`}
               value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Zones ({leads.length})</option>
-              {availableFilterZones.map(z => {
-                const count = leads.filter(l => String(l.zone_id) === String(z.id)).length;
-                return (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedZone(val)}
+              options={availableFilterZones.map(z => ({
+                label: z.name,
+                value: String(z.id),
+                badge: leads.filter(l => String(l.zone_id) === String(z.id)).length
+              }))}
+            />
 
             {/* 4. Sector / Industry Dropdown Filter */}
-            <select
+            <FilterDropdown
+              label="Sector"
+              allLabel={`All Sectors (${leads.length})`}
               value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Sectors ({leads.length})</option>
-              {industries.map(ind => {
-                const count = leads.filter(l => String(l.industry_id) === String(ind.id)).length;
-                return (
-                  <option key={ind.id} value={String(ind.id)}>
-                    {ind.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedIndustry(val)}
+              options={industries.map(ind => ({
+                label: ind.name,
+                value: String(ind.id),
+                badge: leads.filter(l => String(l.industry_id) === String(ind.id)).length
+              }))}
+            />
 
             {/* 5. No Follow-ups Filter */}
             <label 

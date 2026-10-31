@@ -17,6 +17,7 @@ X,
   Scissors
 } from 'lucide-react';
 import { formatQuantity } from '@/lib/formatters';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface TrimCategory {
   id: string;
@@ -395,40 +396,36 @@ export default function TrimsStockPage() {
           
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
             {/* Category Dropdown Filter */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="h-11 px-4 bg-white border border-zinc-200/80 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
-              >
-                <option value="ALL">All Categories ({trims.length})</option>
-                {categories.map(c => {
-                  const count = trims.filter(t => 
-                    t.category_id === c.id || 
-                    (t.category?.name || '').toLowerCase() === c.name.toLowerCase()
-                  ).length;
-                  return (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({count})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <FilterDropdown
+              label="Category"
+              allLabel={`All Categories (${trims.length})`}
+              value={categoryFilter}
+              onChange={(val) => setCategoryFilter(val)}
+              options={categories.map(c => {
+                const count = trims.filter(t => 
+                  t.category_id === c.id || 
+                  (t.category?.name || '').toLowerCase() === c.name.toLowerCase()
+                ).length;
+                return {
+                  label: c.name,
+                  value: c.id,
+                  badge: count
+                };
+              })}
+            />
 
             {/* Status Dropdown Filter */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="h-11 px-4 bg-white border border-zinc-200/80 rounded-2xl text-xs font-bold text-[#3a525d] outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all cursor-pointer shadow-sm w-full sm:w-auto"
-              >
-                <option value="ALL">All Stock Statuses</option>
-                <option value="IN_STOCK">In Stock ({stats.inStockCount})</option>
-                <option value="LOW_STOCK">Low Stock Alerts ({stats.lowStockCount})</option>
-                <option value="OUT_OF_STOCK">Depleted ({stats.outOfStockCount})</option>
-              </select>
-            </div>
+            <FilterDropdown
+              label="Stock Status"
+              allLabel="All Stock Statuses"
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val as any)}
+              options={[
+                { label: "In Stock", value: "IN_STOCK", badge: stats.inStockCount },
+                { label: "Low Stock Alerts", value: "LOW_STOCK", badge: stats.lowStockCount },
+                { label: "Depleted", value: "OUT_OF_STOCK", badge: stats.outOfStockCount }
+              ]}
+            />
           </div>
 
           {/* Search */}

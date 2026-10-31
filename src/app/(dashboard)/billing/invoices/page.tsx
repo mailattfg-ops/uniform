@@ -27,6 +27,7 @@ import {
 import toast from '@/components/ui/toast';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { DashboardCardGroup } from '@/components/dashboard/DashboardCardGroup';
@@ -501,28 +502,30 @@ export default function InvoicesPage() {
           {/* Search & Filters */}
           <div className="flex flex-wrap items-center gap-3 flex-1">
             {/* Status Filter */}
-            <select
+            <FilterDropdown
+              label="Status"
+              allLabel="All Statuses"
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold bg-white text-zinc-700 cursor-pointer"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="OVERDUE">🚨 Payment Overdue</option>
-              <option value="UNPAID">Unpaid Balance</option>
-              <option value="PARTIAL">Partially Paid</option>
-              <option value="PAID">Fully Settled</option>
-            </select>
+              onChange={(val) => setStatusFilter(val)}
+              options={[
+                { label: '🚨 Payment Overdue', value: 'OVERDUE' },
+                { label: 'Unpaid Balance', value: 'UNPAID' },
+                { label: 'Partially Paid', value: 'PARTIAL' },
+                { label: 'Fully Settled', value: 'PAID' }
+              ]}
+            />
 
             {/* Type Filter */}
-            <select
+            <FilterDropdown
+              label="Sale Type"
+              allLabel="All Sale Types"
               value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold bg-white text-zinc-700 cursor-pointer"
-            >
-              <option value="ALL">All Sale Types</option>
-              <option value="BULK">Against Sales Order (Bulk)</option>
-              <option value="RETAIL">Counter / OTC Sale</option>
-            </select>
+              onChange={(val) => setTypeFilter(val)}
+              options={[
+                { label: 'Against Sales Order (Bulk)', value: 'BULK' },
+                { label: 'Counter / OTC Sale', value: 'RETAIL' }
+              ]}
+            />
 
             <div className="relative min-w-[240px] flex-1 max-w-md ml-auto">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />

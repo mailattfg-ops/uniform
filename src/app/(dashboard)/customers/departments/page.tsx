@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { Plus, BookOpen, Trash2, Edit2, Filter } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
@@ -331,16 +332,17 @@ export default function DepartmentManagement() {
         isLoading={isLoading}
         searchPlaceholder="Filter departments..."
         headerAction={
-          <select
+          <FilterDropdown
+            label="Organization"
+            allLabel={`All Organizations (${departments.length})`}
+            allValue=""
             value={selectedOrg}
-            onChange={(e) => setSelectedOrg(e.target.value)}
-            className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs hover:border-[#2d8d9b]/50"
-          >
-            <option value="">All Organizations ({departments.length})</option>
-            {organizations.map(o => (
-              <option key={o.id} value={o.id.toString()}>{o.name}</option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedOrg(val)}
+            options={organizations.map(o => ({
+              label: o.name,
+              value: o.id.toString()
+            }))}
+          />
         }
       />
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText
 } from 'lucide-react';
@@ -628,67 +629,56 @@ export default function DealsRegistryPage() {
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Deals Stage Filter */}
-            <select
+            <FilterDropdown
+              label="Stage"
+              allLabel={`All Deals (${stageCounts.all})`}
               value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value as any)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Deals ({stageCounts.all})</option>
-              <option value="SO_DRAFT">SO Draft ({stageCounts.soDraft})</option>
-              <option value="NEW_DEALS">New Deals ({stageCounts.newDeals})</option>
-              <option value="SO_CONVERTED">SO Converted Deals ({stageCounts.soConverted})</option>
-            </select>
+              onChange={(val) => setStageFilter(val as any)}
+              options={[
+                { label: 'SO Draft', value: 'SO_DRAFT', badge: stageCounts.soDraft },
+                { label: 'New Deals', value: 'NEW_DEALS', badge: stageCounts.newDeals },
+                { label: 'SO Converted Deals', value: 'SO_CONVERTED', badge: stageCounts.soConverted }
+              ]}
+            />
 
             {/* 1. Branch Filter */}
-            <select
+            <FilterDropdown
+              label="Branch"
+              allLabel={`All Branches (${allDeals.length})`}
               value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Branches ({allDeals.length})</option>
-              {branches.map((b) => {
-                const count = allDeals.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length;
-                return (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedBranch(val)}
+              options={branches.map((b) => ({
+                label: b.name,
+                value: String(b.id),
+                badge: allDeals.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+              }))}
+            />
 
             {/* 2. Zone Filter */}
-            <select
+            <FilterDropdown
+              label="Zone"
+              allLabel={`All Zones (${dealsList.length})`}
               value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Zones ({dealsList.length})</option>
-              {availableFilterZones.map(z => {
-                const count = dealsList.filter(l => String(l.zone_id) === String(z.id)).length;
-                return (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedZone(val)}
+              options={availableFilterZones.map(z => ({
+                label: z.name,
+                value: String(z.id),
+                badge: dealsList.filter(l => String(l.zone_id) === String(z.id)).length
+              }))}
+            />
 
             {/* 4. Sector / Industry Filter */}
-            <select
+            <FilterDropdown
+              label="Sector"
+              allLabel={`All Sectors (${allDeals.length})`}
               value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="h-10 px-3 bg-white border border-[#fce4d4] rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:ring-2 focus:ring-[#2d8d9b]/30 transition-all cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All Sectors ({allDeals.length})</option>
-              {industries.map(ind => {
-                const count = allDeals.filter(l => String(l.industry_id) === String(ind.id)).length;
-                return (
-                  <option key={ind.id} value={String(ind.id)}>
-                    {ind.name} ({count})
-                  </option>
-                );
-              })}
-            </select>
+              onChange={(val) => setSelectedIndustry(val)}
+              options={industries.map(ind => ({
+                label: ind.name,
+                value: String(ind.id),
+                badge: allDeals.filter(l => String(l.industry_id) === String(ind.id)).length
+              }))}
+            />
 
             {/* 5. No Follow-ups Filter */}
             <label 

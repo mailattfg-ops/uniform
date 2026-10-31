@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface StockRecord {
   id: number;
@@ -286,16 +287,13 @@ export default function AccessoriesStockPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Category Dropdown */}
           {categories.length > 0 && (
-            <select
+            <FilterDropdown
+              label="Category"
+              allLabel="All Categories"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-11 px-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 cursor-pointer"
-            >
-              <option value="ALL">All Categories</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedCategory(val)}
+              options={categories.map(c => ({ label: c.name, value: c.name }))}
+            />
           )}
 
           <div className="flex flex-wrap items-center gap-2">

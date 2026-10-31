@@ -23,6 +23,7 @@ import {
 import toast from '@/components/ui/toast';
 import { formatQuantity } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface JobCard {
@@ -484,19 +485,18 @@ export default function ProductionQueuePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> Stage:
-            </span>
-            <select
+            <FilterDropdown
+              label="Stage"
+              allLabel={`All Stages (${subJobCards.length})`}
+              allValue="all"
               value={selectedStageFilter}
-              onChange={e => setSelectedStageFilter(e.target.value)}
-              className="text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">All Stages ({subJobCards.length})</option>
-              {STAGES.map(st => (
-                <option key={st} value={st}>{st} ({stageCounts[st] || 0})</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedStageFilter(val)}
+              options={STAGES.map(st => ({
+                label: st,
+                value: st,
+                badge: stageCounts[st] || 0
+              }))}
+            />
           </div>
         </div>
 

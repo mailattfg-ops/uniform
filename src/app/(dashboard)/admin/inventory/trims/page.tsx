@@ -7,6 +7,7 @@ import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Plus, 
   Edit2, 
@@ -814,14 +815,6 @@ export default function TrimsCatalogPage() {
 
           <div className="flex items-center gap-3">
             <Button
-              onClick={() => setIsCategoryModalOpen(true)}
-              variant="secondary"
-              className="h-14 px-5 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] bg-white hover:bg-zinc-50 text-zinc-900 border border-zinc-200/80 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <FolderPlus size={16} className="text-[#C82A2B]" />
-              Manage Categories
-            </Button>
-            <Button
               onClick={() => {
                 setEditingItem(null);
                 setView('add');
@@ -842,6 +835,14 @@ export default function TrimsCatalogPage() {
               printLabel="Print Trims"
               onUserReport={() => userReportTriggerRef.current?.()}
               userReportLabel="My Report"
+              extraActions={[
+                {
+                  label: 'Add Category',
+                  description: 'Create & define new trim category',
+                  onClick: () => setIsCategoryModalOpen(true),
+                  icon: <FolderPlus size={16} className="text-[#C82A2B]" />
+                }
+              ]}
             />
           </div>
         </div>
@@ -859,45 +860,36 @@ export default function TrimsCatalogPage() {
           headerAction={
             <div className="flex flex-wrap items-center gap-2">
               {/* Category Filter Dropdown */}
-              <select
+              <FilterDropdown
+                label="Category"
+                allLabel={`All Categories (${trims.length})`}
                 value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="ALL">All Categories ({trims.length})</option>
-                {categories.map(c => {
-                  const count = trims.filter(t => t.category_id === c.id).length;
-                  return (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({count})
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={setSelectedCategoryId}
+                options={categories.map(c => ({
+                  label: c.name,
+                  value: c.id,
+                  badge: trims.filter(t => t.category_id === c.id).length
+                }))}
+                maxWidth="max-w-[220px]"
+              />
 
               {/* Size Filter Dropdown */}
-              <select
+              <FilterDropdown
+                label="Size"
+                allLabel="All Sizes"
                 value={filterSize}
-                onChange={(e) => setFilterSize(e.target.value)}
-                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="ALL">All Sizes</option>
-                {uniqueSizes.map(sz => (
-                  <option key={sz} value={sz}>{sz}</option>
-                ))}
-              </select>
+                onChange={setFilterSize}
+                options={uniqueSizes}
+              />
 
               {/* Colour Filter Dropdown */}
-              <select
+              <FilterDropdown
+                label="Colour"
+                allLabel="All Colours"
                 value={filterColour}
-                onChange={(e) => setFilterColour(e.target.value)}
-                className="h-10 px-3 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all cursor-pointer shadow-2xs"
-              >
-                <option value="ALL">All Colours</option>
-                {uniqueColours.map(cl => (
-                  <option key={cl} value={cl}>{cl}</option>
-                ))}
-              </select>
+                onChange={setFilterColour}
+                options={uniqueColours}
+              />
             </div>
           }
         />
