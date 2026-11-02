@@ -234,7 +234,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ onComplete }) => {
                 <table className="w-full text-left text-sm font-bold text-zinc-600">
                   <thead className="bg-white text-[10px] uppercase tracking-wider text-zinc-400">
                     <tr>
-                      {Object.keys(data[0] || {}).map(key => <th key={key} className="p-4">{key}</th>)}
+                      {Object.keys(data[0] || {}).map(key => <th key={key} className="p-4 text-center">{key}</th>)}
                     </tr>
                   </thead>
                   <tbody>

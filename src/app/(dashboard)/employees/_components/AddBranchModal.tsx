@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState } from 'react';
 import { Building2, X, Plus, ShieldCheck, Mail, Phone, MapPin, Key } from 'lucide-react';
@@ -106,7 +107,7 @@ export const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose,
             </div>
             <div>
               <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">Branch Tier / Type *</label>
-              <select
+              <Select
                 value={tier}
                 onChange={e => setTier(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
@@ -114,7 +115,7 @@ export const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose,
                 <option value="Branch">🏪 Retail Outlet / Showroom</option>
                 <option value="Factory">🏭 Factory (Production Unit)</option>
                 <option value="Corporate">🏢 Headquarters (Corporate HQ)</option>
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -216,7 +217,7 @@ export const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose,
               className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#C82A2B]/25 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <Plus size={14} />
-              {loading ? 'Creating Branch...' : 'Register Branch'}
+              {loading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

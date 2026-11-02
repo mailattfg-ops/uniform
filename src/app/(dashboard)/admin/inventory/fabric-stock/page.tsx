@@ -820,7 +820,7 @@ export default function FabricStockPage() {
                     {isSubmitting ? (
                       <Loader2 className="animate-spin text-white" size={16} />
                     ) : (
-                      modalTab === 'ADD_BATCH' ? 'Save Batch Entry' : 'Update Threshold'
+                      'Save'
                     )}
                   </button>
                 )}

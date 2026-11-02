@@ -387,10 +387,10 @@ export default function AccessoriesStockPage() {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b border-zinc-200/80 text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                          <th className="py-2.5 px-3.5">Size</th>
-                          <th className="py-2.5 px-3.5 text-right">Physical</th>
-                          <th className="py-2.5 px-3.5 text-right">Reserved</th>
-                          <th className="py-2.5 px-3.5 text-right">Available</th>
+                          <th className="py-2.5 px-3.5 text-center">Size</th>
+                          <th className="py-2.5 px-3.5 text-center">Physical</th>
+                          <th className="py-2.5 px-3.5 text-center">Reserved</th>
+                          <th className="py-2.5 px-3.5 text-center">Available</th>
                           <th className="py-2.5 px-3.5 text-center">Action</th>
                         </tr>
                       </thead>
@@ -558,7 +558,7 @@ export default function AccessoriesStockPage() {
                   disabled={isSubmitting}
                   className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-[#C82A2B]/20 transition-all disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving...' : 'Confirm Adjustment'}
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

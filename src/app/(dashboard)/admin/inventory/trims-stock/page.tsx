@@ -569,14 +569,14 @@ export default function TrimsStockPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#fce4d4]/60 bg-zinc-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Trim Code</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Article Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Category</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Variant / Type</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Current Stock</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Alert Threshold</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d]">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-right">Action</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Trim Code</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Article Name</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Category</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Variant / Type</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Current Stock</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Alert Threshold</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -764,7 +764,7 @@ export default function TrimsStockPage() {
                   disabled={isSubmitting}
                   className="px-7 py-3 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {isSubmitting ? 'Saving...' : 'Apply Stock Entry'}
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

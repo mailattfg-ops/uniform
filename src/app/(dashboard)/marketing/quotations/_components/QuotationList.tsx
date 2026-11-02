@@ -19,6 +19,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { DatePicker } from '@/components/ui/DatePicker';
 import toast from '@/components/ui/toast';
 import { Quotation, Organization } from '../page';
 import { formatDate, capitalizeFirstLetter } from '@/lib/formatters';
@@ -534,21 +535,7 @@ export default function QuotationList({
         userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* 1. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel={`All Branches (${quotations.length})`}
-              value={selectedBranch}
-              onChange={setSelectedBranch}
-              options={branches.map(b => ({
-                label: b.name,
-                value: String(b.id),
-                badge: quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(b.id)).length
-              }))}
-              maxWidth="max-w-[220px]"
-            />
-
-            {/* 2. All Quote (Status Filter) */}
+            {/* 1. All Quote (Status Filter) */}
             <FilterDropdown
               label="Quote Status"
               allLabel={`All Quotes (${counts.all})`}
@@ -562,6 +549,20 @@ export default function QuotationList({
                 { label: 'Drafts Only', value: 'drafts', badge: counts.drafts }
               ]}
               maxWidth="max-w-[240px]"
+            />
+
+            {/* 2. Branch Filter */}
+            <FilterDropdown
+              label="Branch"
+              allLabel={`All Branches (${quotations.length})`}
+              value={selectedBranch}
+              onChange={setSelectedBranch}
+              options={branches.map(b => ({
+                label: b.name,
+                value: String(b.id),
+                badge: quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(b.id)).length
+              }))}
+              maxWidth="max-w-[220px]"
             />
 
             {/* 3. Zone Filter */}
@@ -817,11 +818,11 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               <Calendar size={11} className="text-[#9E1B1D]" />
               Next Scheduled Follow-up Date (Optional)
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={nextFollowUpDate}
-              onChange={(e) => setNextFollowUpDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 bg-white transition-all"
+              onChange={(val) => setNextFollowUpDate(val)}
+              placeholder="Select follow-up date"
+              className="w-full"
             />
           </div>
 

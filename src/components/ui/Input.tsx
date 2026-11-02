@@ -1,5 +1,6 @@
 import React from 'react';
 import { capitalizeFirstLetter, capitalizeWords } from '@/lib/formatters';
+import { DatePicker } from './DatePicker';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -78,6 +79,27 @@ export const Input: React.FC<InputProps> = ({
       : effectiveCapitalize === 'first'
       ? 'sentences'
       : 'none');
+
+  if (props.type === 'date') {
+    return (
+      <DatePicker
+        label={label}
+        value={typeof props.value === 'string' ? props.value : (props.defaultValue ? String(props.defaultValue) : '')}
+        onChange={props.onChange as any}
+        name={props.name}
+        id={props.id}
+        placeholder={props.placeholder || 'Select date'}
+        disabled={props.disabled}
+        required={props.required}
+        min={typeof props.min === 'string' ? props.min : undefined}
+        max={typeof props.max === 'string' ? props.max : undefined}
+        error={error}
+        helperText={helperText}
+        className={className}
+        size="lg"
+      />
+    );
+  }
 
   return (
     <div className={`flex flex-col gap-2 w-full group ${props.disabled ? 'opacity-40' : ''}`}>

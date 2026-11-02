@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { Select } from '@/components/ui/Select';
 import { capitalizeWords } from '@/lib/formatters';
 
 export interface CustomerFormModalProps {
@@ -267,17 +268,12 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div className="sm:col-span-3">
-                <select
+                <Select
                   value={contactTitle}
-                  onChange={(e) => setContactTitle(e.target.value)}
-                  className="w-full px-3 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-                >
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Dr.">Dr.</option>
-                  <option value="Prof.">Prof.</option>
-                </select>
+                  onChange={setContactTitle}
+                  options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                  className="rounded-2xl py-3"
+                />
               </div>
               <div className="sm:col-span-5">
                 <input
@@ -340,46 +336,45 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 <Briefcase size={13} className="text-[#9E1B1D]" />
                 Customer Sector / Type *
               </label>
-              <select
+              <Select
                 required
+                placeholder="Select Sector"
                 value={industryId}
-                onChange={(e) => setIndustryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-              >
-                <option value="">Select Sector</option>
-                {industries.map((i) => (
-                  <option key={i.id} value={String(i.id)}>{i.name}</option>
-                ))}
-              </select>
+                onChange={setIndustryId}
+                options={industries.map(i => ({ label: i.name, value: String(i.id) }))}
+                className="rounded-2xl py-3"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Star size={13} className="text-[#9E1B1D]" />
                 Classification
               </label>
-              <select
+              <Select
                 value={clientTag}
-                onChange={(e) => setClientTag(e.target.value as any)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-              >
-                <option value="standard">Standard Customer</option>
-                <option value="special">★ Favourite Customer</option>
-                <option value="risk">⚠ Risk Customer</option>
-              </select>
+                onChange={(val) => setClientTag(val as any)}
+                options={[
+                  { label: 'Standard Customer', value: 'standard' },
+                  { label: '★ Favourite Customer', value: 'special' },
+                  { label: '⚠ Risk Customer', value: 'risk' }
+                ]}
+                className="rounded-2xl py-3"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <CheckCircle2 size={13} className="text-[#9E1B1D]" />
                 Account Status
               </label>
-              <select
+              <Select
                 value={isActive ? 'true' : 'false'}
-                onChange={(e) => setIsActive(e.target.value === 'true')}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-              >
-                <option value="true">Active Account</option>
-                <option value="false">Inactive Account</option>
-              </select>
+                onChange={(val) => setIsActive(val === 'true')}
+                options={[
+                  { label: 'Active Account', value: 'true' },
+                  { label: 'Inactive Account', value: 'false' }
+                ]}
+                className="rounded-2xl py-3"
+              />
             </div>
           </div>
 
@@ -390,19 +385,19 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 <Building2 size={13} className="text-[#9E1B1D]" />
                 Assigned Branch
               </label>
-              <select
+              <Select
+                placeholder="HQ / Unassigned Branch"
                 value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
+                onChange={(val) => {
+                  setBranchId(val);
                   setZoneId('');
                 }}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-              >
-                <option value="">HQ / Unassigned Branch</option>
-                {branchesList.map((b) => (
-                  <option key={b.id} value={String(b.id)}>{b.name}</option>
-                ))}
-              </select>
+                options={[
+                  { label: 'HQ / Unassigned Branch', value: '' },
+                  ...branchesList.map((b) => ({ label: b.name, value: String(b.id) }))
+                ]}
+                className="rounded-2xl py-3"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -410,19 +405,17 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 <MapPin size={13} className="text-[#9E1B1D]" />
                 Assigned Zone {branchId ? `(${availableZones.length})` : ''}
               </label>
-              <select
+              <Select
+                placeholder={branchId ? (availableZones.length > 0 ? 'Select Zone' : 'No zones for this branch') : 'Select Branch first'}
                 value={zoneId}
-                onChange={(e) => setZoneId(e.target.value)}
+                onChange={setZoneId}
                 disabled={!branchId}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white disabled:bg-zinc-50 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
-              >
-                <option value="">{branchId ? (availableZones.length > 0 ? 'Select Zone' : 'No zones for this branch') : 'Select Branch first'}</option>
-                {availableZones.map((z) => (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} {z.code ? `(${z.code})` : ''}
-                  </option>
-                ))}
-              </select>
+                options={availableZones.map((z) => ({
+                  label: `${z.name} ${z.code ? `(${z.code})` : ''}`.trim(),
+                  value: String(z.id)
+                }))}
+                className="rounded-2xl py-3"
+              />
             </div>
           </div>
 
@@ -609,7 +602,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
               disabled={isSubmitting}
               className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
-              {isSubmitting ? 'Saving...' : editingCustomer ? 'Save Changes' : 'Add Customer'}
+              {isSubmitting ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

@@ -109,22 +109,22 @@ export default function WizardStep3({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">{isAccessory ? 'Category / Department' : 'Product Type / Set'}</th>
-                      <th className="p-3">{isAccessory ? 'Accessory (Art #)' : 'Product & Fabric Details'}</th>
+                      <th className="p-3 text-center">{isAccessory ? 'Category / Department' : 'Product Type / Set'}</th>
+                      <th className="p-3 text-center">{isAccessory ? 'Accessory (Art #)' : 'Product & Fabric Details'}</th>
                       {isAccessory ? (
                         <>
-                          <th className="p-3">Size</th>
-                          <th className="p-3 text-right">Unit Price</th>
+                          <th className="p-3 text-center">Size</th>
+                          <th className="p-3 text-center">Unit Price</th>
                         </>
                       ) : (
                         <>
-                          <th className="p-3 text-right">Fabric Cost (Unit)</th>
-                          {!isFabric && <th className="p-3 text-right">Labor Cost (Unit)</th>}
-                          <th className="p-3 text-right">Unit Expense</th>
+                          <th className="p-3 text-center">Fabric Cost (Unit)</th>
+                          {!isFabric && <th className="p-3 text-center">Labor Cost (Unit)</th>}
+                          <th className="p-3 text-center">Unit Expense</th>
                         </>
                       )}
-                      <th className="p-3 text-right">Quantity</th>
-                      <th className="p-3 text-right">Total Expense</th>
+                      <th className="p-3 text-center">Quantity</th>
+                      <th className="p-3 text-center">Total Expense</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
@@ -363,10 +363,10 @@ export default function WizardStep3({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">Fabric Details</th>
-                      <th className="p-3 text-right">Quantity</th>
-                      <th className="p-3 text-right">Unit Price</th>
-                      <th className="p-3 text-right">Total Expense</th>
+                      <th className="p-3 text-center">Fabric Details</th>
+                      <th className="p-3 text-center">Quantity</th>
+                      <th className="p-3 text-center">Unit Price</th>
+                      <th className="p-3 text-center">Total Expense</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">

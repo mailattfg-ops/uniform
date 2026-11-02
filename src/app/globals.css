@@ -56,7 +56,16 @@
 @layer base {
   * {
     @apply transition-colors duration-200;
+  
+  /* Center alignment for all table headers across all pages, modals, and tables */
+  th, thead th {
+    text-align: center !important;
   }
+  th > div, thead th > div {
+    text-align: center !important;
+    justify-content: center !important;
+  }
+}
 
   body {
     @apply bg-background text-foreground font-sans antialiased h-screen overflow-hidden;

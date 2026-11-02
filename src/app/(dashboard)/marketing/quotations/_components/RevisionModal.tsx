@@ -157,7 +157,7 @@ export const RevisionModal: React.FC<RevisionModalProps> = ({
               className="rounded-xl px-6 h-11 text-xs font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-lg shadow-[#C82A2B]/20 flex items-center gap-2 cursor-pointer"
             >
               <RotateCcw size={14} />
-              <span>{isSubmitting ? 'Requesting...' : 'Request Revision'}</span>
+              <span>{isSubmitting ? 'Saving...' : 'Save'}</span>
             </Button>
           </div>
         </form>

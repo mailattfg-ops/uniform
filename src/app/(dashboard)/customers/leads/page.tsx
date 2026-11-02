@@ -18,6 +18,7 @@ import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { Select } from '@/components/ui/Select';
 import { formatDate, capitalizeFirstLetter, capitalizeWords } from '@/lib/formatters';
 import { supabase } from '@/lib/supabase';
 import { useLayout } from '@/hooks/useLayout';
@@ -150,6 +151,7 @@ export interface LeadActivity {
   stage: string;
   activity_type: string;
   response_type?: string | null;
+  outcome?: string | null;
   remarks?: string | null;
   staff_name?: string | null;
   staff_employee_id?: string | null;
@@ -1037,30 +1039,7 @@ export default function LeadsRegistryPage() {
         rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 1. Branch Dropdown Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel={`All Branches (${leads.length})`}
-              value={selectedBranch}
-              onChange={(val) => {
-                setSelectedBranch(val);
-                setSelectedZone('ALL');
-              }}
-              options={[
-                {
-                  label: 'Headquarters (HQ Central)',
-                  value: 'HQ',
-                  badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
-                },
-                ...branches.map((b) => ({
-                  label: b.name,
-                  value: String(b.id),
-                  badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
-                }))
-              ]}
-            />
-
-            {/* 2. Pipeline Stage Status Dropdown Filter */}
+            {/* 1. Pipeline Stage Status Dropdown Filter */}
             <FilterDropdown
               label="Stage"
               allLabel={`All Stages (${stageCounts['ALL'] || 0})`}
@@ -1099,6 +1078,29 @@ export default function LeadsRegistryPage() {
                 ]}
               />
             )}
+
+            {/* 2. Branch Dropdown Filter */}
+            <FilterDropdown
+              label="Branch"
+              allLabel={`All Branches (${leads.length})`}
+              value={selectedBranch}
+              onChange={(val) => {
+                setSelectedBranch(val);
+                setSelectedZone('ALL');
+              }}
+              options={[
+                {
+                  label: 'Headquarters (HQ Central)',
+                  value: 'HQ',
+                  badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
+                },
+                ...branches.map((b) => ({
+                  label: b.name,
+                  value: String(b.id),
+                  badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                }))
+              ]}
+            />
 
             {/* 3. Zone Dropdown Filter */}
             <FilterDropdown
@@ -1640,18 +1642,15 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 <Briefcase size={13} className="text-[#9E1B1D]" />
                 Industry Sector
               </label>
-              <select
+              <Select
                 value={industryId}
-                onChange={(e) => setIndustryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white cursor-pointer"
-              >
-                <option value="">Select Sector / Category</option>
-                {industries.map((ind) => (
-                  <option key={ind.id} value={String(ind.id)}>
-                    {ind.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setIndustryId(val)}
+                placeholder="Select Sector / Category"
+                options={industries.map((ind) => ({
+                  value: String(ind.id),
+                  label: ind.name
+                }))}
+              />
             </div>
           </div>
 
@@ -1663,17 +1662,17 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div className="sm:col-span-3">
-                <select
+                <Select
                   value={contactTitle}
-                  onChange={(e) => setContactTitle(e.target.value)}
-                  className="w-full px-3 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-                >
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Dr.">Dr.</option>
-                  <option value="Prof.">Prof.</option>
-                </select>
+                  onChange={(val) => setContactTitle(val)}
+                  options={[
+                    { value: 'Mr.', label: 'Mr.' },
+                    { value: 'Mrs.', label: 'Mrs.' },
+                    { value: 'Ms.', label: 'Ms.' },
+                    { value: 'Dr.', label: 'Dr.' },
+                    { value: 'Prof.', label: 'Prof.' }
+                  ]}
+                />
               </div>
               <div className="sm:col-span-5">
                 <input
@@ -1841,10 +1840,10 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 <p className="text-[11px] text-zinc-600 font-medium">
                   Select a branch or pick a zone to automatically assign the branch:
                 </p>
-                <select
+                <Select
                   value={hqBranchId}
-                  onChange={(e) => {
-                    const newBranchId = e.target.value;
+                  onChange={(val) => {
+                    const newBranchId = val;
                     setHqBranchId(newBranchId);
                     if (zoneId) {
                       const currentZone = zones.find(z => String(z.id) === String(zoneId));
@@ -1854,13 +1853,12 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                       }
                     }
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] text-xs font-bold text-zinc-800 bg-white"
-                >
-                  <option value="">Select Branch (Optional / Auto-assigned)</option>
-                  {selectableBranches.map(b => (
-                    <option key={b.id} value={String(b.id)}>{b.name}</option>
-                  ))}
-                </select>
+                  placeholder="Select Branch (Optional / Auto-assigned)"
+                  options={selectableBranches.map(b => ({
+                    value: String(b.id),
+                    label: b.name
+                  }))}
+                />
               </div>
             )}
 
@@ -2026,7 +2024,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
               disabled={isSubmitting}
               className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
             >
-              {isSubmitting ? 'Saving Feed...' : 'Save Field Feed'}
+              {isSubmitting ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -2326,17 +2324,17 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div className="sm:col-span-3">
-                <select
+                <Select
                   value={contactTitle}
-                  onChange={(e) => setContactTitle(e.target.value)}
-                  className="w-full px-3 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-                >
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Dr.">Dr.</option>
-                  <option value="Prof.">Prof.</option>
-                </select>
+                  onChange={(val) => setContactTitle(val)}
+                  options={[
+                    { value: 'Mr.', label: 'Mr.' },
+                    { value: 'Mrs.', label: 'Mrs.' },
+                    { value: 'Ms.', label: 'Ms.' },
+                    { value: 'Dr.', label: 'Dr.' },
+                    { value: 'Prof.', label: 'Prof.' }
+                  ]}
+                />
               </div>
               <div className="sm:col-span-5">
                 <input
@@ -2430,16 +2428,15 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 <Briefcase size={13} className="text-[#9E1B1D]" />
                 Industry Sector
               </label>
-              <select
+              <Select
                 value={industryId}
-                onChange={(e) => setIndustryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-              >
-                <option value="">Select Sector</option>
-                {industries.map((i) => (
-                  <option key={i.id} value={String(i.id)}>{i.name}</option>
-                ))}
-              </select>
+                onChange={(val) => setIndustryId(val)}
+                placeholder="Select Sector"
+                options={industries.map((i) => ({
+                  value: String(i.id),
+                  label: i.name
+                }))}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -2447,18 +2444,18 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 <Compass size={13} className="text-[#9E1B1D]" />
                 Lead Source
               </label>
-              <select
+              <Select
                 value={source}
-                onChange={(e) => setSource(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-              >
-                <option value="Direct">Direct / Walk-in</option>
-                <option value="Field Feed">Field Agent Discovery</option>
-                <option value="Referral">Client Referral</option>
-                <option value="Website">Website / Online</option>
-                <option value="Cold Call">Cold Outreach</option>
-                <option value="Exhibition">Exhibition / Expo</option>
-              </select>
+                onChange={(val) => setSource(val)}
+                options={[
+                  { value: 'Direct Visit', label: 'Direct Visit' },
+                  { value: 'Referral', label: 'Referral' },
+                  { value: 'Website', label: 'Website' },
+                  { value: 'Phone Enquiry', label: 'Phone Enquiry' },
+                  { value: 'Exhibition', label: 'Exhibition' },
+                  { value: 'Other', label: 'Other' }
+                ]}
+              />
             </div>
 
             {/* Branch Assignment Provision: Visible for HQ staff or when editing */}
@@ -2468,19 +2465,21 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   <Building2 size={13} className="text-[#9E1B1D]" />
                   Branch Assignment
                 </label>
-                <select
+                <Select
                   value={branchId}
-                  onChange={(e) => {
-                    setBranchId(e.target.value);
+                  onChange={(val) => {
+                    setBranchId(val);
                     setZoneId('');
                   }}
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-                >
-                  <option value="">HQ / Unassigned (Open Leads)</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={String(b.id)}>{b.name}</option>
-                  ))}
-                </select>
+                  placeholder="HQ / Unassigned (Open Leads)"
+                  options={[
+                    { value: '', label: 'HQ / Unassigned (Open Leads)' },
+                    ...branches.map((b) => ({
+                      value: String(b.id),
+                      label: b.name
+                    }))
+                  ]}
+                />
               </div>
             )}
 
@@ -2490,19 +2489,16 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 <MapPin size={13} className="text-[#9E1B1D]" />
                 Zone / Region {effectiveBranchId ? `(${availableZones.length})` : ''}
               </label>
-              <select
+              <Select
                 value={zoneId}
-                onChange={(e) => setZoneId(e.target.value)}
+                onChange={(val) => setZoneId(val)}
                 disabled={!effectiveBranchId}
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white disabled:bg-zinc-50 disabled:text-zinc-400 cursor-pointer disabled:cursor-not-allowed"
-              >
-                <option value="">{effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}</option>
-                {availableZones.map((z) => (
-                  <option key={z.id} value={String(z.id)}>
-                    {z.name} {z.code ? `(${z.code})` : ''}
-                  </option>
-                ))}
-              </select>
+                placeholder={effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}
+                options={availableZones.map((z) => ({
+                  value: String(z.id),
+                  label: `${z.name} ${z.code ? `(${z.code})` : ''}`
+                }))}
+              />
             </div>
 
             {/* Salesperson Assignment Provision: Visible for Branch staff or when editing */}
@@ -2512,20 +2508,20 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   <ShieldCheck size={13} className="text-[#9E1B1D]" />
                   Salesperson Assignment
                 </label>
-                <select
+                <Select
                   value={assignedStaffId}
-                  onChange={(e) => setAssignedStaffId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-                >
-                  <option value="">Unassigned (Branch Intake)</option>
-                  {employees
-                    .filter(emp => !userBranchId || emp.branch_id === userBranchId)
-                    .map((emp) => (
-                      <option key={emp.id} value={String(emp.id)}>
-                        {emp.full_name} ({emp.employee_id})
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setAssignedStaffId(val)}
+                  placeholder="Unassigned (Branch Intake)"
+                  options={[
+                    { value: '', label: 'Unassigned (Branch Intake)' },
+                    ...employees
+                      .filter(emp => !userBranchId || emp.branch_id === userBranchId)
+                      .map((emp) => ({
+                        value: String(emp.id),
+                        label: `${emp.full_name} (${emp.employee_id})`
+                      }))
+                  ]}
+                />
               </div>
             )}
 
@@ -2536,15 +2532,14 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   <Layers size={13} className="text-[#9E1B1D]" />
                   Pipeline Stage
                 </label>
-                <select
+                <Select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all bg-white"
-                >
-                  {PIPELINE_STAGES.map(s => (
-                    <option key={s.key} value={s.key}>{s.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setStatus(val as any)}
+                  options={PIPELINE_STAGES.map(s => ({
+                    value: s.key,
+                    label: s.label
+                  }))}
+                />
               </div>
             )}
           </div>
@@ -2643,7 +2638,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               disabled={isSubmitting}
               className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 flex items-center gap-2 active:scale-95"
             >
-              {isSubmitting ? 'Saving...' : editingLead ? 'Save Changes' : 'Register Prospect'}
+              {isSubmitting ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -2713,7 +2708,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
   useEffect(() => {
     if (lead) {
       // By default, select the lead's current stage to focus on relevant logs
-      setSelectedStageTab(lead.status || 'Follow-ups');
+      const defaultStage = (lead.status === 'Open Feeds' || lead.status === 'Contacted Leads') ? 'Feeds' : (lead.status || 'Follow-ups');
+      setSelectedStageTab(defaultStage);
     }
   }, [lead]);
 
@@ -2749,6 +2745,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         let derived: LeadActivity[] = lead.remarks
           .filter(r => {
             if (selectedStageTab === 'ALL') return true;
+            if (selectedStageTab === 'Feeds' || selectedStageTab === 'Open Feeds' || selectedStageTab === 'Contacted Leads') {
+              return r.stage === 'Feeds' || r.stage === 'Open Feeds' || r.stage === 'Contacted Leads';
+            }
             if (selectedStageTab === 'Follow-ups') {
               return r.stage === 'Follow-ups' || (!r.stage) || 
                      String(r.response_type || '').toLowerCase().includes('cold') || 
@@ -2994,7 +2993,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
       
-      <div className="bg-white w-full max-w-4xl max-h-[92vh] rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col">
+      <div className="bg-white w-full max-w-6xl max-h-[92vh] rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col">
         {/* Header Banner */}
         <div className="bg-gradient-to-r from-[#3a525d] via-[#2d4752] to-[#1c3038] py-5 px-8 text-white relative">
           <div className="flex items-center justify-between mb-2">
@@ -3182,345 +3181,467 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
         {/* Modal Scrollable Body */}
         <div className="p-8 space-y-6 flex-1 overflow-y-auto">
-          {/* 10-Stage Pipeline Interactive Roadmap Stepper */}
-          <div className="bg-zinc-50/90 border border-zinc-200/80 rounded-3xl p-6 relative">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] flex items-center gap-1.5">
-                <Layers size={13} className="text-[#2d8d9b]" />
-                10-Stage Commercial Sales Pipeline (Click any stage to view stage logs)
-              </span>
-              <span className="text-[9px] font-bold text-zinc-400">
-                Current: <span className="text-[#2d8d9b] font-black">{lead.status}</span>
-                {lead.is_cold && <span className="text-rose-600 font-black ml-1">(Cold Lead Tag)</span>}
-              </span>
-            </div>
+          {/* 5-Stage Commercial Sales Pipeline Interactive Roadmap Stepper */}
+          {(() => {
+            const isAtFeedStage = lead.status === 'Feeds' || lead.status === 'Open Feeds' || lead.status === 'Contacted Leads';
+            
+            // Helper to check if an activity is initial feed creation / intake note from Add New Feed modal
+            const isFeedIntakeActivity = (act: any) => {
+              if (!act) return false;
+              const type = String(act.activity_type || act.activityType || '').toLowerCase();
+              return (
+                type === 'feed_note' ||
+                type === 'initial_feed_note' ||
+                type === 'feed_intake_note' ||
+                type === 'raw feed intake' ||
+                type === 'feed_creation' ||
+                type === 'intake'
+              );
+            };
 
-            {/* Inactivity Alert Banner */}
-            {(() => {
-              const refDate = lead.updated_at || lead.created_at;
-              const daysInactive = refDate ? Math.floor((Date.now() - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-              if (daysInactive >= 3 && (lead.status === 'Sales Leads' || lead.status === 'New Leads' || lead.status === 'Follow-ups')) {
-                return (
-                  <div className="mb-4 p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                        <Clock size={16} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-amber-900">
-                          Pending Follow-up: No activity recorded for {daysInactive} days
-                        </p>
-                        <p className="text-[10px] text-amber-700 font-medium">
-                          Assigned to {lead.employees?.full_name || 'salesperson'} (Branch #{lead.branch_id || '3'}). Awaiting first follow-up note.
-                        </p>
-                      </div>
-                    </div>
-                    {(lead.status === 'Follow-ups' || lead.status === 'Sales Leads') && (
-                      <button
-                        onClick={onFollowUp}
-                        className="px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm shrink-0 cursor-pointer self-start sm:self-auto"
-                      >
-                        + Log Follow-up
-                      </button>
-                    )}
-                  </div>
-                );
+            // Check if feed has any genuine follow-up response or activity
+            // (Initial contact notes / remarks added during new feed creation must NOT mark it as contacted)
+            const hasFeedFollowUp = lead.status === 'Contacted Leads' || 
+              (Array.isArray(lead.remarks) && lead.remarks.some((r: any) => {
+                if (isFeedIntakeActivity(r)) return false;
+                const actType = r.activity_type || r.activityType;
+                if (actType === 'Feed Contact Outcome') return true;
+                const isFeedStage = r.stage === 'Feeds' || r.stage === 'Open Feeds' || r.stage === 'Contacted Leads';
+                const resp = String(r.response_type || r.responseType || r.outcome || '').toLowerCase();
+                const hasValidOutcome = resp === 'positive' || resp === 'negative' || (resp && resp !== 'hold' && resp !== 'intake' && resp !== 'none');
+                return isFeedStage && hasValidOutcome;
+              })) ||
+              stageActivities.some(a => {
+                if (isFeedIntakeActivity(a)) return false;
+                const actType = a.activity_type;
+                if (actType === 'Feed Contact Outcome') return true;
+                const isFeedStage = a.stage === 'Feeds' || a.stage === 'Open Feeds' || a.stage === 'Contacted Leads';
+                const resp = String(a.response_type || a.outcome || '').toLowerCase();
+                const hasValidOutcome = resp === 'positive' || resp === 'negative' || (resp && resp !== 'hold' && resp !== 'intake' && resp !== 'none');
+                return isFeedStage && hasValidOutcome;
+              });
+
+            const feedLabel = isAtFeedStage ? (hasFeedFollowUp ? 'Contacted Leads' : 'Open Feeds') : 'Contacted Leads';
+
+            const LEAD_STAGES_CONFIG: Record<string, { num: number; label: string }> = {
+              'Open Leads': { num: 2, label: 'Open Leads' },
+              'New Leads': { num: 3, label: 'New Leads' },
+              'Sales Leads': { num: 4, label: 'Sales Leads' },
+              'Follow-ups': { num: 5, label: 'Follow-ups' },
+              'Meetings': { num: 6, label: 'Meetings' },
+              'Hot Leads': { num: 7, label: 'Hot Leads' }
+            };
+
+            const isPastLeads = ['Quotations', 'Deals', 'SO Converted Deals'].includes(lead.status);
+            const isCurrentInLeads = Boolean(LEAD_STAGES_CONFIG[lead.status]);
+
+            let leadStageNum = 2;
+            let leadStageLabel = 'Open Leads';
+            if (isCurrentInLeads) {
+              leadStageNum = LEAD_STAGES_CONFIG[lead.status].num;
+              leadStageLabel = LEAD_STAGES_CONFIG[lead.status].label;
+            } else if (isPastLeads) {
+              leadStageNum = 7;
+              leadStageLabel = 'Hot Leads';
+            }
+
+            const stepperItems = [
+              {
+                id: 'feeds',
+                num: 1,
+                label: feedLabel,
+                stageKey: 'Feeds',
+                isCurrent: isAtFeedStage,
+                isPassed: !isAtFeedStage,
+                hasCold: false,
+              },
+              {
+                id: 'leads',
+                num: leadStageNum,
+                label: leadStageLabel,
+                stageKey: leadStageLabel,
+                isCurrent: isCurrentInLeads,
+                isPassed: isPastLeads,
+                hasCold: lead.status === 'Follow-ups' && lead.is_cold,
+              },
+              {
+                id: 'quotations',
+                num: 8,
+                label: 'Quotations',
+                stageKey: 'Quotations',
+                isCurrent: lead.status === 'Quotations',
+                isPassed: ['Deals', 'SO Converted Deals'].includes(lead.status),
+                hasCold: false,
+              },
+              {
+                id: 'deals',
+                num: 9,
+                label: 'Deals',
+                stageKey: 'Deals',
+                isCurrent: lead.status === 'Deals',
+                isPassed: lead.status === 'SO Converted Deals',
+                hasCold: false,
+              },
+              {
+                id: 'so_converted',
+                num: 10,
+                label: 'SO Converted Deals',
+                stageKey: 'SO Converted Deals',
+                isCurrent: lead.status === 'SO Converted Deals',
+                isPassed: false,
+                hasCold: false,
               }
-              return null;
-            })()}
+            ];
 
-            {/* Stepper Nodes */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin">
-              {PIPELINE_STAGES.map((stage, idx) => {
-                const isSelected = selectedStageTab === stage.key;
-                const isCurrent = lead.status === stage.key;
-                const isPassed = currentStageIndex >= 0 && idx < currentStageIndex;
-                const isFollowUp = stage.key === 'Follow-ups';
-                const hasColdTag = isFollowUp && lead.is_cold;
+            return (
+              <div className="bg-zinc-50/90 border border-zinc-200/80 rounded-3xl p-6 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] flex items-center gap-1.5">
+                    <Layers size={13} className="text-[#2d8d9b]" />
+                    Commercial Sales Pipeline Stepper (Click to filter logs)
+                  </span>
+                  <span className="text-[9px] font-bold text-zinc-400">
+                    Current: <span className="text-[#2d8d9b] font-black">{lead.status}</span>
+                    {lead.is_cold && <span className="text-rose-600 font-black ml-1">(Cold Lead Tag)</span>}
+                  </span>
+                </div>
 
-                let circleClass = 'bg-white border-zinc-300 text-zinc-400';
-                if (isCurrent) {
-                  circleClass = 'bg-[#2d8d9b] border-[#2d8d9b] text-white ring-4 ring-teal-100 shadow-md';
-                } else if (isPassed) {
-                  circleClass = 'bg-emerald-500 border-emerald-500 text-white';
-                }
+                {/* Inactivity Alert Banner */}
+                {(() => {
+                  const refDate = lead.updated_at || lead.created_at;
+                  const daysInactive = refDate ? Math.floor((Date.now() - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                  if (daysInactive >= 3 && (lead.status === 'Sales Leads' || lead.status === 'New Leads' || lead.status === 'Follow-ups')) {
+                    return (
+                      <div className="mb-4 p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                            <Clock size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-amber-900">
+                              Pending Follow-up: No activity recorded for {daysInactive} days
+                            </p>
+                            <p className="text-[10px] text-amber-700 font-medium">
+                              Assigned to {lead.employees?.full_name || 'salesperson'} (Branch #{lead.branch_id || '3'}). Awaiting first follow-up note.
+                            </p>
+                          </div>
+                        </div>
+                        {(lead.status === 'Follow-ups' || lead.status === 'Sales Leads') && (
+                          <button
+                            onClick={onFollowUp}
+                            className="px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm shrink-0 cursor-pointer self-start sm:self-auto"
+                          >
+                            + Log Follow-up
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
-                return (
-                  <div
-                    key={stage.key}
-                    onClick={() => setSelectedStageTab(stage.key)}
-                    className={`flex flex-col items-center min-w-[92px] max-w-[102px] p-2 rounded-2xl cursor-pointer transition-all ${
-                      isSelected
-                        ? 'bg-white shadow-md border-2 border-[#2d8d9b] scale-105'
-                        : 'hover:bg-white/60 border border-transparent'
-                    }`}
-                    title={`Click to filter logs for ${stage.label}`}
-                  >
-                    {/* Circle Node */}
-                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-black mb-1.5 transition-all ${circleClass}`}>
-                      {isCurrent ? (
-                        <Check size={14} strokeWidth={3} />
-                      ) : isPassed ? (
-                        <Check size={14} strokeWidth={3} />
-                      ) : (
-                        <span>{idx + 1}</span>
-                      )}
-                    </div>
-                    <span className={`text-[10px] text-center font-black leading-tight truncate w-full ${
-                      isCurrent
-                        ? 'text-[#2d8d9b]'
-                        : isSelected ? 'text-[#3a525d]' : 'text-zinc-500'
-                    }`}>
-                      {stage.label}
-                    </span>
-                    {hasColdTag ? (
-                      <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-rose-600 bg-rose-50 px-1 py-0.2 rounded border border-rose-200 mt-0.5">
-                        <Snowflake size={8} /> Cold Lead
-                      </span>
-                    ) : (
-                      <span className="text-[8px] text-zinc-400 text-center font-medium truncate w-full mt-0.5">
-                        {isCurrent ? '• Active' : isPassed ? 'Done' : 'Pending'}
+                {/* 5-Node Stepper with Connecting Lines */}
+                <div className="flex items-center justify-between relative px-2 sm:px-6">
+                  {stepperItems.map((item, idx) => {
+                    const isSelected = selectedStageTab === item.stageKey || 
+                      (item.id === 'feeds' && (selectedStageTab === 'Feeds' || selectedStageTab === 'Open Feeds' || selectedStageTab === 'Contacted Leads'));
+                    let circleClass = 'bg-white border-zinc-300 text-zinc-400';
+                    if (item.isCurrent) {
+                      circleClass = 'bg-[#2d8d9b] border-[#2d8d9b] text-white ring-4 ring-teal-100 shadow-md';
+                    } else if (item.isPassed) {
+                      circleClass = 'bg-emerald-500 border-emerald-500 text-white';
+                    }
+
+                    return (
+                      <React.Fragment key={item.id}>
+                        {idx > 0 && (
+                          <div className={`flex-1 h-0.5 mx-2 min-w-[12px] transition-colors ${
+                            item.isPassed || item.isCurrent ? 'bg-emerald-500/80' : 'bg-zinc-200'
+                          }`} />
+                        )}
+                        <div
+                          onClick={() => setSelectedStageTab(item.stageKey)}
+                          className={`flex flex-col items-center min-w-[85px] sm:min-w-[105px] max-w-[130px] p-2 rounded-2xl cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-white shadow-md border-2 border-[#2d8d9b] scale-105'
+                              : 'hover:bg-white/60 border border-transparent'
+                          }`}
+                          title={`Click to filter logs for ${item.label}`}
+                        >
+                          {/* Circle Node */}
+                          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-black mb-1.5 transition-all ${circleClass}`}>
+                            {item.isPassed ? (
+                              <Check size={14} strokeWidth={3} />
+                            ) : (
+                              <span>{item.num}</span>
+                            )}
+                          </div>
+
+                          {/* Stage Label */}
+                          <span className={`text-[10px] text-center font-black leading-tight truncate w-full ${
+                            item.isCurrent
+                              ? 'text-[#2d8d9b]'
+                              : isSelected ? 'text-[#3a525d]' : 'text-zinc-600'
+                          }`}>
+                            {item.label}
+                          </span>
+
+                          {/* Subtitle / Cold Lead Tag */}
+                          {item.hasCold ? (
+                            <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-rose-600 bg-rose-50 px-1 py-0.2 rounded border border-rose-200 mt-0.5">
+                              <Snowflake size={8} /> Cold Lead
+                            </span>
+                          ) : (
+                            <span className="text-[8px] text-zinc-400 text-center font-medium truncate w-full mt-0.5">
+                              {item.isCurrent ? '• Active' : item.isPassed ? 'Done' : 'Pending'}
+                            </span>
+                          )}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* 2-Column Split: Prospect Details Cards (Left) & Scrollable Stage Activity Logs (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Vertically Aligned Prospect Detail Cards */}
+            <div className="lg:col-span-5 flex flex-col gap-3">
+              {/* Contact Person */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Contact Person</label>
+                <div className="flex items-start gap-2">
+                  <User size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-[#3a525d]">
+                      {lead.contact_person ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}` : 'Not specified'}
+                    </p>
+                    {lead.contact_designation && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-md inline-block mt-0.5 border border-teal-100">
+                        {lead.contact_designation}
                       </span>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* Core Prospect Data Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Contact Person */}
-            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Contact Person</label>
-              <div className="flex items-start gap-2">
-                <User size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-[#3a525d]">
-                    {lead.contact_person ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}` : 'Not specified'}
-                  </p>
-                  {lead.contact_designation && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-md inline-block mt-0.5">
-                      {lead.contact_designation}
-                    </span>
+              {/* Phone Number */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Phone Number</label>
+                <div className="flex items-center gap-2">
+                  <Phone size={14} className="text-[#2d8d9b]" />
+                  <p className="text-xs font-bold font-mono text-[#3a525d]">{lead.phone || 'No phone'}</p>
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Email</label>
+                <div className="flex items-center gap-2">
+                  <Mail size={14} className="text-[#2d8d9b]" />
+                  <p className="text-xs font-bold text-[#3a525d] truncate">{lead.email || '—'}</p>
+                </div>
+              </div>
+
+              {/* Sales Operator */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Sales Operator</label>
+                {lead.employees ? (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <ShieldCheck size={14} className="text-[#2d8d9b]" />
+                    <div>
+                      <p className="text-xs font-black text-[#3a525d]">{lead.employees.full_name}</p>
+                      <p className="text-[9px] font-bold text-zinc-400 uppercase font-mono">{lead.employees.employee_id}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-xs text-zinc-400 italic font-medium">Unassigned</span>
+                )}
+              </div>
+
+              {/* Location & 5-Part Address */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Location &amp; 5-Part Address</label>
+                  {lead.google_maps_link && (
+                    <a
+                      href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-[#2d8d9b] rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors border border-teal-200/60"
+                    >
+                      <Navigation size={10} /> Maps
+                    </a>
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* Phone Number */}
-            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Phone Number</label>
-              <div className="flex items-center gap-2">
-                <Phone size={14} className="text-[#2d8d9b]" />
-                <p className="text-xs font-bold font-mono text-[#3a525d]">{lead.phone || 'No phone'}</p>
-              </div>
-            </div>
-
-            {/* Email Address */}
-            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Email</label>
-              <div className="flex items-center gap-2">
-                <Mail size={14} className="text-[#2d8d9b]" />
-                <p className="text-xs font-bold text-[#3a525d] truncate">{lead.email || '—'}</p>
-              </div>
-            </div>
-
-            {/* Assigned Staff */}
-            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Sales Operator</label>
-              {lead.employees ? (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <ShieldCheck size={14} className="text-[#2d8d9b]" />
-                  <div>
-                    <p className="text-xs font-black text-[#3a525d]">{lead.employees.full_name}</p>
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase">{lead.employees.employee_id}</p>
+                <div className="flex items-start gap-2">
+                  <MapPin size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-0.5">
+                    <p className="text-xs font-bold text-[#3a525d]">
+                      {[lead.city, lead.state].filter(Boolean).join(', ') || lead.area || 'Location unlisted'}
+                    </p>
+                    {lead.address && <p className="text-[11px] text-zinc-600 font-medium">{lead.address}</p>}
+                    {lead.area && <p className="text-[11px] text-[#2d8d9b] font-bold">Area: {lead.area}</p>}
+                    {(lead.pincode || lead.country) && (
+                      <p className="text-[10px] text-zinc-400 font-medium">
+                        {[lead.pincode ? `PIN: ${lead.pincode}` : null, lead.country || 'India'].filter(Boolean).join(' • ')}
+                      </p>
+                    )}
+                    {lead.zones?.name && (
+                      <div className="pt-1 flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-black uppercase">
+                          Zone: {lead.zones.name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ) : (
-                <span className="text-xs text-zinc-400 italic font-medium">Unassigned</span>
+              </div>
+
+              {/* Inquired Requirements */}
+              {lead.requirements && (
+                <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100/80 shadow-2xs">
+                  <label className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest block mb-1">
+                    Inquired Requirements
+                  </label>
+                  <p className="text-xs font-semibold text-zinc-800 leading-relaxed whitespace-pre-wrap">{lead.requirements}</p>
+                </div>
               )}
             </div>
 
-            {/* Location & 5-Part Address */}
-            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 md:col-span-2">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Location &amp; 5-Part Address</label>
-              <div className="flex items-start gap-2">
-                <MapPin size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-[#3a525d]">
-                    {[lead.city, lead.state].filter(Boolean).join(', ') || lead.area || 'Location unlisted'}
-                  </p>
-                  {lead.address && <p className="text-[11px] text-zinc-600 font-medium mt-0.5">{lead.address}</p>}
-                  {lead.area && <p className="text-[11px] text-[#2d8d9b] font-bold mt-0.5">Area: {lead.area}</p>}
-                  {(lead.pincode || lead.country) && (
-                    <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                      {[lead.pincode ? `PIN: ${lead.pincode}` : null, lead.country || 'India'].filter(Boolean).join(' • ')}
-                    </p>
-                  )}
-                  {lead.zones?.name && (
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-black uppercase">
-                        Zone: {lead.zones.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {lead.google_maps_link && (
-                  <a
-                    href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-[#2d8d9b] rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors"
-                  >
-                    <Navigation size={11} /> Maps
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Requirements */}
-            {lead.requirements && (
-              <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100/80 md:col-span-3">
-                <label className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest block mb-1">
-                  Inquired Requirements
-                </label>
-                <p className="text-xs font-semibold text-zinc-800 leading-relaxed">{lead.requirements}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Stage-Specific Activity Log Section */}
-          <div className="p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100">
-              <div className="flex items-center gap-2">
-                <FileText size={16} className="text-[#2d8d9b]" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
-                  Activity Log History
-                </h4>
-                <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-[#2d8d9b] border border-teal-200 text-[10px] font-black">
-                  Filtered by: {selectedStageTab}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedStageTab('ALL')}
-                  className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                    selectedStageTab === 'ALL'
-                      ? 'bg-[#3a525d] text-white'
-                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                  }`}
-                >
-                  View All Stages
-                </button>
-              </div>
-            </div>
-
-            {/* Feed & Commercial Stage Summary Banner for Deals, SO Converted Deals, and Feeds */}
-            {(selectedStageTab === 'Deals' || selectedStageTab === 'SO Converted Deals' || selectedStageTab === 'Feeds') && (
-              <div className="p-4 bg-gradient-to-r from-teal-50/80 via-emerald-50/50 to-slate-50 rounded-2xl border border-teal-200/70 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-teal-900">
-                      {selectedStageTab === 'Feeds' ? 'Raw Intake Feed Prospect' : selectedStageTab === 'Deals' ? 'Deals Commercial Stage & Feeds' : 'SO Converted Production Stage & Feeds'}
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-bold text-zinc-500">
-                    Lead Status: <strong className="text-[#3a525d]">{lead.status}</strong>
+            {/* Right Column: Stage-Specific Activity Log Section */}
+            <div className="lg:col-span-7 p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm flex flex-col h-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <FileText size={16} className="text-[#2d8d9b]" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    Activity Log History
+                  </h4>
+                  <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-[#2d8d9b] border border-teal-200 text-[10px] font-black">
+                    {selectedStageTab === 'ALL' ? 'Showing All Stages' : `Filtered by: ${selectedStageTab}`}
                   </span>
                 </div>
-                {lead.requirements ? (
-                  <p className="text-xs font-semibold text-zinc-700">
-                    <span className="font-bold text-[#2d8d9b]">Origin Feed Requirements: </span>
-                    {lead.requirements}
-                  </p>
-                ) : (
-                  <p className="text-xs text-zinc-500 italic">
-                    Origin Feed: Field scout prospect registered for {lead.area || lead.city || 'commercial uniforms'}.
-                  </p>
-                )}
-              </div>
-            )}
 
-            {/* Logs List */}
-            {isLoadingLogs ? (
-              <div className="py-8 text-center text-xs text-zinc-400 font-bold">
-                Loading stage logs...
-              </div>
-            ) : stageActivities.length > 0 ? (
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {stageActivities.map((act) => (
-                  <div
-                    key={act.id}
-                    className="p-4 bg-zinc-50 hover:bg-teal-50/30 rounded-2xl border border-zinc-150 space-y-2 transition-all"
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStageTab(selectedStageTab === 'ALL' ? (lead.status || 'Follow-ups') : 'ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedStageTab === 'ALL'
+                        ? 'bg-[#3a525d] text-white shadow-sm'
+                        : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                    }`}
                   >
-                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-md bg-[#2d8d9b]/15 text-[#2d8d9b]">
-                          {act.stage}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-700">
-                          {act.activity_type}
-                        </span>
-                        {act.response_type && (
-                          <span className={`px-2 py-0.5 rounded-md ${
-                            act.response_type === 'positive' || act.response_type === 'hot_lead'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : act.response_type === 'cold_lead'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {act.response_type}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-zinc-400 font-mono font-medium">
-                        {formatDate(act.created_at, true)}
+                    <FileText size={12} />
+                    {selectedStageTab === 'ALL' ? 'Show Current Stage Only' : 'All Stage Logs (with stages)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Feed & Commercial Stage Summary Banner */}
+              {(selectedStageTab === 'Deals' || selectedStageTab === 'SO Converted Deals' || selectedStageTab === 'Feeds') && (
+                <div className="mt-3 p-3 bg-gradient-to-r from-teal-50/80 via-emerald-50/50 to-slate-50 rounded-2xl border border-teal-200/70 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-teal-900">
+                        {selectedStageTab === 'Feeds' ? 'Raw Intake Feed Prospect' : selectedStageTab === 'Deals' ? 'Deals Commercial Stage & Feeds' : 'SO Converted Production Stage & Feeds'}
                       </span>
                     </div>
-
-                    <p className="text-xs font-semibold text-zinc-700 whitespace-pre-wrap leading-relaxed">
-                      {act.remarks || 'No remarks added'}
+                    <span className="text-[9px] font-bold text-zinc-500">
+                      Lead Status: <strong className="text-[#3a525d]">{lead.status}</strong>
+                    </span>
+                  </div>
+                  {lead.requirements && (
+                    <p className="text-xs font-semibold text-zinc-700">
+                      <span className="font-bold text-[#2d8d9b]">Origin Feed Requirements: </span>
+                      {lead.requirements}
                     </p>
+                  )}
+                </div>
+              )}
 
-                    {/* Updating Staff Badge */}
-                    {act.staff_name && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/60 text-[10px] text-zinc-500 font-semibold">
-                        <ShieldCheck size={12} className="text-[#2d8d9b]" />
-                        <span className="font-bold text-[#3a525d]">{act.staff_name}</span>
-                        {act.staff_employee_id && (
-                          <span className="text-[9px] font-mono text-zinc-400">({act.staff_employee_id})</span>
-                        )}
-                        {act.staff_designation && (
-                          <>
-                            <span className="text-zinc-300">•</span>
-                            <span className="text-zinc-600">{act.staff_designation}</span>
-                          </>
-                        )}
-                        {act.staff_department && (
-                          <>
-                            <span className="text-zinc-300">•</span>
-                            <span className="text-zinc-400">{act.staff_department}</span>
-                          </>
+              {/* Scrollable Logs List */}
+              <div className="mt-4 flex-1">
+                {isLoadingLogs ? (
+                  <div className="py-12 text-center text-xs text-zinc-400 font-bold">
+                    Loading stage logs...
+                  </div>
+                ) : stageActivities.length > 0 ? (
+                  <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1 custom-scrollbar">
+                    {stageActivities.map((act) => (
+                      <div
+                        key={act.id}
+                        className="p-4 bg-zinc-50 hover:bg-teal-50/30 rounded-2xl border border-zinc-150 space-y-2 transition-all"
+                      >
+                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 rounded-md bg-[#2d8d9b]/15 text-[#2d8d9b] font-black">
+                              {act.stage}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-700 font-bold">
+                              {act.activity_type}
+                            </span>
+                            {act.response_type && (
+                              <span className={`px-2 py-0.5 rounded-md font-bold ${
+                                act.response_type === 'positive' || act.response_type === 'hot_lead'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : act.response_type === 'cold_lead'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {act.response_type}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-zinc-400 font-mono font-medium">
+                            {formatDate(act.created_at, true)}
+                          </span>
+                        </div>
+
+                        <p className="text-xs font-semibold text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                          {act.remarks || 'No remarks added'}
+                        </p>
+
+                        {/* Updating Staff Badge */}
+                        {act.staff_name && (
+                          <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/60 text-[10px] text-zinc-500 font-semibold flex-wrap">
+                            <ShieldCheck size={12} className="text-[#2d8d9b]" />
+                            <span className="font-bold text-[#3a525d]">{act.staff_name}</span>
+                            {act.staff_employee_id && (
+                              <span className="text-[9px] font-mono text-zinc-400">({act.staff_employee_id})</span>
+                            )}
+                            {act.staff_designation && (
+                              <>
+                                <span className="text-zinc-300">•</span>
+                                <span className="text-zinc-600">{act.staff_designation}</span>
+                              </>
+                            )}
+                            {act.staff_department && (
+                              <>
+                                <span className="text-zinc-300">•</span>
+                                <span className="text-zinc-400">{act.staff_department}</span>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="py-12 text-center bg-zinc-50/60 rounded-2xl border border-dashed border-zinc-200">
+                    <p className="text-xs text-zinc-400 font-medium italic">
+                      No activity logs recorded specifically for <span className="font-bold text-[#3a525d]">{selectedStageTab}</span> stage.
+                    </p>
+                    <p className="text-[10px] text-zinc-400 mt-1">
+                      Click another stage node above or use "All Stage Logs" to view all history.
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="py-8 text-center bg-zinc-50/60 rounded-2xl border border-dashed border-zinc-200">
-                <p className="text-xs text-zinc-400 font-medium italic">
-                  No activity logs recorded specifically for <span className="font-bold text-[#3a525d]">{selectedStageTab}</span> stage.
-                </p>
-                <p className="text-[10px] text-zinc-400 mt-1">
-                  Click another stage node above or use "View All Stages" to see all history.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -3701,7 +3822,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
             onClick={handleSubmit}
             className="flex-1 py-3 text-[10px] font-black uppercase bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20"
           >
-            {isSubmitting ? 'Recording...' : 'Submit Outcome'}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -3775,16 +3896,15 @@ export const AssignBranchModal: React.FC<AssignBranchModalProps> = ({
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase text-zinc-500">Select Target Branch *</label>
-          <select
+          <Select
             value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 text-xs font-bold text-zinc-800 bg-white focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
-          >
-            <option value="">Select Branch</option>
-            {branches.map(b => (
-              <option key={b.id} value={String(b.id)}>{b.name}</option>
-            ))}
-          </select>
+            onChange={(val) => setBranchId(val)}
+            placeholder="Select Branch"
+            options={branches.map(b => ({
+              value: String(b.id),
+              label: b.name
+            }))}
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -3808,7 +3928,7 @@ export const AssignBranchModal: React.FC<AssignBranchModalProps> = ({
             onClick={handleSubmit}
             className="flex-1 py-3 text-[10px] font-black uppercase bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20"
           >
-            Assign Branch
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -3882,18 +4002,15 @@ export const AssignStaffModal: React.FC<AssignStaffModalProps> = ({
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase text-zinc-500">Select Salesperson *</label>
-          <select
+          <Select
             value={staffId}
-            onChange={(e) => setStaffId(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 text-xs font-bold text-zinc-800 bg-white focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
-          >
-            <option value="">Select Salesperson</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={String(emp.id)}>
-                {emp.full_name} ({emp.employee_id}) - {emp.department || 'Sales'}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setStaffId(val)}
+            placeholder="Select Salesperson"
+            options={employees.map(emp => ({
+              value: String(emp.id),
+              label: `${emp.full_name} (${emp.employee_id}) - ${emp.department || 'Sales'}`
+            }))}
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -3917,7 +4034,7 @@ export const AssignStaffModal: React.FC<AssignStaffModalProps> = ({
             onClick={handleSubmit}
             className="flex-1 py-3 text-[10px] font-black uppercase bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20"
           >
-            Assign Salesperson
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -4066,7 +4183,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}
           >
-            {responseType === 'positive' ? 'Advance to Meetings' : responseType === 'cold_lead' ? 'Mark Cold Lead' : 'Save Note (Keep Follow-up)'}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -4233,7 +4350,7 @@ export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
               outcome === 'hot_lead' ? 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20' : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
-            {outcome === 'hot_lead' ? 'Approve & Create Customer' : 'Mark as Cold Lead (Follow-ups)'}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -503,7 +504,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#3a525d]">
                 <ArrowUpDown size={14} className="text-[#2d8d9b]" />
                 <span className="text-[10px] uppercase font-black text-[#8b6b5a]">Sort:</span>
-                <select
+                <Select
                   value={`${sortBy}-${sortOrder}`}
                   onChange={e => {
                     const [f, o] = e.target.value.split('-');
@@ -520,12 +521,12 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
                   <option value="dept-asc">Department (A → Z)</option>
                   <option value="type-asc">Employment Type</option>
                   <option value="status-asc">Status</option>
-                </select>
+                </Select>
               </div>
 
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#3a525d]">
                 <span className="text-[10px] uppercase font-black text-[#8b6b5a]">Show:</span>
-                <select
+                <Select
                   value={pageSize}
                   onChange={e => setPageSize(Number(e.target.value))}
                   className="bg-white border border-[#fce4d4] rounded-xl py-1.5 px-2 text-[11px] font-bold text-[#3a525d] outline-none"
@@ -533,7 +534,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
-                </select>
+                </Select>
               </div>
             </div>
           </div>
@@ -544,25 +545,25 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
           <table className="w-full text-left border-collapse min-w-full">
             <thead>
               <tr className="bg-[#fce4d4]/20 border-b border-[#fce4d4]">
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center">
                   Employee Details
                 </th>
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center">
                   Assigned Branch
                 </th>
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center">
                   Designation & Dept
                 </th>
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center">
                   Contract Type
                 </th>
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center">
                   Contact Info
                 </th>
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center">
                   Status
                 </th>
-                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-right sticky right-0 bg-[#fef7f2] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">
+                <th className="px-4 py-3.5 text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase text-[#8b6b5a] whitespace-nowrap text-center sticky right-0 bg-[#fef7f2] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">
                   Actions
                 </th>
               </tr>

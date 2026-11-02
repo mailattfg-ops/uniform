@@ -1,5 +1,6 @@
 'use client';
 
+import { DatePicker } from '@/components/ui/DatePicker';
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
 import {
@@ -28,6 +29,7 @@ import toast from '@/components/ui/toast';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { Select } from '@/components/ui/Select';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { DashboardCardGroup } from '@/components/dashboard/DashboardCardGroup';
@@ -584,15 +586,15 @@ export default function InvoicesPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#3a525d]/5 text-[#3a525d] font-black uppercase text-[10px] tracking-wider border-b border-zinc-200">
               <tr>
-                <th className="px-5 py-3.5">Invoice No</th>
-                <th className="px-5 py-3.5">Sales Order</th>
-                <th className="px-5 py-3.5">Customer / Organization</th>
-                <th className="px-5 py-3.5">Type</th>
-                <th className="px-5 py-3.5">Invoice Date</th>
-                <th className="px-5 py-3.5">Due Date</th>
-                <th className="px-5 py-3.5 text-right">Total Amount</th>
+                <th className="px-5 py-3.5 text-center">Invoice No</th>
+                <th className="px-5 py-3.5 text-center">Sales Order</th>
+                <th className="px-5 py-3.5 text-center">Customer / Organization</th>
+                <th className="px-5 py-3.5 text-center">Type</th>
+                <th className="px-5 py-3.5 text-center">Invoice Date</th>
+                <th className="px-5 py-3.5 text-center">Due Date</th>
+                <th className="px-5 py-3.5 text-center">Total Amount</th>
                 <th className="px-5 py-3.5 text-center">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3.5 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 text-zinc-700">
@@ -800,24 +802,20 @@ export default function InvoicesPage() {
                     />
                   </div>
 
-                  <select
+                  <Select
                     required
-                    value={selectedOrderId}
-                    onChange={e => setSelectedOrderId(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800"
-                    size={5}
-                  >
-                    <option value="" disabled>-- Select Confirmed Sales Order --</option>
-                    {filteredOrders.map(o => {
+                    placeholder="-- Select Confirmed Sales Order --"
+                    value={selectedOrderId ? String(selectedOrderId) : ''}
+                    onChange={val => setSelectedOrderId(val ? Number(val) : '')}
+                    options={filteredOrders.map(o => {
                       const orgName = o.quotations?.organizations?.name || 'Client';
                       const val = o.quotations?.final_quote_value || 0;
-                      return (
-                        <option key={o.id} value={o.id} className="py-1 px-2">
-                          {o.order_no} · {orgName} ({formatCurrency(val)}) — [{o.status}]
-                        </option>
-                      );
+                      return {
+                        value: String(o.id),
+                        label: `${o.order_no} · ${orgName} (${formatCurrency(val)}) — [${o.status}]`
+                      };
                     })}
-                  </select>
+                  />
                 </div>
 
                 {/* Selected Order Summary Card */}
@@ -861,12 +859,12 @@ export default function InvoicesPage() {
                     <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 mb-1.5">
                       Invoice Issue Date
                     </label>
-                    <input
-                      type="date"
+                    <DatePicker
                       required
                       value={invoiceDate}
-                      onChange={e => setInvoiceDate(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-xl text-xs font-semibold bg-white"
+                      onChange={setInvoiceDate}
+                      placeholder="Invoice Date"
+                      className="w-full bg-white"
                     />
                   </div>
 
@@ -946,14 +944,14 @@ export default function InvoicesPage() {
                     <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 mb-1">
                       Customer Category
                     </label>
-                    <select
+                    <Select
                       value={customerType}
-                      onChange={e => setCustomerType(e.target.value)}
-                      className="w-full px-3.5 py-2 border rounded-xl text-xs font-bold bg-white"
-                    >
-                      <option value="Individual">Individual Counter Customer</option>
-                      <option value="Business">Institution / Organization</option>
-                    </select>
+                      onChange={setCustomerType}
+                      options={[
+                        { value: 'Individual', label: 'Individual Counter Customer' },
+                        { value: 'Business', label: 'Institution / Organization' }
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -1072,21 +1070,21 @@ export default function InvoicesPage() {
                         }}
                         className="col-span-2 px-2 py-1 border rounded bg-white text-right text-xs"
                       />
-                      <select
-                        value={it.tax_rate}
-                        onChange={e => {
-                          const n = [...retailItems];
-                          n[idx].tax_rate = Number(e.target.value);
-                          setRetailItems(n);
-                        }}
-                        className="col-span-2 px-1.5 py-1 border rounded bg-white text-xs"
-                      >
-                        {taxMasters.map(t => (
-                          <option key={t.id} value={t.rate}>
-                            {t.rate}% {t.name?.split('-')[0]}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="col-span-2">
+                        <Select
+                          value={String(it.tax_rate)}
+                          onChange={val => {
+                            const n = [...retailItems];
+                            n[idx].tax_rate = Number(val);
+                            setRetailItems(n);
+                          }}
+                          className="!py-1 !text-xs"
+                          options={taxMasters.map(t => ({
+                            value: String(t.rate),
+                            label: `${t.rate}% ${t.name?.split('-')[0]}`
+                          }))}
+                        />
+                      </div>
                       <div className="col-span-1 flex items-center justify-end">
                         {retailItems.length > 1 && (
                           <button

@@ -533,7 +533,7 @@ export default function ButtonStockPage() {
                   {isSubmitting ? (
                     <Loader2 className="animate-spin text-white" size={16} />
                   ) : (
-                    'Save Adjustments'
+                    'Save'
                   )}
                 </button>
               </div>

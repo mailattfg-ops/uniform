@@ -64,6 +64,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
 import { Select } from '@/components/ui/Select';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 import * as XLSX from 'xlsx';
 import { formatDate } from '@/lib/formatters';
@@ -4824,12 +4825,12 @@ function OrganizationDetailsPageContent() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b-2 border-zinc-900 text-zinc-600 uppercase text-[9px] font-black tracking-wider">
-                      <th className="py-2.5 px-2">Date</th>
-                      <th className="py-2.5 px-2">Type / Ref</th>
-                      <th className="py-2.5 px-2">Description</th>
-                      <th className="py-2.5 px-2 text-right">Debit (+)</th>
-                      <th className="py-2.5 px-2 text-right">Credit (-)</th>
-                      <th className="py-2.5 px-2 text-right">Balance</th>
+                      <th className="py-2.5 px-2 text-center">Date</th>
+                      <th className="py-2.5 px-2 text-center">Type / Ref</th>
+                      <th className="py-2.5 px-2 text-center">Description</th>
+                      <th className="py-2.5 px-2 text-center">Debit (+)</th>
+                      <th className="py-2.5 px-2 text-center">Credit (-)</th>
+                      <th className="py-2.5 px-2 text-center">Balance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200">
@@ -5174,7 +5175,7 @@ function OrganizationDetailsPageContent() {
                   disabled={isSavingGstDelivery}
                   className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-md shadow-[#C82A2B]/20"
                 >
-                  {isSavingGstDelivery ? 'Saving...' : 'Save GST & Delivery Details'}
+                  {isSavingGstDelivery ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </form>
@@ -5267,12 +5268,12 @@ function OrganizationDetailsPageContent() {
                   <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-1">
                     Invoice Date
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     required
                     value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                    onChange={(val) => setInvoiceDate(val)}
+                    placeholder="Invoice Date"
+                    className="w-full bg-white"
                   />
                 </div>
                 <div>
@@ -5710,13 +5711,13 @@ function OrganizationDetailsPageContent() {
                   className="h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 >
                   <ReceiptText size={16} />
-                  {isSubmittingInvoice
-                    ? 'Generating...'
-                    : invoiceType === 'sales_order'
-                    ? 'Generate Invoice from Sales Order'
-                    : invoiceType === 'quotation'
-                    ? 'Generate Invoice from Quotation'
-                    : 'Generate Retail Invoice'}
+                  {isSubmittingInvoice ? 'Saving...' : 'Save'}
+
+
+
+
+
+
                 </Button>
               </div>
             </form>
@@ -6231,24 +6232,21 @@ function OrganizationDetailsPageContent() {
                     )}
                   </label>
                   {customerQuotes.length > 0 ? (
-                    <select
+                    <Select
+                      placeholder="Select Quotation to Settle..."
                       value={paymentQuoteId}
-                      onChange={(e) => handleQuoteSelectionChange(e.target.value)}
+                      onChange={handleQuoteSelectionChange}
                       required
-                      className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
-                    >
-                      <option value="">Select Quotation to Settle...</option>
-                      {customerQuotes.map((q: any) => {
+                      options={customerQuotes.map((q: any) => {
                         const total = parseFloat(q.final_quote_value || '0');
                         const paid = parseFloat(q.paid_amount || '0');
                         const due = Math.max(0, total - paid);
-                        return (
-                          <option key={q.id} value={q.id}>
-                            {q.quotation_no} — Total: ₹{total.toLocaleString('en-IN')} (Due: ₹{due.toLocaleString('en-IN')}) • [{q.status || 'Draft'}]
-                          </option>
-                        );
+                        return {
+                          value: String(q.id),
+                          label: `${q.quotation_no} — Total: ₹${total.toLocaleString('en-IN')} (Due: ₹${due.toLocaleString('en-IN')}) • [${q.status || 'Draft'}]`
+                        };
                       })}
-                    </select>
+                    />
                   ) : (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex items-center justify-between">
                       <span>No quotations found for this customer.</span>
@@ -6276,25 +6274,22 @@ function OrganizationDetailsPageContent() {
                     )}
                   </label>
                   {customerInvoices.length > 0 ? (
-                    <select
+                    <Select
+                      placeholder="Select Invoice to Settle..."
                       value={paymentInvoiceId}
-                      onChange={(e) => handleInvoiceSelectionChange(e.target.value)}
+                      onChange={handleInvoiceSelectionChange}
                       required
-                      className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
-                    >
-                      <option value="">Select Invoice to Settle...</option>
-                      {customerInvoices.map((inv: any) => {
+                      options={customerInvoices.map((inv: any) => {
                         const total = parseFloat(String(inv.total_amount || 0));
                         const paid = parseFloat(String(inv.paid_amount || 0));
                         const due = Math.max(0, total - paid);
                         const orderSuffix = inv.order_no && inv.order_no !== '—' ? ` • Order: ${inv.order_no}` : '';
-                        return (
-                          <option key={inv.id} value={inv.id}>
-                            {inv.invoice_no} — Total: ₹{total.toLocaleString('en-IN')} (Due: ₹{due.toLocaleString('en-IN')})${orderSuffix} • [{inv.payment_status || 'Unpaid'}]
-                          </option>
-                        );
+                        return {
+                          value: String(inv.id),
+                          label: `${inv.invoice_no} — Total: ₹${total.toLocaleString('en-IN')} (Due: ₹${due.toLocaleString('en-IN')})${orderSuffix} • [${inv.payment_status || 'Unpaid'}]`
+                        };
                       })}
-                    </select>
+                    />
                   ) : (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex items-center justify-between">
                       <span>No commercial invoices found for this customer.</span>
@@ -6329,18 +6324,18 @@ function OrganizationDetailsPageContent() {
                   <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
                     Method <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <Select
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={setPaymentMethod}
                     required
-                    className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-3 text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
-                  >
-                    <option value="Bank Transfer">Bank Transfer / NEFT / RTGS</option>
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI / QR Code</option>
-                    <option value="Cheque">Cheque / Demand Draft</option>
-                    <option value="Card">Credit Card / Debit Card</option>
-                  </select>
+                    options={[
+                      { value: 'Bank Transfer', label: 'Bank Transfer / NEFT / RTGS' },
+                      { value: 'Cash', label: 'Cash' },
+                      { value: 'UPI', label: 'UPI / QR Code' },
+                      { value: 'Cheque', label: 'Cheque / Demand Draft' },
+                      { value: 'Card', label: 'Credit Card / Debit Card' }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -6363,12 +6358,12 @@ function OrganizationDetailsPageContent() {
                   <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700">
                     Payment Date <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     required
                     value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full h-11 px-3.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                    onChange={(val) => setPaymentDate(val)}
+                    placeholder="Payment Date"
+                    className="w-full bg-white"
                   />
                 </div>
               </div>
@@ -6405,7 +6400,7 @@ function OrganizationDetailsPageContent() {
                   }
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm shadow-emerald-600/20 cursor-pointer"
                 >
-                  {isSubmittingPayment ? 'Recording...' : 'Confirm & Record Payment'}
+                  {isSubmittingPayment ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

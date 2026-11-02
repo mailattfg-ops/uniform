@@ -1,5 +1,8 @@
 'use client';
 
+import { DatePicker } from '@/components/ui/DatePicker';
+import { Select } from '@/components/ui/Select';
+
 import React, { useState, useEffect } from 'react';
 import { PlaneTakeoff, X, Building2, Calendar, FileText, ArrowRightLeft, Undo2, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
@@ -172,7 +175,7 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
             <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">
               Select Temporary Destination Branch *
             </label>
-            <select
+            <Select
               required
               value={tempBranchId}
               onChange={e => setTempBranchId(e.target.value)}
@@ -184,7 +187,7 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
                   {getTierIcon(b.tier)} {b.name} ({b.code}) — {b.tier}
                 </option>
               ))}
-            </select>
+            </Select>
             <p className="text-[10px] text-zinc-400 mt-1">
               The employee will appear in this branch's workforce list while retaining their permanent home base.
             </p>
@@ -194,12 +197,12 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
             <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">
               Deputation Valid Until (Optional Return Date)
             </label>
-            <input
-              type="date"
+            <DatePicker
               min={new Date().toISOString().split('T')[0]}
               value={tempUntil}
-              onChange={e => setTempUntil(e.target.value)}
-              className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
+              onChange={setTempUntil}
+              placeholder="Select return date"
+              className="w-full bg-white"
             />
           </div>
 
@@ -230,7 +233,7 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
               className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#C82A2B]/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <PlaneTakeoff size={14} />
-              {loading ? 'Processing...' : isCurrentlyDeputed ? 'Update Deputation' : 'Confirm Deputation'}
+              {loading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

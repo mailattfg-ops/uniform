@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -300,14 +301,14 @@ export default function VendorManagementPage() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Status</label>
-                <select
+                <Select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full h-14 bg-white border border-zinc-200 rounded-2xl px-4 text-xs font-bold outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-900"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                </select>
+                </Select>
               </div>
 
               <div className="space-y-2 md:col-span-2">

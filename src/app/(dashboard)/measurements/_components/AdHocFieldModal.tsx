@@ -74,9 +74,22 @@ export function AdHocFieldModal({ isOpen, onClose, onAdd }: AdHocModalProps) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-14 rounded-2xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase tracking-widest flex gap-2 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
-             <Plus size={16} /> Add to Current Session
-          </Button>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 h-12 rounded-xl text-xs font-black uppercase text-zinc-600 hover:bg-zinc-50 border-zinc-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-12 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black uppercase text-xs tracking-wider shadow-lg shadow-[#C82A2B]/20"
+            >
+              Save
+            </Button>
+          </div>
         </form>
       </Card>
     </div>

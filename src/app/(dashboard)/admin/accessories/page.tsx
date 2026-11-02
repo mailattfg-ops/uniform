@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import api from '@/lib/api';
@@ -1662,7 +1663,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                         + New
                       </button>
                     </div>
-                    <select
+                    <Select
                       value={articleFormData.category_name}
                       onChange={(e) => handleFormCategoryChange(e.target.value)}
                       className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer ${
@@ -1672,7 +1673,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                       {(articleType === 'TRADE_READYMADE' ? tradeCategories : categories).map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   {/* Target Gender */}
@@ -1680,7 +1681,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Target Gender
                     </label>
-                    <select
+                    <Select
                       value={articleFormData.gender}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, gender: e.target.value }))}
                       className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer ${
@@ -1690,7 +1691,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                       {uniqueGenders.map(g => (
                         <option key={g} value={g}>{g}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   {/* Trader Name (For Trade Product) */}
@@ -1931,8 +1932,8 @@ export default function AccessoriesAndTradeCatalogPage() {
                   {isSubmitting 
                     ? 'Saving...' 
                     : editingItem 
-                      ? 'Save Article Changes' 
-                      : (articleType === 'TRADE_READYMADE' ? 'Register Readymade Product' : 'Register Accessory')}
+                      ? 'Save' 
+                      : 'Save'}
                 </button>
               </div>
             </form>
@@ -2051,7 +2052,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                       : 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20'
                   }`}
                 >
-                  {isSavingCat ? 'Creating...' : 'Create Category'}
+                  {isSavingCat ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

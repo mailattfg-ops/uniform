@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -169,13 +170,13 @@ export default function BranchTransfersPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100/70 text-slate-600 font-semibold uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Transfer No</th>
-                <th className="px-6 py-3">Source Branch (From)</th>
-                <th className="px-6 py-3">Destination Branch (To)</th>
-                <th className="px-6 py-3">Item Details</th>
-                <th className="px-6 py-3">Quantity</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Actions</th>
+                <th className="px-6 py-3 text-center">Transfer No</th>
+                <th className="px-6 py-3 text-center">Source Branch (From)</th>
+                <th className="px-6 py-3 text-center">Destination Branch (To)</th>
+                <th className="px-6 py-3 text-center">Item Details</th>
+                <th className="px-6 py-3 text-center">Quantity</th>
+                <th className="px-6 py-3 text-center">Status</th>
+                <th className="px-6 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -241,7 +242,7 @@ export default function BranchTransfersPage() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Source Branch (From)</label>
                   {isAdmin ? (
-                    <select
+                    <Select
                       value={fromBranchId}
                       onChange={e => setFromBranchId(e.target.value)}
                       className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
@@ -249,7 +250,7 @@ export default function BranchTransfersPage() {
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
                       ))}
-                    </select>
+                    </Select>
                   ) : (
                     <input
                       type="text"
@@ -262,7 +263,7 @@ export default function BranchTransfersPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Destination Branch (To)</label>
-                  <select
+                  <Select
                     value={toBranchId}
                     onChange={e => setToBranchId(e.target.value)}
                     className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
@@ -270,14 +271,14 @@ export default function BranchTransfersPage() {
                     {branches.filter(b => isAdmin || String(b.id) !== String(currentUser?.branchId)).map(b => (
                       <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Item Category</label>
-                  <select
+                  <Select
                     value={itemType}
                     onChange={e => setItemType(e.target.value)}
                     className="w-full px-3 py-2 border rounded-xl text-sm bg-white capitalize"
@@ -286,7 +287,7 @@ export default function BranchTransfersPage() {
                     <option value="fabric">Fabric Roll</option>
                     <option value="button">Buttons</option>
                     <option value="thread">Threads</option>
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>

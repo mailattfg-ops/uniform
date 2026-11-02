@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
@@ -954,7 +955,7 @@ export default function TrimsCatalogPage() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                     Default UOM
                   </label>
-                  <select
+                  <Select
                     value={newCatData.default_uom}
                     onChange={e => setNewCatData(prev => ({ ...prev, default_uom: e.target.value }))}
                     className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
@@ -965,7 +966,7 @@ export default function TrimsCatalogPage() {
                     <option value="Gross">Gross</option>
                     <option value="Sets">Sets</option>
                     <option value="Rolls">Rolls</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 
@@ -982,7 +983,7 @@ export default function TrimsCatalogPage() {
                   disabled={isSavingCategory}
                   className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer active:scale-95"
                 >
-                  {isSavingCategory ? 'Saving...' : 'Create Category'}
+                  {isSavingCategory ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

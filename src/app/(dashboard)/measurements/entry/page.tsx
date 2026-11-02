@@ -810,7 +810,7 @@ function MeasurementEntryContent() {
                         <div className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 rounded-xl border border-amber-200 shrink-0">
                           <Library size={13} className="text-amber-800" />
                           <span className="text-[9px] font-black uppercase tracking-wider text-amber-800">Switch Bundle:</span>
-                          <select
+                          <Select
                             value={selectedTemplate?.id || ''}
                             onChange={(e) => {
                               const found = availableTemplates.find(t => String(t.id) === e.target.value);
@@ -823,7 +823,7 @@ function MeasurementEntryContent() {
                                 {t.name} ({selectedMember.gender === 'Female' ? t.girls_config?.length : t.boys_config?.length} items)
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </div>
                       )}
                    </div>
@@ -924,7 +924,7 @@ function MeasurementEntryContent() {
                                                  {sizeCharts.length > 1 && (
                                                    <div className="flex items-center gap-2">
                                                      <span className="text-[10px] font-black uppercase text-zinc-400">Switch Chart:</span>
-                                                     <select
+                                                     <Select
                                                        value={chart?.id || ''}
                                                        onChange={(e) => setProductAssignedChart(prev => ({ ...prev, [prod.id]: e.target.value }))}
                                                        className="text-xs font-bold bg-white border border-zinc-200 rounded-xl px-3 py-1.5 text-[#3a525d] focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]"
@@ -934,7 +934,7 @@ function MeasurementEntryContent() {
                                                            {c.name} {c.unit ? `(${c.unit})` : ''}
                                                          </option>
                                                        ))}
-                                                     </select>
+                                                     </Select>
                                                    </div>
                                                  )}
                                                </div>

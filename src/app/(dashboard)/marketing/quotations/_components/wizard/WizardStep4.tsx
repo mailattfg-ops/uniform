@@ -709,11 +709,11 @@ export default function WizardStep4({
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-600 border-b border-zinc-150">
-                            <th className="p-3 pl-4">Garment Line</th>
-                            <th className="p-3">Fabric Style</th>
-                            <th className="p-3">Design Ref</th>
-                            <th className="p-3 text-right">Quantity</th>
-                            <th className="p-3 text-right pr-4">Total</th>
+                            <th className="p-3 pl-4 text-center">Garment Line</th>
+                            <th className="p-3 text-center">Fabric Style</th>
+                            <th className="p-3 text-center">Design Ref</th>
+                            <th className="p-3 text-center">Quantity</th>
+                            <th className="p-3 text-center pr-4">Total</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
@@ -786,10 +786,10 @@ export default function WizardStep4({
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-600 border-b border-zinc-100">
-                              <th className="p-3 pl-4">Fabric Details</th>
-                              <th className="p-3 text-right">Meters</th>
-                              <th className="p-3 text-right">Rate/Meter</th>
-                              <th className="p-3 text-right pr-4">Total Price</th>
+                              <th className="p-3 pl-4 text-center">Fabric Details</th>
+                              <th className="p-3 text-center">Meters</th>
+                              <th className="p-3 text-center">Rate/Meter</th>
+                              <th className="p-3 text-center pr-4">Total Price</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">

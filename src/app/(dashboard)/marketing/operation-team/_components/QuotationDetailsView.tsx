@@ -705,14 +705,14 @@ Forma Apparels Co.`;
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                        <th className="p-3">Product Type</th>
-                        <th className="p-3">Fabric Catalog</th>
-                        <th className="p-3">SAM Price (₹)</th>
-                        <th className="p-3">Design Ref</th>
+                        <th className="p-3 text-center">Product Type</th>
+                        <th className="p-3 text-center">Fabric Catalog</th>
+                        <th className="p-3 text-center">SAM Price (₹)</th>
+                        <th className="p-3 text-center">Design Ref</th>
                         <th className="p-3 text-center w-20">Quantity</th>
-                        <th className="p-3 text-right">Base Cost</th>
-                        <th className="p-3 text-right">Selling Price</th>
-                        <th className="p-3 text-right">Total Price</th>
+                        <th className="p-3 text-center">Base Cost</th>
+                        <th className="p-3 text-center">Selling Price</th>
+                        <th className="p-3 text-center">Total Price</th>
                         <th className="p-3 text-center">Del</th>
                       </tr>
                     </thead>
@@ -729,7 +729,7 @@ Forma Apparels Co.`;
                               <div className="font-bold text-[#3a525d] text-xs leading-tight">
                                 {item.product_name || item.size_breakdown?.product_name || item.manual_item_name || 'Garment'}
                               </div>
-                              <select
+                              <Select
                                 value={item.product_type_id}
                                 onChange={(e) => handleItemChange(idx, 'product_type_id', e.target.value)}
                                 className="bg-zinc-50 border border-zinc-200 rounded text-[10px] font-semibold text-zinc-500 mt-1 py-0.5 px-1 outline-none w-32"
@@ -737,12 +737,12 @@ Forma Apparels Co.`;
                                 {productTypes.map(p => (
                                   <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
-                              </select>
+                              </Select>
                             </td>
 
                             {/* FABRIC SELECT */}
                             <td className="p-2">
-                              <select
+                              <Select
                                 value={item.size_breakdown?.fabric_id || ''}
                                 onChange={(e) => handleItemChange(idx, 'fabric_id', e.target.value)}
                                 className="bg-white border border-zinc-200 rounded-lg text-xs py-1 px-2 text-zinc-600 outline-none font-bold"
@@ -751,7 +751,7 @@ Forma Apparels Co.`;
                                 {fabricsList.map(f => (
                                   <option key={f.id} value={f.id}>{f.brand_name}</option>
                                 ))}
-                              </select>
+                              </Select>
                             </td>
 
                             {/* SAM VALUE */}
@@ -881,13 +881,13 @@ Forma Apparels Co.`;
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                        <th className="p-3">Product Type</th>
-                        <th className="p-3">Fabric Options</th>
-                        <th className="p-3">SAM Cost</th>
-                        <th className="p-3">Design Number</th>
-                        <th className="p-3 text-right">Quantity</th>
-                        <th className="p-3 text-right">Unit Price</th>
-                        <th className="p-3 text-right">Total Price</th>
+                        <th className="p-3 text-center">Product Type</th>
+                        <th className="p-3 text-center">Fabric Options</th>
+                        <th className="p-3 text-center">SAM Cost</th>
+                        <th className="p-3 text-center">Design Number</th>
+                        <th className="p-3 text-center">Quantity</th>
+                        <th className="p-3 text-center">Unit Price</th>
+                        <th className="p-3 text-center">Total Price</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
@@ -1072,10 +1072,10 @@ Forma Apparels Co.`;
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                        <th className="p-3 pl-4">Fabric Details</th>
-                        <th className="p-3 text-right">Meters</th>
-                        <th className="p-3 text-right">Rate/Meter</th>
-                        <th className="p-3 text-right pr-4">Total Price</th>
+                        <th className="p-3 pl-4 text-center">Fabric Details</th>
+                        <th className="p-3 text-center">Meters</th>
+                        <th className="p-3 text-center">Rate/Meter</th>
+                        <th className="p-3 text-center pr-4">Total Price</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
@@ -1109,11 +1109,11 @@ Forma Apparels Co.`;
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                        <th className="p-3 pl-4">Department Name</th>
-                        <th className="p-3">Division</th>
-                        <th className="p-3 text-right">No. of Persons</th>
-                        <th className="p-3 text-right">Sets / Person</th>
-                        <th className="p-3 text-right pr-4">Total Qty</th>
+                        <th className="p-3 pl-4 text-center">Department Name</th>
+                        <th className="p-3 text-center">Division</th>
+                        <th className="p-3 text-center">No. of Persons</th>
+                        <th className="p-3 text-center">Sets / Person</th>
+                        <th className="p-3 text-center pr-4">Total Qty</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">

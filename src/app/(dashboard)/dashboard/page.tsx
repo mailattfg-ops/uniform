@@ -1580,11 +1580,11 @@ export default function DashboardPage() {
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                            <th className="p-3 pl-4">Garment Line</th>
-                            <th className="p-3">Fabric Style</th>
-                            <th className="p-3">Design Ref</th>
-                            <th className="p-3 text-right">Quantity</th>
-                            <th className="p-3 text-right pr-4">Total</th>
+                            <th className="p-3 pl-4 text-center">Garment Line</th>
+                            <th className="p-3 text-center">Fabric Style</th>
+                            <th className="p-3 text-center">Design Ref</th>
+                            <th className="p-3 text-center">Quantity</th>
+                            <th className="p-3 text-center pr-4">Total</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">

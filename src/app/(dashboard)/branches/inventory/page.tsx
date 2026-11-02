@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -165,7 +166,7 @@ export default function BranchInventoryPage() {
           {isAdmin ? (
             <div className="flex items-center gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
               <Building2 className="w-4 h-4 text-indigo-400 ml-2" />
-              <select
+              <Select
                 value={selectedBranchId}
                 onChange={e => setSelectedBranchId(e.target.value)}
                 className="bg-transparent text-white text-sm font-semibold pr-4 focus:outline-hidden"
@@ -176,7 +177,7 @@ export default function BranchInventoryPage() {
                     {b.name} ({b.code})
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           ) : (
             <div className="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700 text-sm font-semibold text-emerald-400">
@@ -246,12 +247,12 @@ export default function BranchInventoryPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100/70 text-slate-600 font-semibold uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Category</th>
-                <th className="px-6 py-3">Item Name</th>
-                <th className="px-6 py-3">Item Code / Batch No (PRD M6.2)</th>
-                <th className="px-6 py-3">Quantity Available</th>
-                <th className="px-6 py-3">Stock Status</th>
-                <th className="px-6 py-3">Last Updated</th>
+                <th className="px-6 py-3 text-center">Category</th>
+                <th className="px-6 py-3 text-center">Item Name</th>
+                <th className="px-6 py-3 text-center">Item Code / Batch No (PRD M6.2)</th>
+                <th className="px-6 py-3 text-center">Quantity Available</th>
+                <th className="px-6 py-3 text-center">Stock Status</th>
+                <th className="px-6 py-3 text-center">Last Updated</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -319,7 +320,7 @@ export default function BranchInventoryPage() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Target Branch</label>
                   {isAdmin ? (
-                    <select
+                    <Select
                       value={adjBranchId}
                       onChange={e => setAdjBranchId(Number(e.target.value))}
                       className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
@@ -327,7 +328,7 @@ export default function BranchInventoryPage() {
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
                       ))}
-                    </select>
+                    </Select>
                   ) : (
                     <input
                       type="text"
@@ -339,21 +340,21 @@ export default function BranchInventoryPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Movement Type</label>
-                  <select
+                  <Select
                     value={adjType}
                     onChange={e => setAdjType(e.target.value as any)}
                     className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
                   >
                     <option value="IN">Inward (+ Add Stock)</option>
                     <option value="OUT">Outward (- Deduct Stock)</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Item Category</label>
-                  <select
+                  <Select
                     value={adjCategory}
                     onChange={e => setAdjCategory(e.target.value as any)}
                     className="w-full px-3 py-2 border rounded-xl text-sm bg-white capitalize"
@@ -362,7 +363,7 @@ export default function BranchInventoryPage() {
                     <option value="fabric">Fabric Roll</option>
                     <option value="button">Buttons</option>
                     <option value="thread">Threads</option>
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>

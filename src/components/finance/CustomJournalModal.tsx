@@ -1,5 +1,8 @@
 'use client';
 
+import { DatePicker } from '@/components/ui/DatePicker';
+import { Select } from '@/components/ui/Select';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -227,12 +230,12 @@ export default function CustomJournalModal({
               <label className="block text-xs font-bold text-zinc-700 mb-1.5">
                 Date<span className="text-rose-500">*</span>
               </label>
-              <input
-                type="date"
-                value={journalDate}
-                onChange={e => setJournalDate(e.target.value)}
+              <DatePicker
                 required
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
+                value={journalDate}
+                onChange={setJournalDate}
+                placeholder="Journal Date"
+                className="w-full bg-white"
               />
             </div>
 
@@ -282,16 +285,16 @@ export default function CustomJournalModal({
 
             <div>
               <label className="block text-xs font-bold text-zinc-700 mb-1.5">Currency</label>
-              <select
+              <Select
                 value={currency}
-                onChange={e => setCurrency(e.target.value)}
-                className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-semibold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all cursor-pointer"
-              >
-                <option value="INR - Indian Rupee">INR - Indian Rupee</option>
-                <option value="USD - United States Dollar">USD - United States Dollar</option>
-                <option value="EUR - Euro">EUR - Euro</option>
-                <option value="AED - UAE Dirham">AED - UAE Dirham</option>
-              </select>
+                onChange={val => setCurrency(val)}
+                options={[
+                  { value: 'INR - Indian Rupee', label: 'INR - Indian Rupee' },
+                  { value: 'USD - United States Dollar', label: 'USD - United States Dollar' },
+                  { value: 'EUR - Euro', label: 'EUR - Euro' },
+                  { value: 'AED - UAE Dirham', label: 'AED - UAE Dirham' }
+                ]}
+              />
             </div>
           </div>
 
@@ -316,11 +319,11 @@ export default function CustomJournalModal({
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                    <th className="py-3 px-4 w-[30%]">Account</th>
-                    <th className="py-3 px-4 w-[24%]">Description</th>
-                    <th className="py-3 px-4 w-[20%]">Contact (INR)</th>
-                    <th className="py-3 px-4 w-[13%] text-right">Debits</th>
-                    <th className="py-3 px-4 w-[13%] text-right">Credits</th>
+                    <th className="py-3 px-4 w-[30%] text-center">Account</th>
+                    <th className="py-3 px-4 w-[24%] text-center">Description</th>
+                    <th className="py-3 px-4 w-[20%] text-center">Contact (INR)</th>
+                    <th className="py-3 px-4 w-[13%] text-center">Debits</th>
+                    <th className="py-3 px-4 w-[13%] text-center">Credits</th>
                     <th className="py-3 px-3 w-[40px] text-center"></th>
                   </tr>
                 </thead>
@@ -329,17 +332,12 @@ export default function CustomJournalModal({
                     <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors">
                       {/* Account Dropdown */}
                       <td className="py-2.5 px-4 align-top">
-                        <select
+                        <Select
                           value={row.account}
-                          onChange={e => handleRowChange(row.id, 'account', e.target.value)}
-                          className="w-full h-9 px-2.5 bg-white border border-zinc-250 rounded-lg text-xs font-semibold text-zinc-800 outline-none focus:border-[#C82A2B] transition-all cursor-pointer"
-                        >
-                          {accountOptions.map(acc => (
-                            <option key={acc} value={acc}>
-                              {acc}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={val => handleRowChange(row.id, 'account', val)}
+                          className="!h-9 !py-1 text-xs"
+                          options={accountOptions.map(acc => ({ value: acc, label: acc }))}
+                        />
                       </td>
 
                       {/* Description Textarea */}
@@ -355,14 +353,15 @@ export default function CustomJournalModal({
 
                       {/* Contact Selector */}
                       <td className="py-2.5 px-4 align-top">
-                        <select
+                        <Select
                           value={row.contact}
-                          onChange={e => handleRowChange(row.id, 'contact', e.target.value)}
-                          className="w-full h-9 px-2.5 bg-white border border-zinc-250 rounded-lg text-xs font-medium text-zinc-700 outline-none focus:border-[#C82A2B] transition-all cursor-pointer"
-                        >
-                          {customerName && <option value={customerName}>{customerName}</option>}
-                          <option value="Inland Uniforms">Inland Uniforms</option>
-                        </select>
+                          onChange={val => handleRowChange(row.id, 'contact', val)}
+                          className="!h-9 !py-1 text-xs"
+                          options={[
+                            ...(customerName ? [{ value: customerName, label: customerName }] : []),
+                            { value: 'Inland Uniforms', label: 'Inland Uniforms' }
+                          ]}
+                        />
                       </td>
 
                       {/* Debits Input */}

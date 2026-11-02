@@ -448,12 +448,12 @@ export default function ProductStockPage() {
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
                           <tr className="bg-zinc-50 border-b border-zinc-150 text-[9px] font-black uppercase tracking-widest text-[#3a525d]">
-                            {isAccessory && <th className="py-2.5 px-4">Size</th>}
-                            <th className="py-2.5 px-4">Physical</th>
-                            <th className="py-2.5 px-4 text-right">Reserved</th>
-                            <th className="py-2.5 px-4 text-right">Available</th>
-                            <th className="py-2.5 px-4 text-right">Alert Threshold</th>
-                            <th className="py-2.5 px-4 text-right">Actions</th>
+                            {isAccessory && <th className="py-2.5 px-4 text-center">Size</th>}
+                            <th className="py-2.5 px-4 text-center">Physical</th>
+                            <th className="py-2.5 px-4 text-center">Reserved</th>
+                            <th className="py-2.5 px-4 text-center">Available</th>
+                            <th className="py-2.5 px-4 text-center">Alert Threshold</th>
+                            <th className="py-2.5 px-4 text-center">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 text-zinc-750 font-bold">
@@ -768,7 +768,7 @@ export default function ProductStockPage() {
                     {isSubmitting ? (
                       <Loader2 className="animate-spin text-white" size={16} />
                     ) : (
-                      'Save Adjustments'
+                      'Save'
                     )}
                   </button>
                 </div>

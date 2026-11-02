@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -937,7 +938,7 @@ export default function BranchOutletsPage() {
                 <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-900 mb-1.5">
                   Assigned Operational Role *
                 </label>
-                <select
+                <Select
                   value={userRole}
                   onChange={e => setUserRole(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
@@ -953,7 +954,7 @@ export default function BranchOutletsPage() {
                       <option value="Branch Staff">👔 Branch Staff (Counter Sales, Quotes & Stock)</option>
                     </>
                   )}
-                </select>
+                </Select>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -1013,7 +1014,7 @@ export default function BranchOutletsPage() {
                   <Building2 size={13} className="text-[#9E1B1D]" />
                   Assigned Branch Outlet *
                 </label>
-                <select
+                <Select
                   required
                   value={zoneBranchId ? String(zoneBranchId) : ''}
                   onChange={e => setZoneBranchId(parseInt(e.target.value, 10))}
@@ -1025,7 +1026,7 @@ export default function BranchOutletsPage() {
                       {b.name} ({b.code}) - {b.tier}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Zone Name */}
@@ -1088,7 +1089,7 @@ export default function BranchOutletsPage() {
                   className="px-6 py-2.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-[#C82A2B]/25 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <MapPin size={14} />
-                  {submittingZone ? 'Saving...' : editingZone ? 'Update Zone' : 'Save Zone'}
+                  {submittingZone ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

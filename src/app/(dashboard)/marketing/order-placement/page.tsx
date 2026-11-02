@@ -1026,10 +1026,10 @@ export default function OrderPlacementPage() {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[#fce4d4]/30 text-[#3a525d] font-black text-[10px] uppercase border-b border-[#fce4d4]/60">
                         <tr>
-                          <th className="py-2 px-3">Product / Garment</th>
-                          <th className="py-2 px-2 text-right">Qty</th>
-                          <th className="py-2 px-2 text-right">Unit Price</th>
-                          <th className="py-2 px-3 text-right">Total</th>
+                          <th className="py-2 px-3 text-center">Product / Garment</th>
+                          <th className="py-2 px-2 text-center">Qty</th>
+                          <th className="py-2 px-2 text-center">Unit Price</th>
+                          <th className="py-2 px-3 text-center">Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#fce4d4]/30 text-slate-800 text-[11px]">
@@ -1144,10 +1144,10 @@ export default function OrderPlacementPage() {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-purple-50/80 text-purple-900 font-black text-[10px] uppercase border-b border-purple-100">
                         <tr>
-                          <th className="py-2 px-3">Product</th>
-                          <th className="py-2 px-2">Main Fabric</th>
-                          <th className="py-2 px-2">Attachments</th>
-                          <th className="py-2 px-3 text-right">Order Qty</th>
+                          <th className="py-2 px-3 text-center">Product</th>
+                          <th className="py-2 px-2 text-center">Main Fabric</th>
+                          <th className="py-2 px-2 text-center">Attachments</th>
+                          <th className="py-2 px-3 text-center">Order Qty</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-purple-50 text-slate-800 text-[11px]">
@@ -1270,11 +1270,11 @@ export default function OrderPlacementPage() {
                         <table className="w-full text-left text-xs">
                           <thead className="bg-amber-100/70 text-amber-900 font-black text-[10px] uppercase border-b border-amber-200">
                             <tr>
-                              <th className="py-2 px-3">Material</th>
-                              <th className="py-2 px-2">Type</th>
-                              <th className="py-2 px-2">Required</th>
-                              <th className="py-2 px-2">In Stock</th>
-                              <th className="py-2 px-3 text-right font-black text-rose-700">Auto-PO Qty</th>
+                              <th className="py-2 px-3 text-center">Material</th>
+                              <th className="py-2 px-2 text-center">Type</th>
+                              <th className="py-2 px-2 text-center">Required</th>
+                              <th className="py-2 px-2 text-center">In Stock</th>
+                              <th className="py-2 px-3 text-center font-black text-rose-700">Auto-PO Qty</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-amber-100 text-slate-800 text-[11px]">
@@ -1434,9 +1434,9 @@ export default function OrderPlacementPage() {
                           <table className="w-full text-left text-[6.5px] border-collapse">
                             <thead>
                               <tr className="bg-zinc-100/90 font-black text-zinc-600 uppercase border-b border-zinc-200">
-                                <th className="py-0.5 px-1.5">Product &amp; Style</th>
-                                <th className="py-0.5 px-1.5">Specifications / Sizing</th>
-                                <th className="text-right py-0.5 px-1.5">Qty</th>
+                                <th className="py-0.5 px-1.5 text-center">Product &amp; Style</th>
+                                <th className="py-0.5 px-1.5 text-center">Specifications / Sizing</th>
+                                <th className="text-center py-0.5 px-1.5">Qty</th>
                               </tr>
                             </thead>
                             <tbody>

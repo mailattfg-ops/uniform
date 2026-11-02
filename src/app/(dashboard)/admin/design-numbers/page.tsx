@@ -681,7 +681,7 @@ function DesignNumbersContent() {
                   type="submit"
                   className="px-5 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-md shadow-[#C82A2B]/20 active:scale-95"
                 >
-                  Save Specification
+                  Save
                 </button>
               </div>
             </form>
@@ -768,7 +768,7 @@ function DesignNumbersContent() {
                   type="submit"
                   className="px-5 py-2.5 bg-[#3a525d] hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
                 >
-                  Save Group Set
+                  Save
                 </button>
               </div>
             </form>

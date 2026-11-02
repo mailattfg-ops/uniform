@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
@@ -280,7 +281,7 @@ export default function SAMCalculator() {
               {/* Product Selector */}
               <div className="space-y-2 md:col-span-1">
                 <label className="text-xs font-black text-[#3a525d] uppercase tracking-wider block">Target Product (Optional)</label>
-                <select
+                <Select
                   value={selectedProductId}
                   onChange={(e) => setSelectedProductId(e.target.value)}
                   className="w-full h-12 px-4 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-semibold text-[#3a525d] focus:border-[#2d8d9b] focus:bg-white outline-none transition-all"
@@ -291,7 +292,7 @@ export default function SAMCalculator() {
                       {p.name} ({p.art_number})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Base Value Input */}
