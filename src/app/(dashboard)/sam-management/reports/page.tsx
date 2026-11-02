@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -354,7 +355,7 @@ export default function SAMReports() {
         <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm w-full md:w-fit">
           <Filter size={16} className="text-zinc-400" />
           <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider">Analysis configuration:</span>
-          <select
+          <Select
             value={selectedConfigId}
             onChange={(e) => setSelectedConfigId(e.target.value)}
             className="h-10 px-3 rounded-xl border border-zinc-200 bg-zinc-50 text-xs font-bold text-[#3a525d] focus:border-[#2d8d9b] outline-none"
@@ -362,7 +363,7 @@ export default function SAMReports() {
             {configs.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
@@ -467,11 +468,11 @@ export default function SAMReports() {
                 <table className="w-full text-left text-xs font-semibold text-[#3a525d]">
                   <thead>
                     <tr className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      <th className="p-4">Quantity Tier</th>
-                      <th className="p-4 text-right">Wholesale Cost</th>
-                      <th className="p-4 text-right">Retail Cost</th>
-                      <th className="p-4 text-right">Cost Difference</th>
-                      <th className="p-4 text-right">Retail Markup (%)</th>
+                      <th className="p-4 text-center">Quantity Tier</th>
+                      <th className="p-4 text-center">Wholesale Cost</th>
+                      <th className="p-4 text-center">Retail Cost</th>
+                      <th className="p-4 text-center">Cost Difference</th>
+                      <th className="p-4 text-center">Retail Markup (%)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">

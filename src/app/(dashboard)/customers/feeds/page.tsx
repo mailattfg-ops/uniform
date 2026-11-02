@@ -35,6 +35,7 @@ export default function FeedsRegistryPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters
+  const [selectedFeedStatus, setSelectedFeedStatus] = useState<string>('ALL');
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
@@ -119,8 +120,50 @@ export default function FeedsRegistryPage() {
 
   // Feeds list: raw field prospect scouting feeds
   const feedsList = useMemo(() => {
-    return leads.filter(l => l.status === 'Feeds');
+    return leads.filter(l => l.status === 'Feeds' || l.status === 'Open Feeds' || l.status === 'Contacted Leads');
   }, [leads]);
+
+  // Helper to determine if an activity is initial feed creation / intake note
+  const isFeedIntakeActivity = (act: any) => {
+    if (!act) return false;
+    const type = String(act.activity_type || act.activityType || '').toLowerCase();
+    return (
+      type === 'feed_note' ||
+      type === 'initial_feed_note' ||
+      type === 'feed_intake_note' ||
+      type === 'raw feed intake' ||
+      type === 'feed_creation' ||
+      type === 'intake'
+    );
+  };
+
+  // Helper to check if a feed has been contacted
+  const isFeedContacted = useCallback((lead: Lead) => {
+    if (lead.status === 'Contacted Leads' || lead.status === 'Contacted Feeds') return true;
+    if (Array.isArray(lead.remarks) && lead.remarks.some((r: any) => {
+      if (isFeedIntakeActivity(r)) return false;
+      const actType = r.activity_type || r.activityType;
+      if (actType === 'Feed Contact Outcome') return true;
+      const isFeedStage = r.stage === 'Feeds' || r.stage === 'Open Feeds' || r.stage === 'Contacted Leads';
+      const resp = String(r.response_type || r.responseType || r.outcome || '').toLowerCase();
+      const hasValidOutcome = resp === 'positive' || resp === 'negative' || (resp && resp !== 'hold' && resp !== 'intake' && resp !== 'none');
+      return isFeedStage && hasValidOutcome;
+    })) {
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Compute feed counts by status
+  const feedCounts = useMemo(() => {
+    let open = 0;
+    let contacted = 0;
+    feedsList.forEach(l => {
+      if (isFeedContacted(l)) contacted++;
+      else open++;
+    });
+    return { all: feedsList.length, open, contacted };
+  }, [feedsList, isFeedContacted]);
 
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
@@ -135,7 +178,11 @@ export default function FeedsRegistryPage() {
   // Filtered Feeds
   const filteredFeeds = useMemo(() => {
     return feedsList.filter(l => {
-      // 1. Branch filter
+      // 1. Feed Status filter (All Feeds, Open Feeds, Contacted Feeds)
+      if (selectedFeedStatus === 'OPEN' && isFeedContacted(l)) return false;
+      if (selectedFeedStatus === 'CONTACTED' && !isFeedContacted(l)) return false;
+
+      // 2. Branch filter
       if (selectedBranch !== 'ALL') {
         if (selectedBranch === 'HQ') {
           const isHq = !l.branch_id || l.origin === 'HQ';
@@ -145,19 +192,19 @@ export default function FeedsRegistryPage() {
           if (bId !== selectedBranch) return false;
         }
       }
-      // 2. Zone filter
+      // 3. Zone filter
       if (selectedZone !== 'ALL') {
         const zId = String(l.zone_id || '');
         if (zId !== selectedZone) return false;
       }
-      // 3. Sector / Industry filter
+      // 4. Sector / Industry filter
       if (selectedIndustry !== 'ALL') {
         const indId = String(l.industry_id || '');
         if (indId !== selectedIndustry) return false;
       }
       return true;
     });
-  }, [feedsList, selectedBranch, selectedZone, selectedIndustry]);
+  }, [feedsList, selectedFeedStatus, isFeedContacted, selectedBranch, selectedZone, selectedIndustry]);
 
   // Handle Quick Feed Creation
   const handleCreateFeed = async (feedData: any) => {
@@ -529,7 +576,21 @@ export default function FeedsRegistryPage() {
         userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Branch Filter */}
+            {/* 1. Feed Status Filter (All Feeds, Open Feeds, Contacted Feeds) */}
+            <FilterDropdown
+              label="Feed Status"
+              allLabel={`All Feeds (${feedCounts.all})`}
+              allValue="ALL"
+              value={selectedFeedStatus}
+              onChange={(val) => setSelectedFeedStatus(val)}
+              options={[
+                { label: 'All Feeds', value: 'ALL', badge: feedCounts.all },
+                { label: 'Open Feeds', value: 'OPEN', badge: feedCounts.open },
+                { label: 'Contacted Feeds', value: 'CONTACTED', badge: feedCounts.contacted }
+              ]}
+            />
+
+            {/* 2. Branch Filter */}
             <FilterDropdown
               label="Branch"
               allLabel={`All Branches (${feedsList.length})`}
@@ -552,7 +613,7 @@ export default function FeedsRegistryPage() {
               ]}
             />
 
-            {/* Zone Filter */}
+            {/* 3. Zone Filter */}
             <FilterDropdown
               label="Zone"
               allLabel={`All Zones (${availableFilterZones.length})`}
@@ -565,7 +626,7 @@ export default function FeedsRegistryPage() {
               }))}
             />
 
-            {/* Sector / Industry Filter */}
+            {/* 4. Sector / Industry Filter */}
             <FilterDropdown
               label="Sector"
               allLabel={`All Sectors (${feedsList.length})`}

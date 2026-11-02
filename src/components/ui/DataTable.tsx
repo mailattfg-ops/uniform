@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, ChevronLeft, ChevronRight, Info, ArrowUp, ArrowDown, ArrowUpDown, X, CalendarCheck } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, Check, Info, ArrowUp, ArrowDown, ArrowUpDown, X, CalendarCheck } from 'lucide-react';
 import { Button } from './Button';
 import { UserActivityReportModal } from './UserActivityReportModal';
 
@@ -31,6 +31,8 @@ export interface DataTableProps<T> {
   headerAction?: React.ReactNode;
   rightAction?: React.ReactNode;
   pageSize?: number;
+  pageSizeOptions?: number[];
+  minHeight?: string;
   emptyMessage?: string;
   defaultSortIndex?: number | null;
   defaultSortDirection?: 'asc' | 'desc';
@@ -142,6 +144,8 @@ export function DataTable<T extends { id: string | number }>({
   headerAction,
   rightAction,
   pageSize = 10,
+  pageSizeOptions = [10, 20, 30, 50],
+  minHeight = 'min-h-[calc(100vh-13.5rem)] md:min-h-[calc(100vh-15.5rem)]',
   emptyMessage,
   defaultSortIndex = null,
   defaultSortDirection = 'asc',
@@ -160,8 +164,39 @@ export function DataTable<T extends { id: string | number }>({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageSize, setCurrentPageSize] = useState<number>(pageSize);
+  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
+  const pageSizeDropdownRef = useRef<HTMLDivElement>(null);
   const [sortColumnIndex, setSortColumnIndex] = useState<number | null>(defaultSortIndex ?? null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection || 'asc');
+  
+  // Synchronize when pageSize prop changes from parent
+  useEffect(() => {
+    if (pageSize) {
+      setCurrentPageSize(pageSize);
+    }
+  }, [pageSize]);
+
+  // Click outside to close page size dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pageSizeDropdownRef.current && !pageSizeDropdownRef.current.contains(event.target as Node)) {
+        setIsPageSizeOpen(false);
+      }
+    };
+    if (isPageSizeOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPageSizeOpen]);
+
+  // Ensure active page size is included in options
+  const resolvedPageSizeOptions = useMemo(() => {
+    const set = new Set([...pageSizeOptions, currentPageSize]);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [pageSizeOptions, currentPageSize]);
   
   // User Activity & Updates Report state
   const [isUserReportOpen, setIsUserReportOpen] = useState(false);
@@ -333,14 +368,14 @@ export function DataTable<T extends { id: string | number }>({
     }
   }, [onSortedChange, sortedData, currentSortInfo]);
 
-  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const totalPages = Math.ceil(sortedData.length / currentPageSize);
   const paginatedData = React.useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedData.slice(start, start + pageSize);
-  }, [sortedData, currentPage, pageSize]);
+    const start = (currentPage - 1) * currentPageSize;
+    return sortedData.slice(start, start + currentPageSize);
+  }, [sortedData, currentPage, currentPageSize]);
 
   return (
-    <div className="bg-white rounded-2xl md:rounded-3xl border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300">
+    <div className={`bg-white rounded-2xl md:rounded-3xl border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300 flex flex-col ${minHeight}`}>
       {/* Table Header Section - Unified One-Line Toolbar */}
       {(title || subtitle || searchPlaceholder || headerAction || rightAction || (onPrint && !hideTablePrint)) && (
         <div className="px-4 py-2.5 md:px-6 md:py-3 border-b border-[#fce4d4] flex flex-wrap items-center justify-between gap-2.5 bg-[#fce4d4]/10 min-w-0">
@@ -515,7 +550,7 @@ export function DataTable<T extends { id: string | number }>({
       )}
 
       {/* Table Body */}
-      <div className="overflow-x-auto relative">
+      <div className="overflow-x-auto relative flex-1 flex flex-col justify-between">
         <table className="w-full text-left border-collapse min-w-full">
           <thead>
             <tr className="bg-[#fce4d4]/20 border-b border-[#fce4d4]">
@@ -534,7 +569,7 @@ export function DataTable<T extends { id: string | number }>({
                     onClick={() => isSortable && handleSort(idx)}
                     aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                     title={isSortable ? `Click to sort by ${typeof col.header === 'string' ? col.header : 'column'} (${isSorted && sortDirection === 'asc' ? 'Descending' : 'Ascending'})` : undefined}
-                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-[#fce4d4]/30 last:border-r-0 ${
+                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-[#fce4d4]/30 last:border-r-0 text-center ${
                       isSortable 
                         ? 'cursor-pointer hover:bg-[#fce4d4]/35 hover:text-[#3a525d] group/th' 
                         : ''
@@ -546,8 +581,8 @@ export function DataTable<T extends { id: string | number }>({
                       isSticky ? 'sticky right-0 bg-[#fef7f2] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
                     } ${col.className || ''}`}
                   >
-                    <div className={`flex items-center gap-1.5 ${isRightAligned ? 'justify-end' : 'justify-between'}`}>
-                      <span className="truncate">{col.header}</span>
+                    <div className="flex items-center justify-center gap-1.5 w-full text-center">
+                      <span className="truncate text-center">{col.header}</span>
                       {isSortable && (
                         <span className="inline-flex items-center shrink-0 ml-1">
                           {isSorted ? (
@@ -662,25 +697,109 @@ export function DataTable<T extends { id: string | number }>({
       </div>
 
       {/* Modern Footer */}
-      <div className="px-4 py-3 md:px-6 md:py-3.5 border-t border-[#fce4d4] flex flex-col md:flex-row justify-between items-center gap-3 bg-[#fce4d4]/5 transition-colors">
-        <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
-          Showing <span className="text-[#2d8d9b] text-sm md:text-base">{sortedData.length === 0 ? 0 : Math.min(sortedData.length, (currentPage - 1) * pageSize + 1)}</span> to <span className="text-[#2d8d9b] text-sm md:text-base">{Math.min(sortedData.length, currentPage * pageSize)}</span> of <span className="text-[#2d8d9b] text-xs md:text-sm font-black">{sortedData.length}</span> entries
-        </span>
-        <div className="flex gap-2 md:gap-2.5 w-full md:w-auto">
+      <div className="px-4 py-3 md:px-6 md:py-3.5 border-t border-[#fce4d4] flex flex-col md:flex-row justify-between items-center gap-3 bg-[#fce4d4]/5 transition-colors mt-auto shrink-0">
+        <div className="flex flex-wrap items-center gap-3.5 w-full md:w-auto justify-between md:justify-start">
+          <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
+            Showing <span className="text-[#2d8d9b] text-sm md:text-base font-black">{sortedData.length === 0 ? 0 : Math.min(sortedData.length, (currentPage - 1) * currentPageSize + 1)}</span> to <span className="text-[#2d8d9b] text-sm md:text-base font-black">{Math.min(sortedData.length, currentPage * currentPageSize)}</span> of <span className="text-[#2d8d9b] text-xs md:text-sm font-black">{sortedData.length}</span> entries
+          </span>
+
+          {/* Option to choose number of datas (10, 20, 30, 50) */}
+          <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l sm:border-[#fce4d4]/80">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6b5a]">Rows:</span>
+
+            {/* Quick Segmented Pill Options */}
+            <div className="inline-flex items-center bg-white p-0.5 rounded-xl border border-[#fce4d4] shadow-2xs">
+              {resolvedPageSizeOptions.map((size) => {
+                const isSelected = currentPageSize === size;
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setCurrentPageSize(size);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#2d8d9b] text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-[#3a525d] hover:bg-[#fce4d4]/20'
+                    }`}
+                    title={`Display ${size} rows per page`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Modern Dropdown Style Selector */}
+            <div className="relative inline-block text-left" ref={pageSizeDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsPageSizeOpen(prev => !prev)}
+                className={`h-7 px-2.5 rounded-xl border text-[11px] font-black flex items-center gap-1.5 transition-all cursor-pointer select-none shadow-2xs ${
+                  isPageSizeOpen
+                    ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b] ring-2 ring-[#2d8d9b]/20'
+                    : 'bg-white border-[#fce4d4] hover:border-[#2d8d9b]/60 hover:bg-[#fce4d4]/10 text-[#3a525d]'
+                }`}
+                title="Select rows per page"
+              >
+                <span>{currentPageSize} / page</span>
+                <ChevronDown size={12} className={`text-[#2d8d9b] transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isPageSizeOpen && (
+                <div className="absolute left-0 bottom-full mb-1.5 z-50 w-32 bg-white rounded-2xl shadow-xl border border-[#2d8d9b]/30 p-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#2d8d9b]/10">
+                  <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 mb-1">
+                    Rows per page
+                  </div>
+                  {resolvedPageSizeOptions.map((size) => {
+                    const isSelected = currentPageSize === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          setCurrentPageSize(size);
+                          setCurrentPage(1);
+                          setIsPageSizeOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#2d8d9b] text-white font-black shadow-xs'
+                            : 'text-zinc-700 hover:bg-[#fce4d4]/20 hover:text-[#3a525d]'
+                        }`}
+                      >
+                        <span>{size} records</span>
+                        {isSelected && <Check size={13} strokeWidth={3} className="text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Prev / Next Pagination Controls */}
+        <div className="flex items-center gap-2 md:gap-2.5 w-full md:w-auto justify-end">
           <Button 
             variant="secondary" 
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            className="flex-1 md:flex-initial px-4 md:px-5 py-2 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-xl border-border bg-white group uppercase disabled:opacity-30"
+            className="flex-1 md:flex-initial px-4 md:px-5 py-2 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-xl border-border bg-white group uppercase disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             Prev
           </Button>
+          <div className="flex items-center px-2 text-[10px] md:text-[11px] font-black text-[#8b6b5a] whitespace-nowrap">
+            <span>Page <strong className="text-[#2d8d9b] text-xs font-black">{totalPages === 0 ? 0 : currentPage}</strong> of <strong className="text-[#3a525d] text-xs font-black">{totalPages}</strong></span>
+          </div>
           <Button 
              variant="secondary" 
              disabled={currentPage === totalPages || totalPages === 0}
              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-             className="flex-1 md:flex-initial px-4 md:px-5 py-2 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-xl border-border bg-white group uppercase disabled:opacity-30"
+             className="flex-1 md:flex-initial px-4 md:px-5 py-2 h-auto text-[10px] md:text-[11px] font-black tracking-widest rounded-xl border-border bg-white group uppercase disabled:opacity-30 cursor-pointer"
           >
             Next
             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />

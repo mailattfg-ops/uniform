@@ -1,5 +1,8 @@
 'use client';
 
+import { DatePicker } from '@/components/ui/DatePicker';
+import { Select } from '@/components/ui/Select';
+
 import React, { useState, useEffect } from 'react';
 import { 
   History, 
@@ -472,7 +475,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Destination Branch <span className="text-red-500">*</span>
                 </label>
-                <select
+                <Select
                   value={newBranchId}
                   onChange={e => setNewBranchId(e.target.value)}
                   required
@@ -484,7 +487,7 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                       {getTierIcon(b.tier)} {b.name} ({b.code}) — {b.tier}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Effective Date */}
@@ -492,12 +495,12 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Effective Transfer Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={effectiveDate}
-                  onChange={e => setEffectiveDate(e.target.value)}
+                <DatePicker
                   required
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B]"
+                  value={effectiveDate}
+                  onChange={setEffectiveDate}
+                  placeholder="Effective Date"
+                  className="w-full bg-white"
                 />
               </div>
 
@@ -554,12 +557,12 @@ export const EmployeeWorkHistoryModal: React.FC<EmployeeWorkHistoryModalProps> =
                   {transferLoading ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Recording Transfer...
+                      Saving...
                     </>
                   ) : (
                     <>
                       <ArrowRightLeft size={14} />
-                      Confirm Permanent Transfer
+                      Save
                     </>
                   )}
                 </button>

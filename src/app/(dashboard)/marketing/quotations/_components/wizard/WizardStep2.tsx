@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -1937,7 +1938,7 @@ export default function WizardStep2({
               {orgDepartments && orgDepartments.length > 0 && (
                 <div className="min-w-[150px]">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Department</p>
-                  <select
+                  <Select
                     className={selectCls}
                     value={item.department_id || ''}
                     onChange={(e) => {
@@ -1955,7 +1956,7 @@ export default function WizardStep2({
                         {d.name}{d.division ? ` (${d.division})` : ''}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               )}
 
@@ -2163,7 +2164,7 @@ export default function WizardStep2({
               {orgDepartments && orgDepartments.length > 0 && (
                 <div className="min-w-[150px]">
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Department</p>
-                  <select
+                  <Select
                     className={selectCls}
                     value={item.department_id || ''}
                     onChange={(e) => {
@@ -2181,14 +2182,14 @@ export default function WizardStep2({
                         {d.name}{d.division ? ` (${d.division})` : ''}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               )}
 
               {/* Gender Dropdown */}
               <div className="min-w-[130px]">
                 <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
-                <select
+                <Select
                   className={selectCls}
                   value={normalizeGender(item.gender)}
                   onChange={(e) => updateItem(index, { gender: e.target.value })}
@@ -2199,13 +2200,13 @@ export default function WizardStep2({
                       {g.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Product Type */}
               <div className="min-w-[150px]">
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
-                <select
+                <Select
                   className={selectCls}
                   value={item.product_type_id}
                   onChange={(e) => updateItem(index, {
@@ -2217,13 +2218,13 @@ export default function WizardStep2({
                   {displayProductTypes.map(pt => (
                     <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Product */}
               <div className="flex-1 min-w-[200px]">
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
-                <select
+                <Select
                   className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
                   value={item.product_id || ''}
                   disabled={!item.product_type_id}
@@ -2332,7 +2333,7 @@ export default function WizardStep2({
                       {p.name}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Selected Size (for MANUAL and ACCESSORIES types) */}
@@ -2352,7 +2353,7 @@ export default function WizardStep2({
                       className={inputCls}
                     />
                   ) : (
-                    <select
+                    <Select
                       className={selectCls}
                       value={item.size_breakdown?.selected_size || ''}
                       onChange={(e) => updateItem(index, {
@@ -2369,7 +2370,7 @@ export default function WizardStep2({
                           <option key={sz} value={sz}>{sz}</option>
                         ));
                       })()}
-                    </select>
+                    </Select>
                   )}
                 </div>
               )}
@@ -2575,12 +2576,12 @@ export default function WizardStep2({
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-100">
-                  <th className="p-3 text-left w-32">Component</th>
-                  <th className="p-3 text-left">Item Selection</th>
-                  <th className="p-3 text-left w-24">Meters / Qty</th>
-                  <th className="p-3 text-left w-24">Fabric Width</th>
-                  <th className="p-3 text-left w-36">Fabric SAM</th>
-                  <th className="p-3 text-right w-24">Cost (₹)</th>
+                  <th className="p-3 text-center w-32">Component</th>
+                  <th className="p-3 text-center">Item Selection</th>
+                  <th className="p-3 text-center w-24">Meters / Qty</th>
+                  <th className="p-3 text-center w-24">Fabric Width</th>
+                  <th className="p-3 text-center w-36">Fabric SAM</th>
+                  <th className="p-3 text-center w-24">Cost (₹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -2595,7 +2596,7 @@ export default function WizardStep2({
                     </div>
                   </td>
                   <td className="p-3">
-                    <select
+                    <Select
                       className={selectCls}
                       value={item.fabric_id}
                       onChange={(e) => {
@@ -2617,7 +2618,7 @@ export default function WizardStep2({
                           {formatFabricDisplayName(f)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     {item.fabric_id && (
                       <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
                         Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id)}%
@@ -2677,7 +2678,7 @@ export default function WizardStep2({
                     </div>
                   </td>
                   <td className="p-3">
-                    <select
+                    <Select
                       className={selectCls}
                       value={item.attachment_fabric1_id}
                       onChange={(e) => {
@@ -2699,7 +2700,7 @@ export default function WizardStep2({
                           {formatFabricDisplayName(f)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     {item.attachment_fabric1_id && (
                       <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
                         Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id)}%
@@ -2759,7 +2760,7 @@ export default function WizardStep2({
                     </div>
                   </td>
                   <td className="p-3">
-                    <select
+                    <Select
                       className={selectCls}
                       value={item.attachment_fabric2_id}
                       onChange={(e) => {
@@ -2781,7 +2782,7 @@ export default function WizardStep2({
                           {formatFabricDisplayName(f)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     {item.attachment_fabric2_id && (
                       <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
                         Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id)}%
@@ -2849,7 +2850,7 @@ export default function WizardStep2({
                       <td className="p-3">
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
-                          <select
+                          <Select
                             className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#2d8d9b] py-0.5 pr-2 cursor-pointer max-w-[110px]"
                             value={trimCat}
                             onChange={(e) => {
@@ -2864,11 +2865,11 @@ export default function WizardStep2({
                             {allTrimCategories.map((c: string) => (
                               <option key={c} value={c}>{c}</option>
                             ))}
-                          </select>
+                          </Select>
                         </div>
                       </td>
                       <td className="p-3">
-                        <select
+                        <Select
                           className={selectCls}
                           value={trimItem.trim_id || ''}
                           onChange={(e) => {
@@ -2926,7 +2927,7 @@ export default function WizardStep2({
                               </optgroup>
                             </>
                           )}
-                        </select>
+                        </Select>
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1.5">
@@ -3200,7 +3201,7 @@ export default function WizardStep2({
                           <div key={prodIdx} className="flex items-center gap-4 bg-white p-3 border border-zinc-150 rounded-xl">
                             {/* Product Category / Type Select */}
                             <div className="flex-1 min-w-[150px]">
-                              <select
+                              <Select
                                 value={prod.product_type_id}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -3229,12 +3230,12 @@ export default function WizardStep2({
                                 {displayProductTypes.map(pt => (
                                   <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
                                 ))}
-                              </select>
+                              </Select>
                             </div>
 
                             {/* Manual Gender Select */}
                             <div className="w-[140px]">
-                              <select
+                              <Select
                                 value={prod.gender || ''}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -3259,12 +3260,12 @@ export default function WizardStep2({
                                 <option value="male">{isSchool ? 'Boys / Male' : 'Men / Male'}</option>
                                 <option value="female">{isSchool ? 'Girls / Female' : 'Women / Female'}</option>
                                 <option value="unisex">Unisex / All</option>
-                              </select>
+                              </Select>
                             </div>
 
                             {/* Product Select */}
                             <div className="flex-1 min-w-[200px]">
-                              <select
+                              <Select
                                 value={prod.product_id}
                                 disabled={!prod.product_type_id}
                                 onChange={(e) => {
@@ -3309,7 +3310,7 @@ export default function WizardStep2({
                                       {p.name}{p.art_number ? ` (${p.art_number})` : ''}
                                     </option>
                                   ))}
-                              </select>
+                              </Select>
                             </div>
 
                             {/* Delete Product from Set */}
@@ -3546,14 +3547,14 @@ export default function WizardStep2({
                       <table className="w-full min-w-[950px] text-left border-collapse text-xs align-middle">
                         <thead>
                           <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                            <th className="p-3 align-middle">ART Number</th>
-                            <th className="p-3 align-middle">Product Name</th>
-                            <th className="p-3 align-middle w-40">Gender</th>
-                            <th className="p-3 align-middle">Design Number</th>
-                            <th className="p-3 align-middle">Specifications</th>
-                            <th className="p-3 align-middle font-mono">SAM (₹)</th>
-                            <th className="p-3 align-middle text-right">Quantity</th>
-                            <th className="p-3 align-middle w-28">Price/Unit (₹)</th>
+                            <th className="p-3 align-middle text-center">ART Number</th>
+                            <th className="p-3 align-middle text-center">Product Name</th>
+                            <th className="p-3 align-middle w-40 text-center">Gender</th>
+                            <th className="p-3 align-middle text-center">Design Number</th>
+                            <th className="p-3 align-middle text-center">Specifications</th>
+                            <th className="p-3 align-middle font-mono text-center">SAM (₹)</th>
+                            <th className="p-3 align-middle text-center">Quantity</th>
+                            <th className="p-3 align-middle w-28 text-center">Price/Unit (₹)</th>
                             <th className="p-3 align-middle w-12 text-center">Action</th>
                           </tr>
                         </thead>
@@ -3565,7 +3566,7 @@ export default function WizardStep2({
                                 <td className="p-3 font-black text-[#2d8d9b] align-middle">{rowItem.art_number || '—'}</td>
                                 <td className="p-3 text-zinc-800 align-middle">
                                   {uniqueTemplateProducts.length > 1 ? (
-                                    <select
+                                    <Select
                                       value={rowItem.product_id}
                                       onChange={(e) => {
                                         const pid = e.target.value;
@@ -3583,13 +3584,13 @@ export default function WizardStep2({
                                       {uniqueTemplateProducts.map((u: any) => (
                                         <option key={u.product_id} value={u.product_id}>{u.product_name}</option>
                                       ))}
-                                    </select>
+                                    </Select>
                                   ) : (
                                     rowItem.product_name
                                   )}
                                 </td>
                                 <td className="p-2 align-middle">
-                                  <select
+                                  <Select
                                     value={normalizeGender(rowItem.gender || '')}
                                     onChange={(e) => updateDeptAuditRow(deptId, rIdx, { gender: e.target.value })}
                                     className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer"
@@ -3600,7 +3601,7 @@ export default function WizardStep2({
                                         {g.label}
                                       </option>
                                     ))}
-                                  </select>
+                                  </Select>
                                 </td>
                                 <td className="p-2 align-middle">
                                   <div className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-700 flex items-center justify-between">
@@ -3689,14 +3690,14 @@ export default function WizardStep2({
                 <table className="w-full min-w-[1000px] text-left border-collapse text-xs align-middle">
                   <thead>
                     <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3 align-middle">ART Number</th>
-                      <th className="p-3 align-middle">Product Name</th>
-                      <th className="p-3 align-middle">Gender</th>
-                      <th className="p-3 align-middle">Design Number</th>
-                      <th className="p-3 align-middle">Specifications</th>
-                      <th className="p-3 align-middle font-mono">SAM (₹)</th>
-                      <th className="p-3 align-middle text-right">Quantity</th>
-                      <th className="p-3 align-middle w-28">Price/Unit (₹)</th>
+                      <th className="p-3 align-middle text-center">ART Number</th>
+                      <th className="p-3 align-middle text-center">Product Name</th>
+                      <th className="p-3 align-middle text-center">Gender</th>
+                      <th className="p-3 align-middle text-center">Design Number</th>
+                      <th className="p-3 align-middle text-center">Specifications</th>
+                      <th className="p-3 align-middle font-mono text-center">SAM (₹)</th>
+                      <th className="p-3 align-middle text-center">Quantity</th>
+                      <th className="p-3 align-middle w-28 text-center">Price/Unit (₹)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
@@ -3708,7 +3709,7 @@ export default function WizardStep2({
                           <td className="p-3 font-black text-[#2d8d9b] align-middle">{item.art_number || '—'}</td>
                           <td className="p-3 text-zinc-800 align-middle">{item.product_name}</td>
                                                     <td className="p-2 align-middle min-w-[130px]">
-                            <select
+                            <Select
                               value={normalizeGender(item.gender || '')}
                               onChange={(e) => {
                                 const val = e.target.value;
@@ -3726,7 +3727,7 @@ export default function WizardStep2({
                                   {g.label}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                           </td>
                           <td className="p-2 align-middle">
                             <div className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-700 flex items-center justify-between">
@@ -4179,7 +4180,7 @@ export default function WizardStep2({
                                     {/* Gender Dropdown */}
                                     <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
                                       <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Gender:</label>
-                                      <select
+                                      <Select
                                         value={normalizeGender(dept.gender || '')}
                                         onChange={(e) => {
                                           const val = e.target.value;
@@ -4195,7 +4196,7 @@ export default function WizardStep2({
                                             {g.label}
                                           </option>
                                         ))}
-                                      </select>
+                                      </Select>
                                     </div>
                                   </div>
 
@@ -4567,7 +4568,7 @@ export default function WizardStep2({
                                                   {/* Gender Dropdown */}
                                                   <div className="min-w-[130px]">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
-                                                    <select
+                                                    <Select
                                                       className={selectCls}
                                                       value={normalizeGender(item.gender || dept.gender || '')}
                                                       onChange={(e) => updateDeptItem(idx, { gender: e.target.value })}
@@ -4578,13 +4579,13 @@ export default function WizardStep2({
                                                           {g.label}
                                                         </option>
                                                       ))}
-                                                    </select>
+                                                    </Select>
                                                   </div>
 
                                                   {/* Product Type */}
                                                   <div className="min-w-[140px]">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
-                                                    <select
+                                                    <Select
                                                       className={selectCls}
                                                       value={item.product_type_id}
                                                       onChange={(e) => updateDeptItem(idx, { product_type_id: e.target.value, product_id: '', sam_value: '', design_number: '' })}
@@ -4593,13 +4594,13 @@ export default function WizardStep2({
                                                       {displayProductTypes.map((pt: any) => (
                                                         <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
                                                       ))}
-                                                    </select>
+                                                    </Select>
                                                   </div>
 
                                                   {/* Product */}
                                                   <div className="flex-1 min-w-[180px]">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
-                                                    <select
+                                                    <Select
                                                       className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                       value={item.product_id || ''}
                                                       disabled={!item.product_type_id}
@@ -4711,7 +4712,7 @@ export default function WizardStep2({
                                                           {p.name}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
                                                         </option>
                                                       ))}
-                                                    </select>
+                                                    </Select>
                                                   </div>
 
                                                   {/* Selected Size (for MANUAL and ACCESSORIES type) */}
@@ -4731,7 +4732,7 @@ export default function WizardStep2({
                                                           className={inputCls}
                                                         />
                                                       ) : (
-                                                        <select
+                                                        <Select
                                                           className={selectCls}
                                                           value={item.size_breakdown?.selected_size || ''}
                                                           onChange={(e) => updateDeptItem(idx, {
@@ -4748,7 +4749,7 @@ export default function WizardStep2({
                                                               <option key={sz} value={sz}>{sz}</option>
                                                             ));
                                                           })()}
-                                                        </select>
+                                                        </Select>
                                                       )}
                                                     </div>
                                                   )}
@@ -4855,12 +4856,12 @@ export default function WizardStep2({
                                                   <table className="w-full text-xs border-collapse">
                                                     <thead>
                                                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-100">
-                                                        <th className="p-3 text-left w-32">Component</th>
-                                                        <th className="p-3 text-left">Item Selection</th>
-                                                        <th className="p-3 text-left w-24">Meters / Qty</th>
-                                                        <th className="p-3 text-left w-24">Fabric Width</th>
-                                                        <th className="p-3 text-left w-36">Fabric SAM</th>
-                                                        <th className="p-3 text-right w-24">Cost (₹)</th>
+                                                        <th className="p-3 text-center w-32">Component</th>
+                                                        <th className="p-3 text-center">Item Selection</th>
+                                                        <th className="p-3 text-center w-24">Meters / Qty</th>
+                                                        <th className="p-3 text-center w-24">Fabric Width</th>
+                                                        <th className="p-3 text-center w-36">Fabric SAM</th>
+                                                        <th className="p-3 text-center w-24">Cost (₹)</th>
                                                       </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-zinc-50">
@@ -4878,7 +4879,7 @@ export default function WizardStep2({
                                                               </div>
                                                             </td>
                                                             <td className="p-3">
-                                                              <select
+                                                              <Select
                                                                 className={selectCls}
                                                                 value={item.fabric_id}
                                                                 onChange={(e) => {
@@ -4898,7 +4899,7 @@ export default function WizardStep2({
                                                                     {formatFabricDisplayName(f)}
                                                                   </option>
                                                                 ))}
-                                                              </select>
+                                                              </Select>
                                                               {item.fabric_id && (
                                                                 <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
                                                                   Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id)}%
@@ -4963,7 +4964,7 @@ export default function WizardStep2({
                                                               </div>
                                                             </td>
                                                             <td className="p-3">
-                                                              <select
+                                                              <Select
                                                                 className={selectCls}
                                                                 value={item.attachment_fabric1_id}
                                                                 onChange={(e) => {
@@ -4983,7 +4984,7 @@ export default function WizardStep2({
                                                                     {formatFabricDisplayName(f)}
                                                                   </option>
                                                                 ))}
-                                                              </select>
+                                                              </Select>
                                                               {item.attachment_fabric1_id && (
                                                                 <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
                                                                   Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id)}%
@@ -5048,7 +5049,7 @@ export default function WizardStep2({
                                                               </div>
                                                             </td>
                                                             <td className="p-3">
-                                                              <select
+                                                              <Select
                                                                 className={selectCls}
                                                                 value={item.attachment_fabric2_id}
                                                                 onChange={(e) => {
@@ -5068,7 +5069,7 @@ export default function WizardStep2({
                                                                     {formatFabricDisplayName(f)}
                                                                   </option>
                                                                 ))}
-                                                              </select>
+                                                              </Select>
                                                               {item.attachment_fabric2_id && (
                                                                 <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
                                                                   Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id)}%
@@ -5138,7 +5139,7 @@ export default function WizardStep2({
                                                             <td className="p-3">
                                                               <div className="flex items-center gap-1.5">
                                                                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
-                                                                <select
+                                                                <Select
                                                                   className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#2d8d9b] py-0.5 pr-2 cursor-pointer max-w-[110px]"
                                                                   value={trimCat}
                                                                   onChange={(e) => {
@@ -5153,11 +5154,11 @@ export default function WizardStep2({
                                                                   {allTrimCategories.map((c: string) => (
                                                                     <option key={c} value={c}>{c}</option>
                                                                   ))}
-                                                                </select>
+                                                                </Select>
                                                               </div>
                                                             </td>
                                                             <td className="p-3">
-                                                              <select
+                                                              <Select
                                                                 className={selectCls}
                                                                 value={trimItem.trim_id || ''}
                                                                 onChange={(e) => {
@@ -5215,7 +5216,7 @@ export default function WizardStep2({
                                                                     </optgroup>
                                                                   </>
                                                                 )}
-                                                              </select>
+                                                              </Select>
                                                             </td>
                                                             <td className="p-3">
                                                               <div className="flex items-center gap-1.5">
@@ -5319,7 +5320,7 @@ export default function WizardStep2({
                                     if (otherDepts.length === 0) return null;
                                     return (
                                       <div className="relative">
-                                        <select
+                                        <Select
                                           value=""
                                           onChange={(e) => {
                                             const fromDeptId = e.target.value;
@@ -5355,7 +5356,7 @@ export default function WizardStep2({
                                               </option>
                                             );
                                           })}
-                                        </select>
+                                        </Select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-indigo-500">
                                           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
@@ -5423,10 +5424,10 @@ export default function WizardStep2({
                 <table className="w-full text-left border-collapse text-xs align-middle">
                   <thead>
                     <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">Fabric Item Selection</th>
+                      <th className="p-3 text-center">Fabric Item Selection</th>
                       <th className="p-3 text-center w-32">Meters</th>
                       <th className="p-3 text-center w-36">Rate/Meter (₹)</th>
-                      <th className="p-3 text-right w-36">Total Cost (₹)</th>
+                      <th className="p-3 text-center w-36">Total Cost (₹)</th>
                       <th className="p-3 text-center w-16">Actions</th>
                     </tr>
                   </thead>
@@ -5439,7 +5440,7 @@ export default function WizardStep2({
                       return (
                         <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-2">
-                            <select
+                            <Select
                               className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white"
                               value={sf.fabric_id}
                               onChange={(e) => updateSeparateFabric(idx, { fabric_id: e.target.value })}
@@ -5450,7 +5451,7 @@ export default function WizardStep2({
                                   {formatFabricDisplayName(f)}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                           </td>
                           <td className="p-2">
                             <input

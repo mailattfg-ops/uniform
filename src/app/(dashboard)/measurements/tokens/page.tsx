@@ -124,13 +124,13 @@ export default function MeasurementTokensPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100/70 text-slate-600 font-semibold uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Token No</th>
-                <th className="px-6 py-3">Student Name</th>
-                <th className="px-6 py-3">Class</th>
-                <th className="px-6 py-3">Item</th>
-                <th className="px-6 py-3">Unique Composite ID</th>
-                <th className="px-6 py-3">Alterations</th>
-                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3 text-center">Token No</th>
+                <th className="px-6 py-3 text-center">Student Name</th>
+                <th className="px-6 py-3 text-center">Class</th>
+                <th className="px-6 py-3 text-center">Item</th>
+                <th className="px-6 py-3 text-center">Unique Composite ID</th>
+                <th className="px-6 py-3 text-center">Alterations</th>
+                <th className="px-6 py-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">

@@ -19,6 +19,7 @@ import {
   Check
 } from 'lucide-react';
 import { Button } from './Button';
+import { DatePicker } from './DatePicker';
 import { toast } from 'react-hot-toast';
 
 export interface ActivityEntry<T = any> {
@@ -48,7 +49,7 @@ export interface UserActivityReportModalProps<T = any> {
   isFilterApplied?: boolean;
 }
 
-type DatePreset = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'custom';
+type DatePreset = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'janQuarter' | 'aprQuarter' | 'julQuarter' | 'octQuarter' | 'custom';
 
 function formatISTDateTime(dateOrStr: string | Date | null | undefined): string {
   if (!dateOrStr) return '—';
@@ -125,6 +126,7 @@ export function UserActivityReportModal<T = any>({
 }: UserActivityReportModalProps<T>) {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>('today');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,9 +149,10 @@ export function UserActivityReportModal<T = any>({
   }, []);
 
   // Compute preset date bounds
-  const setPresetDates = useCallback((preset: DatePreset) => {
+  const setPresetDates = useCallback((preset: DatePreset, yearOverride?: number) => {
     setDatePreset(preset);
     const now = new Date();
+    const targetYear = yearOverride !== undefined ? yearOverride : selectedYear;
 
     const formatDateVal = (d: Date) => {
       const year = d.getFullYear();
@@ -182,8 +185,31 @@ export function UserActivityReportModal<T = any>({
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       setFromDate(formatDateVal(monthStart));
       setToDate(formatDateVal(now));
+    } else if (preset === 'janQuarter') {
+      // Jan, Feb, March -> January Quarter
+      setFromDate(`${targetYear}-01-01`);
+      setToDate(`${targetYear}-03-31`);
+    } else if (preset === 'aprQuarter') {
+      // April, May, June -> April quarter
+      setFromDate(`${targetYear}-04-01`);
+      setToDate(`${targetYear}-06-30`);
+    } else if (preset === 'julQuarter') {
+      // July, August, September -> July quarter
+      setFromDate(`${targetYear}-07-01`);
+      setToDate(`${targetYear}-09-30`);
+    } else if (preset === 'octQuarter') {
+      // October, Nov, Dec -> October quarter
+      setFromDate(`${targetYear}-10-01`);
+      setToDate(`${targetYear}-12-31`);
     }
-  }, []);
+  }, [selectedYear]);
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    if (['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'].includes(datePreset)) {
+      setPresetDates(datePreset, year);
+    }
+  };
 
   // Initialize dates to Today on open
   useEffect(() => {
@@ -482,11 +508,41 @@ export function UserActivityReportModal<T = any>({
     );
   }, [activities, searchQuery]);
 
+  // Compute active range label
+  const rangeLabel = useMemo(() => {
+    let presetLabel = datePreset.toUpperCase();
+    if (datePreset === 'janQuarter') presetLabel = `January Quarter ${selectedYear}`;
+    else if (datePreset === 'aprQuarter') presetLabel = `April Quarter ${selectedYear}`;
+    else if (datePreset === 'julQuarter') presetLabel = `July Quarter ${selectedYear}`;
+    else if (datePreset === 'octQuarter') presetLabel = `October Quarter ${selectedYear}`;
+    else if (datePreset === 'today') presetLabel = 'Today';
+    else if (datePreset === 'yesterday') presetLabel = 'Yesterday';
+    else if (datePreset === 'last7days') presetLabel = 'Last 7 Days';
+    else if (datePreset === 'last30days') presetLabel = 'Last 30 Days';
+    else if (datePreset === 'thisMonth') presetLabel = 'This Month';
+    else if (datePreset === 'custom') presetLabel = 'Custom Range';
+
+    if (!fromDate && !toDate) return presetLabel;
+    return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)} (${presetLabel})`;
+  }, [fromDate, toDate, datePreset, selectedYear]);
+
   // Handle Apply Filter to Table
   const handleApplyToTable = () => {
     if (!onApplyFilter) return;
     const uniqueItems = Array.from(matchedItemsMap.values());
-    const filterSummary = `${datePreset.toUpperCase() === 'CUSTOM' ? `${formatISTDateOnly(fromDate)} - ${formatISTDateOnly(toDate)}` : datePreset.toUpperCase()} (${uniqueItems.length} items)`;
+    let presetLabel = datePreset.toUpperCase();
+    if (datePreset === 'janQuarter') presetLabel = `January Quarter (Jan-Mar ${selectedYear})`;
+    else if (datePreset === 'aprQuarter') presetLabel = `April Quarter (Apr-Jun ${selectedYear})`;
+    else if (datePreset === 'julQuarter') presetLabel = `July Quarter (Jul-Sep ${selectedYear})`;
+    else if (datePreset === 'octQuarter') presetLabel = `October Quarter (Oct-Dec ${selectedYear})`;
+    else if (datePreset === 'today') presetLabel = 'Today';
+    else if (datePreset === 'yesterday') presetLabel = 'Yesterday';
+    else if (datePreset === 'last7days') presetLabel = 'Last 7 Days';
+    else if (datePreset === 'last30days') presetLabel = 'Last 30 Days';
+    else if (datePreset === 'thisMonth') presetLabel = 'This Month';
+    else presetLabel = `${formatISTDateOnly(fromDate)} - ${formatISTDateOnly(toDate)}`;
+
+    const filterSummary = `${presetLabel} (${uniqueItems.length} items)`;
     onApplyFilter(uniqueItems, filterSummary);
     toast.success(`Table filtered to ${uniqueItems.length} items updated by ${currentUser?.fullName || 'user'}`);
     onClose();
@@ -504,7 +560,6 @@ export function UserActivityReportModal<T = any>({
     const userRole = currentUser?.role || 'Staff';
     const userEmail = currentUser?.email || '';
     const nowIST = formatISTDateTime(new Date());
-    const rangeLabel = `${formatISTDateOnly(fromDate)} to ${formatISTDateOnly(toDate)} (${datePreset.toUpperCase()})`;
 
     const html = `
       <!DOCTYPE html>
@@ -712,22 +767,21 @@ export function UserActivityReportModal<T = any>({
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="px-6 py-3.5 bg-zinc-50/80 border-b border-zinc-100 space-y-3">
-          {/* Row 1: Date Presets & Custom Pickers */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            {/* Presets */}
+        <div className="px-6 py-3.5 bg-zinc-50/90 border-b border-zinc-200/80 space-y-3">
+          {/* Tier 1: Quick Ranges & Custom Date Pickers */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Quick Presets */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-                <Calendar size={13} className="text-[#C82A2B]" /> Date Filter:
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mr-1 flex items-center gap-1.5">
+                <Calendar size={13} className="text-[#C82A2B]" /> Quick Range:
               </span>
-              {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth', 'custom'] as DatePreset[]).map(preset => {
-                const labels: Record<DatePreset, string> = {
+              {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth'] as DatePreset[]).map(preset => {
+                const labels: Record<string, string> = {
                   today: 'Today',
                   yesterday: 'Yesterday',
                   last7days: 'Last 7 Days',
                   last30days: 'Last 30 Days',
-                  thisMonth: 'This Month',
-                  custom: 'Custom Range'
+                  thisMonth: 'This Month'
                 };
                 const isActive = datePreset === preset;
                 return (
@@ -737,8 +791,8 @@ export function UserActivityReportModal<T = any>({
                     onClick={() => setPresetDates(preset)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[#C82A2B] text-white shadow-xs'
-                        : 'bg-white text-zinc-600 hover:bg-zinc-200/60 border border-zinc-200/80'
+                        ? 'bg-[#C82A2B] text-white shadow-xs scale-102 ring-2 ring-[#C82A2B]/20 font-black'
+                        : 'bg-white text-zinc-700 hover:bg-zinc-200/60 border border-zinc-200/90 shadow-2xs'
                     }`}
                   >
                     {labels[preset]}
@@ -747,33 +801,106 @@ export function UserActivityReportModal<T = any>({
               })}
             </div>
 
-            {/* Custom Range Inputs */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-zinc-400 font-bold text-[10px] uppercase">From</span>
-                <input
-                  type="date"
+            {/* Custom Range with Custom DatePicker */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setDatePreset('custom')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  datePreset === 'custom'
+                    ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black'
+                    : 'bg-white text-zinc-700 hover:bg-zinc-200/60 border border-zinc-200/90 shadow-2xs'
+                }`}
+              >
+                Custom Range
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                <DatePicker
+                  size="sm"
                   value={fromDate}
-                  onChange={e => {
-                    setFromDate(e.target.value);
+                  onChange={(val) => {
+                    setFromDate(val);
                     setDatePreset('custom');
                   }}
-                  className="font-semibold text-zinc-700 outline-none bg-transparent cursor-pointer"
+                  placeholder="From Date"
+                  max={toDate || undefined}
+                  className="w-32 bg-white"
                 />
-              </div>
-              <span className="text-zinc-400 text-xs font-bold">to</span>
-              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-zinc-400 font-bold text-[10px] uppercase">To</span>
-                <input
-                  type="date"
+                <span className="text-zinc-400 text-xs font-bold">—</span>
+                <DatePicker
+                  size="sm"
                   value={toDate}
-                  onChange={e => {
-                    setToDate(e.target.value);
+                  onChange={(val) => {
+                    setToDate(val);
                     setDatePreset('custom');
                   }}
-                  className="font-semibold text-zinc-700 outline-none bg-transparent cursor-pointer"
+                  placeholder="To Date"
+                  min={fromDate || undefined}
+                  className="w-32 bg-white"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Tier 2: Quarterly Reports with Year Selector in Proper Order */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-zinc-200/70">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                <Clock size={13} className="text-amber-600" /> Quarterly Report:
+              </span>
+
+              {/* Year Selector */}
+              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+                <span className="text-[10px] font-black uppercase text-zinc-400">Year</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
+                  className="font-black text-xs text-[#3a525d] outline-none bg-transparent cursor-pointer"
+                >
+                  {[
+                    new Date().getFullYear(),
+                    new Date().getFullYear() - 1,
+                    new Date().getFullYear() - 2,
+                    new Date().getFullYear() - 3,
+                    new Date().getFullYear() + 1
+                  ].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 4 Quarters in strict chronological order */}
+              {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
+                const quartersMeta: Record<string, { label: string }> = {
+                  janQuarter: { label: 'January Quarter' },
+                  aprQuarter: { label: 'April Quarter' },
+                  julQuarter: { label: 'July Quarter' },
+                  octQuarter: { label: 'October Quarter' }
+                };
+                const meta = quartersMeta[preset];
+                const isActive = datePreset === preset;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setPresetDates(preset)}
+                    title={`${meta.label} ${selectedYear}`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
+                        : 'bg-white text-zinc-700 hover:bg-amber-50 hover:border-amber-200/80 border border-zinc-200/80 shadow-2xs'
+                    }`}
+                  >
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Range Pill */}
+            <div className="text-[11px] font-bold text-zinc-500 bg-white px-3 py-1 rounded-xl border border-zinc-200/80 shadow-2xs shrink-0">
+              Active: <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
             </div>
           </div>
 

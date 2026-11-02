@@ -425,11 +425,11 @@ export default function CompanySettingsPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="px-4 py-2.5">Slab Name</th>
-                    <th className="px-4 py-2.5">Rate (%)</th>
-                    <th className="px-4 py-2.5">HSN Code</th>
-                    <th className="px-4 py-2.5">Status</th>
-                    <th className="px-4 py-2.5 text-right">Actions</th>
+                    <th className="px-4 py-2.5 text-center">Slab Name</th>
+                    <th className="px-4 py-2.5 text-center">Rate (%)</th>
+                    <th className="px-4 py-2.5 text-center">HSN Code</th>
+                    <th className="px-4 py-2.5 text-center">Status</th>
+                    <th className="px-4 py-2.5 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">

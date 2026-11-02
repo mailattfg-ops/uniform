@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
@@ -436,7 +437,7 @@ const AttachmentFabricsEditor: React.FC<{
                   Fabric Role / Placement
                 </label>
                 <div className="flex gap-2">
-                  <select
+                  <Select
                     value={ATTACHMENT_ROLE_PRESETS.includes(item.role || '') ? item.role : 'Custom'}
                     onChange={(e) => {
                       if (e.target.value !== 'Custom') {
@@ -449,7 +450,7 @@ const AttachmentFabricsEditor: React.FC<{
                       <option key={preset} value={preset}>{preset}</option>
                     ))}
                     <option value="Custom">Custom Role...</option>
-                  </select>
+                  </Select>
                   <input
                     type="text"
                     placeholder="Role description (e.g. Contrast Collar)"
@@ -589,7 +590,7 @@ const TrimsEditor: React.FC<{
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
                   Category
                 </label>
-                <select
+                <Select
                   value={item.category || item.name || 'Buttons'}
                   onChange={(e) => handleUpdate(index, { category: e.target.value })}
                   className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
@@ -599,7 +600,7 @@ const TrimsEditor: React.FC<{
                       {preset.category}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="w-24 shrink-0">
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
@@ -619,7 +620,7 @@ const TrimsEditor: React.FC<{
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
                   UOM
                 </label>
-                <select
+                <Select
                   value={item.uom || 'Pcs'}
                   onChange={(e) => handleUpdate(index, { uom: e.target.value })}
                   className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
@@ -629,7 +630,7 @@ const TrimsEditor: React.FC<{
                   <option value="Meters">Meters</option>
                   <option value="Gross">Gross</option>
                   <option value="Sets">Sets</option>
-                </select>
+                </Select>
               </div>
               <div className="flex-1 min-w-[140px]">
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
@@ -775,12 +776,12 @@ const ClassConsumptionMatrixEditor: React.FC<{
             <table className="min-w-full text-xs font-bold text-zinc-700">
               <thead className="sticky top-0 bg-zinc-100/90 backdrop-blur z-10">
                 <tr className="border-b border-zinc-200 text-left">
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Grade / Division</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Main Fabric - 58" width (m)</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Attachment 1 - 58" width (m)</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Attachment 2 - 58" width (m)</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Buttons (pcs)</th>
-                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d]">Thread (cones)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d] text-center">Grade / Division</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d] text-center">Main Fabric - 58" width (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d] text-center">Attachment 1 - 58" width (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d] text-center">Attachment 2 - 58" width (m)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d] text-center">Buttons (pcs)</th>
+                  <th className="p-3 uppercase tracking-wider text-[10px] text-[#3a525d] text-center">Thread (cones)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 bg-white">
@@ -2628,12 +2629,12 @@ export default function ProductManagement() {
                         <table className="w-full text-xs text-left">
                           <thead className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-400">
                             <tr>
-                              <th className="p-2.5">Class</th>
-                              <th className="p-2.5">Main Fabric</th>
-                              <th className="p-2.5">Attachment 1</th>
-                              <th className="p-2.5">Attachment 2</th>
-                              <th className="p-2.5">Button Count</th>
-                              <th className="p-2.5">Thread Count</th>
+                              <th className="p-2.5 text-center">Class</th>
+                              <th className="p-2.5 text-center">Main Fabric</th>
+                              <th className="p-2.5 text-center">Attachment 1</th>
+                              <th className="p-2.5 text-center">Attachment 2</th>
+                              <th className="p-2.5 text-center">Button Count</th>
+                              <th className="p-2.5 text-center">Thread Count</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-100 font-medium">

@@ -215,8 +215,8 @@ export default function WizardStep1({
                   <thead>
                     <tr className="bg-zinc-50 border-b border-zinc-200">
                       <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-16 text-center">Select</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Department Name</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider">Division / Section</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider text-center">Department Name</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider text-center">Division / Section</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-150/70">

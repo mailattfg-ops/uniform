@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
@@ -492,7 +493,7 @@ export default function JobCardsPage() {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Select Confirmed Sales Order</label>
               <div className="relative">
-                <select
+                <Select
                   value={selectedOrderId}
                   onChange={e => handleOrderSelect(e.target.value)}
                   className="w-full appearance-none px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 bg-slate-50 focus:bg-white focus:border-indigo-500 transition pr-8"
@@ -503,7 +504,7 @@ export default function JobCardsPage() {
                       {o.order_no} — {o.quotations?.organizations?.name || o.quotations?.title || 'Client'} ({o.status})
                     </option>
                   ))}
-                </select>
+                </Select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
               {eligibleOrders.length === 0 && (
@@ -784,13 +785,13 @@ export default function JobCardsPage() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
-                        <th className="p-3.5 pl-4"># Piece</th>
-                        <th className="p-3.5">Piece Barcode</th>
-                        <th className="p-3.5">Sizing / Recipient</th>
-                        <th className="p-3.5">Fabric Specs (Main &amp; Attachments)</th>
-                        <th className="p-3.5">Assigned Batch</th>
-                        <th className="p-3.5">Floor Stage</th>
-                        <th className="p-3.5 pr-4 text-right">Status</th>
+                        <th className="p-3.5 pl-4 text-center"># Piece</th>
+                        <th className="p-3.5 text-center">Piece Barcode</th>
+                        <th className="p-3.5 text-center">Sizing / Recipient</th>
+                        <th className="p-3.5 text-center">Fabric Specs (Main &amp; Attachments)</th>
+                        <th className="p-3.5 text-center">Assigned Batch</th>
+                        <th className="p-3.5 text-center">Floor Stage</th>
+                        <th className="p-3.5 pr-4 text-center">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white font-medium">

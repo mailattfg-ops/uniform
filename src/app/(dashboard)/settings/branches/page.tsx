@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -141,12 +142,12 @@ export default function BranchesPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100/70 text-slate-600 font-semibold uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Code</th>
-                <th className="px-6 py-3">Name</th>
-                <th className="px-6 py-3">Tier</th>
-                <th className="px-6 py-3">Address</th>
-                <th className="px-6 py-3">Contact</th>
-                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3 text-center">Code</th>
+                <th className="px-6 py-3 text-center">Name</th>
+                <th className="px-6 py-3 text-center">Tier</th>
+                <th className="px-6 py-3 text-center">Address</th>
+                <th className="px-6 py-3 text-center">Contact</th>
+                <th className="px-6 py-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -228,7 +229,7 @@ export default function BranchesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Item Category</label>
-                  <select
+                  <Select
                     value={itemType}
                     onChange={e => setItemType(e.target.value)}
                     className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
@@ -237,7 +238,7 @@ export default function BranchesPage() {
                     <option value="button">Button</option>
                     <option value="thread">Thread</option>
                     <option value="readymade">Readymade</option>
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Quantity (Meters/Units)</label>
@@ -254,7 +255,7 @@ export default function BranchesPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Assign to Branch</label>
-                <select
+                <Select
                   onChange={e => setSelectedBranchId(Number(e.target.value))}
                   className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
                 >
@@ -262,7 +263,7 @@ export default function BranchesPage() {
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono">
                 Generated Batch Number: <span className="font-bold text-indigo-600">{vendorBillNo && lumpNo ? `${vendorBillNo.toUpperCase()}-${lumpNo.toUpperCase()}` : 'V-BILL-LUMP'}</span>
@@ -279,7 +280,7 @@ export default function BranchesPage() {
                   type="submit"
                   className="px-5 py-2 bg-[#9E1B1D] hover:bg-[#7F1D1D] text-white rounded-xl text-sm font-semibold shadow-md shadow-[#9E1B1D]/20"
                 >
-                  Create Batch Entry
+                  Save
                 </button>
               </div>
             </form>

@@ -202,22 +202,22 @@ export default function WizardStep5({
                                 <table className="w-full text-left border-collapse">
                                   <thead>
                                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                                      <th className="p-3">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
-                                      <th className="p-3">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
+                                      <th className="p-3 text-center">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
+                                      <th className="p-3 text-center">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
                                       {isAccessory ? (
                                         <>
-                                          <th className="p-3">ART #</th>
-                                          <th className="p-3">Size</th>
+                                          <th className="p-3 text-center">ART #</th>
+                                          <th className="p-3 text-center">Size</th>
                                         </>
                                       ) : (
                                         <>
-                                          {!isFabric && <th className="p-3">SAM Cost</th>}
-                                          <th className="p-3">Design Number</th>
+                                          {!isFabric && <th className="p-3 text-center">SAM Cost</th>}
+                                          <th className="p-3 text-center">Design Number</th>
                                         </>
                                       )}
-                                      <th className="p-3 text-right">Quantity</th>
-                                      <th className="p-3 text-right">Unit Price</th>
-                                      <th className="p-3 text-right">Total Price</th>
+                                      <th className="p-3 text-center">Quantity</th>
+                                      <th className="p-3 text-center">Unit Price</th>
+                                      <th className="p-3 text-center">Total Price</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
@@ -289,22 +289,22 @@ export default function WizardStep5({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
-                      <th className="p-3">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
-                      <th className="p-3">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
+                      <th className="p-3 text-center">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
+                      <th className="p-3 text-center">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
                       {isAccessory ? (
                         <>
-                          <th className="p-3">ART #</th>
-                          <th className="p-3">Size</th>
+                          <th className="p-3 text-center">ART #</th>
+                          <th className="p-3 text-center">Size</th>
                         </>
                       ) : (
                         <>
-                          {!isFabric && <th className="p-3">SAM Cost</th>}
-                          <th className="p-3">Design Number</th>
+                          {!isFabric && <th className="p-3 text-center">SAM Cost</th>}
+                          <th className="p-3 text-center">Design Number</th>
                         </>
                       )}
-                      <th className="p-3 text-right">Quantity</th>
-                      <th className="p-3 text-right">Unit Price</th>
-                      <th className="p-3 text-right">Total Price</th>
+                      <th className="p-3 text-center">Quantity</th>
+                      <th className="p-3 text-center">Unit Price</th>
+                      <th className="p-3 text-center">Total Price</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
@@ -403,10 +403,10 @@ export default function WizardStep5({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                      <th className="p-3 pl-4">Fabric Details</th>
-                      <th className="p-3 text-right">Meters</th>
-                      <th className="p-3 text-right">Rate/Meter</th>
-                      <th className="p-3 text-right pr-4">Total Price</th>
+                      <th className="p-3 pl-4 text-center">Fabric Details</th>
+                      <th className="p-3 text-center">Meters</th>
+                      <th className="p-3 text-center">Rate/Meter</th>
+                      <th className="p-3 text-center pr-4">Total Price</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-semibold text-[#3a525d]">

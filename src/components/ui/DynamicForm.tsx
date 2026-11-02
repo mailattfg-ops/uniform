@@ -83,7 +83,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   fields, 
   onSubmit, 
   onCancel,
-  submitLabel = "Submit",
+  submitLabel = "Save",
   columns = 2
 }) => {
   const [checkboxState, setCheckboxState] = useState<Record<string, string[]>>({});
@@ -369,7 +369,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               onClick={onCancel}
               className="text-xs font-black text-zinc-700 uppercase tracking-widest hover:text-zinc-900 transition-colors"
             >
-              Cancel Entry
+              Cancel
             </button>
           )}
           <Button 

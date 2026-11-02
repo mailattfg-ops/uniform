@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -326,9 +327,9 @@ export default function FabricSAMConfigPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[#fce4d4]/60">
-                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2">Item Category</th>
-                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Width</th>
-                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-right pr-6">Rate (₹)</th>
+                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2 text-center">Item Category</th>
+                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center">Width</th>
+                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center pr-6">Rate (₹)</th>
                     <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center w-28">Actions</th>
                   </tr>
                 </thead>
@@ -341,7 +342,7 @@ export default function FabricSAMConfigPage() {
                         {/* ITEM name */}
                         <td className="py-4 pl-2 font-bold text-sm text-[#3a525d]">
                           {isEditing ? (
-                            <select
+                            <Select
                               value={editingInwardData.item || ''}
                               onChange={(e) => setEditingInwardData(prev => ({ ...prev, item: e.target.value }))}
                               className="px-3 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
@@ -349,7 +350,7 @@ export default function FabricSAMConfigPage() {
                               <option value="SHIRTING">SHIRTING</option>
                               <option value="SUITING">SUITING</option>
                               <option value="BOTTOM">BOTTOM</option>
-                            </select>
+                            </Select>
                           ) : (
                             <span className="px-2.5 py-1 bg-[#8b6b5a]/10 border border-[#8b6b5a]/15 text-[#8b6b5a] rounded-xl text-[10px] font-black tracking-wider uppercase">
                               {rate.item}
@@ -360,7 +361,7 @@ export default function FabricSAMConfigPage() {
                         {/* WIDTH */}
                         <td className="py-4 font-bold text-sm text-zinc-700">
                           {isEditing ? (
-                            <select
+                            <Select
                               value={editingInwardData.width || ''}
                               onChange={(e) => setEditingInwardData(prev => ({ ...prev, width: e.target.value }))}
                               className="px-3 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
@@ -368,7 +369,7 @@ export default function FabricSAMConfigPage() {
                               <option value="36">36&quot;</option>
                               <option value="44">44&quot;</option>
                               <option value="58">58&quot;</option>
-                            </select>
+                            </Select>
                           ) : (
                             <span className="font-mono text-xs font-bold text-zinc-500">{rate.width}&quot;</span>
                           )}
@@ -473,8 +474,8 @@ export default function FabricSAMConfigPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[#fce4d4]/60">
-                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2">Sales Type</th>
-                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Customer Type</th>
+                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2 text-center">Sales Type</th>
+                    <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center">Customer Type</th>
                     <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center w-20">Branded (%)</th>
                     <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center w-20">Semi-Brand</th>
                     <th className="pb-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center w-20">Non-Brand</th>
@@ -490,14 +491,14 @@ export default function FabricSAMConfigPage() {
                         {/* Sales Type */}
                         <td className="py-4 pl-2 font-bold text-sm text-[#3a525d]">
                           {isEditing ? (
-                            <select
+                            <Select
                               value={editingMarginData.sales_type || ''}
                               onChange={(e) => setEditingMarginData(prev => ({ ...prev, sales_type: e.target.value }))}
                               className="px-2 py-1 text-xs font-bold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
                             >
                               <option value="RETAIL">RETAIL</option>
                               <option value="WHOLESALE">WHOLESALE</option>
-                            </select>
+                            </Select>
                           ) : (
                             <span className={`px-2 py-0.5 rounded-md text-[9px] font-black tracking-wide ${
                               m.sales_type === 'RETAIL' 
@@ -512,7 +513,7 @@ export default function FabricSAMConfigPage() {
                         {/* Customer Type */}
                         <td className="py-4 font-bold text-xs text-zinc-600">
                           {isEditing ? (
-                            <select
+                            <Select
                               value={editingMarginData.customer_type || ''}
                               onChange={(e) => setEditingMarginData(prev => ({ ...prev, customer_type: e.target.value }))}
                               className="px-2 py-1 text-xs font-bold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
@@ -520,7 +521,7 @@ export default function FabricSAMConfigPage() {
                               <option value="DIRECT">DIRECT</option>
                               <option value="AGENT">AGENT</option>
                               <option value="BEST">BEST</option>
-                            </select>
+                            </Select>
                           ) : (
                             <span>{m.customer_type}</span>
                           )}

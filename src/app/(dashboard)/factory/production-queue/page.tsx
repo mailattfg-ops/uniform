@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -504,13 +505,13 @@ export default function ProductionQueuePage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100/70 text-slate-600 font-semibold uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Batch Number</th>
-                <th className="px-6 py-3">Parent Job Card</th>
-                <th className="px-6 py-3">Item Name</th>
-                <th className="px-6 py-3">Batch Size</th>
-                <th className="px-6 py-3">Current Stage</th>
-                <th className="px-6 py-3">Floor / Line</th>
-                <th className="px-6 py-3 text-right">Stage Progression & Actions</th>
+                <th className="px-6 py-3 text-center">Batch Number</th>
+                <th className="px-6 py-3 text-center">Parent Job Card</th>
+                <th className="px-6 py-3 text-center">Item Name</th>
+                <th className="px-6 py-3 text-center">Batch Size</th>
+                <th className="px-6 py-3 text-center">Current Stage</th>
+                <th className="px-6 py-3 text-center">Floor / Line</th>
+                <th className="px-6 py-3 text-center">Stage Progression & Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -646,12 +647,12 @@ export default function ProductionQueuePage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100/70 text-slate-600 font-semibold uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Job Card</th>
-                <th className="px-6 py-3">Item</th>
-                <th className="px-6 py-3">Allocation &amp; Total Qty</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Fabric Allocation (+10%)</th>
-                <th className="px-6 py-3 text-right">Actions</th>
+                <th className="px-6 py-3 text-center">Job Card</th>
+                <th className="px-6 py-3 text-center">Item</th>
+                <th className="px-6 py-3 text-center">Allocation &amp; Total Qty</th>
+                <th className="px-6 py-3 text-center">Status</th>
+                <th className="px-6 py-3 text-center">Fabric Allocation (+10%)</th>
+                <th className="px-6 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -984,7 +985,7 @@ export default function ProductionQueuePage() {
                               <label className="block text-[11px] font-bold text-indigo-950">
                                 Select Alternate Warehouse Roll:
                               </label>
-                              <select
+                              <Select
                                 value={item.selected_stock_fabric_id || ''}
                                 onChange={e => handleItemRollChange(idx, e.target.value)}
                                 className="w-full px-3 py-1.5 border border-indigo-300 rounded-lg text-xs bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
@@ -994,7 +995,7 @@ export default function ProductionQueuePage() {
                                     {formatFabricDisplayName(sf)} {sf.code ? `(${sf.code})` : ''} — {sf.quantity || 0}m available
                                   </option>
                                 ))}
-                              </select>
+                              </Select>
                             </div>
                           )}
 

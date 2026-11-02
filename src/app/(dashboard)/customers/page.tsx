@@ -1216,17 +1216,7 @@ export default function CustomersRegistry() {
         userReportTriggerRef={userReportTriggerRef}
         headerAction={
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* 1. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              value={selectedBranch}
-              onChange={setSelectedBranch}
-              options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
-              maxWidth="max-w-[200px]"
-            />
-            
-            {/* 2. Customers Status Filter */}
+            {/* 1. Customers Status Filter */}
             <FilterDropdown
               label="Customer Status"
               allLabel={`All Customers (${customers.length})`}
@@ -1240,6 +1230,16 @@ export default function CustomersRegistry() {
                 { label: '⚠ Risk Customers', value: 'RISK', badge: stats.riskCount }
               ]}
               maxWidth="max-w-[220px]"
+            />
+
+            {/* 2. Branch Filter */}
+            <FilterDropdown
+              label="Branch"
+              allLabel="All Branches"
+              value={selectedBranch}
+              onChange={setSelectedBranch}
+              options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
+              maxWidth="max-w-[200px]"
             />
 
             {/* 3. Zone Filter */}
@@ -1482,12 +1482,12 @@ export default function CustomersRegistry() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                        <th className="py-3 px-4">Customer</th>
-                        <th className="py-3 px-4">Contact Details</th>
-                        <th className="py-3 px-4">Reference / Type</th>
-                        <th className="py-3 px-4">Credit Terms & Due Date</th>
-                        <th className="py-3 px-4">Status & Aging</th>
-                        <th className="py-3 px-4 text-right">Outstanding Amount</th>
+                        <th className="py-3 px-4 text-center">Customer</th>
+                        <th className="py-3 px-4 text-center">Contact Details</th>
+                        <th className="py-3 px-4 text-center">Reference / Type</th>
+                        <th className="py-3 px-4 text-center">Credit Terms & Due Date</th>
+                        <th className="py-3 px-4 text-center">Status & Aging</th>
+                        <th className="py-3 px-4 text-center">Outstanding Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 text-xs">

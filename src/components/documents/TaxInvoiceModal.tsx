@@ -454,12 +454,12 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                   <thead>
                     <tr className="bg-[#991b1b] text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                       <th className="py-2 px-3 w-10 text-center">#</th>
-                      <th className="py-2 px-3">Product Description</th>
+                      <th className="py-2 px-3 text-center">Product Description</th>
                       <th className="py-2 px-3 w-20 text-center">HSN / SAC</th>
-                      <th className="py-2 px-3">Fabric / Details</th>
+                      <th className="py-2 px-3 text-center">Fabric / Details</th>
                       <th className="py-2 px-3 w-16 text-center">Qty</th>
-                      <th className="py-2 px-3 w-24 text-right">Unit Price (₹)</th>
-                      <th className="py-2 px-3 w-28 text-right">Total Price (₹)</th>
+                      <th className="py-2 px-3 w-24 text-center">Unit Price (₹)</th>
+                      <th className="py-2 px-3 w-28 text-center">Total Price (₹)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200 bg-white text-zinc-800">

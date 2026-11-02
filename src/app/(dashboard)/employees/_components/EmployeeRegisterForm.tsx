@@ -352,7 +352,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Assigned Branch / Location *
                 </label>
-                <select
+                <Select
                   required
                   value={selectedBranchId}
                   onChange={(e) => setSelectedBranchId(e.target.value)}
@@ -364,7 +364,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                       {b.tier === 'Corporate' ? '🏢 [HQ]' : b.tier === 'Factory' ? '🏭 [Factory]' : '🏪 [Outlet]'} {b.name} ({b.code})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Employment Type */}
@@ -372,7 +372,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Employment Type *
                 </label>
-                <select
+                <Select
                   required
                   value={employmentType}
                   onChange={(e) => setEmploymentType(e.target.value)}
@@ -383,7 +383,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                   <option value="Contract">Contract (Third-Party / Fixed Period)</option>
                   <option value="Probation">Probation (New Hire Evaluation)</option>
                   <option value="Intern">Intern / Trainee</option>
-                </select>
+                </Select>
               </div>
 
               {/* Designation & Department with Live Detection */}
@@ -406,7 +406,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                 <label className="text-[11px] font-black uppercase tracking-wider text-zinc-900 block">
                   Department *
                 </label>
-                <select
+                <Select
                   required
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
@@ -421,7 +421,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                   <option value="Accounts & Finance">Accounts & Finance</option>
                   <option value="Human Resources">Human Resources</option>
                   <option value="Management & Admin">Management & Administration</option>
-                </select>
+                </Select>
               </div>
 
               <Input 
@@ -590,7 +590,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                           className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-900 outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                         />
                       </div>
-                      <select
+                      <Select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         className="px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:ring-2 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
@@ -600,7 +600,7 @@ export const EmployeeRegisterForm: React.FC<EmployeeRegisterFormProps> = ({ onCa
                             {cat} {cat !== 'All' ? 'Module' : ''}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     {/* Categorized Permission Checkboxes */}

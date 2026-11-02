@@ -519,7 +519,7 @@ export default function SizeChartPage() {
                       <table className="w-full text-left">
                         <thead>
                           <tr className="border-b border-zinc-50 bg-zinc-50/30">
-                            <th className="p-5 text-[9px] font-black uppercase text-zinc-300">Size Label</th>
+                            <th className="p-5 text-[9px] font-black uppercase text-zinc-300 text-center">Size Label</th>
                             {group.data.map((d, si) => (
                               <th key={si} className="p-5 text-[10px] font-black uppercase text-zinc-900 text-center border-l border-zinc-50">
                                 {d.size}

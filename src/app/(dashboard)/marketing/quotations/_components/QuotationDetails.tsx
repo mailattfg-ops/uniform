@@ -288,9 +288,9 @@ export default function QuotationDetails({
               <thead>
                 <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
                   <th class="py-3 px-4">Fabric Details</th>
-                  <th class="py-3 px-4 text-right font-mono">Meters</th>
-                  <th class="py-3 px-4 text-right w-36">Rate/Meter</th>
-                  <th class="py-3 px-4 text-right w-36">Total Price</th>
+                  <th class="py-3 px-4 text-center font-mono">Meters</th>
+                  <th class="py-3 px-4 text-center w-36">Rate/Meter</th>
+                  <th class="py-3 px-4 text-center w-36">Total Price</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 font-semibold">
@@ -515,9 +515,9 @@ export default function QuotationDetails({
                       <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
                         <th class="py-3 px-4">Department Name</th>
                         <th class="py-3 px-4">Division</th>
-                        <th class="py-3 px-4 text-right">No. of Persons</th>
-                        <th class="py-3 px-4 text-right">Sets per Person</th>
-                        <th class="py-3 px-4 text-right font-mono">Total Qty</th>
+                        <th class="py-3 px-4 text-center">No. of Persons</th>
+                        <th class="py-3 px-4 text-center">Sets per Person</th>
+                        <th class="py-3 px-4 text-center font-mono">Total Qty</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 font-semibold text-xs text-gray-650">
@@ -556,9 +556,9 @@ export default function QuotationDetails({
                 <thead>
                   <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
                     <th class="py-3 px-4">Garment Line</th>
-                    <th class="py-3 px-4 text-right">Quantity</th>
-                    <th class="py-3 px-4 text-right">Unit Price</th>
-                    <th class="py-3 px-4 text-right">Total Price</th>
+                    <th class="py-3 px-4 text-center">Quantity</th>
+                    <th class="py-3 px-4 text-center">Unit Price</th>
+                    <th class="py-3 px-4 text-center">Total Price</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 font-semibold">
@@ -1062,13 +1062,13 @@ export default function QuotationDetails({
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                        <th className="p-3">Product Type</th>
-                        <th className="p-3">Fabric Options</th>
-                        <th className="p-3">SAM Cost</th>
-                        <th className="p-3">Design Number</th>
-                        <th className="p-3 text-right">Quantity</th>
-                        <th className="p-3 text-right">Unit Price</th>
-                        <th className="p-3 text-right">Total Price</th>
+                        <th className="p-3 text-center">Product Type</th>
+                        <th className="p-3 text-center">Fabric Options</th>
+                        <th className="p-3 text-center">SAM Cost</th>
+                        <th className="p-3 text-center">Design Number</th>
+                        <th className="p-3 text-center">Quantity</th>
+                        <th className="p-3 text-center">Unit Price</th>
+                        <th className="p-3 text-center">Total Price</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
@@ -1284,10 +1284,10 @@ export default function QuotationDetails({
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                        <th className="p-3 pl-4">Fabric Details</th>
-                        <th className="p-3 text-right">Meters</th>
-                        <th className="p-3 text-right">Rate/Meter</th>
-                        <th className="p-3 text-right pr-4">Total Price</th>
+                        <th className="p-3 pl-4 text-center">Fabric Details</th>
+                        <th className="p-3 text-center">Meters</th>
+                        <th className="p-3 text-center">Rate/Meter</th>
+                        <th className="p-3 text-center pr-4">Total Price</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
@@ -1321,11 +1321,11 @@ export default function QuotationDetails({
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
-                        <th className="p-3 pl-4">Department Name</th>
-                        <th className="p-3">Division</th>
-                        <th className="p-3 text-right">No. of Persons</th>
-                        <th className="p-3 text-right">Sets / Person</th>
-                        <th className="p-3 text-right pr-4">Total Qty</th>
+                        <th className="p-3 pl-4 text-center">Department Name</th>
+                        <th className="p-3 text-center">Division</th>
+                        <th className="p-3 text-center">No. of Persons</th>
+                        <th className="p-3 text-center">Sets / Person</th>
+                        <th className="p-3 text-center pr-4">Total Qty</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">

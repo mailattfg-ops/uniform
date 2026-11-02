@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -212,19 +213,16 @@ export default function DeliveryChallansPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Select Sales Order
               </label>
-              <select
+              <Select
                 value={orderId}
-                onChange={e => setOrderId(e.target.value)}
+                onChange={val => setOrderId(val)}
+                placeholder="-- Choose Sales Order --"
                 required
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 bg-slate-50 focus:bg-white focus:border-indigo-500 transition"
-              >
-                <option value="">-- Choose Sales Order --</option>
-                {orders.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.order_no} — {o.quotations?.organizations?.name || o.quotations?.title || 'Client'} ({o.status})
-                  </option>
-                ))}
-              </select>
+                options={orders.map(o => ({
+                  value: String(o.id),
+                  label: `${o.order_no} — ${o.quotations?.organizations?.name || o.quotations?.title || 'Client'} (${o.status})`
+                }))}
+              />
               {selectedOrder && (
                 <div className="mt-2 p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-600 flex justify-between items-center">
                   <span>Client: <strong className="text-slate-900">{selectedOrder.quotations?.organizations?.name || 'N/A'}</strong></span>
@@ -381,13 +379,13 @@ export default function DeliveryChallansPage() {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
                         <tr>
-                          <th className="p-2.5">Item Description</th>
+                          <th className="p-2.5 text-center">Item Description</th>
                           <th className="p-2.5 text-center">Design Ref</th>
-                          <th className="p-2.5 text-right">Quantity</th>
+                          <th className="p-2.5 text-center">Quantity</th>
                           {printMode === 'office' && (
                             <>
-                              <th className="p-2.5 text-right">Unit Price</th>
-                              <th className="p-2.5 text-right">Total</th>
+                              <th className="p-2.5 text-center">Unit Price</th>
+                              <th className="p-2.5 text-center">Total</th>
                             </>
                           )}
                         </tr>
@@ -509,13 +507,13 @@ export default function DeliveryChallansPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr>
-                <th className="p-3">Challan No</th>
-                <th className="p-3">Sales Order Ref</th>
-                <th className="p-3">Client Destination</th>
-                <th className="p-3">Dispatch Date</th>
-                <th className="p-3">Vehicle / Transporter</th>
+                <th className="p-3 text-center">Challan No</th>
+                <th className="p-3 text-center">Sales Order Ref</th>
+                <th className="p-3 text-center">Client Destination</th>
+                <th className="p-3 text-center">Dispatch Date</th>
+                <th className="p-3 text-center">Vehicle / Transporter</th>
                 <th className="p-3 text-center">Boxes</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

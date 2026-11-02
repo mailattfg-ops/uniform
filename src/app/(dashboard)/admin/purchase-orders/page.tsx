@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -525,11 +526,11 @@ export default function PurchaseOrdersPage() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-[#fce4d4]/10 border-b border-[#fce4d4]">
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Order Details</th>
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Supplier</th>
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Origin Type</th>
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Date Created</th>
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a]">Status</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Order Details</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Supplier</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Origin Type</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Date Created</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -698,12 +699,12 @@ export default function PurchaseOrdersPage() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-zinc-50 border-b border-zinc-100">
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Item</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Type</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Code / Art #</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400">Details / Spec</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Item</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Type</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Code / Art #</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Details / Spec</th>
                           <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Ordered Qty</th>
-                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-right">Status</th>
+                          <th className="p-4 font-black uppercase tracking-wider text-zinc-400 text-center">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
@@ -930,7 +931,7 @@ export default function PurchaseOrdersPage() {
                       {/* Item Type Selector */}
                       <div className="w-full md:w-36 space-y-1">
                         <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">Type</span>
-                        <select
+                        <Select
                           value={item.item_type}
                           onChange={(e) => handleItemTypeChange(idx, e.target.value as any)}
                           className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-2.5 text-xs font-bold outline-none"
@@ -938,7 +939,7 @@ export default function PurchaseOrdersPage() {
                           <option value="fabric">Fabric</option>
                           <option value="trim">Trim / Acc</option>
                           <option value="product">Product</option>
-                        </select>
+                        </Select>
                       </div>
 
                       {/* Main Item Selector based on item_type */}
@@ -948,7 +949,7 @@ export default function PurchaseOrdersPage() {
                         </span>
 
                         {item.item_type === 'fabric' && (
-                          <select
+                          <Select
                             required
                             value={item.fabric_id || ''}
                             onChange={(e) => handleItemFieldChange(idx, 'fabric_id', e.target.value)}
@@ -960,11 +961,11 @@ export default function PurchaseOrdersPage() {
                                 {formatFabricDisplayName(f)} ({f.code})
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         )}
 
                         {item.item_type === 'trim' && (
-                          <select
+                          <Select
                             required
                             value={item.trim_id || ''}
                             onChange={(e) => handleItemFieldChange(idx, 'trim_id', e.target.value)}
@@ -976,11 +977,11 @@ export default function PurchaseOrdersPage() {
                                 {t.name} ({t.code}) - {t.uom || 'pcs'}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         )}
 
                         {item.item_type === 'product' && (
-                          <select
+                          <Select
                             required
                             value={item.product_id || ''}
                             onChange={(e) => handleItemFieldChange(idx, 'product_id', e.target.value)}
@@ -992,7 +993,7 @@ export default function PurchaseOrdersPage() {
                                 {p.name} ({p.art_number})
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         )}
                       </div>
 
@@ -1000,7 +1001,7 @@ export default function PurchaseOrdersPage() {
                       {item.item_type === 'product' && (
                         <div className="w-full md:w-28 space-y-1">
                           <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider block">Size</span>
-                          <select
+                          <Select
                             value={item.size || 'M'}
                             onChange={(e) => handleItemFieldChange(idx, 'size', e.target.value)}
                             className="w-full h-10 bg-white border border-zinc-200 rounded-xl px-2.5 text-xs font-bold outline-none"
@@ -1008,7 +1009,7 @@ export default function PurchaseOrdersPage() {
                             {['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '28', '30', '32', '34', '36', '38', '40', '42'].map(sz => (
                               <option key={sz} value={sz}>{sz}</option>
                             ))}
-                          </select>
+                          </Select>
                         </div>
                       )}
 
@@ -1062,7 +1063,7 @@ export default function PurchaseOrdersPage() {
                   {isSubmitting ? (
                     <Loader2 className="animate-spin text-white" size={16} />
                   ) : (
-                    'Initialize Draft PO'
+                    'Save'
                   )}
                 </button>
               </div>
