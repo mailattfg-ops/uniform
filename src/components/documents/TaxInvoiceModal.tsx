@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { X, Printer, CheckCircle2, QrCode } from 'lucide-react';
+import { X, Printer, CheckCircle2, QrCode, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatDateDoc, numberToWordsINR } from '@/lib/formatters';
 
@@ -396,7 +396,22 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                   <h4 className="font-bold text-[#991b1b] uppercase text-[11px] tracking-wider border-b border-rose-100 pb-1">
                     Bill To (Customer)
                   </h4>
-                  <p className="text-sm font-black text-zinc-900 pt-0.5">{customerName}</p>
+                  {data?.organization_id || data?.organizations?.id || defaultCustomer?.id ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const orgId = data?.organization_id || data?.organizations?.id || defaultCustomer?.id;
+                        window.open(`/customers/${orgId}`, '_blank');
+                      }}
+                      className="text-sm font-black text-zinc-900 hover:text-[#991b1b] hover:underline pt-0.5 cursor-pointer text-left flex items-center gap-1.5 group"
+                      title="Open Customer Profile in new tab"
+                    >
+                      <span>{customerName}</span>
+                      <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ) : (
+                    <p className="text-sm font-black text-zinc-900 pt-0.5">{customerName}</p>
+                  )}
                   <p className="text-zinc-600 leading-relaxed">{customerAddress}</p>
                   <p className="text-zinc-600">{locationString}</p>
                   {customer.gst_number && (
@@ -430,7 +445,22 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
                   <h4 className="font-bold text-[#991b1b] uppercase text-[11px] tracking-wider border-b border-rose-100 pb-1">
                     Ship To (Delivery Address)
                   </h4>
-                  <p className="text-sm font-black text-zinc-900 pt-0.5">{customerName}</p>
+                  {data?.organization_id || data?.organizations?.id || defaultCustomer?.id ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const orgId = data?.organization_id || data?.organizations?.id || defaultCustomer?.id;
+                        window.open(`/customers/${orgId}`, '_blank');
+                      }}
+                      className="text-sm font-black text-zinc-900 hover:text-[#991b1b] hover:underline pt-0.5 cursor-pointer text-left flex items-center gap-1.5 group"
+                      title="Open Customer Profile in new tab"
+                    >
+                      <span>{customerName}</span>
+                      <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ) : (
+                    <p className="text-sm font-black text-zinc-900 pt-0.5">{customerName}</p>
+                  )}
                   <p className="text-zinc-600 leading-relaxed">{deliveryAddress}</p>
                   <p className="text-zinc-600">{deliveryLocationString}</p>
                   {customer.contact_person && (

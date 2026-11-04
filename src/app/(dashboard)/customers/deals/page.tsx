@@ -37,7 +37,6 @@ export default function DealsRegistryPage() {
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
-  const [prioritizeNoFollowups, setPrioritizeNoFollowups] = useState<boolean>(false);
 
   // Modal States
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
@@ -115,8 +114,9 @@ export default function DealsRegistryPage() {
     return zones.filter(z => String(z.branch_id) === selectedBranch);
   }, [zones, selectedBranch]);
 
-  // Helper to check if a deal has had no follow up for 2+ days
+  // Helper to check if a deal has had no follow up for 2+ days (excludes SO Converted Deals)
   const isNoFollowupDeal = useCallback((l: Lead) => {
+    if (l.status === 'SO Converted Deals') return false;
     const refDate = l.updated_at || l.created_at;
     if (!refDate) return false;
     const daysInactive = Math.floor((Date.now() - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -186,11 +186,11 @@ export default function DealsRegistryPage() {
   }, [allDeals, isNoFollowupDeal]);
 
   const getRowClassName = useCallback((l: Lead) => {
-    if (prioritizeNoFollowups && isNoFollowupDeal(l)) {
+    if (isNoFollowupDeal(l)) {
       return '!bg-rose-50/75 hover:!bg-rose-100/75 transition-colors border-b border-rose-200/50';
     }
     return undefined;
-  }, [prioritizeNoFollowups, isNoFollowupDeal]);
+  }, [isNoFollowupDeal]);
 
   // Helper to get quotation and payment totals for a deal
   const getDealFinancials = useCallback((l: Lead) => {
@@ -399,32 +399,10 @@ export default function DealsRegistryPage() {
       className: 'min-w-[170px] max-w-[260px]',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="group min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <button
-              type="button"
-              onClick={() => setViewingLead(l)}
-              className="text-left font-black text-xs md:text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
-              title={l.name}
-            >
-              {l.name}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (l.id > 0) {
-                  window.open(`/customers/leads?id=${l.id}`, '_blank');
-                } else if (l.organization_id) {
-                  window.open(`/customers/${l.organization_id}`, '_blank');
-                }
-              }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-              title="Open deal details in new tab"
-            >
-              <ExternalLink size={13.5} />
-            </button>
-          </div>
+        <div className="min-w-0">
+          <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+            {l.name}
+          </p>
           {l.industries?.name && (
             <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
               {l.industries.name}
@@ -525,7 +503,7 @@ export default function DealsRegistryPage() {
                 <span>Deals</span>
               </span>
             )}
-            {prioritizeNoFollowups && isOverdue && !isSOConverted && (
+            {isOverdue && !isSOConverted && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title={`Overdue: No follow-up for ${daysInactive} days`}>
                 <Clock size={10} className="text-rose-600 shrink-0" />
                 <span>No Follow-up ({daysInactive}d)</span>
@@ -583,7 +561,7 @@ export default function DealsRegistryPage() {
         </div>
       )
     }
-  ], [getDealFinancials, isNoFollowupDeal, prioritizeNoFollowups]);
+  ], [getDealFinancials, isNoFollowupDeal]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -620,18 +598,20 @@ export default function DealsRegistryPage() {
         data={filteredDeals}
         isLoading={isLoading}
         searchPlaceholder="Search"
+        onRowClick={(deal) => setViewingLead(deal)}
         onPrint={handlePrintDeals}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        pinRowTop={prioritizeNoFollowups ? isNoFollowupDeal : undefined}
-        rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
+        pinRowTop={isNoFollowupDeal}
+        rowClassName={getRowClassName}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Deals Stage Filter */}
             <FilterDropdown
               label="Stage"
-              allLabel={`All Deals (${stageCounts.all})`}
+              allLabel="All Deals"
+              allBadge={stageCounts.all}
               value={stageFilter}
               onChange={(val) => setStageFilter(val as any)}
               options={[
@@ -644,7 +624,8 @@ export default function DealsRegistryPage() {
             {/* 1. Branch Filter */}
             <FilterDropdown
               label="Branch"
-              allLabel={`All Branches (${allDeals.length})`}
+              allLabel="All Branches"
+              allBadge={allDeals.length}
               value={selectedBranch}
               onChange={(val) => setSelectedBranch(val)}
               options={branches.map((b) => ({
@@ -657,7 +638,8 @@ export default function DealsRegistryPage() {
             {/* 2. Zone Filter */}
             <FilterDropdown
               label="Zone"
-              allLabel={`All Zones (${dealsList.length})`}
+              allLabel="All Zones"
+              allBadge={dealsList.length}
               value={selectedZone}
               onChange={(val) => setSelectedZone(val)}
               options={availableFilterZones.map(z => ({
@@ -680,33 +662,7 @@ export default function DealsRegistryPage() {
               }))}
             />
 
-            {/* 5. No Follow-ups Filter */}
-            <label 
-              className={`h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all cursor-pointer select-none shadow-2xs ${
-                prioritizeNoFollowups 
-                  ? 'bg-rose-50/90 border-rose-300 text-rose-900 ring-2 ring-rose-400/20' 
-                  : 'bg-white border-[#fce4d4] text-[#3a525d] hover:bg-zinc-50'
-              }`}
-              title="Tick to prioritize and highlight deals with no follow-up for 2+ days on top"
-            >
-              <input
-                type="checkbox"
-                checked={prioritizeNoFollowups}
-                onChange={(e) => setPrioritizeNoFollowups(e.target.checked)}
-                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-zinc-300 accent-rose-600 cursor-pointer"
-              />
-              <span className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className={`w-2 h-2 rounded-full ${prioritizeNoFollowups ? 'bg-rose-500 animate-pulse' : 'bg-zinc-300'}`} />
-                <span>No Follow-ups</span>
-                {overdueDealsCount > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                    prioritizeNoFollowups ? 'bg-rose-200 text-rose-900' : 'bg-zinc-100 text-zinc-600'
-                  }`}>
-                    {overdueDealsCount}
-                  </span>
-                )}
-              </span>
-            </label>
+
           </div>
         }
       />

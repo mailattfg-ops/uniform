@@ -240,6 +240,7 @@ export default function QuotationsPage() {
     if (searchParams) {
       const actionParam = searchParams.get('action');
       const quoteIdParam = searchParams.get('id');
+      const quoteNoParam = searchParams.get('quote_no') || searchParams.get('quotation_no');
       const orgIdParam = searchParams.get('orgId') || searchParams.get('organization_id');
 
       if (actionParam === 'create') {
@@ -257,9 +258,16 @@ export default function QuotationsPage() {
         if (match) {
           if (actionParam === 'edit') {
             handleStartEdit(match);
-          } else if (actionParam === 'view') {
+          } else {
             handleViewDetails(match);
           }
+        }
+      } else if (quoteNoParam && quotations.length > 0) {
+        const match = quotations.find(q => 
+          q.quotation_no?.toLowerCase().trim() === quoteNoParam.toLowerCase().trim()
+        );
+        if (match) {
+          handleViewDetails(match);
         }
       }
     }

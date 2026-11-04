@@ -172,7 +172,6 @@ export default function LeadsRegistryPage() {
   const [activeStageFilter, setActiveStageFilter] = useState<string>('ALL');
   const [followUpFilter, setFollowUpFilter] = useState<'all' | 'active' | 'cold'>('all');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
-  const [prioritizeNoFollowups, setPrioritizeNoFollowups] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Available zones filtered by selected branch
@@ -284,11 +283,11 @@ export default function LeadsRegistryPage() {
   }, [leads, isOverdueSalesLead]);
 
   const getRowClassName = useCallback((l: Lead) => {
-    if (prioritizeNoFollowups && isOverdueSalesLead(l)) {
+    if (isOverdueSalesLead(l)) {
       return '!bg-rose-50/75 hover:!bg-rose-100/75 transition-colors border-b border-rose-200/50';
     }
     return undefined;
-  }, [prioritizeNoFollowups, isOverdueSalesLead]);
+  }, [isOverdueSalesLead]);
 
   // Immediate optimistic/realtime lead update helper
   const handleLeadUpdated = useCallback((updatedLead: Lead) => {
@@ -630,13 +629,13 @@ export default function LeadsRegistryPage() {
           {l.status === 'Hot Leads' && <Flame size={11} className="text-orange-500" />}
           {l.status}
         </span>
-        {prioritizeNoFollowups && isOverdueSales && (
+        {isOverdueSales && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title={`Overdue: No follow-up for ${daysInactive} days`}>
             <Clock size={10} className="text-rose-600 shrink-0" />
             <span>No Follow-up ({daysInactive}d)</span>
           </span>
         )}
-        {prioritizeNoFollowups && !isOverdueSales && isOtherInactive && !l.is_cold && (
+        {!isOverdueSales && isOtherInactive && !l.is_cold && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs" title={`No follow-up logged for ${daysInactive} days`}>
             <Clock size={10} className="text-amber-600 shrink-0" />
             <span>No Follow-up ({daysInactive}d)</span>
@@ -659,28 +658,10 @@ export default function LeadsRegistryPage() {
       className: 'min-w-[160px] max-w-[280px]',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="group min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <button
-              type="button"
-              onClick={() => setViewingLead(l)}
-              className="text-left font-black text-xs md:text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
-              title={l.name}
-            >
-              {l.name}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`/customers/leads?id=${l.id}`, '_blank');
-              }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-              title="Open lead in new tab"
-            >
-              <ExternalLink size={13.5} />
-            </button>
-          </div>
+        <div className="min-w-0">
+          <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+            {l.name}
+          </p>
           {l.industries?.name && (
             <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
               {l.industries.name}
@@ -1031,18 +1012,20 @@ export default function LeadsRegistryPage() {
         data={filteredLeads}
         isLoading={isLoading}
         searchPlaceholder="Search"
+        onRowClick={(lead) => setViewingLead(lead)}
         onPrint={handlePrintLeads}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        pinRowTop={prioritizeNoFollowups ? isOverdueSalesLead : undefined}
-        rowClassName={prioritizeNoFollowups ? getRowClassName : undefined}
+        pinRowTop={isOverdueSalesLead}
+        rowClassName={getRowClassName}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* 1. Pipeline Stage Status Dropdown Filter */}
             <FilterDropdown
               label="Stage"
-              allLabel={`All Stages (${stageCounts['ALL'] || 0})`}
+              allLabel="All Stages"
+              allBadge={stageCounts['ALL'] || 0}
               value={activeStageFilter}
               onChange={(val) => {
                 setActiveStageFilter(val);
@@ -1068,7 +1051,8 @@ export default function LeadsRegistryPage() {
             {activeStageFilter === 'Follow-ups' && (
               <FilterDropdown
                 label="Follow-up Type"
-                allLabel={`All Follow-ups (${stageCounts['Follow-ups'] || 0})`}
+                allLabel="All Follow-ups"
+                allBadge={stageCounts['Follow-ups'] || 0}
                 allValue="all"
                 value={followUpFilter}
                 onChange={(val) => setFollowUpFilter(val as any)}
@@ -1082,7 +1066,8 @@ export default function LeadsRegistryPage() {
             {/* 2. Branch Dropdown Filter */}
             <FilterDropdown
               label="Branch"
-              allLabel={`All Branches (${leads.length})`}
+              allLabel="All Branches"
+              allBadge={leads.length}
               value={selectedBranch}
               onChange={(val) => {
                 setSelectedBranch(val);
@@ -1105,7 +1090,8 @@ export default function LeadsRegistryPage() {
             {/* 3. Zone Dropdown Filter */}
             <FilterDropdown
               label="Zone"
-              allLabel={`All Zones (${leads.length})`}
+              allLabel="All Zones"
+              allBadge={leads.length}
               value={selectedZone}
               onChange={(val) => setSelectedZone(val)}
               options={availableFilterZones.map(z => ({
@@ -1128,33 +1114,7 @@ export default function LeadsRegistryPage() {
               }))}
             />
 
-            {/* 5. No Follow-ups Filter */}
-            <label 
-              className={`h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all cursor-pointer select-none shadow-2xs ${
-                prioritizeNoFollowups 
-                  ? 'bg-rose-50/90 border-rose-300 text-rose-900 ring-2 ring-rose-400/20' 
-                  : 'bg-white border-[#fce4d4] text-[#3a525d] hover:bg-zinc-50'
-              }`}
-              title="Tick to prioritize and highlight leads with no follow-up for 2+ days on top"
-            >
-              <input
-                type="checkbox"
-                checked={prioritizeNoFollowups}
-                onChange={(e) => setPrioritizeNoFollowups(e.target.checked)}
-                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-zinc-300 accent-rose-600 cursor-pointer"
-              />
-              <span className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className={`w-2 h-2 rounded-full ${prioritizeNoFollowups ? 'bg-rose-500 animate-pulse' : 'bg-zinc-300'}`} />
-                <span>No Follow-ups</span>
-                {overdueSalesLeadsCount > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                    prioritizeNoFollowups ? 'bg-rose-200 text-rose-900' : 'bg-zinc-100 text-zinc-600'
-                  }`}>
-                    {overdueSalesLeadsCount}
-                  </span>
-                )}
-              </span>
-            </label>
+
           </div>
         }
       />
@@ -2704,6 +2664,52 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
   const [selectedStageTab, setSelectedStageTab] = useState<string>('ALL');
   const [stageActivities, setStageActivities] = useState<LeadActivity[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [leadQuotations, setLeadQuotations] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (lead) {
+      const orgId = lead.organization_id;
+      api.get('/quotations').then(res => {
+        const allQuotes = Array.isArray(res.data) ? res.data : [];
+        const matched = allQuotes.filter((q: any) => 
+          (orgId && q.organization_id === orgId) ||
+          (q.organizations?.name && q.organizations.name.toLowerCase().trim() === lead.name.toLowerCase().trim()) ||
+          (q.lead_id && q.lead_id === lead.id)
+        );
+        setLeadQuotations(matched);
+      }).catch(() => {});
+    } else {
+      setLeadQuotations([]);
+    }
+  }, [lead]);
+
+  const renderRemarksWithQuoteLinks = (text?: string | null) => {
+    if (!text) return 'No remarks added';
+    const quotePattern = /(QT-[A-Za-z0-9\-_]+|Q-\d+)/gi;
+    const parts = text.split(quotePattern);
+    if (parts.length === 1) return text;
+
+    return parts.map((part, i) => {
+      if (part.match(quotePattern)) {
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/marketing/quotations?quote_no=${encodeURIComponent(part)}&action=view`, '_blank');
+            }}
+            className="inline-flex items-center gap-1 font-mono font-black text-[#2d8d9b] hover:text-[#C82A2B] hover:underline bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/20 px-1.5 py-0.5 rounded cursor-pointer mx-0.5 align-baseline transition-colors"
+            title={`Click to view quotation ${part}`}
+          >
+            <span>{part}</span>
+            <ExternalLink size={10} className="shrink-0" />
+          </button>
+        );
+      }
+      return part;
+    });
+  };
 
   useEffect(() => {
     if (lead) {
@@ -3009,6 +3015,17 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   <Snowflake size={11} /> Cold Lead Tag
                 </span>
               )}
+              {leadQuotations.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedStageTab('Quotations')}
+                  className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white/15 hover:bg-white/25 text-white border border-white/20 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                  title="Filter to linked Quotations"
+                >
+                  <FileText size={11} />
+                  <span>{leadQuotations.length} Quote{leadQuotations.length > 1 ? 's' : ''}</span>
+                </button>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -3020,7 +3037,21 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
             <div>
-              <h3 className="text-2xl font-black italic tracking-tight">{lead.name}</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (lead.organization_id) {
+                    window.open(`/customers/${lead.organization_id}`, '_blank');
+                  } else {
+                    window.open(`/customers?search=${encodeURIComponent(lead.name)}`, '_blank');
+                  }
+                }}
+                className="text-2xl font-black italic tracking-tight text-white hover:text-teal-200 transition-colors cursor-pointer text-left flex items-center gap-2 group"
+                title={lead.organization_id ? "View Customer Profile" : `Search for "${lead.name}" in Customers`}
+              >
+                <span>{lead.name}</span>
+                <ExternalLink size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+              </button>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-teal-300">
                   {lead.industries?.name || 'Institutional'}
@@ -3602,7 +3633,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                         </div>
 
                         <p className="text-xs font-semibold text-zinc-700 whitespace-pre-wrap leading-relaxed">
-                          {act.remarks || 'No remarks added'}
+                          {renderRemarksWithQuoteLinks(act.remarks)}
                         </p>
 
                         {/* Updating Staff Badge */}
