@@ -2,6 +2,7 @@
 
 import { DatePicker } from '@/components/ui/DatePicker';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import {
   CreditCard,
@@ -100,6 +101,7 @@ interface SalesOrderOption {
 }
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<SalesOrderOption[]>([]);
@@ -603,18 +605,23 @@ export default function InvoicesPage() {
                 const isOverdue = inv.due_status === 'Overdue';
 
                 return (
-                  <tr key={inv.id} className="hover:bg-zinc-50/70 transition">
+                  <tr 
+                    key={inv.id} 
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button, a, input, select, textarea, [data-prevent-row-click]')) {
+                        return;
+                      }
+                      openTaxInvoice(inv);
+                    }}
+                    className="hover:bg-red-50/45 cursor-pointer transition-colors group"
+                  >
                     {/* Invoice No */}
                     <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() => openTaxInvoice(inv)}
-                        className="font-mono font-black text-[#991b1b] hover:underline cursor-pointer border-none bg-transparent p-0 text-left text-xs flex items-center gap-1.5"
-                        title="Click to view & print official GST Tax Invoice"
-                      >
+                      <div className="font-mono font-bold text-[#991b1b] text-xs flex items-center gap-1.5">
                         <FileText size={14} />
                         <span>{inv.invoice_no}</span>
-                      </button>
+                      </div>
                     </td>
 
                     {/* Sales Order Reference */}

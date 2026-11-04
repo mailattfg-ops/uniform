@@ -3280,6 +3280,7 @@ function OrganizationDetailsPageContent() {
             <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
               <DataTable
                 title="Customer Quotes"
+                onRowClick={(q: any) => handleOpenQuoteModal(q.id)}
                 subtitle={`Formal quotation proposals created for ${org.name}`}
                 rightAction={
                   <button
@@ -3295,28 +3296,18 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'QT / Ref No',
                     accessor: (q) => (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenQuoteModal(q.id)}
-                        className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5"
-                        title="Click to view quotation"
-                      >
+                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center gap-1.5">
                         <FileText size={14} className="text-[#2d8d9b] shrink-0" />
                         <span>{q.quotation_no}</span>
-                      </button>
+                      </div>
                     )
                   },
                   {
                     header: 'Title / Description',
                     accessor: (q) => (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenQuoteModal(q.id)}
-                        className="font-bold text-[#3a525d] hover:text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
-                        title="Click to view quotation"
-                      >
+                      <span className="font-bold text-xs text-[#3a525d] block truncate" title={q.title || 'Uniform Proposal'}>
                         {q.title || 'Uniform Proposal'}
-                      </button>
+                      </span>
                     )
                   },
                   {
@@ -3866,6 +3857,25 @@ function OrganizationDetailsPageContent() {
             <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
               <DataTable
                 title="Customer Tax Invoices"
+                onRowClick={(inv: any) => {
+                  setSelectedTaxInvoice({
+                    ...inv,
+                    order_no: inv.order_no,
+                    customer: {
+                      name: org.name,
+                      address: org.address,
+                      city: org.city,
+                      state: org.state,
+                      pincode: org.pincode,
+                      country: org.country || 'India',
+                      gst_number: org.gst_number,
+                      contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
+                      phone: org.phone,
+                      email: org.email
+                    }
+                  });
+                  setIsTaxInvoiceModalOpen(true);
+                }}
                 subtitle={`Commercial tax invoices and retail cash registers billed to ${org.name}`}
                 rightAction={
                   !isClientUser && (
@@ -3888,37 +3898,14 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Invoice No',
                     accessor: (inv: any) => (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedTaxInvoice({
-                            ...inv,
-                            order_no: inv.order_no,
-                            customer: {
-                              name: org.name,
-                              address: org.address,
-                              city: org.city,
-                              state: org.state,
-                              pincode: org.pincode,
-                              country: org.country || 'India',
-                              gst_number: org.gst_number,
-                              contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
-                              phone: org.phone,
-                              email: org.email
-                            }
-                          });
-                          setIsTaxInvoiceModalOpen(true);
-                        }}
-                        className="flex items-center gap-2 hover:opacity-85 transition cursor-pointer text-left border-none bg-transparent p-0 outline-none"
-                        title="Click to view official Tax Invoice (GST)"
-                      >
+                      <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#2d8d9b] border border-teal-100 flex items-center justify-center shrink-0">
                           <ReceiptText size={14} />
                         </div>
-                        <span className="font-mono font-black text-[#991b1b] hover:underline text-xs">
+                        <span className="font-mono font-bold text-[#991b1b] text-xs">
                           {inv.invoice_no}
                         </span>
-                      </button>
+                      </div>
                     )
                   },
                   {

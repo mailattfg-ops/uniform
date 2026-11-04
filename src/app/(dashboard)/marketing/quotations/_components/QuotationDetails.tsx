@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   Building2,
-  FileCheck
+  FileCheck,
+  ExternalLink
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
@@ -964,9 +965,24 @@ export default function QuotationDetails({
                     </span>
                   )}
                 </div>
-                <p className="text-base font-black text-[#3a525d]">
-                  {selectedQuotation.organizations?.name || 'Customer'}
-                </p>
+                {selectedQuotation.organization_id || (selectedQuotation.organizations as any)?.id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const orgId = selectedQuotation.organization_id || (selectedQuotation.organizations as any)?.id;
+                      window.open(`/customers/${orgId}`, '_blank');
+                    }}
+                    className="text-base font-black text-[#2d8d9b] hover:text-[#C82A2B] hover:underline flex items-center gap-1.5 cursor-pointer text-left group transition-colors"
+                    title="Open Customer Profile in new tab"
+                  >
+                    <span>{selectedQuotation.organizations?.name || 'Customer'}</span>
+                    <ExternalLink size={14} className="opacity-70 group-hover:opacity-100" />
+                  </button>
+                ) : (
+                  <p className="text-base font-black text-[#3a525d]">
+                    {selectedQuotation.organizations?.name || 'Customer'}
+                  </p>
+                )}
                 {(selectedQuotation.metrics_summary?.customer_gstin || (selectedQuotation.organizations as any)?.gst_number) && (
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] font-mono font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-zinc-200">

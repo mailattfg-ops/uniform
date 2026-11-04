@@ -628,6 +628,7 @@ export function DataTable<T extends { id: string | number }>({
               paginatedData.map((item) => {
                 const customRowClass = rowClassName ? (rowClassName(item) || '') : '';
                 const hasRedShade = customRowClass.includes('rose') || customRowClass.includes('red');
+                const isClickable = Boolean(onRowClick);
                 return (
                   <tr 
                     key={item.id} 
@@ -638,7 +639,11 @@ export function DataTable<T extends { id: string | number }>({
                       }
                       if (onRowClick) onRowClick(item);
                     }}
-                    className={`transition-colors group ${onRowClick ? 'cursor-pointer hover:bg-[#2d8d9b]/5 hover:shadow-2xs' : ''} ${customRowClass || 'hover:bg-[#fce4d4]/5'}`}
+                    className={`transition-colors group ${
+                      isClickable 
+                        ? 'cursor-pointer hover:bg-red-50/45 hover:shadow-2xs' 
+                        : 'hover:bg-zinc-50/70'
+                    } ${customRowClass}`}
                   >
                     {columns.map((col, idx) => {
                       const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
@@ -652,10 +657,16 @@ export function DataTable<T extends { id: string | number }>({
                         <td 
                           key={idx} 
                           className={`transition-all duration-300 ease-in-out px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-foreground ${
-                            isSorted && !hasRedShade ? 'bg-[#fce4d4]/5 font-semibold' : ''
+                            isSorted && !hasRedShade ? 'bg-red-50/20 font-semibold' : ''
                           } ${
                             isSticky 
-                              ? `sticky right-0 ${hasRedShade ? 'bg-rose-50/95 group-hover:bg-rose-100/90' : 'bg-white group-hover:bg-[#fef9f6]'} z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] transition-colors` 
+                              ? `sticky right-0 ${
+                                  hasRedShade 
+                                    ? 'bg-rose-50/95 group-hover:bg-rose-100/90' 
+                                    : isClickable 
+                                      ? 'bg-white group-hover:bg-[#FFF8F8]' 
+                                      : 'bg-white group-hover:bg-zinc-50/80'
+                                } z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] transition-colors` 
                               : ''
                           } ${
                             isFirst && hasRedShade ? 'border-l-4 border-l-rose-500 shadow-[inset_4px_0_0_0_#f43f5e]' : ''

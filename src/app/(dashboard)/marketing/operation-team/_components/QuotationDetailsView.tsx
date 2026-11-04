@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { 
-  ArrowLeft, Edit3, Check, CheckCircle2, XCircle, Trash2, Plus, Scale, Building2
+  ArrowLeft, Edit3, Check, CheckCircle2, XCircle, Trash2, Plus, Scale, Building2, ExternalLink
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -612,9 +612,24 @@ Forma Apparels Co.`;
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Customer Client</p>
-              <p className="text-base font-black text-[#3a525d] mt-1">
-                {selectedQuotation.organizations?.name || 'Customer'}
-              </p>
+              {selectedQuotation.organization_id || (selectedQuotation.organizations as any)?.id ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const orgId = selectedQuotation.organization_id || (selectedQuotation.organizations as any)?.id;
+                    window.open(`/customers/${orgId}`, '_blank');
+                  }}
+                  className="text-base font-black text-[#2d8d9b] hover:text-[#C82A2B] hover:underline flex items-center gap-1.5 cursor-pointer text-left group mt-1 transition-colors"
+                  title="Open Customer Profile in new tab"
+                >
+                  <span>{selectedQuotation.organizations?.name || 'Customer'}</span>
+                  <ExternalLink size={14} className="opacity-70 group-hover:opacity-100" />
+                </button>
+              ) : (
+                <p className="text-base font-black text-[#3a525d] mt-1">
+                  {selectedQuotation.organizations?.name || 'Customer'}
+                </p>
+              )}
             </Card>
 
             <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
@@ -635,7 +650,9 @@ Forma Apparels Co.`;
 
             <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Production Time</p>
-              <p className="text-base font-black text-[#3a525d] mt-1">{selectedQuotation.total_estimated_time || 'N/A'}</p>
+              <p className="text-base font-black text-[#3a525d] mt-1">
+                {selectedQuotation.total_estimated_time || 'N/A'}
+              </p>
               <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">
                 ({selectedQuotation.production_days_estimate} Production Days)
               </p>

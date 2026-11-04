@@ -1019,14 +1019,12 @@ export default function CustomersRegistry() {
                 }`}
                 title={isActive ? 'Active Customer' : 'Inactive Customer'}
               />
-              <button
-                type="button"
-                onClick={() => handleViewDetails(c, false)}
-                className="text-left font-black text-xs md:text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
+              <span
+                className="text-left font-bold text-xs md:text-sm tracking-tight text-[#3a525d] truncate block"
                 title={c.name}
               >
                 {c.name}
-              </button>
+              </span>
               {isRisk && (
                 <span title="Risk Client" className="shrink-0 text-rose-500 transition-transform hover:scale-110">
                   <AlertTriangle size={18} className="stroke-[2.5]" />
@@ -1037,17 +1035,6 @@ export default function CustomersRegistry() {
                   <Star size={18} className="fill-amber-400 text-amber-400" />
                 </span>
               )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewDetails(c, true);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-                title="Open customer in new tab"
-              >
-                <ExternalLink size={13.5} />
-              </button>
             </div>
             {c.industries?.name && (
               <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5 ml-4">
@@ -1210,6 +1197,7 @@ export default function CustomersRegistry() {
         data={filteredCustomers}
         isLoading={isLoading}
         searchPlaceholder="Search"
+        onRowClick={(cust) => handleViewDetails(cust, false)}
         onPrint={handlePrintCustomers}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
@@ -1219,11 +1207,11 @@ export default function CustomersRegistry() {
             {/* 1. Customers Status Filter */}
             <FilterDropdown
               label="Customer Status"
-              allLabel={`All Customers (${customers.length})`}
+              allLabel="All Customers"
+              allBadge={customers.length}
               value={statusFilter}
               onChange={(val) => setStatusFilter(val as any)}
               options={[
-                { label: 'All Customers', value: 'ALL', badge: customers.length },
                 { label: 'Active Customers', value: 'ACTIVE', badge: stats.activeCount },
                 { label: 'Inactive Customers', value: 'INACTIVE', badge: stats.inactiveCount },
                 { label: '★ Favourite Customers', value: 'SPECIAL', badge: stats.specialCount },

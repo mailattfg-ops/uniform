@@ -12,6 +12,7 @@ export interface FilterOption {
 export interface FilterDropdownProps {
   label: string; // e.g. "Gender", "Product/Dress", "Garment Type"
   allLabel?: string; // e.g. "All Genders", "All Product/Dress", "All Garment Types"
+  allBadge?: string | number; // e.g. count for "All"
   allValue?: string; // defaults to 'ALL'
   value: string;
   onChange: (value: string) => void;
@@ -24,6 +25,7 @@ export interface FilterDropdownProps {
 export const FilterDropdown: React.FC<FilterDropdownProps> = ({
   label,
   allLabel,
+  allBadge: passedAllBadgeProp,
   allValue = 'ALL',
   value,
   onChange,
@@ -37,18 +39,27 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Normalize options
-  const normalizedOptions: FilterOption[] = options.map(opt => {
-    if (typeof opt === 'string') {
-      return { label: opt, value: opt };
-    }
-    return opt;
-  });
+  // Check if an option representing "All" was passed inside options
+  const explicitAllOption = options.find(
+    opt => typeof opt !== 'string' && (opt.value === allValue || opt.value === 'ALL')
+  ) as FilterOption | undefined;
+  const passedAllBadge = passedAllBadgeProp !== undefined ? passedAllBadgeProp : explicitAllOption?.badge;
 
-  const effectiveAllLabel = allLabel || `All ${label}s`;
+  // Extract bracket count from allLabel if present, e.g. "All Feeds (2)" -> clean: "All Feeds", badge: "2"
+  const rawAllLabel = allLabel || `All ${label}s`;
+  const bracketMatch = rawAllLabel.match(/^(.*?)\s*\(([^)]+)\)$/);
+  const cleanAllLabel = bracketMatch ? bracketMatch[1].trim() : rawAllLabel;
+  const effectiveAllBadge = passedAllBadge !== undefined ? passedAllBadge : (bracketMatch ? bracketMatch[2].trim() : undefined);
+
+  // Normalize options - exclude any duplicate 'ALL' options from the individual list
+  const normalizedOptions: FilterOption[] = options
+    .map(opt => (typeof opt === 'string' ? { label: opt, value: opt } : opt))
+    .filter(opt => opt.value !== allValue && opt.value !== 'ALL');
+
   const isFiltered = value !== allValue && value !== 'ALL' && value !== '';
   const selectedOption = normalizedOptions.find(opt => opt.value === value);
-  const displayLabel = isFiltered ? (selectedOption?.label || value) : effectiveAllLabel;
+  const displayLabel = isFiltered ? (selectedOption?.label || value) : cleanAllLabel;
+  const displayBadge = isFiltered ? selectedOption?.badge : effectiveAllBadge;
 
   // Filter options by search query
   const filteredOptions = normalizedOptions.filter(opt =>
@@ -126,6 +137,14 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
           {displayLabel}
         </span>
 
+        {displayBadge !== undefined && (
+          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+            isFiltered ? 'bg-[#C82A2B]/15 text-[#9E1B1D]' : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200'
+          }`}>
+            {displayBadge}
+          </span>
+        )}
+
         <div className="flex items-center gap-1 shrink-0 ml-auto pl-1">
           {isFiltered && (
             <span
@@ -202,8 +221,17 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                   : 'text-zinc-700 hover:bg-zinc-50 font-bold'
               }`}
             >
-              <span>{effectiveAllLabel}</span>
-              {!isFiltered && <Check size={13} strokeWidth={3} className="text-[#C82A2B]" />}
+              <span className="truncate pr-2">{cleanAllLabel}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                {effectiveAllBadge !== undefined && (
+                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                    !isFiltered ? 'bg-[#C82A2B]/15 text-[#9E1B1D]' : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200'
+                  }`}>
+                    {effectiveAllBadge}
+                  </span>
+                )}
+                {!isFiltered && <Check size={13} strokeWidth={3} className="text-[#C82A2B]" />}
+              </div>
             </div>
 
             {/* Individual options */}

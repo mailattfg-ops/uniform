@@ -224,14 +224,12 @@ export default function OperationTeamPage() {
       className: 'min-w-[170px] max-w-[230px]',
       accessor: (q) => (
         <div className="flex flex-col min-w-0">
-          <button
-            type="button"
-            onClick={() => handleViewDetails(q)}
-            className="font-black text-[#3a525d] hover:text-[#2d8d9b] hover:underline text-xs md:text-sm leading-tight truncate text-left border-none bg-transparent p-0 outline-none block max-w-full cursor-pointer"
+          <span
+            className="font-bold text-[#3a525d] text-xs md:text-sm leading-tight truncate block max-w-full"
             title={q.title}
           >
             {q.title}
-          </button>
+          </span>
           <span className="text-[9px] text-zinc-400 font-semibold mt-0.5">
             {formatDate(q.created_at)}
           </span>
@@ -424,6 +422,7 @@ export default function OperationTeamPage() {
             title="Quotation Submissions"
             subtitle="Verified client contracts processed by operations team"
             searchPlaceholder="Search"
+            onRowClick={(q) => { setSelectedQuotation(q); setActiveTab('details'); }}
             isLoading={isLoading}
           />
         </>

@@ -8,7 +8,7 @@ import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Plus, Compass, MapPin, Phone, Mail, User, ShieldCheck, 
-  ExternalLink, Building2, ArrowRight, MessageSquarePlus
+  ExternalLink, Building2, ArrowRight, MessageSquarePlus, Clock
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -153,6 +153,18 @@ export default function FeedsRegistryPage() {
     }
     return false;
   }, []);
+
+  // Feeds with no follow-up: open feeds that have not been contacted yet
+  const isNoFollowupFeed = useCallback((lead: Lead) => {
+    return !isFeedContacted(lead);
+  }, [isFeedContacted]);
+
+  const getRowClassName = useCallback((l: Lead) => {
+    if (isNoFollowupFeed(l)) {
+      return '!bg-rose-50/75 hover:!bg-rose-100/75 transition-colors border-b border-rose-200/50';
+    }
+    return undefined;
+  }, [isNoFollowupFeed]);
 
   // Compute feed counts by status
   const feedCounts = useMemo(() => {
@@ -388,28 +400,10 @@ export default function FeedsRegistryPage() {
       className: 'min-w-[200px] max-w-[320px]',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="group min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <button
-              type="button"
-              onClick={() => setViewingLead(l)}
-              className="text-left font-black text-xs md:text-sm tracking-tight text-zinc-900 hover:text-[#C82A2B] hover:underline transition-all cursor-pointer border-none bg-transparent p-0 outline-none truncate block"
-              title={l.name}
-            >
-              {l.name}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`/customers/leads?id=${l.id}`, '_blank');
-              }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#C82A2B] hover:bg-[#FFF1F1] transition-all cursor-pointer shrink-0"
-              title="Open feed details"
-            >
-              <ExternalLink size={13.5} />
-            </button>
-          </div>
+        <div className="min-w-0">
+          <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+            {l.name}
+          </p>
           {(() => {
             const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
             const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
@@ -434,6 +428,14 @@ export default function FeedsRegistryPage() {
             <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
               {l.requirements}
             </p>
+          )}
+          {!isFeedContacted(l) && (
+            <div className="mt-1">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title="No follow-up: Prospect has not been contacted yet">
+                <Clock size={10} className="text-rose-600 shrink-0" />
+                <span>No Follow-up</span>
+              </span>
+            </div>
           )}
         </div>
       )
@@ -570,6 +572,9 @@ export default function FeedsRegistryPage() {
         data={filteredFeeds}
         isLoading={isLoading}
         searchPlaceholder="Search"
+        onRowClick={(feed) => setViewingLead(feed)}
+        pinRowTop={isNoFollowupFeed}
+        rowClassName={getRowClassName}
         onPrint={handlePrintFeeds}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
@@ -579,12 +584,12 @@ export default function FeedsRegistryPage() {
             {/* 1. Feed Status Filter (All Feeds, Open Feeds, Contacted Feeds) */}
             <FilterDropdown
               label="Feed Status"
-              allLabel={`All Feeds (${feedCounts.all})`}
+              allLabel="All Feeds"
+              allBadge={feedCounts.all}
               allValue="ALL"
               value={selectedFeedStatus}
               onChange={(val) => setSelectedFeedStatus(val)}
               options={[
-                { label: 'All Feeds', value: 'ALL', badge: feedCounts.all },
                 { label: 'Open Feeds', value: 'OPEN', badge: feedCounts.open },
                 { label: 'Contacted Feeds', value: 'CONTACTED', badge: feedCounts.contacted }
               ]}
@@ -593,7 +598,8 @@ export default function FeedsRegistryPage() {
             {/* 2. Branch Filter */}
             <FilterDropdown
               label="Branch"
-              allLabel={`All Branches (${feedsList.length})`}
+              allLabel="All Branches"
+              allBadge={feedsList.length}
               value={selectedBranch}
               onChange={(val) => {
                 setSelectedBranch(val);
@@ -616,7 +622,8 @@ export default function FeedsRegistryPage() {
             {/* 3. Zone Filter */}
             <FilterDropdown
               label="Zone"
-              allLabel={`All Zones (${availableFilterZones.length})`}
+              allLabel="All Zones"
+              allBadge={availableFilterZones.length}
               value={selectedZone}
               onChange={(val) => setSelectedZone(val)}
               options={availableFilterZones.map((z) => ({
@@ -629,7 +636,8 @@ export default function FeedsRegistryPage() {
             {/* 4. Sector / Industry Filter */}
             <FilterDropdown
               label="Sector"
-              allLabel={`All Sectors (${feedsList.length})`}
+              allLabel="All Sectors"
+              allBadge={feedsList.length}
               value={selectedIndustry}
               onChange={(val) => setSelectedIndustry(val)}
               options={industries.map(ind => ({

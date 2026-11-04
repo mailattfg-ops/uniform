@@ -174,27 +174,9 @@ export default function QuotationList({
       className: 'w-[140px] whitespace-nowrap',
       sortValue: (q) => q.quotation_no,
       accessor: (q) => (
-        <div className="flex items-center gap-1.5 group">
-          <button
-            type="button"
-            onClick={() => onViewDetails(q)}
-            className="font-mono font-black text-xs md:text-sm text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left block"
-            title="Click to view details"
-          >
-            {q.quotation_no}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(`/marketing/quotations?id=${q.id}&action=view`, '_blank');
-            }}
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-            title="Open quotation in new tab"
-          >
-            <ExternalLink size={13.5} />
-          </button>
-        </div>
+        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
+          {q.quotation_no}
+        </span>
       )
     },
     {
@@ -202,33 +184,9 @@ export default function QuotationList({
       className: 'min-w-[160px] max-w-[260px]',
       sortValue: (q) => q.organizations?.name || '',
       accessor: (q) => (
-        q.organization_id ? (
-          <div className="group inline-flex items-center gap-1.5 max-w-full">
-            <button
-              type="button"
-              onClick={() => router.push(`/customers/${q.organization_id}`)}
-              className="text-xs font-black text-zinc-700 hover:text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left truncate block"
-              title="Click to view customer details"
-            >
-              {q.organizations?.name || '—'}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`/customers/${q.organization_id}`, '_blank');
-              }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-400 hover:text-[#2d8d9b] hover:bg-[#2d8d9b]/10 transition-all cursor-pointer shrink-0"
-              title="Open customer in new tab"
-            >
-              <ExternalLink size={13.5} />
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs font-black text-zinc-700 truncate" title={q.organizations?.name || '—'}>
-            {q.organizations?.name || '—'}
-          </p>
-        )
+        <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
+          {q.organizations?.name || '—'}
+        </p>
       )
     },
     {
@@ -529,6 +487,7 @@ export default function QuotationList({
         data={filteredQuotations}
         isLoading={isLoading}
         searchPlaceholder="Search"
+        onRowClick={(q) => onViewDetails(q)}
         onPrint={handlePrintQuotations}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
@@ -538,11 +497,11 @@ export default function QuotationList({
             {/* 1. All Quote (Status Filter) */}
             <FilterDropdown
               label="Quote Status"
-              allLabel={`All Quotes (${counts.all})`}
+              allLabel="All Quotes"
+              allBadge={counts.all}
               value={activeFilter === 'all' ? 'ALL' : activeFilter}
               onChange={(val) => setActiveFilter(val === 'ALL' ? 'all' : val as any)}
               options={[
-                { label: 'All Quotes', value: 'ALL', badge: counts.all },
                 { label: "Waiting for BM's Approval", value: 'pending_bm', badge: counts.pending_bm },
                 { label: 'Under Ops Review', value: 'pending_ops', badge: counts.pending_ops },
                 { label: 'Approved Quotes', value: 'approved', badge: counts.approved },
