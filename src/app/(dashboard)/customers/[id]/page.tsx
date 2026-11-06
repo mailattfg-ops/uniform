@@ -1955,10 +1955,11 @@ function OrganizationDetailsPageContent() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header section with Single-Line Navigation, Details & Action Toolbar */}
-      <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-sm border border-zinc-100 space-y-4">
-        <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3.5">
-          {/* Left: Back button + Name & Meta Details (Code, Industry, Date stamp, Badges) */}
+      {/* Header section with Details & Action Toolbar */}
+      <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-sm border border-zinc-100 space-y-2.5">
+        {/* Top Row: Back button + Customer Name on the left, Tab Buttons & 3 Dots on the right */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+          {/* Left: Back button + Name */}
           <div className="flex items-center gap-3 min-w-0">
             <Button
               onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
@@ -1967,44 +1968,12 @@ function OrganizationDetailsPageContent() {
             >
               <ArrowLeft size={16} />
             </Button>
-            <div className="min-w-0 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-[#3a525d] whitespace-nowrap">
-                {org.name}
-              </h1>
-              <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider shrink-0">
-                {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
-              </span>
-              <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest shrink-0">
-                {org.industries?.name || 'School Sector'}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-50 border border-zinc-200/80 text-zinc-600 rounded-lg text-[9px] font-bold shrink-0">
-                <Calendar size={11} className="text-[#2d8d9b]" />
-                <span>Onboarded: {formatDate(org.created_at)}</span>
-              </span>
-              {Boolean(org.is_b2b || org.gst_number) && (
-                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-300 shrink-0">
-                  B2B
-                </span>
-              )}
-              {org.is_special && (
-                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
-                  ★ Favourite
-                </span>
-              )}
-              {org.is_risk && (
-                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300 shrink-0">
-                  ⚠ Risk
-                </span>
-              )}
-              {org.is_active === false && (
-                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200 shrink-0">
-                  Inactive
-                </span>
-              )}
-            </div>
+            <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-[#3a525d] truncate">
+              {org.name}
+            </h1>
           </div>
 
-          {/* Right: Tab Switcher Buttons & Actions Button on the same line */}
+          {/* Right: Tab Switcher Buttons & 3-dots Actions Button on the same line */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
             <div className="flex bg-zinc-100/90 p-1 rounded-xl border border-zinc-200/60 gap-1 overflow-x-auto">
               {(isClientUser 
@@ -2086,6 +2055,40 @@ function OrganizationDetailsPageContent() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Second Row: Customer ID, Sector, Onboarding Date & Status Badges */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-0 md:pl-12 pt-0.5 border-t border-zinc-100/80">
+          <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider shrink-0">
+            {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
+          </span>
+          <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest shrink-0">
+            {org.industries?.name || 'School Sector'}
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-50 border border-zinc-200/80 text-zinc-600 rounded-lg text-[9px] font-bold shrink-0">
+            <Calendar size={11} className="text-[#2d8d9b]" />
+            <span>Onboarded: {formatDate(org.created_at)}</span>
+          </span>
+          {Boolean(org.is_b2b || org.gst_number) && (
+            <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-300 shrink-0">
+              B2B
+            </span>
+          )}
+          {org.is_special && (
+            <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
+              ★ Favourite
+            </span>
+          )}
+          {org.is_risk && (
+            <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300 shrink-0">
+              ⚠ Risk
+            </span>
+          )}
+          {org.is_active === false && (
+            <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200 shrink-0">
+              Inactive
+            </span>
+          )}
         </div>
       </div>
 
