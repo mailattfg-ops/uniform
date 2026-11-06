@@ -2624,7 +2624,7 @@ function OrganizationDetailsPageContent() {
                   setGeneratedEntityCreds(null);
                 }}
                 variant="secondary"
-                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-6 bg-transparent border-none shadow-none px-0 cursor-pointer"
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors mb-6 bg-transparent border-none shadow-none px-0 cursor-pointer"
               >
                 <ArrowLeft size={14} />
                 Back to {selectedDepartmentForMembers ? selectedDepartmentForMembers.name : 'Departments'}
@@ -2632,33 +2632,33 @@ function OrganizationDetailsPageContent() {
 
               {generatedEntityCreds ? (
                 <div className="max-w-2xl mx-auto animate-in zoom-in duration-500">
-                  <div className="bg-white rounded-[3rem] border-4 border-[#2d8d9b]/10 shadow-2xl overflow-hidden">
-                    <div className="bg-[#2d8d9b] p-10 text-white text-center">
+                  <div className="bg-white rounded-[3rem] border-4 border-[#C82A2B]/10 shadow-2xl overflow-hidden">
+                    <div className="bg-[#C82A2B] p-10 text-white text-center">
                       <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <UserCheck size={40} />
                       </div>
                       <h2 className="text-3xl font-black tracking-tight italic">Registration Successful!</h2>
-                      <p className="text-[#fce4d4] font-bold uppercase tracking-widest text-xs mt-2 opacity-80">Access Portal Account Generated</p>
+                      <p className="text-[#FFF1F1] font-bold uppercase tracking-widest text-xs mt-2 opacity-90">Access Portal Account Generated</p>
                     </div>
 
                     <div className="p-10 space-y-8">
                       <div className="space-y-4">
                         <div className="p-6 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
                           <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-[#8b6b5a]">Entity Access Portal</span>
-                            <LogIn size={16} className="text-[#2d8d9b]" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Entity Access Portal</span>
+                            <LogIn size={16} className="text-[#C82A2B]" />
                           </div>
 
                           <div className="space-y-4">
                             <div className="flex flex-col">
                               <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Login Username</label>
-                              <span className="text-lg font-black text-[#3a525d] tracking-tight">{generatedEntityCreds.username}</span>
+                              <span className="text-lg font-black text-zinc-900 tracking-tight">{generatedEntityCreds.username}</span>
                             </div>
                             <div className="flex flex-col">
                               <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Temporary Password</label>
                               <div className="flex items-center gap-3">
-                                <Key size={14} className="text-[#f2994a]" />
-                                <span className="text-xl font-black text-[#f2994a] tracking-[0.2em]">{generatedEntityCreds.password}</span>
+                                <Key size={14} className="text-[#C82A2B]" />
+                                <span className="text-xl font-black text-[#C82A2B] tracking-[0.2em]">{generatedEntityCreds.password}</span>
                               </div>
                             </div>
                           </div>
@@ -2668,7 +2668,7 @@ function OrganizationDetailsPageContent() {
                       <div className="grid grid-cols-2 gap-4">
                         <Button
                           onClick={handleCopyCreds}
-                          className={`h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-3 transition-all cursor-pointer ${hasCopiedCreds ? 'bg-green-500 text-white' : 'bg-[#3a525d] text-white hover:bg-[#2d8d9b]'
+                          className={`h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-3 transition-all cursor-pointer ${hasCopiedCreds ? 'bg-green-600 text-white' : 'bg-zinc-900 text-white hover:bg-black'
                             }`}
                         >
                           {hasCopiedCreds ? <Check size={16} /> : <Clipboard size={16} />}
@@ -2683,7 +2683,7 @@ function OrganizationDetailsPageContent() {
                             fetchEntities();
                           }}
                           variant="outline"
-                          className="h-14 rounded-2xl border-2 border-[#3a525d]/10 font-black uppercase tracking-widest text-[10px] gap-3 cursor-pointer"
+                          className="h-14 rounded-2xl border-2 border-zinc-200 font-black uppercase tracking-widest text-[10px] gap-3 cursor-pointer hover:bg-zinc-100"
                         >
                           Finish & Exit
                           <ArrowRight size={16} />
@@ -2725,7 +2725,7 @@ function OrganizationDetailsPageContent() {
                   setBulkResults(null);
                 }}
                 variant="secondary"
-                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#8b6b5a] hover:text-[#3a525d] transition-colors mb-6 bg-transparent border-none shadow-none px-0 cursor-pointer"
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors mb-6 bg-transparent border-none shadow-none px-0 cursor-pointer"
               >
                 <ArrowLeft size={14} />
                 Back to {selectedDepartmentForMembers ? selectedDepartmentForMembers.name : 'Departments'}
@@ -2736,7 +2736,7 @@ function OrganizationDetailsPageContent() {
                   <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-500">
                     <UserCheck size={40} />
                   </div>
-                  <h2 className="text-2xl font-black text-[#3a525d] tracking-tight">Import Summary Completed</h2>
+                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Import Summary Completed</h2>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-5 bg-green-50 rounded-2xl border border-green-100">
@@ -2767,7 +2767,7 @@ function OrganizationDetailsPageContent() {
                       setBulkResults(null);
                       fetchEntities();
                     }}
-                    className="w-full h-12 bg-[#3a525d] text-white hover:bg-[#2d8d9b] rounded-xl font-bold uppercase tracking-widest text-[10px] cursor-pointer"
+                    className="w-full h-12 bg-zinc-900 text-white hover:bg-black rounded-xl font-bold uppercase tracking-widest text-[10px] cursor-pointer"
                   >
                     Return to {selectedDepartmentForMembers ? selectedDepartmentForMembers.name : 'Departments'}
                   </Button>
@@ -2776,7 +2776,7 @@ function OrganizationDetailsPageContent() {
                 <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-zinc-100 space-y-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-2xl font-black text-[#3a525d] italic">
+                      <h2 className="text-2xl font-black text-zinc-900 italic">
                         Import {selectedDepartmentForMembers ? `${selectedDepartmentForMembers.name} Roster` : 'Organization Roster'}
                       </h2>
                       <p className="text-xs font-bold text-zinc-400 mt-1 uppercase tracking-wider">Upload list from XLSX template</p>
@@ -2805,7 +2805,7 @@ function OrganizationDetailsPageContent() {
                         XLSX.utils.book_append_sheet(wb, ws, 'Roster_Import');
                         XLSX.writeFile(wb, `Import_Template_${(org?.name || 'Organization').replace(/\s+/g, '_')}.xlsx`);
                       }}
-                      className="flex items-center gap-1.5 text-[9px] font-black uppercase text-[#2d8d9b] border-b border-dashed border-[#2d8d9b] hover:text-[#3a525d] transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 text-[9px] font-black uppercase text-[#C82A2B] border-b border-dashed border-[#C82A2B] hover:text-[#9E1B1D] transition-colors cursor-pointer"
                     >
                       <Download size={12} /> Template Sheet
                     </button>
@@ -2814,7 +2814,7 @@ function OrganizationDetailsPageContent() {
                   {!bulkFile ? (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="group cursor-pointer border-4 border-dashed border-[#2d8d9b]/10 bg-[#2d8d9b]/5 rounded-2xl p-16 flex flex-col items-center justify-center text-center transition-all hover:bg-[#2d8d9b]/10"
+                      className="group cursor-pointer border-4 border-dashed border-zinc-200 bg-zinc-50/80 hover:bg-[#FFF1F1]/30 hover:border-[#C82A2B]/40 rounded-2xl p-16 flex flex-col items-center justify-center text-center transition-all"
                     >
                       <input
                         type="file"
@@ -2823,20 +2823,20 @@ function OrganizationDetailsPageContent() {
                         accept=".xlsx,.xls"
                         onChange={handleBulkFileChange}
                       />
-                      <div className="w-16 h-16 bg-white rounded-2xl shadow-md flex items-center justify-center text-[#2d8d9b] mb-4">
+                      <div className="w-16 h-16 bg-white rounded-2xl shadow-md flex items-center justify-center text-[#C82A2B] mb-4 border border-zinc-100">
                         <FileUp size={28} />
                       </div>
-                      <h4 className="text-base font-bold text-[#3a525d] mb-1">Click or drag Excel registry files here</h4>
+                      <h4 className="text-base font-bold text-zinc-900 mb-1">Click or drag Excel registry files here</h4>
                       <p className="text-zinc-400 text-xs">Supports Excel formats (.xlsx / .xls). Records without a department are automatically assigned to {selectedDepartmentForMembers?.name || 'Main'}.</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <div className="flex items-center justify-between p-5 bg-[#3a525d] rounded-2xl text-white shadow-sm">
+                      <div className="flex items-center justify-between p-5 bg-zinc-900 rounded-2xl text-white shadow-sm">
                         <div className="flex items-center gap-3">
-                          <FileUp size={20} />
+                          <FileUp size={20} className="text-[#C82A2B]" />
                           <div>
                             <p className="font-bold text-xs">{bulkFile.name}</p>
-                            <p className="text-[9px] uppercase font-bold opacity-60">{bulkData.length} records parsed</p>
+                            <p className="text-[9px] uppercase font-bold text-zinc-400">{bulkData.length} records parsed</p>
                           </div>
                         </div>
                         <button onClick={() => { setBulkFile(null); setBulkData([]); }} className="p-1.5 hover:bg-white/10 rounded-lg cursor-pointer">
@@ -2847,7 +2847,7 @@ function OrganizationDetailsPageContent() {
                       <Button
                         onClick={handleBulkUploadSubmit}
                         isLoading={isBulkUploading}
-                        className="w-full h-14 bg-[#f2994a] hover:bg-[#e68a3d] text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-md cursor-pointer"
+                        className="w-full h-14 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-md shadow-[#C82A2B]/20 cursor-pointer"
                       >
                         Confirm Import of {bulkData.length} Records
                       </Button>
@@ -2859,7 +2859,7 @@ function OrganizationDetailsPageContent() {
           ) : selectedDepartmentForMembers ? (
             /* Sub-view 4: Students / Members in Clicked Department */
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#fce4d4]/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200">
                 <div className="flex items-center gap-3">
                   <Button
                     onClick={() => {
@@ -2867,21 +2867,21 @@ function OrganizationDetailsPageContent() {
                       setEntitySearchQuery('');
                     }}
                     variant="secondary"
-                    className="h-10 px-3.5 bg-white border border-[#fce4d4] text-[#3a525d] hover:bg-[#3a525d] hover:text-white rounded-xl font-black uppercase tracking-wider text-[10px] gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0"
+                    className="h-10 px-3.5 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-800 hover:text-white rounded-xl font-black uppercase tracking-wider text-[10px] gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0"
                   >
                     <ArrowLeft size={14} />
                     All Departments
                   </Button>
                   <div className="h-6 w-px bg-zinc-200" />
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 flex items-center justify-center shrink-0">
                       <Grid size={18} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-black text-lg text-[#3a525d] tracking-tight">{selectedDepartmentForMembers.name}</h3>
+                        <h3 className="font-black text-lg text-zinc-900 tracking-tight">{selectedDepartmentForMembers.name}</h3>
                         {(selectedDepartmentForMembers.division || selectedDepartmentForMembers.section) && (
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                             Section: {selectedDepartmentForMembers.division || selectedDepartmentForMembers.section}
                           </span>
                         )}
@@ -2906,7 +2906,7 @@ function OrganizationDetailsPageContent() {
                   <Button
                     onClick={downloadCSV}
                     variant="secondary"
-                    className="h-10 px-3.5 bg-white border border-[#fce4d4] text-[#3a525d] hover:bg-[#3a525d] hover:text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-2xs transition-all shrink-0 cursor-pointer"
+                    className="h-10 px-3.5 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-800 hover:text-white rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-2xs transition-all shrink-0 cursor-pointer"
                   >
                     <Download size={14} /> Download List
                   </Button>
@@ -2929,7 +2929,7 @@ function OrganizationDetailsPageContent() {
                           setEntityView('bulk');
                         }}
                         variant="secondary"
-                        className="h-10 px-3.5 bg-white border border-[#fce4d4] text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-2xs shrink-0 cursor-pointer"
+                        className="h-10 px-3.5 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[9px] gap-1.5 shadow-2xs shrink-0 cursor-pointer"
                       >
                         <FileUp size={14} /> Bulk Upload
                       </Button>
@@ -2949,21 +2949,21 @@ function OrganizationDetailsPageContent() {
                       <div className="flex items-center gap-3">
                         <div 
                           onClick={() => setProfileModal({ isOpen: true, member: e })}
-                          className="w-9 h-9 rounded-lg bg-[#3a525d]/5 hover:bg-[#3a525d]/15 border border-[#3a525d]/10 flex items-center justify-center font-bold text-[#3a525d] text-[10px] cursor-pointer transition-all"
+                          className="w-9 h-9 rounded-lg bg-zinc-100 hover:bg-[#FFF1F1] border border-zinc-200/60 flex items-center justify-center font-bold text-zinc-700 hover:text-[#C82A2B] text-[10px] cursor-pointer transition-all"
                           title="Click to view profile"
                         >
-                          {e.full_name.charAt(0)}
+                          {e.full_name?.charAt(0) || 'M'}
                         </div>
                         <div>
                           <button
                             type="button"
                             onClick={() => setProfileModal({ isOpen: true, member: e })}
-                            className="font-bold text-xs text-[#3a525d] hover:text-[#2d8d9b] hover:underline leading-none text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
+                            className="font-bold text-xs text-zinc-900 hover:text-[#C82A2B] hover:underline leading-none text-left border-none bg-transparent p-0 outline-none cursor-pointer block"
                             title="Click to view profile"
                           >
                             {e.full_name}
                           </button>
-                          <p className="text-[8px] text-[#2d8d9b] font-bold uppercase tracking-[0.1em] mt-1 opacity-85">Ref: #{e.admission_no}</p>
+                          <p className="text-[8px] text-[#C82A2B] font-bold uppercase tracking-[0.1em] mt-1 opacity-85">Ref: #{e.admission_no}</p>
                         </div>
                       </div>
                     ),
@@ -3024,7 +3024,7 @@ function OrganizationDetailsPageContent() {
                             setEntityView('register');
                           }}
                           variant="secondary"
-                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm border-none cursor-pointer"
+                          className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-800 hover:text-white transition-all shadow-sm border border-zinc-200 cursor-pointer"
                           title="Edit Member"
                         >
                           <Edit2 size={14} />
@@ -3067,8 +3067,8 @@ function OrganizationDetailsPageContent() {
                             setSelectedDepartmentForMembers(d);
                             setEntityView('list');
                           }}
-                          className="w-9 h-9 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/20 rounded-xl flex items-center justify-center text-[#2d8d9b] cursor-pointer transition-colors"
-                          title="Click to view students"
+                          className="w-9 h-9 bg-zinc-100 hover:bg-[#FFF1F1] rounded-xl flex items-center justify-center text-zinc-600 hover:text-[#C82A2B] cursor-pointer transition-colors border border-zinc-200/60"
+                          title="Click to view members"
                         >
                           <Grid size={17} />
                         </div>
@@ -3079,19 +3079,19 @@ function OrganizationDetailsPageContent() {
                               setSelectedDepartmentForMembers(d);
                               setEntityView('list');
                             }}
-                            className="font-black text-sm tracking-tight text-[#3a525d] hover:text-[#2d8d9b] hover:underline text-left cursor-pointer transition-colors block bg-transparent border-none p-0"
-                            title="Click to view students in this department"
+                            className="font-black text-sm tracking-tight text-zinc-900 hover:text-[#C82A2B] hover:underline text-left cursor-pointer transition-colors block bg-transparent border-none p-0"
+                            title="Click to view members in this department"
                           >
                             {d.name || 'N/A'}
                           </button>
                           <div className="flex flex-wrap items-center gap-2 mt-0.5">
                             {d.grade && (
-                              <span className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-150 text-zinc-500 rounded text-[9px] font-bold uppercase tracking-wider">
+                              <span className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-200 text-zinc-500 rounded text-[9px] font-bold uppercase tracking-wider">
                                 Preset: {d.grade}
                               </span>
                             )}
                             {(d.division || d.section) && (
-                              <p className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest opacity-70">
+                              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider">
                                 Section: {d.division || d.section}
                               </p>
                             )}
@@ -3116,11 +3116,11 @@ function OrganizationDetailsPageContent() {
                             setSelectedDepartmentForMembers(d);
                             setEntityView('list');
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white font-bold text-xs transition-all cursor-pointer group shadow-2xs border border-[#2d8d9b]/20 hover:border-[#2d8d9b]"
-                          title="View students in this department"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-[#C82A2B] text-zinc-700 hover:text-white font-bold text-xs transition-all cursor-pointer group shadow-2xs border border-zinc-200 hover:border-[#C82A2B]"
+                          title="View members in this department"
                         >
                           <Users size={13} />
-                          <span>{count} {count === 1 ? 'Student' : 'Students'}</span>
+                          <span>{count} Nos</span>
                           <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                         </button>
                       );
@@ -3144,8 +3144,8 @@ function OrganizationDetailsPageContent() {
                             setEntityView('list');
                           }}
                           variant="secondary"
-                          className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm text-xs font-bold cursor-pointer"
-                          title="Open Students List"
+                          className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200 hover:bg-[#C82A2B] hover:text-white hover:border-[#C82A2B] transition-all shadow-sm text-xs font-bold cursor-pointer"
+                          title="Open Members List"
                         >
                           <Users size={12} />
                           <span>View</span>
@@ -3156,7 +3156,7 @@ function OrganizationDetailsPageContent() {
                             setIsAddingDept(true);
                           }}
                           variant="secondary"
-                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#3a525d]/10 text-[#3a525d] border border-[#3a525d]/20 hover:bg-[#3a525d] hover:text-white transition-all shadow-sm !p-0 cursor-pointer"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 text-zinc-600 border border-zinc-200 hover:bg-zinc-800 hover:text-white hover:border-zinc-800 transition-all shadow-sm !p-0 cursor-pointer"
                           title="Edit Department"
                         >
                           <Edit2 size={13} />
@@ -3164,7 +3164,7 @@ function OrganizationDetailsPageContent() {
                         <Button
                           onClick={() => setDeleteDeptConfirm({ isOpen: true, id: String(d.id) })}
                           variant="secondary"
-                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-error/10 text-error border border-error/20 hover:bg-error hover:text-white transition-all shadow-sm !p-0 cursor-pointer"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all shadow-sm !p-0 cursor-pointer"
                           title="Delete Department"
                         >
                           <Trash2 size={13} />
@@ -3185,7 +3185,7 @@ function OrganizationDetailsPageContent() {
                         setBulkResults(null);
                       }}
                       variant="secondary"
-                      className="h-10 px-3.5 bg-white border border-[#fce4d4] text-[#3a525d] hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] shadow-2xs gap-1.5 shrink-0 transition-all cursor-pointer"
+                      className="h-10 px-3.5 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 rounded-xl font-black uppercase tracking-wider text-[10px] shadow-2xs gap-1.5 shrink-0 transition-all cursor-pointer"
                     >
                       <FileUp size={14} />
                       Bulk Upload
