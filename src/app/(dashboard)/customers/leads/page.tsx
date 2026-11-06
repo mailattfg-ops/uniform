@@ -673,47 +673,53 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Locality',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.area || '',
       accessor: (l) => (
         l.area ? (
-          <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{l.area}</span>
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         )
       )
     },
 
     {
       header: 'Contact Person',
-      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap',
+      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap text-center',
       sortValue: (l) => l.contact_person || '',
       accessor: (l) => (
         l.contact_person ? (
-          <div className="flex flex-col min-w-0 max-w-[190px]">
-            <span className="text-xs font-bold text-zinc-900 truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
+            <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
               {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
             </span>
             {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={l.contact_designation}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         )
       )
     },
     {
       header: 'Contact Phone',
-      className: 'w-[145px] min-w-[135px] whitespace-nowrap',
+      className: 'w-[145px] min-w-[135px] whitespace-nowrap text-center',
       sortValue: (l) => l.phone || '',
       accessor: (l) => (
-        <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+        <div className="flex items-center justify-center text-center">
+          <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+        </div>
       )
     },
     {

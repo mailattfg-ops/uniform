@@ -1054,23 +1054,25 @@ export default function CustomersRegistry() {
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
       sortValue: (c) => c.zones?.name || (zones.find(z => z.id === c.zone_id)?.name) || '',
       accessor: (c) => {
         const zoneName = c.zones?.name || zones.find(z => z.id === c.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <MapPin size={12} className="text-zinc-400 shrink-0" />
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         );
       }
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-center',
       sortValue: (c) => c.contact_person || c.contact_number || c.phone || '',
       accessor: (c) => {
         const person = c.contact_person;
@@ -1078,23 +1080,27 @@ export default function CustomersRegistry() {
         const num = c.contact_number || c.phone;
 
         if (!person && !num && !desig) {
-          return <span className="text-zinc-400 text-xs italic font-medium">—</span>;
+          return (
+            <div className="text-center">
+              <span className="text-zinc-400 text-xs italic font-medium">—</span>
+            </div>
+          );
         }
 
         return (
-          <div className="flex flex-col min-w-0 max-w-[210px]">
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[210px] mx-auto">
             {person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block" title={`${c.contact_title ? c.contact_title + ' ' : ''}${person}`}>
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${c.contact_title ? c.contact_title + ' ' : ''}${person}`}>
                 {c.contact_title ? `${c.contact_title} ` : ''}{person}
               </span>
             )}
             {desig && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block mt-0.5" title={desig}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full mt-0.5" title={desig}>
                 {desig}
               </span>
             )}
             {num && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 flex justify-center">
                 <ContactPhoneLink phone={num} name={person || c.name} />
               </div>
             )}

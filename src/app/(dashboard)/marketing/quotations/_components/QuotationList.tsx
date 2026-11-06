@@ -204,7 +204,7 @@ export default function QuotationList({
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => {
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         return fullOrg?.zones?.name || '';
@@ -213,18 +213,20 @@ export default function QuotationList({
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         const zoneName = fullOrg?.zones?.name;
         return zoneName ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <MapPin size={12} className="text-zinc-400 shrink-0" />
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         );
       }
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap',
+      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-center',
       sortValue: (q) => (q.organizations as any)?.contact_person || (q.organizations as any)?.contact_number || (q.organizations as any)?.phone || '',
       accessor: (q) => {
         const org = q.organizations as any;
@@ -234,23 +236,27 @@ export default function QuotationList({
         const ph = org?.contact_number || org?.phone;
 
         if (!person && !ph && !desig) {
-          return <span className="text-zinc-400 text-xs italic font-medium">—</span>;
+          return (
+            <div className="text-center">
+              <span className="text-zinc-400 text-xs italic font-medium">—</span>
+            </div>
+          );
         }
 
         return (
-          <div className="flex flex-col min-w-0 max-w-[190px]">
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
             {person && (
-              <span className="text-xs font-bold text-zinc-800 truncate block" title={`${title ? title + ' ' : ''}${person}`}>
+              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={`${title ? title + ' ' : ''}${person}`}>
                 {title ? `${title} ` : ''}{person}
               </span>
             )}
             {desig && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block mt-0.5" title={desig}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full mt-0.5" title={desig}>
                 {desig}
               </span>
             )}
             {ph && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 flex justify-center">
                 <ContactPhoneLink phone={ph} name={person || org?.name} />
               </div>
             )}

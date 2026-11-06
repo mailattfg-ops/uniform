@@ -421,45 +421,49 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <MapPin size={12} className="text-zinc-400 shrink-0" />
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         );
       }
     },
     {
       header: 'Contact',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-center',
       sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
         l.contact_person || l.phone ? (
-          <div className="flex flex-col min-w-0 max-w-[210px]">
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[210px] mx-auto">
             {l.contact_person && (
-              <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+              <span className="text-xs font-bold text-[#3a525d] truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
                 {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
               </span>
             )}
             {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={l.contact_designation}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
             {l.phone && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 flex justify-center">
                 <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
               </div>
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         )
       )
     },
