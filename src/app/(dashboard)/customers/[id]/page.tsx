@@ -55,7 +55,9 @@ import {
   Layers,
   Target,
   MessageSquarePlus,
-  AlertTriangle
+  AlertTriangle,
+  MoreVertical,
+  MoreHorizontal
 } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
@@ -2034,11 +2036,10 @@ function OrganizationDetailsPageContent() {
                 <Button
                   onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
                   variant="none"
-                  className="h-8 md:h-9 px-3.5 rounded-xl bg-[#3a525d] text-white hover:bg-[#2d8d9b] transition-all shadow-sm text-xs font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  title="Customer Account Actions"
+                  className="h-8 md:h-9 w-8 md:w-9 p-0 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-zinc-900 transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                  title="More actions"
                 >
-                  <span>Actions</span>
-                  <ChevronDown size={13} className={`transition-transform duration-200 ${isActionsDropdownOpen ? 'rotate-180' : ''}`} />
+                  <MoreVertical size={16} />
                 </Button>
 
                 {isActionsDropdownOpen && (
@@ -2094,41 +2095,37 @@ function OrganizationDetailsPageContent() {
           {/* Floating Measurement Quick Action Widget on Right Side (Pops out on hover) */}
           <div
             className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
-              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-46px)] hover:translate-x-0'
+              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-36px)] hover:translate-x-0'
             }`}
             onMouseEnter={() => setIsMeasurementDrawerOpen(true)}
             onMouseLeave={() => setIsMeasurementDrawerOpen(false)}
           >
-            {/* Protruding Handle on Right Edge */}
+            {/* Compact Protruding Handle on Right Edge (Compact Icon-Tab) */}
             <button
               type="button"
               onClick={() => setIsMeasurementDrawerOpen(!isMeasurementDrawerOpen)}
-              className="w-[46px] bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-2xl py-4 px-2 flex flex-col items-center justify-center gap-2.5 shadow-[-6px_4px_25px_rgba(200,42,43,0.25)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0"
+              className="w-9 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-xl py-3 px-1 flex flex-col items-center justify-center gap-2 shadow-[-4px_4px_16px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0"
               title="Measurements & Sizing Quick Actions"
             >
-              <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[#2d8d9b]">
-                <Ruler size={16} />
+              <div className="w-6 h-6 rounded-md bg-white/15 flex items-center justify-center text-white">
+                <Ruler size={13} />
               </div>
-
-              <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-black uppercase tracking-[0.2em] text-[#fce4d4] py-1">
-                Sizing
-              </span>
 
               {(orgDetails?.measurements?.pending || 0) > 0 ? (
                 <span
-                  className="w-5 h-5 rounded-full bg-orange-500 text-white text-[9px] font-black flex items-center justify-center shadow-xs animate-pulse"
+                  className="w-4 h-4 rounded-full bg-orange-500 text-white text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse"
                   title={`${orgDetails?.measurements?.pending} pending measurements`}
                 >
                   {orgDetails?.measurements?.pending}
                 </span>
               ) : (
-                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black flex items-center justify-center">
-                  <Check size={10} />
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[8px] font-black flex items-center justify-center">
+                  <Check size={8} />
                 </span>
               )}
 
               <ChevronLeft
-                size={14}
+                size={11}
                 className={`text-zinc-300 transition-transform duration-300 ${isMeasurementDrawerOpen ? 'rotate-180' : ''}`}
               />
             </button>
@@ -2251,19 +2248,9 @@ function OrganizationDetailsPageContent() {
 
           {/* Statement & Account Balance KPI Cards */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <ReceiptText size={18} className="text-[#2d8d9b]" />
-                <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Statement & Account Summary</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('ledger')}
-                className="text-xs font-bold text-[#2d8d9b] hover:text-[#3a525d] flex items-center gap-1 transition-colors cursor-pointer group"
-              >
-                <span>View Full Statement & Ledger</span>
-                <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
+            <div className="flex items-center gap-2 px-1">
+              <ReceiptText size={18} className="text-[#2d8d9b]" />
+              <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Statement & Account Summary</h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
