@@ -99,7 +99,17 @@ function naturalCompare(a: any, b: any): number {
     return numA - numB;
   }
 
-  // If date strings (e.g. 2026-10-06, 05/10/2026)
+  // If date strings (e.g. 28-09-2026, 2026-10-06, 05/10/2026)
+  const dmyMatchA = strA.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  const dmyMatchB = strB.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatchA && dmyMatchB) {
+    const timeA = new Date(`${dmyMatchA[3]}-${dmyMatchA[2].padStart(2, '0')}-${dmyMatchA[1].padStart(2, '0')}T00:00:00`).getTime();
+    const timeB = new Date(`${dmyMatchB[3]}-${dmyMatchB[2].padStart(2, '0')}-${dmyMatchB[1].padStart(2, '0')}T00:00:00`).getTime();
+    if (!isNaN(timeA) && !isNaN(timeB)) {
+      return timeA - timeB;
+    }
+  }
+
   const dateA = Date.parse(strA);
   const dateB = Date.parse(strB);
   if (!isNaN(dateA) && !isNaN(dateB) && (strA.includes('-') || strA.includes('/')) && strA.length >= 8 && strB.length >= 8) {

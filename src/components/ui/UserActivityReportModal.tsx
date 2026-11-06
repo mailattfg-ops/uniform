@@ -56,15 +56,16 @@ function formatISTDateTime(dateOrStr: string | Date | null | undefined): string 
   try {
     const d = new Date(dateOrStr);
     if (isNaN(d.getTime())) return String(dateOrStr);
-    return d.toLocaleString('en-IN', {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const timeFormatted = d.toLocaleTimeString('en-IN', {
       timeZone: 'Asia/Kolkata',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
     });
+    return `${day}-${month}-${year}, ${timeFormatted.toLowerCase()}`;
   } catch {
     return String(dateOrStr);
   }
@@ -75,12 +76,10 @@ function formatISTDateOnly(dateOrStr: string | Date | null | undefined): string 
   try {
     const d = new Date(dateOrStr);
     if (isNaN(d.getTime())) return String(dateOrStr);
-    return d.toLocaleDateString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
   } catch {
     return String(dateOrStr);
   }
@@ -856,7 +855,7 @@ export function UserActivityReportModal<T = any>({
                 <select
                   value={selectedYear}
                   onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-                  className="font-black text-xs text-[#3a525d] outline-none bg-transparent cursor-pointer"
+                  className="font-black text-xs text-zinc-900 outline-none bg-transparent cursor-pointer"
                 >
                   {[
                     new Date().getFullYear(),

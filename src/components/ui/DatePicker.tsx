@@ -21,7 +21,7 @@ export interface DatePickerProps {
   wrapperClassName?: string;
   size?: 'sm' | 'md' | 'lg';
   align?: 'left' | 'right';
-  displayFormat?: 'DD MMM YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
+  displayFormat?: 'DD-MM-YYYY' | 'DD MMM YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
 }
 
 const MONTH_NAMES = [
@@ -56,7 +56,7 @@ function formatDateToISO(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function formatDisplayDate(val?: string, format: 'DD MMM YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD' = 'DD MMM YYYY'): string {
+function formatDisplayDate(val?: string, format: 'DD-MM-YYYY' | 'DD MMM YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD' = 'DD-MM-YYYY'): string {
   if (!val) return '';
   const d = parseDateString(val);
   if (!d) return val;
@@ -65,6 +65,9 @@ function formatDisplayDate(val?: string, format: 'DD MMM YYYY' | 'DD/MM/YYYY' | 
   const monthNum = String(monthIdx + 1).padStart(2, '0');
   const year = d.getFullYear();
 
+  if (format === 'DD-MM-YYYY') {
+    return `${day}-${monthNum}-${year}`;
+  }
   if (format === 'DD/MM/YYYY') {
     return `${day}/${monthNum}/${year}`;
   }
@@ -92,7 +95,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   wrapperClassName = '',
   size = 'md',
   align = 'left',
-  displayFormat = 'DD MMM YYYY'
+  displayFormat = 'DD-MM-YYYY'
 }) => {
   const [internalValue, setInternalValue] = useState<string>(defaultValue || '');
   const [isOpen, setIsOpen] = useState(false);

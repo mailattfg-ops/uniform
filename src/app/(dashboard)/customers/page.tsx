@@ -21,13 +21,15 @@ import {
   X,
   Search,
   ReceiptText,
-  Printer
+  Printer,
+  MapPin
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate } from '@/lib/formatters';
 
@@ -79,7 +81,8 @@ function compileCustomerDirectoryHTML({
   selectedBranchName,
   printedAt,
   invoices = [],
-  branches = []
+  branches = [],
+  zones = []
 }: {
   customers: Customer[];
   sortInfo: SortInfo<Customer>;
@@ -89,6 +92,7 @@ function compileCustomerDirectoryHTML({
   printedAt: string;
   invoices?: any[];
   branches?: any[];
+  zones?: any[];
 }): string {
   const totalCount = customers.length;
   const activeCount = customers.filter(c => c.is_active !== false).length;
@@ -111,8 +115,10 @@ function compileCustomerDirectoryHTML({
     const custId = c.customer_code || `#${c.id}`;
     const name = c.name || 'Unnamed Customer';
     const sector = c.industries?.name || '';
+    const zoneName = c.zones?.name || (zones?.find((z: any) => String(z.id) === String(c.zone_id))?.name) || '—';
     const branchName = branches?.find((b: any) => String(b.id) === String(c.branch_id))?.name || (c as any).branches?.name || '—';
     const contactPerson = c.contact_person || '—';
+    const designation = c.contact_designation;
     const phone = c.contact_number || c.phone || '—';
     const salesPerson = c.relationship_manager?.full_name || 'Unassigned';
     const receivables = Number(c.receivables || 0);
@@ -138,11 +144,12 @@ function compileCustomerDirectoryHTML({
           <div style="font-weight: 800; color: #1a202c; font-size: 11px;">${name}</div>
           ${sector ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
+        <td style="font-size: 10px; color: #4a5568;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
-          ${c.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${c.contact_designation}</div>` : ''}
+          ${designation ? `<div style="color: #a0aec0; font-size: 8px;">${designation}</div>` : ''}
+          ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #2d8d9b; margin-top: 2px;">${phone}</div>` : ''}
         </td>
-        <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${phone}</td>
         <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${receivables > 0 ? '#e53e3e' : '#4a5568'}; white-space: nowrap;">
           ₹${receivables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>
@@ -416,8 +423,8 @@ function compileCustomerDirectoryHTML({
         <th style="width: 25px;">#</th>
         <th style="width: 80px;">CUST. ID</th>
         <th>CUSTOMER NAME</th>
-        <th>CONTACT PERSON</th>
-        <th>CONTACT PHONE</th>
+        <th>ZONE</th>
+        <th>CONTACT</th>
         <th style="text-align: right; width: 85px;">RECEIVABLES</th>
         <th style="text-align: right; width: 80px;">CREDITS</th>
       </tr>
@@ -446,6 +453,7 @@ export default function CustomersRegistry() {
   // Filters
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [branches, setBranches] = useState<any[]>([]);
+  const [zones, setZones] = useState<any[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'SPECIAL' | 'RISK'>('ALL');
@@ -531,8 +539,9 @@ export default function CustomersRegistry() {
       printedAt,
       invoices,
       branches,
+      zones,
     });
-  }, [printModal, industries, selectedIndustry, selectedBranch, branches, statusFilter, invoices]);
+  }, [printModal, industries, selectedIndustry, selectedBranch, branches, statusFilter, invoices, zones]);
 
   useEffect(() => {
     try {
@@ -550,8 +559,6 @@ export default function CustomersRegistry() {
     currentUser?.memberId || 
     ['organisation', 'organization', 'school', 'entity', 'student', 'member'].includes((currentUser?.role || '').toLowerCase())
   );
-
-  const [zones, setZones] = useState<any[]>([]);
 
   const availableFilterZones = useMemo(() => {
     if (selectedBranch === 'ALL') return zones;
@@ -1046,43 +1053,52 @@ export default function CustomersRegistry() {
       }
     },
     {
-      header: 'CONTACT PERSON',
-      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap',
-      sortValue: (c) => c.contact_person || '',
-      accessor: (c) => (
-        c.contact_person ? (
-          <div className="flex flex-col min-w-0 max-w-[190px]">
-            <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${c.contact_title ? c.contact_title + ' ' : ''}${c.contact_person}`}>
-              {c.contact_title ? `${c.contact_title} ` : ''}{c.contact_person}
-            </span>
-            {c.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={c.contact_designation}>
-                {c.contact_designation}
-              </span>
-            )}
+      header: 'ZONE',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      sortValue: (c) => c.zones?.name || (zones.find(z => z.id === c.zone_id)?.name) || '',
+      accessor: (c) => {
+        const zoneName = c.zones?.name || zones.find(z => z.id === c.zone_id)?.name;
+        return zoneName ? (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{zoneName}</span>
           </div>
         ) : (
           <span className="text-zinc-400 text-xs italic font-medium">—</span>
-        )
-      )
+        );
+      }
     },
     {
-      header: 'CONTACT PHONE',
-      className: 'w-[130px] whitespace-nowrap',
-      sortValue: (c) => c.contact_number || c.phone || '',
+      header: 'CONTACT',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap',
+      sortValue: (c) => c.contact_person || c.contact_number || c.phone || '',
       accessor: (c) => {
+        const person = c.contact_person;
+        const desig = c.contact_designation;
         const num = c.contact_number || c.phone;
-        return num ? (
-          <a
-            href={`tel:${num}`}
-            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
-            title={`Call ${num}`}
-          >
-            <Phone size={12} className="text-[#2d8d9b] shrink-0" />
-            <span>{num}</span>
-          </a>
-        ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+
+        if (!person && !num && !desig) {
+          return <span className="text-zinc-400 text-xs italic font-medium">—</span>;
+        }
+
+        return (
+          <div className="flex flex-col min-w-0 max-w-[210px]">
+            {person && (
+              <span className="text-xs font-bold text-zinc-900 truncate block" title={`${c.contact_title ? c.contact_title + ' ' : ''}${person}`}>
+                {c.contact_title ? `${c.contact_title} ` : ''}{person}
+              </span>
+            )}
+            {desig && (
+              <span className="text-[9px] text-zinc-400 font-medium truncate block mt-0.5" title={desig}>
+                {desig}
+              </span>
+            )}
+            {num && (
+              <div className="mt-0.5">
+                <ContactPhoneLink phone={num} name={person || c.name} />
+              </div>
+            )}
+          </div>
         );
       }
     },

@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   Snowflake,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -24,6 +25,7 @@ import toast from '@/components/ui/toast';
 import { Quotation, Organization } from '../page';
 import { formatDate, capitalizeFirstLetter } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -183,11 +185,42 @@ export default function QuotationList({
       header: 'CUSTOMER NAME',
       className: 'min-w-[160px] max-w-[260px]',
       sortValue: (q) => q.organizations?.name || '',
-      accessor: (q) => (
-        <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
-          {q.organizations?.name || '—'}
-        </p>
-      )
+      accessor: (q) => {
+        const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+        const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
+        return (
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
+              {q.organizations?.name || '—'}
+            </p>
+            {sector && (
+              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5" title={sector}>
+                {sector}
+              </p>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      header: 'ZONE',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      sortValue: (q) => {
+        const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+        return fullOrg?.zones?.name || '';
+      },
+      accessor: (q) => {
+        const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+        const zoneName = fullOrg?.zones?.name;
+        return zoneName ? (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{zoneName}</span>
+          </div>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+        );
+      }
     },
     {
       header: 'CONTACT',
@@ -200,31 +233,27 @@ export default function QuotationList({
         const desig = org?.contact_designation;
         const ph = org?.contact_number || org?.phone;
 
-        if (!person && !ph) {
+        if (!person && !ph && !desig) {
           return <span className="text-zinc-400 text-xs italic font-medium">—</span>;
         }
 
         return (
           <div className="flex flex-col min-w-0 max-w-[190px]">
             {person && (
-              <span className="text-xs font-bold text-zinc-800 truncate block" title={`${title ? title + ' ' : ''}${person}${desig ? ` (${desig})` : ''}`}>
+              <span className="text-xs font-bold text-zinc-800 truncate block" title={`${title ? title + ' ' : ''}${person}`}>
                 {title ? `${title} ` : ''}{person}
               </span>
             )}
-            {ph ? (
-              <a
-                href={`tel:${ph}`}
-                className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-zinc-800 hover:text-[#2d8d9b] transition-colors mt-0.5"
-                title={`Call ${ph}`}
-              >
-                <Phone size={11} className="text-[#2d8d9b] shrink-0" />
-                <span>{ph}</span>
-              </a>
-            ) : desig ? (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={desig}>
+            {desig && (
+              <span className="text-[9px] text-zinc-400 font-medium truncate block mt-0.5" title={desig}>
                 {desig}
               </span>
-            ) : null}
+            )}
+            {ph && (
+              <div className="mt-0.5">
+                <ContactPhoneLink phone={ph} name={person || org?.name} />
+              </div>
+            )}
           </div>
         );
       }
@@ -366,19 +395,27 @@ export default function QuotationList({
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
     const rowsHtml = dataToPrint.map((q, idx) => {
-      const org = q.organizations as any;
-      const person = org?.contact_person || '—';
-      const phone = org?.contact_number || org?.phone || '—';
+      const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+      const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
+      const zoneName = fullOrg?.zones?.name || '—';
+      const person = fullOrg?.contact_person || '—';
+      const desig = fullOrg?.contact_designation;
+      const phone = fullOrg?.contact_number || fullOrg?.phone || '—';
       const sp = getSalesPerson(q)?.name || 'Unassigned';
 
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
-        <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${q.organizations?.name || '—'}</td>
+        <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
+          <div>${q.organizations?.name || '—'}</div>
+          ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
+        </td>
+        <td style="font-size: 10px; color: #4a5568;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700;">${person}</div>
-          ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #718096;">${phone}</div>` : ''}
+          ${desig ? `<div style="font-size: 8px; color: #a0aec0;">${desig}</div>` : ''}
+          ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #718096; margin-top: 2px;">${phone}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${sp}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
@@ -432,6 +469,7 @@ export default function QuotationList({
         <th style="width: 30px;">#</th>
         <th>QUOTATION NO.</th>
         <th>CUSTOMER NAME</th>
+        <th>ZONE</th>
         <th>CONTACT</th>
         <th>SALES PERSON</th>
         <th style="text-align: center;">EXPECTED DATE</th>
@@ -440,7 +478,7 @@ export default function QuotationList({
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="8" style="text-align: center; padding: 20px;">No quotations matching filters</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="9" style="text-align: center; padding: 20px;">No quotations matching filters</td></tr>'}
     </tbody>
   </table>
 </body>

@@ -6,10 +6,11 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
-  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText
+  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, MapPin
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { 
   Lead, 
   Industry, 
@@ -296,6 +297,7 @@ export default function DealsRegistryPage() {
           <div>${l.name}</div>
           ${l.industries?.name ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${l.industries.name}</div>` : ''}
         </td>
+        <td style="font-size: 10px; color: #4a5568;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -356,15 +358,16 @@ export default function DealsRegistryPage() {
       <tr>
         <th style="width: 30px;">#</th>
         <th>Customer Name</th>
+        <th>Zone</th>
         <th>Contact</th>
         <th>Sales Person</th>
-        <th style="text-align: center;">Stage Status</th>
+        <th style="text-align: center;">Status</th>
         <th style="text-align: right;">Amount</th>
         <th style="text-align: right;">Adv.Received</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #a0aec0;">No deals found matching filter criteria</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="8" style="text-align: center; padding: 24px; color: #a0aec0;">No deals found matching filter criteria</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -417,6 +420,22 @@ export default function DealsRegistryPage() {
       )
     },
     {
+      header: 'Zone',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
+      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
+      accessor: (l) => {
+        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+        return zoneName ? (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{zoneName}</span>
+          </div>
+        ) : (
+          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+        );
+      }
+    },
+    {
       header: 'Contact',
       className: 'min-w-[150px] max-w-[220px] whitespace-nowrap',
       sortValue: (l) => l.contact_person || l.phone || '',
@@ -434,15 +453,9 @@ export default function DealsRegistryPage() {
               </span>
             )}
             {l.phone && (
-              <a
-                href={`tel:${l.phone}`}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2d8d9b] hover:underline mt-0.5"
-                title={`Call ${l.phone}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Phone size={11} className="text-[#2d8d9b] shrink-0" />
-                <span>{l.phone}</span>
-              </a>
+              <div className="mt-0.5">
+                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+              </div>
             )}
           </div>
         ) : (
@@ -470,7 +483,7 @@ export default function DealsRegistryPage() {
       )
     },
     {
-      header: 'Stage Status',
+      header: 'Status',
       className: 'w-[160px] whitespace-nowrap',
       sortValue: (l) => {
         if (l.status === 'SO Converted Deals') return 'SO Converted';
@@ -561,7 +574,7 @@ export default function DealsRegistryPage() {
         </div>
       )
     }
-  ], [getDealFinancials, isNoFollowupDeal]);
+  ], [getDealFinancials, isNoFollowupDeal, zones]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
