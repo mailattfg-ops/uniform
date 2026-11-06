@@ -407,7 +407,7 @@ export default function DealsRegistryPage() {
             {l.name}
           </p>
           {l.industries?.name && (
-            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
+            <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
               {l.industries.name}
             </p>
           )}
@@ -445,7 +445,7 @@ export default function DealsRegistryPage() {
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[210px] mx-auto">
             {l.contact_person && (
-              <span className="text-xs font-bold text-[#3a525d] truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
                 {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
               </span>
             )}
@@ -538,7 +538,7 @@ export default function DealsRegistryPage() {
         const { quoteAmount } = getDealFinancials(l);
         return (
           <div className="text-right">
-            <span className="text-xs font-mono font-black text-[#3a525d]">
+            <span className="text-xs font-mono font-black text-zinc-900">
               ₹{quoteAmount > 0 ? quoteAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
           </div>
@@ -586,9 +586,9 @@ export default function DealsRegistryPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Deals</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Deals</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 font-bold">
             Commercial Deals • Initial Payments • Sales Order Conversions
           </p>
         </div>

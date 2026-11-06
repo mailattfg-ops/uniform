@@ -1179,8 +1179,8 @@ export default function CustomersRegistry() {
       {/* Top Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Customers</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Customers</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 font-bold">
             Institutional Directory &amp; Account Classifications
           </p>
         </div>

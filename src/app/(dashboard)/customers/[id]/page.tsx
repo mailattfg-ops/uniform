@@ -2098,39 +2098,28 @@ function OrganizationDetailsPageContent() {
           {/* Floating Measurement Quick Action Widget on Right Side (Pops out on hover) */}
           <div
             className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
-              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-36px)] hover:translate-x-0'
+              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)] hover:translate-x-0'
             }`}
             onMouseEnter={() => setIsMeasurementDrawerOpen(true)}
             onMouseLeave={() => setIsMeasurementDrawerOpen(false)}
           >
-            {/* Compact Protruding Handle on Right Edge (Compact Icon-Tab) */}
+            {/* Small Compact Icon Tab on Right Edge */}
             <button
               type="button"
               onClick={() => setIsMeasurementDrawerOpen(!isMeasurementDrawerOpen)}
-              className="w-9 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-xl py-3 px-1 flex flex-col items-center justify-center gap-2 shadow-[-4px_4px_16px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0"
+              className="relative w-8 h-9 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-xl flex items-center justify-center shadow-[-4px_2px_12px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0 active:scale-95"
               title="Measurements & Sizing Quick Actions"
             >
-              <div className="w-6 h-6 rounded-md bg-white/15 flex items-center justify-center text-white">
-                <Ruler size={13} />
-              </div>
+              <Ruler size={14} className="text-white" />
 
-              {(orgDetails?.measurements?.pending || 0) > 0 ? (
+              {(orgDetails?.measurements?.pending || 0) > 0 && (
                 <span
-                  className="w-4 h-4 rounded-full bg-orange-500 text-white text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse"
+                  className="absolute -top-1 -left-1 w-3.5 h-3.5 rounded-full bg-amber-400 text-zinc-900 text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse ring-1 ring-white"
                   title={`${orgDetails?.measurements?.pending} pending measurements`}
                 >
                   {orgDetails?.measurements?.pending}
                 </span>
-              ) : (
-                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[8px] font-black flex items-center justify-center">
-                  <Check size={8} />
-                </span>
               )}
-
-              <ChevronLeft
-                size={11}
-                className={`text-zinc-300 transition-transform duration-300 ${isMeasurementDrawerOpen ? 'rotate-180' : ''}`}
-              />
             </button>
 
             {/* Pop-out Panel */}
