@@ -1609,9 +1609,11 @@ function OrganizationDetailsPageContent() {
         (q.order_no && q.order_no === ord.order_no)
       );
 
-      const expDate = linkedQuote?.expected_delivery_date 
+      const expDate = ord.target_delivery_date 
+        || ord.delivery_date
         || linkedQuote?.target_delivery_date 
-        || ord.target_delivery_date 
+        || linkedQuote?.expected_delivery_date 
+        || linkedQuote?.delivery_date
         || ord.expected_delivery_date 
         || ord.expected_date 
         || linkedQuote?.quotation_date 
@@ -3707,10 +3709,12 @@ function OrganizationDetailsPageContent() {
                         (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
                         (o.quotation_no && q.quotation_no === o.quotation_no)
                       );
-                      const exp = quote?.expected_delivery_date 
+                      const exp = o.target_delivery_date 
+                        || o.delivery_date
                         || quote?.target_delivery_date 
+                        || quote?.expected_delivery_date 
+                        || quote?.delivery_date
                         || o.expected_delivery_date 
-                        || o.target_delivery_date 
                         || quote?.quotation_date 
                         || quote?.created_at 
                         || o.expected_date;
