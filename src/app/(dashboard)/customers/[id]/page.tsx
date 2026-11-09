@@ -586,6 +586,7 @@ function OrganizationDetailsPageContent() {
   const [isLoadingOrg, setIsLoadingOrg] = useState(true);
   const [quotations, setQuotations] = useState<any[]>([]);
   const [industries, setIndustries] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
   const [isGstDeliveryModalOpen, setIsGstDeliveryModalOpen] = useState(false);
   const [isSavingGstDelivery, setIsSavingGstDelivery] = useState(false);
@@ -754,11 +755,12 @@ function OrganizationDetailsPageContent() {
   const fetchOrgData = async () => {
     setIsLoadingOrg(true);
     try {
-      const [orgsRes, detailsRes, quotesRes, indRes] = await Promise.all([
+      const [orgsRes, detailsRes, quotesRes, indRes, empRes] = await Promise.all([
         api.get('/organizations').catch(() => ({ data: [] })),
         api.get(`/organizations/${orgId}/details`),
         api.get('/quotations').catch(() => ({ data: [] })),
-        api.get('/industries').catch(() => ({ data: [] }))
+        api.get('/industries').catch(() => ({ data: [] })),
+        api.get('/employees').catch(() => ({ data: [] }))
       ]);
 
       const orgList = orgsRes.data || [];
@@ -771,6 +773,7 @@ function OrganizationDetailsPageContent() {
       const fetchedDepts = detailsRes.data?.departments || [];
       setDepartments(fetchedDepts.length > 0 ? fetchedDepts : [{ id: 'main', name: 'Main', division: 'Main', section: 'Main' }]);
       setIndustries(indRes.data || []);
+      setEmployees(empRes.data || []);
 
       const allQuotes = quotesRes.data || [];
       const orgQuotes = allQuotes.filter((q: any) => q.organization_id === orgId);
@@ -3233,16 +3236,16 @@ function OrganizationDetailsPageContent() {
                     onClick={() => setTransactionSubTab(tab.id as TransactionSubTab)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                       isActive
-                        ? 'bg-[#3a525d] text-white shadow-sm'
+                        ? 'bg-zinc-900 text-white shadow-sm'
                         : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 bg-zinc-50/60 border border-zinc-200/60'
                     }`}
                   >
-                    <Icon size={14} className={isActive ? 'text-[#2d8d9b]' : 'text-zinc-400'} />
+                    <Icon size={14} className={isActive ? 'text-[#C82A2B]' : 'text-zinc-400'} />
                     <span>{tab.label}</span>
                     <span
                       className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                         isActive
-                          ? 'bg-[#2d8d9b] text-white'
+                          ? 'bg-[#C82A2B] text-white'
                           : 'bg-zinc-200/80 text-zinc-600'
                       }`}
                     >
@@ -3273,10 +3276,18 @@ function OrganizationDetailsPageContent() {
                 }
                 columns={[
                   {
-                    header: 'QT / Ref No',
+                    header: 'Date',
                     accessor: (q) => (
-                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center gap-1.5">
-                        <FileText size={14} className="text-[#2d8d9b] shrink-0" />
+                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+                        {formatDate(q.quotation_date || q.created_at)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Quotation No.',
+                    accessor: (q) => (
+                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center gap-1.5 whitespace-nowrap">
+                        <FileText size={14} className="text-[#C82A2B] shrink-0" />
                         <span>{q.quotation_no}</span>
                       </div>
                     )
@@ -3284,54 +3295,66 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Title / Description',
                     accessor: (q) => (
-                      <span className="font-bold text-xs text-[#3a525d] block truncate" title={q.title || 'Uniform Proposal'}>
+                      <span className="font-bold text-xs text-zinc-800 block truncate max-w-[260px]" title={q.title || 'Uniform Proposal'}>
                         {q.title || 'Uniform Proposal'}
                       </span>
                     )
                   },
                   {
-                    header: 'Type',
+                    header: 'Sales Person',
                     accessor: (q) => {
-                      const qType = q.metrics_summary?.quotation_type || q.quotation_type || 'STANDARD';
-                      return (
-                        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-50 border border-zinc-150 rounded-lg text-zinc-650">
-                          {qType}
-                        </span>
+                      const sp = q.sales_person?.full_name 
+                        || q.sales_person?.name 
+                        || q.organizations?.relationship_manager?.full_name 
+                        || org?.relationship_manager?.full_name 
+                        || employees.find(e => e.id === (q.sales_person_id || q.organizations?.relationship_manager_id || org?.relationship_manager_id))?.full_name;
+                      const empCode = q.sales_person?.employee_id 
+                        || q.organizations?.relationship_manager?.employee_id 
+                        || org?.relationship_manager?.employee_id
+                        || employees.find(e => e.id === (q.sales_person_id || q.organizations?.relationship_manager_id || org?.relationship_manager_id))?.employee_id;
+                      return sp ? (
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-zinc-800 truncate" title={sp}>
+                            {sp}
+                          </p>
+                          {empCode && (
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate">
+                              {empCode}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
                       );
                     }
                   },
                   {
-                    header: 'Status',
-                    accessor: (q) => {
-                      const statusColors: Record<string, string> = {
-                        'Draft': 'bg-zinc-50 text-zinc-500 border-zinc-200',
-                        'Sent': 'bg-blue-50 text-blue-750 border-blue-150',
-                        'Accepted': 'bg-green-50 text-green-700 border-green-150',
-                        'Rejected': 'bg-red-50 text-red-650 border-red-150'
-                      };
-                      const cls = statusColors[q.status] || 'bg-zinc-50 text-zinc-500 border-zinc-200';
-                      return (
-                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider border rounded-lg ${cls}`}>
-                          {q.status}
-                        </span>
-                      );
-                    }
-                  },
-                  {
-                    header: 'Final Value',
+                    header: 'Amount',
                     accessor: (q) => (
-                      <span className="font-mono font-black text-zinc-800">
+                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
                         ₹{parseFloat(q.final_quote_value || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
                   },
                   {
-                    header: 'Date Created',
-                    accessor: (q) => (
-                      <span className="text-zinc-500 font-bold">
-                        {formatDate(q.created_at)}
-                      </span>
-                    )
+                    header: 'Status',
+                    accessor: (q) => {
+                      const statusColors: Record<string, string> = {
+                        'Draft': 'bg-zinc-50 text-zinc-600 border-zinc-200',
+                        'Pending': 'bg-amber-50 text-amber-700 border-amber-200',
+                        'Pending Branch Approval': 'bg-amber-50 text-amber-700 border-amber-200',
+                        'Approved': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        'Sent': 'bg-blue-50 text-blue-700 border-blue-200',
+                        'Accepted': 'bg-green-50 text-green-700 border-green-200',
+                        'Rejected': 'bg-rose-50 text-rose-700 border-rose-200'
+                      };
+                      const cls = statusColors[q.status] || 'bg-zinc-50 text-zinc-600 border-zinc-200';
+                      return (
+                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider border rounded-lg whitespace-nowrap ${cls}`}>
+                          {q.status}
+                        </span>
+                      );
+                    }
                   }
                 ]}
                 data={customerQuotes}
