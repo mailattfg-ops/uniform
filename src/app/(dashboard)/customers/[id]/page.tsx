@@ -1595,11 +1595,45 @@ function OrganizationDetailsPageContent() {
   }, [ledgerData?.payments, ledgerData?.transactions]);
 
   const customerOrders = React.useMemo(() => {
-    if (ledgerData?.orders && ledgerData.orders.length > 0) {
-      return ledgerData.orders;
-    }
-    return orgDetails?.orders || [];
-  }, [ledgerData?.orders, orgDetails?.orders]);
+    const rawOrders = (ledgerData?.orders && ledgerData.orders.length > 0)
+      ? ledgerData.orders
+      : (orgDetails?.orders || []);
+
+    return rawOrders.map((ord: any) => {
+      const linkedQuote = ord.quotations || quotations.find((q: any) => 
+        (ord.quotation_id && String(q.id) === String(ord.quotation_id)) ||
+        (ord.quotation_no && q.quotation_no === ord.quotation_no) ||
+        (ord.quotations?.id && String(q.id) === String(ord.quotations.id)) ||
+        (ord.quotations?.quotation_no && q.quotation_no === ord.quotations.quotation_no) ||
+        (Array.isArray(q.orders) && q.orders.some((o: any) => o.id === ord.id || o.order_no === ord.order_no)) ||
+        (q.order_no && q.order_no === ord.order_no)
+      );
+
+      const expDate = linkedQuote?.expected_delivery_date 
+        || linkedQuote?.target_delivery_date 
+        || ord.target_delivery_date 
+        || ord.expected_delivery_date 
+        || ord.expected_date 
+        || linkedQuote?.quotation_date 
+        || linkedQuote?.created_at 
+        || null;
+
+      const quoteVal = linkedQuote?.final_quote_value !== undefined 
+        ? parseFloat(String(linkedQuote.final_quote_value))
+        : parseFloat(String(ord.total_amount || 0));
+
+      return {
+        ...ord,
+        quotations: linkedQuote || ord.quotations,
+        quotation_id: ord.quotation_id || linkedQuote?.id,
+        expected_delivery_date: expDate,
+        target_delivery_date: expDate,
+        total_amount: quoteVal,
+        amount: quoteVal,
+        so_amount: quoteVal
+      };
+    });
+  }, [ledgerData?.orders, orgDetails?.orders, quotations]);
 
   const customerShipments = React.useMemo(() => {
     return deliveryChallans.map((dc: any) => {
@@ -3669,10 +3703,20 @@ function OrganizationDetailsPageContent() {
                     header: 'Expected Date',
                     className: 'w-[115px] whitespace-nowrap',
                     accessor: (o: any) => {
-                      const exp = o.target_delivery_date || o.expected_delivery_date || o.expected_date || o.quotations?.expected_delivery_date;
+                      const quote = o.quotations || quotations.find((q: any) => 
+                        (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
+                        (o.quotation_no && q.quotation_no === o.quotation_no)
+                      );
+                      const exp = quote?.expected_delivery_date 
+                        || quote?.target_delivery_date 
+                        || o.expected_delivery_date 
+                        || o.target_delivery_date 
+                        || quote?.quotation_date 
+                        || quote?.created_at 
+                        || o.expected_date;
                       return (
-                        <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap">
-                          {exp ? formatDate(exp) : 'Standard'}
+                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                          {exp ? formatDate(exp) : '—'}
                         </span>
                       );
                     }
@@ -3736,7 +3780,11 @@ function OrganizationDetailsPageContent() {
                     header: 'Payment',
                     className: 'w-[95px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
-                      const soVal = parseFloat(String(o.total_amount || o.quotations?.final_quote_value || 0));
+                      const quote = o.quotations || quotations.find((q: any) => 
+                        (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
+                        (o.quotation_no && q.quotation_no === o.quotation_no)
+                      );
+                      const soVal = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
                       const matchedPayments = customerPayments.filter((p: any) => p.order_id === o.id || p.order_ref === o.order_no);
                       const paidTotal = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
                       const isPaid = (soVal > 0 && paidTotal >= soVal) || o.payment_status === 'Paid' || o.status === 'Paid';
@@ -3756,9 +3804,19 @@ function OrganizationDetailsPageContent() {
                     header: 'SO Amount',
                     className: 'w-[125px] whitespace-nowrap text-right',
                     sortable: true,
-                    sortValue: (o: any) => parseFloat(String(o.total_amount || o.quotations?.final_quote_value || 0)),
+                    sortValue: (o: any) => {
+                      const quote = o.quotations || quotations.find((q: any) => 
+                        (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
+                        (o.quotation_no && q.quotation_no === o.quotation_no)
+                      );
+                      return parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
+                    },
                     accessor: (o: any) => {
-                      const val = parseFloat(String(o.total_amount || o.quotations?.final_quote_value || 0));
+                      const quote = o.quotations || quotations.find((q: any) => 
+                        (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
+                        (o.quotation_no && q.quotation_no === o.quotation_no)
+                      );
+                      const val = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
                       return (
                         <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
                           {val > 0 ? `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
