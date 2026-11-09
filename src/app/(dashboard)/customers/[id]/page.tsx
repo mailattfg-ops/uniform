@@ -67,6 +67,7 @@ import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
 import { Select } from '@/components/ui/Select';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 import * as XLSX from 'xlsx';
 import { formatDate } from '@/lib/formatters';
@@ -585,6 +586,7 @@ function OrganizationDetailsPageContent() {
   const [orgDetails, setOrgDetails] = useState<any>(null);
   const [isLoadingOrg, setIsLoadingOrg] = useState(true);
   const [quotations, setQuotations] = useState<any[]>([]);
+  const [quoteDateFilter, setQuoteDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [industries, setIndustries] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
@@ -3264,6 +3266,13 @@ function OrganizationDetailsPageContent() {
                 title="Customer Quotes"
                 onRowClick={(q: any) => handleOpenQuoteModal(q.id)}
                 subtitle={`Formal quotation proposals created for ${org.name}`}
+                headerAction={
+                  <DateRangeFilter
+                    label="Date"
+                    value={quoteDateFilter}
+                    onChange={setQuoteDateFilter}
+                  />
+                }
                 rightAction={
                   <button
                     type="button"
@@ -3357,7 +3366,7 @@ function OrganizationDetailsPageContent() {
                     }
                   }
                 ]}
-                data={customerQuotes}
+                data={customerQuotes.filter(q => matchesDateFilter(q.quotation_date || q.created_at, quoteDateFilter))}
                 isLoading={isLoadingOrg}
                 searchPlaceholder="Search"
                 emptyMessage="No quotations recorded for this customer."

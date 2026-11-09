@@ -5,8 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
+import { formatDate } from '@/lib/formatters';
 import { 
-  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, MapPin
+  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, MapPin, Calendar
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -38,6 +40,7 @@ export default function DealsRegistryPage() {
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
 
   // Modal States
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
@@ -270,9 +273,13 @@ export default function DealsRegistryPage() {
         const indId = String(l.industry_id || '');
         if (indId !== selectedIndustry) return false;
       }
+      // 4. Date filter
+      if (!matchesDateFilter(l.created_at, dateFilter)) {
+        return false;
+      }
       return true;
     });
-  }, [allDeals, stageFilter, selectedBranch, selectedZone, selectedIndustry, getDealFinancials]);
+  }, [allDeals, stageFilter, selectedBranch, selectedZone, selectedIndustry, dateFilter, getDealFinancials]);
 
   // Print & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
@@ -297,6 +304,7 @@ export default function DealsRegistryPage() {
           <div>${l.name}</div>
           ${l.industries?.name ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${l.industries.name}</div>` : ''}
         </td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
         <td style="font-size: 10px; color: #4a5568;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
@@ -358,6 +366,7 @@ export default function DealsRegistryPage() {
       <tr>
         <th style="width: 30px;">#</th>
         <th>Customer Name</th>
+        <th style="text-align: center;">Date</th>
         <th>Zone</th>
         <th>Contact</th>
         <th>Sales Person</th>
@@ -367,7 +376,7 @@ export default function DealsRegistryPage() {
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="8" style="text-align: center; padding: 24px; color: #a0aec0;">No deals found matching filter criteria</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="9" style="text-align: center; padding: 24px; color: #a0aec0;">No deals found matching filter criteria</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -417,6 +426,16 @@ export default function DealsRegistryPage() {
             </p>
           )}
         </div>
+      )
+    },
+    {
+      header: 'Date',
+      className: 'w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.created_at || '',
+      accessor: (l) => (
+        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+          {formatDate(l.created_at)}
+        </span>
       )
     },
     {
@@ -677,6 +696,13 @@ export default function DealsRegistryPage() {
                 value: String(ind.id),
                 badge: allDeals.filter(l => String(l.industry_id) === String(ind.id)).length
               }))}
+            />
+
+            {/* 5. Date Filter */}
+            <DateRangeFilter
+              label="Date"
+              value={dateFilter}
+              onChange={setDateFilter}
             />
 
 

@@ -26,6 +26,7 @@ import { Quotation, Organization } from '../page';
 import { formatDate, capitalizeFirstLetter } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
+import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -73,6 +74,7 @@ export default function QuotationList({
   const [zones, setZones] = useState<any[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [employees, setEmployees] = useState<any[]>([]);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
 
   useEffect(() => {
     Promise.all([
@@ -94,7 +96,7 @@ export default function QuotationList({
     return zones.filter(z => String(z.branch_id) === selectedBranch);
   }, [zones, selectedBranch]);
 
-  // Filtered dataset based on branch, zone, sector, and quote status
+  // Filtered dataset based on branch, zone, sector, quote status, and date
   const filteredQuotations = useMemo(() => {
     return quotations.filter(q => {
       if (selectedBranch !== 'ALL') {
@@ -112,6 +114,9 @@ export default function QuotationList({
         const indId = String((q.organizations as any)?.industry_id || '');
         if (indId !== selectedIndustry) return false;
       }
+      if (!matchesDateFilter(q.quotation_date || q.created_at, dateFilter)) {
+        return false;
+      }
       switch (activeFilter) {
         case 'drafts':
           return q.status === 'Draft';
@@ -125,7 +130,7 @@ export default function QuotationList({
           return true;
       }
     });
-  }, [quotations, activeFilter, selectedBranch, selectedZone, selectedOrgId, selectedIndustry]);
+  }, [quotations, activeFilter, selectedBranch, selectedZone, selectedOrgId, selectedIndustry, dateFilter]);
 
   // Tab counts
   const counts = useMemo(() => {
@@ -178,6 +183,16 @@ export default function QuotationList({
       accessor: (q) => (
         <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
           {q.quotation_no}
+        </span>
+      )
+    },
+    {
+      header: 'DATE',
+      className: 'w-[110px] whitespace-nowrap text-center',
+      sortValue: (q) => q.quotation_date || q.created_at || '',
+      accessor: (q) => (
+        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap">
+          {formatDate(q.quotation_date || q.created_at)}
         </span>
       )
     },
@@ -413,6 +428,7 @@ export default function QuotationList({
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.quotation_date || q.created_at)}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
@@ -474,6 +490,7 @@ export default function QuotationList({
       <tr>
         <th style="width: 30px;">#</th>
         <th>QUOTATION NO.</th>
+        <th style="text-align: center;">DATE</th>
         <th>CUSTOMER NAME</th>
         <th>ZONE</th>
         <th>CONTACT</th>
@@ -594,6 +611,13 @@ export default function QuotationList({
                 badge: quotations.filter((q) => String((q.organizations as any)?.industry_id || '') === String(ind.id)).length
               }))}
               maxWidth="max-w-[200px]"
+            />
+
+            {/* 5. Date Filter */}
+            <DateRangeFilter
+              label="Date"
+              value={dateFilter}
+              onChange={setDateFilter}
             />
           </div>
         }
