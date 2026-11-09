@@ -3424,6 +3424,7 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Sales Person',
+                    className: 'min-w-[140px] whitespace-nowrap text-center',
                     accessor: (q) => {
                       const sp = q.sales_person?.full_name 
                         || q.sales_person?.name 
@@ -3435,7 +3436,7 @@ function OrganizationDetailsPageContent() {
                         || org?.relationship_manager?.employee_id
                         || employees.find(e => e.id === (q.sales_person_id || q.organizations?.relationship_manager_id || org?.relationship_manager_id))?.employee_id;
                       return sp ? (
-                        <div className="min-w-0">
+                        <div className="min-w-0 text-center flex flex-col items-center">
                           <p className="text-xs font-bold text-zinc-800 truncate" title={sp}>
                             {sp}
                           </p>
@@ -3446,7 +3447,9 @@ function OrganizationDetailsPageContent() {
                           )}
                         </div>
                       ) : (
-                        <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+                        <div className="text-center">
+                          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+                        </div>
                       );
                     }
                   },
@@ -3646,16 +3649,18 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap',
+                    className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (o: any) => (
-                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={o.organizations?.name || org?.name}>
-                        {o.organizations?.name || org?.name || '—'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={o.organizations?.name || org?.name}>
+                          {o.organizations?.name || org?.name || '—'}
+                        </span>
+                      </div>
                     )
                   },
                   {
                     header: 'Sales Person',
-                    className: 'min-w-[130px] whitespace-nowrap',
+                    className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
                       const linkedQuote = o.quotations || quotations.find((q: any) => q.id === o.quotation_id);
                       const sp = o.sales_person?.full_name 
@@ -3666,9 +3671,11 @@ function OrganizationDetailsPageContent() {
                         || employees.find((e: any) => e.id === (o.sales_person_id || linkedQuote?.sales_person_id || org?.relationship_manager_id))?.full_name 
                         || 'Unassigned';
                       return (
-                        <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
-                          {sp}
-                        </span>
+                        <div className="flex justify-center text-center">
+                          <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                            {sp}
+                          </span>
+                        </div>
                       );
                     }
                   },
@@ -3905,11 +3912,13 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap',
+                    className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pkg.customer_name || org?.name}>
-                        {pkg.customer_name || org?.name || '—'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pkg.customer_name || org?.name}>
+                          {pkg.customer_name || org?.name || '—'}
+                        </span>
+                      </div>
                     )
                   },
                   {
@@ -3923,11 +3932,13 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Sales Person',
-                    className: 'min-w-[130px] whitespace-nowrap',
+                    className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
-                        {pkg.sales_person || 'Unassigned'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                          {pkg.sales_person || 'Unassigned'}
+                        </span>
+                      </div>
                     )
                   },
                   {
@@ -4031,11 +4042,13 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap',
+                    className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={dc.customer_name || org?.name}>
-                        {dc.customer_name || org?.name || '—'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={dc.customer_name || org?.name}>
+                          {dc.customer_name || org?.name || '—'}
+                        </span>
+                      </div>
                     )
                   },
                   {
@@ -4049,11 +4062,13 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Sales Person',
-                    className: 'min-w-[130px] whitespace-nowrap',
+                    className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
-                        {dc.sales_person || 'Unassigned'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                          {dc.sales_person || 'Unassigned'}
+                        </span>
+                      </div>
                     )
                   },
                   {
@@ -4175,20 +4190,24 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap',
+                    className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (pi: any) => (
-                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pi.customer_name || org?.name}>
-                        {pi.customer_name || org?.name || '—'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pi.customer_name || org?.name}>
+                          {pi.customer_name || org?.name || '—'}
+                        </span>
+                      </div>
                     )
                   },
                   {
                     header: 'Sales Person',
-                    className: 'min-w-[130px] whitespace-nowrap',
+                    className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (pi: any) => (
-                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
-                        {pi.sales_person || 'Unassigned'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                          {pi.sales_person || 'Unassigned'}
+                        </span>
+                      </div>
                     )
                   },
                   {
@@ -4318,20 +4337,24 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap',
+                    className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={inv.customer_name || org?.name}>
-                        {inv.customer_name || org?.name || '—'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={inv.customer_name || org?.name}>
+                          {inv.customer_name || org?.name || '—'}
+                        </span>
+                      </div>
                     )
                   },
                   {
                     header: 'Sales Person',
-                    className: 'min-w-[130px] whitespace-nowrap',
+                    className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
-                        {inv.sales_person || 'Unassigned'}
-                      </span>
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                          {inv.sales_person || 'Unassigned'}
+                        </span>
+                      </div>
                     )
                   },
                   {

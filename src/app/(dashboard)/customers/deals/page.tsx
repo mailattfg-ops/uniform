@@ -408,10 +408,10 @@ export default function DealsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[170px] max-w-[260px]',
+      className: 'min-w-[170px] max-w-[260px] text-center',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="min-w-0">
+        <div className="min-w-0 text-center flex flex-col items-center">
           <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
             {l.name}
           </p>
@@ -488,11 +488,11 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[140px] whitespace-nowrap',
+      className: 'min-w-[140px] whitespace-nowrap text-center',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
-          <div className="min-w-0 max-w-[180px]">
+          <div className="min-w-0 max-w-[180px] text-center flex flex-col items-center mx-auto">
             <p className="text-xs font-bold text-zinc-800 truncate block" title={l.employees.full_name}>{l.employees.full_name}</p>
             {l.employees.employee_id && (
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
@@ -501,7 +501,9 @@ export default function DealsRegistryPage() {
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          </div>
         )
       )
     },
