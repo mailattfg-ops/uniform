@@ -595,6 +595,9 @@ function OrganizationDetailsPageContent() {
   const [shipmentDateFilter, setShipmentDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [proformaDateFilter, setProformaDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [invoiceDateFilter, setInvoiceDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [expenseDateFilter, setExpenseDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [journalDateFilter, setJournalDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [statementDateFilter, setStatementDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [industries, setIndustries] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
@@ -1836,37 +1839,56 @@ function OrganizationDetailsPageContent() {
           date: ord.order_date || ord.created_at,
           seq: ordIdx + 1
         });
+        const custName = ord.quotations?.organizations?.name || org?.name || '—';
+        const sp = ord.quotations?.sales_person?.full_name 
+          || ord.quotations?.sales_person?.name 
+          || ord.sales_person?.full_name 
+          || org?.relationship_manager?.full_name 
+          || employees.find((e: any) => e.id === (ord.quotations?.sales_person_id || org?.relationship_manager_id))?.full_name 
+          || 'Unassigned';
 
         if (ordVal > 0 || totalExp > 0) {
           list.push({
             id: `EXP-ORD-${ord.id}-01`,
+            voucher_no: `${baseExpNo}/01`,
             expense_ref: `${baseExpNo}/01`,
             date: ord.order_date || ord.created_at,
             category: 'Fabric & Raw Materials',
+            so_no: ord.order_no,
             order_no: ord.order_no,
             linked_ref: ord.order_no,
+            customer_name: custName,
+            sales_person: sp,
             description: `Textile & milling procurement for ${ord.order_no} (${ord.quotations?.title || 'Client Uniforms'})`,
             amount: fabricExp,
             status: 'Allocated'
           });
           list.push({
             id: `EXP-ORD-${ord.id}-02`,
+            voucher_no: `${baseExpNo}/02`,
             expense_ref: `${baseExpNo}/02`,
             date: ord.order_date || ord.created_at,
             category: 'Trims, Buttons & Labels',
+            so_no: ord.order_no,
             order_no: ord.order_no,
             linked_ref: ord.order_no,
+            customer_name: custName,
+            sales_person: sp,
             description: `Custom branded trims, embroidery & accessories for ${ord.order_no}`,
             amount: trimExp,
             status: 'Allocated'
           });
           list.push({
             id: `EXP-ORD-${ord.id}-03`,
+            voucher_no: `${baseExpNo}/03`,
             expense_ref: `${baseExpNo}/03`,
             date: ord.order_date || ord.created_at,
             category: 'Sampling & Pattern Development',
+            so_no: ord.order_no,
             order_no: ord.order_no,
             linked_ref: ord.order_no,
+            customer_name: custName,
+            sales_person: sp,
             description: `CAD sizing, grade digitisation & pre-production sample for ${ord.order_no}`,
             amount: opsExp,
             status: 'Allocated'
@@ -1891,37 +1913,55 @@ function OrganizationDetailsPageContent() {
           date: q.quotation_date || q.created_at,
           seq: qIdx + 1
         });
+        const custName = q.organizations?.name || org?.name || '—';
+        const sp = q.sales_person?.full_name 
+          || q.sales_person?.name 
+          || org?.relationship_manager?.full_name 
+          || employees.find((e: any) => e.id === (q.sales_person_id || org?.relationship_manager_id))?.full_name 
+          || 'Unassigned';
 
         if (quoteVal > 0 || totalExp > 0) {
           list.push({
             id: `EXP-${q.id}-01`,
+            voucher_no: `${baseExpNo}/01`,
             expense_ref: `${baseExpNo}/01`,
             date: q.created_at,
             category: 'Fabric & Raw Materials',
+            so_no: orderNo,
             order_no: orderNo,
             linked_ref: orderNo,
+            customer_name: custName,
+            sales_person: sp,
             description: `Textile & milling procurement for ${q.title || 'Client Uniforms'}`,
             amount: fabricExp,
             status: 'Allocated'
           });
           list.push({
             id: `EXP-${q.id}-02`,
+            voucher_no: `${baseExpNo}/02`,
             expense_ref: `${baseExpNo}/02`,
             date: q.created_at,
             category: 'Trims, Buttons & Labels',
+            so_no: orderNo,
             order_no: orderNo,
             linked_ref: orderNo,
+            customer_name: custName,
+            sales_person: sp,
             description: `Custom branded trims, embroidery & accessories`,
             amount: trimExp,
             status: 'Allocated'
           });
           list.push({
             id: `EXP-${q.id}-03`,
+            voucher_no: `${baseExpNo}/03`,
             expense_ref: `${baseExpNo}/03`,
             date: q.created_at,
             category: 'Sampling & Pattern Development',
+            so_no: orderNo,
             order_no: orderNo,
             linked_ref: orderNo,
+            customer_name: custName,
+            sales_person: sp,
             description: `CAD sizing, grade digitisation & pre-production sample`,
             amount: opsExp,
             status: 'Allocated'
@@ -1959,17 +1999,25 @@ function OrganizationDetailsPageContent() {
             ? cj.journal_no.replace(/^JN-/, 'JV-')
             : formatDocumentNumber({ prefix: 'JV', branch: org?.branch_id, date: cj.date || cj.created_at, seq: cj.id || 1 }));
 
+      const effectiveDesc = cj.title && cj.notes 
+        ? `${cj.title} — ${cj.notes}`
+        : (cj.title || cj.notes || cj.narration || (cj.rows ? cj.rows.map((r: any) => r.description).filter(Boolean).join('; ') : 'Manual double-entry voucher'));
+
       list.push({
         id: cj.id,
         journal_no: effectiveJvNo,
+        voucher_no: effectiveJvNo,
         ref: cj.reference_no || effectiveJvNo,
         date: cj.date || cj.created_at,
+        customer_name: org?.name || '—',
         category: 'Manual Journal',
         account: cj.account_summary || cj.account || 'Custom Manual Journal',
         offset_account: cj.offset_summary || cj.offset_account || 'General Ledger',
         title: cj.title || `Manual Journal #${effectiveJvNo}`,
-        narration: cj.notes || cj.narration || (cj.rows ? cj.rows.map((r: any) => r.description).filter(Boolean).join('; ') : 'Manual double-entry voucher'),
+        description: effectiveDesc,
+        narration: cj.notes || cj.narration || effectiveDesc,
         order_ref: cj.reference_no || 'Manual JV',
+        amount: Math.max(debitVal, creditVal),
         debit: debitVal,
         credit: creditVal,
         status: cj.status || 'Posted',
@@ -4485,49 +4533,65 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Customer & Job Expenses"
                 subtitle={`Direct commercial costs, materials procurement & development charges for ${org.name}`}
+                headerAction={
+                  <DateRangeFilter
+                    label="Date"
+                    value={expenseDateFilter}
+                    onChange={setExpenseDateFilter}
+                  />
+                }
                 columns={[
                   {
-                    header: 'Expense Ref',
-                    className: 'whitespace-nowrap shrink-0',
-                    accessor: (exp) => (
-                      <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
-                        {exp.expense_ref}
-                      </span>
-                    )
-                  },
-                  {
                     header: 'Date',
-                    className: 'whitespace-nowrap shrink-0',
-                    accessor: (exp) => (
+                    className: 'w-[105px] whitespace-nowrap',
+                    sortable: true,
+                    sortValue: (exp: any) => new Date(exp.date || 0).getTime(),
+                    accessor: (exp: any) => (
                       <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
                         {formatDate(exp.date)}
                       </span>
                     )
                   },
                   {
-                    header: 'Expense Category',
-                    className: 'whitespace-nowrap shrink-0',
-                    accessor: (exp) => (
-                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-[#3a525d] rounded-lg border border-zinc-200 whitespace-nowrap">
-                        {exp.category}
+                    header: 'Voucher No.',
+                    className: 'w-[150px] whitespace-nowrap',
+                    accessor: (exp: any) => (
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <div className="w-6 h-6 rounded-md bg-rose-50 text-rose-700 border border-rose-200 flex items-center justify-center shrink-0">
+                          <TrendingDown size={13} />
+                        </div>
+                        <span className="font-mono font-black text-zinc-900 text-xs">
+                          {exp.voucher_no || exp.expense_ref}
+                        </span>
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'SO No.',
+                    className: 'w-[125px] whitespace-nowrap',
+                    accessor: (exp: any) => (
+                      <span className="font-mono font-bold text-xs text-[#2d8d9b] whitespace-nowrap">
+                        {exp.so_no || exp.order_no || exp.linked_ref || '—'}
                       </span>
                     )
                   },
                   {
-                    header: 'Order No',
-                    className: 'whitespace-nowrap shrink-0',
-                    accessor: (exp) => (
-                      <span className="font-mono font-bold text-xs text-[#2d8d9b] whitespace-nowrap">
-                        {exp.order_no || exp.linked_ref}
-                      </span>
+                    header: 'Customer Name',
+                    className: 'min-w-[150px] whitespace-nowrap text-center',
+                    accessor: (exp: any) => (
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={exp.customer_name || org?.name}>
+                          {exp.customer_name || org?.name || '—'}
+                        </span>
+                      </div>
                     )
                   },
                   {
                     header: 'Description',
-                    className: 'w-full min-w-[200px]',
-                    accessor: (exp) => (
+                    className: 'min-w-[180px] max-w-[280px]',
+                    accessor: (exp: any) => (
                       <span 
-                        className="text-xs text-zinc-600 font-medium block truncate" 
+                        className="text-xs text-zinc-700 font-medium block truncate" 
                         title={exp.description}
                       >
                         {exp.description}
@@ -4535,9 +4599,20 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Allocated Cost',
-                    className: 'whitespace-nowrap text-right shrink-0',
-                    accessor: (exp) => (
+                    header: 'Sales Person',
+                    className: 'min-w-[130px] whitespace-nowrap text-center',
+                    accessor: (exp: any) => (
+                      <div className="flex justify-center text-center">
+                        <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                          {exp.sales_person || 'Unassigned'}
+                        </span>
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'Amount',
+                    className: 'w-[130px] whitespace-nowrap text-right',
+                    accessor: (exp: any) => (
                       <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
                         ₹{parseFloat(String(exp.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
@@ -4545,15 +4620,15 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Status',
-                    className: 'whitespace-nowrap text-center shrink-0',
-                    accessor: () => (
+                    className: 'w-[110px] whitespace-nowrap text-center',
+                    accessor: (exp: any) => (
                       <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
-                        ✓ Allocated
+                        ✓ {exp.status || 'Allocated'}
                       </span>
                     )
                   }
                 ]}
-                data={customerExpenses}
+                data={customerExpenses.filter((exp: any) => matchesDateFilter(exp.date, expenseDateFilter))}
                 isLoading={isLoadingOrg}
                 searchPlaceholder="Search"
                 emptyMessage="No commercial expenses allocated for this customer yet."
@@ -4701,48 +4776,56 @@ function OrganizationDetailsPageContent() {
                 <DataTable
                   title="Journals"
                   subtitle={`Custom double-entry journal vouchers added through the journal tab for ${org?.name}`}
+                  headerAction={
+                    <DateRangeFilter
+                      label="Date"
+                      value={journalDateFilter}
+                      onChange={setJournalDateFilter}
+                    />
+                  }
                   columns={[
                     {
                       header: 'Date',
-                      className: 'w-[120px] whitespace-nowrap',
+                      className: 'w-[110px] whitespace-nowrap',
                       sortValue: (j: any) => (j.date ? new Date(j.date).getTime() : 0),
                       accessor: (j: any) => (
-                        <span className="text-zinc-800 font-bold text-xs">
+                        <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
                           {formatDate(j.date)}
                         </span>
                       )
                     },
                     {
-                      header: 'Journal / Ref #',
+                      header: 'Voucher No.',
                       className: 'w-[150px] whitespace-nowrap',
-                      sortValue: (j: any) => j.journal_no || j.ref,
+                      sortValue: (j: any) => j.voucher_no || j.journal_no || j.ref,
                       accessor: (j: any) => {
                         const Icon = j.icon || BookOpen;
                         return (
-                          <div className="flex items-center gap-2">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${j.icon_bg || 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
-                              <Icon size={14} />
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border ${j.icon_bg || 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                              <Icon size={13} />
                             </div>
-                            <span className="font-mono font-black text-zinc-900 text-xs block">
-                              {j.journal_no || j.ref}
+                            <span className="font-mono font-black text-zinc-900 text-xs">
+                              {j.voucher_no || j.journal_no || j.ref}
                             </span>
                           </div>
                         );
                       }
                     },
                     {
-                      header: 'Journal Type',
-                      className: 'w-[140px] whitespace-nowrap',
-                      sortValue: (j: any) => j.category,
+                      header: 'Customer Name',
+                      className: 'min-w-[150px] whitespace-nowrap text-center',
                       accessor: (j: any) => (
-                        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border bg-purple-50 text-purple-700 border-purple-200">
-                          {j.category || 'Manual Journal'}
-                        </span>
+                        <div className="flex justify-center text-center">
+                          <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={j.customer_name || org?.name}>
+                            {j.customer_name || org?.name || '—'}
+                          </span>
+                        </div>
                       )
                     },
                     {
-                      header: 'Account / Ledger',
-                      className: 'w-[190px] whitespace-nowrap',
+                      header: 'Account',
+                      className: 'w-[170px] whitespace-nowrap',
                       sortValue: (j: any) => j.account,
                       accessor: (j: any) => (
                         <div>
@@ -4758,77 +4841,40 @@ function OrganizationDetailsPageContent() {
                       )
                     },
                     {
-                      header: 'Narration / Memo',
-                      className: 'min-w-[220px]',
-                      sortValue: (j: any) => j.title || j.narration,
+                      header: 'Description',
+                      className: 'min-w-[200px] max-w-[300px]',
+                      sortValue: (j: any) => j.description || j.title || j.narration,
                       accessor: (j: any) => (
-                        <div className="space-y-0.5">
-                          {j.title && (
-                            <span className="text-xs font-bold text-zinc-900 block truncate" title={j.title}>
-                              {j.title}
-                            </span>
-                          )}
-                          <p className="text-xs text-zinc-600 font-medium line-clamp-2" title={j.narration}>
-                            {j.narration}
-                          </p>
-                          {j.order_ref && j.order_ref !== '—' && (
-                            <span className="inline-block text-[9px] font-mono font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 px-1.5 py-0.2 rounded">
-                              {j.category === 'Manual Journal' ? `Ref: ${j.order_ref}` : `Order: ${j.order_ref}`}
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-xs text-zinc-700 font-medium block truncate" title={j.description || j.narration || j.title}>
+                          {j.description || j.narration || j.title || 'Manual double-entry voucher'}
+                        </span>
                       )
                     },
                     {
-                      header: 'Debit (₹)',
-                      className: 'w-[125px] whitespace-nowrap text-right',
-                      sortValue: (j: any) => (j.debit || 0),
-                      accessor: (j: any) => {
-                        if (!j.debit || j.debit <= 0) {
-                          return <span className="text-zinc-300 font-bold text-xs">—</span>;
-                        }
-                        return (
-                          <span className="font-mono font-black text-xs text-zinc-900">
-                            ₹{parseFloat(String(j.debit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        );
-                      }
-                    },
-                    {
-                      header: 'Credit (₹)',
-                      className: 'w-[125px] whitespace-nowrap text-right',
-                      sortValue: (j: any) => (j.credit || 0),
-                      accessor: (j: any) => {
-                        if (!j.credit || j.credit <= 0) {
-                          return <span className="text-zinc-300 font-bold text-xs">—</span>;
-                        }
-                        return (
-                          <span className="font-mono font-black text-xs text-emerald-700">
-                            ₹{parseFloat(String(j.credit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        );
-                      }
+                      header: 'Amount',
+                      className: 'w-[130px] whitespace-nowrap text-right',
+                      sortValue: (j: any) => (j.amount || j.debit || j.credit || 0),
+                      accessor: (j: any) => (
+                        <span className="font-mono font-black text-xs text-zinc-900 whitespace-nowrap">
+                          ₹{parseFloat(String(j.amount || j.debit || j.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      )
                     },
                     {
                       header: 'Status',
                       className: 'w-[100px] whitespace-nowrap text-center',
                       sortValue: (j: any) => j.status,
                       accessor: (j: any) => (
-                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-zinc-50 text-zinc-700 border-zinc-200">
+                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-zinc-50 text-zinc-700 border-zinc-200 whitespace-nowrap">
                           ✓ {j.status || 'Posted'}
                         </span>
                       )
                     }
                   ]}
-                  data={customerJournals}
+                  data={customerJournals.filter((j: any) => matchesDateFilter(j.date, journalDateFilter))}
                   isLoading={isLoadingLedger || isLoadingOrg}
                   searchPlaceholder="Search journals..."
                   emptyMessage="No custom journal entries added yet for this customer. Click + Add Journal to record one."
-                  headerAction={
-                    <span className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-xl text-[11px] font-black uppercase tracking-wider">
-                      {customerJournals.length} Custom {customerJournals.length === 1 ? 'Journal' : 'Journals'}
-                    </span>
-                  }
                   rightAction={
                     <div className="flex items-center gap-2 flex-wrap">
                       <Button
@@ -5011,21 +5057,28 @@ function OrganizationDetailsPageContent() {
                 <p className="text-xs text-zinc-400 font-medium mt-0.5">Audit breakdown of all billings, advance receipts, and balances</p>
               </div>
 
-              {/* Filter Pills */}
-              <div className="flex items-center bg-zinc-100 p-1 rounded-xl gap-1">
-                {(['all', 'invoices', 'payments'] as const).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setLedgerFilter(f)}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      ledgerFilter === f
-                        ? 'bg-white text-[#3a525d] shadow-sm'
-                        : 'text-zinc-500 hover:text-zinc-800'
-                    }`}
-                  >
-                    {f === 'all' ? `All (${ledgerData?.transactions?.length || 0})` : f === 'invoices' ? 'Orders & Invoices' : 'Payments Only'}
-                  </button>
-                ))}
+              {/* Filter Section */}
+              <div className="flex flex-wrap items-center gap-3">
+                <DateRangeFilter
+                  label="Date"
+                  value={statementDateFilter}
+                  onChange={setStatementDateFilter}
+                />
+                <div className="flex items-center bg-zinc-100 p-1 rounded-xl gap-1">
+                  {(['all', 'invoices', 'payments'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setLedgerFilter(f)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                        ledgerFilter === f
+                          ? 'bg-white text-[#3a525d] shadow-sm'
+                          : 'text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      {f === 'all' ? `All (${ledgerData?.transactions?.length || 0})` : f === 'invoices' ? 'Orders & Invoices' : 'Payments Only'}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -5033,7 +5086,10 @@ function OrganizationDetailsPageContent() {
             <DataTable<LedgerTransaction>
               columns={[
                 {
-                  header: 'Transaction Date',
+                  header: 'Date',
+                  className: 'w-[110px] whitespace-nowrap',
+                  sortable: true,
+                  sortValue: (tx: LedgerTransaction) => new Date(tx.date || 0).getTime(),
                   accessor: (tx: LedgerTransaction) => (
                     <div className="flex flex-col">
                       <span className="font-bold text-xs text-zinc-800">
@@ -5046,7 +5102,8 @@ function OrganizationDetailsPageContent() {
                   )
                 },
                 {
-                  header: 'Type & Reference',
+                  header: 'Voucher Type',
+                  className: 'w-[160px] whitespace-nowrap',
                   accessor: (tx: LedgerTransaction) => (
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
@@ -5072,12 +5129,15 @@ function OrganizationDetailsPageContent() {
                   )
                 },
                 {
-                  header: 'Description & Terms',
+                  header: 'Description',
+                  className: 'min-w-[200px]',
                   accessor: (tx: LedgerTransaction) => (
-                    <div className="flex flex-col max-w-[280px]">
-                      <span className="text-xs font-semibold text-zinc-700 truncate">{tx.description}</span>
+                    <div className="flex flex-col max-w-[320px]">
+                      <span className="text-xs font-semibold text-zinc-700 truncate" title={tx.description}>{tx.description}</span>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider">{tx.order_ref}</span>
+                        {tx.order_ref && (
+                          <span className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider">{tx.order_ref}</span>
+                        )}
                         {tx.type === 'INVOICE' && (
                           <span className="text-[10px] text-zinc-500 font-medium">
                             • Credit: <strong className="text-zinc-700">{tx.credit_period_days || 30}d</strong>
@@ -5091,7 +5151,8 @@ function OrganizationDetailsPageContent() {
                   )
                 },
                 {
-                  header: 'Debit (+)',
+                  header: 'Amount',
+                  className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: LedgerTransaction) => (
                     <span className={`font-mono text-xs font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
                       {tx.debit > 0 ? `₹${parseFloat(String(tx.debit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
@@ -5099,7 +5160,8 @@ function OrganizationDetailsPageContent() {
                   )
                 },
                 {
-                  header: 'Credit (-)',
+                  header: 'Payments',
+                  className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: LedgerTransaction) => (
                     <span className={`font-mono text-xs font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
                       {tx.credit > 0 ? `₹${parseFloat(String(tx.credit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
@@ -5107,67 +5169,23 @@ function OrganizationDetailsPageContent() {
                   )
                 },
                 {
-                  header: 'Running Balance',
+                  header: 'Balance',
+                  className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: LedgerTransaction) => (
-                    <div className="flex items-center gap-1.5">
-                      <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
-                        tx.running_balance > 0
-                          ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                          : tx.running_balance === 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                          : 'bg-blue-50 text-blue-700 border border-blue-100'
-                      }`}>
-                        ₹{parseFloat(String(tx.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
+                    <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
+                      tx.running_balance > 0
+                        ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                        : tx.running_balance === 0
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        : 'bg-blue-50 text-blue-700 border border-blue-100'
+                    }`}>
+                      ₹{parseFloat(String(tx.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
                   )
-                },
-                {
-                  header: 'Status & Due Aging',
-                  accessor: (tx: LedgerTransaction) => {
-                    if (tx.type === 'INVOICE') {
-                      if (tx.status === 'Fully Paid' || tx.status === 'Paid' || tx.due_status === 'Paid') {
-                        return (
-                          <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">
-                            ✓ Paid
-                          </span>
-                        );
-                      }
-                      if (tx.due_status === 'Due' || tx.is_due_today) {
-                        return (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase rounded-lg border bg-amber-100 text-amber-900 border-amber-300 animate-pulse flex items-center gap-1">
-                            <span>⚠️</span> Due Today (Last Day)
-                          </span>
-                        );
-                      }
-                      if (tx.due_status === 'Overdue' || tx.is_overdue) {
-                        return (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase rounded-lg border bg-rose-100 text-rose-900 border-rose-300 flex items-center gap-1 font-mono">
-                            <span>🚨</span> {tx.due_label || 'Overdue'}
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
-                          {tx.due_label || 'Active Credit'}
-                        </span>
-                      );
-                    }
-                    return (
-                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
-                        tx.status === 'Fully Paid' || tx.status === 'Received' || tx.status === 'Settled'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : tx.status === 'Partially Paid'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    );
-                  }
                 }
               ]}
               data={(ledgerData?.transactions || []).filter((tx: any) => {
+                if (!matchesDateFilter(tx.date, statementDateFilter)) return false;
                 if (ledgerFilter === 'invoices') return tx.type === 'INVOICE' || tx.type === 'ORDER';
                 if (ledgerFilter === 'payments') return tx.type === 'PAYMENT';
                 return true;
@@ -5259,10 +5277,10 @@ function OrganizationDetailsPageContent() {
                   <thead>
                     <tr className="border-b-2 border-zinc-900 text-zinc-600 uppercase text-[9px] font-black tracking-wider">
                       <th className="py-2.5 px-2 text-center">Date</th>
-                      <th className="py-2.5 px-2 text-center">Type / Ref</th>
+                      <th className="py-2.5 px-2 text-center">Voucher Type</th>
                       <th className="py-2.5 px-2 text-center">Description</th>
-                      <th className="py-2.5 px-2 text-center">Debit (+)</th>
-                      <th className="py-2.5 px-2 text-center">Credit (-)</th>
+                      <th className="py-2.5 px-2 text-center">Amount</th>
+                      <th className="py-2.5 px-2 text-center">Payments</th>
                       <th className="py-2.5 px-2 text-center">Balance</th>
                     </tr>
                   </thead>
