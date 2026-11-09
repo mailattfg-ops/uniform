@@ -26,8 +26,8 @@ export function formatCurrency(amount: number | string | null | undefined, inclu
 
 /**
  * Format an ISO date string or Date object into standard DD/MM/YYYY date (and optional Indian Standard Time).
- * e.g. formatDate("2026-09-28T07:18:20Z") -> "28/09/2026"
- * with includeTime: -> "28/09/2026, 12:48 PM"
+ * e.g. formatDate("2026-09-28T07:18:20Z") -> "28-09-2026"
+ * with includeTime: -> "28-09-2026, 12:48 PM"
  */
 export function formatDate(
   dateStr: string | Date | null | undefined, 
@@ -39,14 +39,14 @@ export function formatDate(
     const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
     if (isNaN(d.getTime())) return String(dateStr);
 
-    // Format strictly as DD/MM/YYYY in Indian Standard Time (Asia/Kolkata)
+    // Format strictly as DD-MM-YYYY in Indian Standard Time (Asia/Kolkata)
     const formatter = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Asia/Kolkata',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
     });
-    const dateFormatted = formatter.format(d); // Always "DD/MM/YYYY"
+    const dateFormatted = formatter.format(d).replace(/\//g, '-'); // Always "DD-MM-YYYY"
 
     if (!includeTime) return dateFormatted;
 

@@ -165,6 +165,15 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       toast.error('Primary phone number is required');
       return;
     }
+    if (!email.trim()) {
+      toast.error('Email address is required');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
     if (!editingCustomer && !username.trim()) {
       toast.error('Portal Login Username is required for new accounts');
       return;
@@ -178,7 +187,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
-        email: email.trim() || null,
+        email: email.trim().toLowerCase(),
         industry_id: industryId || null,
         branch_id: branchId ? parseInt(branchId, 10) : null,
         zone_id: zoneId ? parseInt(zoneId, 10) : null,
@@ -317,10 +326,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
-                Email Address (Optional)
+                Email Address *
               </label>
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. billing@institution.com"

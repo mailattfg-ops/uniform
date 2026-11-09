@@ -5,11 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
+import { formatDate } from '@/lib/formatters';
 import { 
-  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText
+  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, MapPin, Calendar
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { 
   Lead, 
   Industry, 
@@ -37,6 +40,7 @@ export default function DealsRegistryPage() {
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
 
   // Modal States
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
@@ -269,9 +273,13 @@ export default function DealsRegistryPage() {
         const indId = String(l.industry_id || '');
         if (indId !== selectedIndustry) return false;
       }
+      // 4. Date filter
+      if (!matchesDateFilter(l.created_at, dateFilter)) {
+        return false;
+      }
       return true;
     });
-  }, [allDeals, stageFilter, selectedBranch, selectedZone, selectedIndustry, getDealFinancials]);
+  }, [allDeals, stageFilter, selectedBranch, selectedZone, selectedIndustry, dateFilter, getDealFinancials]);
 
   // Print & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
@@ -296,6 +304,8 @@ export default function DealsRegistryPage() {
           <div>${l.name}</div>
           ${l.industries?.name ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${l.industries.name}</div>` : ''}
         </td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
+        <td style="font-size: 10px; color: #4a5568;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -356,15 +366,17 @@ export default function DealsRegistryPage() {
       <tr>
         <th style="width: 30px;">#</th>
         <th>Customer Name</th>
+        <th style="text-align: center;">Date</th>
+        <th>Zone</th>
         <th>Contact</th>
         <th>Sales Person</th>
-        <th style="text-align: center;">Stage Status</th>
+        <th style="text-align: center;">Status</th>
         <th style="text-align: right;">Amount</th>
         <th style="text-align: right;">Adv.Received</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #a0aec0;">No deals found matching filter criteria</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="9" style="text-align: center; padding: 24px; color: #a0aec0;">No deals found matching filter criteria</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -396,15 +408,15 @@ export default function DealsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[170px] max-w-[260px]',
+      className: 'min-w-[170px] max-w-[260px] text-center',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="min-w-0">
+        <div className="min-w-0 text-center flex flex-col items-center">
           <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
             {l.name}
           </p>
           {l.industries?.name && (
-            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
+            <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
               {l.industries.name}
             </p>
           )}
@@ -417,46 +429,70 @@ export default function DealsRegistryPage() {
       )
     },
     {
+      header: 'Date',
+      className: 'w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.created_at || '',
+      accessor: (l) => (
+        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+          {formatDate(l.created_at)}
+        </span>
+      )
+    },
+    {
+      header: 'Zone',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
+      accessor: (l) => {
+        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+        return zoneName ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{zoneName}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
+        );
+      }
+    },
+    {
       header: 'Contact',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-center',
       sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
         l.contact_person || l.phone ? (
-          <div className="flex flex-col min-w-0 max-w-[210px]">
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[210px] mx-auto">
             {l.contact_person && (
-              <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
                 {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
               </span>
             )}
             {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={l.contact_designation}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
             {l.phone && (
-              <a
-                href={`tel:${l.phone}`}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2d8d9b] hover:underline mt-0.5"
-                title={`Call ${l.phone}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Phone size={11} className="text-[#2d8d9b] shrink-0" />
-                <span>{l.phone}</span>
-              </a>
+              <div className="mt-0.5 flex justify-center">
+                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+              </div>
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         )
       )
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[140px] whitespace-nowrap',
+      className: 'min-w-[140px] whitespace-nowrap text-center',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
-          <div className="min-w-0 max-w-[180px]">
+          <div className="min-w-0 max-w-[180px] text-center flex flex-col items-center mx-auto">
             <p className="text-xs font-bold text-zinc-800 truncate block" title={l.employees.full_name}>{l.employees.full_name}</p>
             {l.employees.employee_id && (
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
@@ -465,12 +501,14 @@ export default function DealsRegistryPage() {
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          </div>
         )
       )
     },
     {
-      header: 'Stage Status',
+      header: 'Status',
       className: 'w-[160px] whitespace-nowrap',
       sortValue: (l) => {
         if (l.status === 'SO Converted Deals') return 'SO Converted';
@@ -521,7 +559,7 @@ export default function DealsRegistryPage() {
         const { quoteAmount } = getDealFinancials(l);
         return (
           <div className="text-right">
-            <span className="text-xs font-mono font-black text-[#3a525d]">
+            <span className="text-xs font-mono font-black text-zinc-900">
               ₹{quoteAmount > 0 ? quoteAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
           </div>
@@ -561,7 +599,7 @@ export default function DealsRegistryPage() {
         </div>
       )
     }
-  ], [getDealFinancials, isNoFollowupDeal]);
+  ], [getDealFinancials, isNoFollowupDeal, zones]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -569,9 +607,9 @@ export default function DealsRegistryPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Deals</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Deals</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1 font-bold">
             Commercial Deals • Initial Payments • Sales Order Conversions
           </p>
         </div>
@@ -660,6 +698,13 @@ export default function DealsRegistryPage() {
                 value: String(ind.id),
                 badge: allDeals.filter(l => String(l.industry_id) === String(ind.id)).length
               }))}
+            />
+
+            {/* 5. Date Filter */}
+            <DateRangeFilter
+              label="Date"
+              value={dateFilter}
+              onChange={setDateFilter}
             />
 
 

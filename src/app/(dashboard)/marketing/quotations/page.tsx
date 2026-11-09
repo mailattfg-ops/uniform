@@ -57,6 +57,7 @@ export interface QuotationItem {
 export interface Quotation {
   id: number;
   quotation_no: string;
+  quotation_date?: string | null;
   title: string;
   organization_id: number;
   branch_id?: number | null;

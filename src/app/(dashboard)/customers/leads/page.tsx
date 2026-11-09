@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
@@ -655,69 +656,79 @@ export default function LeadsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[160px] max-w-[280px]',
+      className: 'min-w-[160px] max-w-[280px] text-center',
       sortValue: (l) => l.name,
       accessor: (l) => (
-        <div className="min-w-0">
+        <div className="min-w-0 text-center flex flex-col items-center">
           <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
             {l.name}
           </p>
           {l.industries?.name && (
-            <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5">
+            <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
               {l.industries.name}
             </p>
           )}
         </div>
       )
     },
+    {
+      header: 'Locality',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.area || '',
+      accessor: (l) => (
+        l.area ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
+            <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
+            <span className="truncate">{l.area}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
+        )
+      )
+    },
 
     {
       header: 'Contact Person',
-      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap',
+      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap text-center',
       sortValue: (l) => l.contact_person || '',
       accessor: (l) => (
         l.contact_person ? (
-          <div className="flex flex-col min-w-0 max-w-[190px]">
-            <span className="text-xs font-bold text-[#3a525d] truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
+            <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
               {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
             </span>
             {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={l.contact_designation}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         )
       )
     },
     {
       header: 'Contact Phone',
-      className: 'w-[125px] whitespace-nowrap',
+      className: 'w-[145px] min-w-[135px] whitespace-nowrap text-center',
       sortValue: (l) => l.phone || '',
       accessor: (l) => (
-        l.phone ? (
-          <a
-            href={`tel:${l.phone}`}
-            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
-            title={`Call ${l.phone}`}
-          >
-            <Phone size={12} className="text-[#2d8d9b] shrink-0" />
-            <span>{l.phone}</span>
-          </a>
-        ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
-        )
+        <div className="flex items-center justify-center text-center">
+          <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+        </div>
       )
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap',
+      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-center',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
-          <div className="min-w-0 max-w-[190px]">
+          <div className="min-w-0 max-w-[190px] text-center flex flex-col items-center mx-auto">
             <p className="text-xs font-bold text-zinc-800 truncate block" title={l.employees.full_name}>
               {l.employees.full_name}
             </p>
@@ -728,19 +739,21 @@ export default function LeadsRegistryPage() {
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          </div>
         )
       )
     },
     {
-      header: 'Stage Status',
+      header: 'Status',
       className: 'w-[140px] whitespace-nowrap',
       sortValue: (l) => `${l.status}_${l.is_cold ? '1' : '0'}`,
       accessor: (l) => renderStatusBadge(l)
     },
     {
-      header: 'Follow-up ( next step)',
-      className: 'w-[170px] min-w-[170px] whitespace-nowrap',
+      header: 'Next step',
+      className: 'w-[170px] min-w-[170px] whitespace-nowrap text-center',
       sortable: false,
       accessor: (l: Lead) => {
         let content: React.ReactNode = null;
@@ -855,13 +868,13 @@ export default function LeadsRegistryPage() {
         }
 
         return (
-          <div className="w-[170px] whitespace-nowrap">
+          <div className="w-[170px] whitespace-nowrap flex items-center justify-center text-center">
             {content}
           </div>
         );
       }
     }
-  ], [branches, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
+  ], [branches, zones, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
 
   // Print Report & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
@@ -885,6 +898,7 @@ export default function LeadsRegistryPage() {
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
+        <td style="font-size: 10px; color: #4a5568;">${l.area || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${l.contact_person ? `${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -940,6 +954,7 @@ export default function LeadsRegistryPage() {
       <tr>
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
+        <th>Locality</th>
         <th>Contact Person</th>
         <th>Contact Phone</th>
         <th>Sales Person</th>
@@ -947,7 +962,7 @@ export default function LeadsRegistryPage() {
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="6" style="text-align: center; padding: 20px;">No leads matching filters</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="7" style="text-align: center; padding: 20px;">No leads matching filters</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -970,7 +985,7 @@ export default function LeadsRegistryPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Leads</h1>
+            <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Leads</h1>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
             Active Commercial Intake, Follow-ups &amp; Qualified Pipeline
@@ -1357,6 +1372,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   const [contactPerson, setContactPerson] = useState('');
   const [contactDesignation, setContactDesignation] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [area, setArea] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
@@ -1449,6 +1465,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setContactPerson(editingFeed.contact_person || '');
         setContactDesignation(editingFeed.contact_designation || '');
         setPhone(editingFeed.phone || '');
+        setEmail(editingFeed.email || '');
         setAddress(editingFeed.address || '');
         setArea(editingFeed.area || '');
         setGoogleMapsLink(editingFeed.google_maps_link || '');
@@ -1469,6 +1486,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setContactPerson('');
         setContactDesignation('');
         setPhone('');
+        setEmail('');
         setAddress('');
         setArea('');
         setGoogleMapsLink('');
@@ -1495,6 +1513,15 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
       toast.error('Contact phone number is required');
       return;
     }
+    if (!email.trim()) {
+      toast.error('Email address is required');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -1507,6 +1534,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
         contact_number: phone.trim(),
+        email: email.trim().toLowerCase(),
         address: address.trim() || null,
         area: area.trim() || null,
         city: city.trim() || null,
@@ -1657,10 +1685,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Contact Number & Area */}
+          {/* Contact Number & Email Address */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Phone size={13} className="text-[#9E1B1D]" />
                 Contact Number *
               </label>
               <input
@@ -1673,8 +1702,27 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                Area / Locality
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Mail size={13} className="text-[#9E1B1D]" />
+                Email Address *
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. contact@institution.com"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+          </div>
+
+          {/* Locality & Google Maps Link */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#9E1B1D]" />
+                Locality
               </label>
               <input
                 type="text"
@@ -1682,6 +1730,19 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 onChange={(e) => setArea(capitalizeWords(e.target.value))}
                 autoCapitalize="words"
                 placeholder="e.g. Indiranagar 100ft Road"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Navigation size={13} className="text-[#9E1B1D]" />
+                Google Maps Link
+              </label>
+              <input
+                type="text"
+                value={googleMapsLink}
+                onChange={(e) => setGoogleMapsLink(e.target.value)}
+                placeholder="e.g. https://maps.app.goo.gl/..."
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
@@ -2149,6 +2210,15 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       toast.error('Primary phone number is required');
       return;
     }
+    if (!email.trim()) {
+      toast.error('Email address is required');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -2158,7 +2228,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
-        email: email.trim() || null,
+        email: email.trim().toLowerCase(),
         source: source.trim() || null,
         requirements: requirements.trim() || null,
         industry_id: industryId || null,
@@ -2338,10 +2408,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
-                Email Address
+                Email Address *
               </label>
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@acme.com"
@@ -2532,7 +2603,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
                 autoCapitalize="words"
                 placeholder="e.g. 12th Main Road, HAL 2nd Stage"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#2d8d9b] focus:ring-4 focus:ring-[#2d8d9b]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
 
@@ -3000,14 +3071,16 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
       
       <div className="bg-white w-full max-w-6xl max-h-[92vh] rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col">
+        {/* Top Accent Rail */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] shrink-0" />
         {/* Header Banner */}
-        <div className="bg-gradient-to-r from-[#3a525d] via-[#2d4752] to-[#1c3038] py-5 px-8 text-white relative">
+        <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 py-5 px-8 text-white relative">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
               <span className="px-3 py-1 rounded-xl text-[10px] font-mono font-bold bg-white/10 border border-white/20 text-white">
                 {lead.lead_code || `Lead #${lead.id}`}
               </span>
-              <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white border border-[#2d8d9b]/50 shadow-sm flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] text-white border border-[#C82A2B]/50 shadow-sm flex items-center gap-1.5">
                 Active Stage: {lead.status}
               </span>
               {lead.is_cold && (
@@ -3046,21 +3119,21 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     window.open(`/customers?search=${encodeURIComponent(lead.name)}`, '_blank');
                   }
                 }}
-                className="text-2xl font-black italic tracking-tight text-white hover:text-teal-200 transition-colors cursor-pointer text-left flex items-center gap-2 group"
+                className="text-2xl font-black italic tracking-tight text-white hover:text-red-200 transition-colors cursor-pointer text-left flex items-center gap-2 group"
                 title={lead.organization_id ? "View Customer Profile" : `Search for "${lead.name}" in Customers`}
               >
                 <span>{lead.name}</span>
                 <ExternalLink size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
               </button>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-teal-300">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-red-300">
                   {lead.industries?.name || 'Institutional'}
                 </span>
                 {lead.area && (
                   <>
                     <span className="text-white/40">•</span>
                     <span className="text-[10px] font-semibold text-white/80 flex items-center gap-1">
-                      <MapPin size={11} className="text-teal-300" />
+                      <MapPin size={11} className="text-red-300" />
                       {lead.area}
                     </span>
                   </>
@@ -3070,7 +3143,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1 rounded bg-teal-400/20 text-teal-200 hover:text-white transition-colors"
+                    className="p-1 rounded bg-white/10 text-white/90 hover:text-white transition-colors"
                     title="Open Google Maps Location"
                   >
                     <Navigation size={11} />
@@ -3085,7 +3158,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 perms.canManageFeeds ? (
                   <button
                     onClick={onFeedOutcome}
-                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] text-white hover:bg-[#257a87] transition-all shadow-md cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] text-white hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/20 cursor-pointer"
                   >
                     Follow-up
                   </button>
@@ -3174,7 +3247,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={onFollowUp}
-                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-teal-500 hover:bg-teal-600 text-white transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white transition-all shadow-lg shadow-[#C82A2B]/20 flex items-center gap-1.5 cursor-pointer"
                   >
                     <MessageSquarePlus size={13} />
                     Log Deal Note
@@ -3327,12 +3400,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             return (
               <div className="bg-zinc-50/90 border border-zinc-200/80 rounded-3xl p-6 relative">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] flex items-center gap-1.5">
-                    <Layers size={13} className="text-[#2d8d9b]" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-900 flex items-center gap-1.5">
+                    <Layers size={13} className="text-[#9E1B1D]" />
                     Commercial Sales Pipeline Stepper (Click to filter logs)
                   </span>
                   <span className="text-[9px] font-bold text-zinc-400">
-                    Current: <span className="text-[#2d8d9b] font-black">{lead.status}</span>
+                    Current: <span className="text-[#9E1B1D] font-black">{lead.status}</span>
                     {lead.is_cold && <span className="text-rose-600 font-black ml-1">(Cold Lead Tag)</span>}
                   </span>
                 </div>
@@ -3378,7 +3451,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       (item.id === 'feeds' && (selectedStageTab === 'Feeds' || selectedStageTab === 'Open Feeds' || selectedStageTab === 'Contacted Leads'));
                     let circleClass = 'bg-white border-zinc-300 text-zinc-400';
                     if (item.isCurrent) {
-                      circleClass = 'bg-[#2d8d9b] border-[#2d8d9b] text-white ring-4 ring-teal-100 shadow-md';
+                      circleClass = 'bg-[#C82A2B] border-[#C82A2B] text-white ring-4 ring-red-100 shadow-md';
                     } else if (item.isPassed) {
                       circleClass = 'bg-emerald-500 border-emerald-500 text-white';
                     }
@@ -3394,7 +3467,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                           onClick={() => setSelectedStageTab(item.stageKey)}
                           className={`flex flex-col items-center min-w-[85px] sm:min-w-[105px] max-w-[130px] p-2 rounded-2xl cursor-pointer transition-all ${
                             isSelected
-                              ? 'bg-white shadow-md border-2 border-[#2d8d9b] scale-105'
+                              ? 'bg-white shadow-md border-2 border-[#C82A2B] scale-105'
                               : 'hover:bg-white/60 border border-transparent'
                           }`}
                           title={`Click to filter logs for ${item.label}`}
@@ -3411,8 +3484,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                           {/* Stage Label */}
                           <span className={`text-[10px] text-center font-black leading-tight truncate w-full ${
                             item.isCurrent
-                              ? 'text-[#2d8d9b]'
-                              : isSelected ? 'text-[#3a525d]' : 'text-zinc-600'
+                              ? 'text-[#9E1B1D]'
+                              : isSelected ? 'text-zinc-900' : 'text-zinc-600'
                           }`}>
                             {item.label}
                           </span>
@@ -3444,13 +3517,13 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
                 <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Contact Person</label>
                 <div className="flex items-start gap-2">
-                  <User size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
+                  <User size={14} className="text-[#9E1B1D] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-bold text-[#3a525d]">
+                    <p className="text-xs font-bold text-zinc-900">
                       {lead.contact_person ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}` : 'Not specified'}
                     </p>
                     {lead.contact_designation && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-md inline-block mt-0.5 border border-teal-100">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#FFF1F1] text-[#9E1B1D] rounded-md inline-block mt-0.5 border border-[#C82A2B]/15">
                         {lead.contact_designation}
                       </span>
                     )}
@@ -3462,8 +3535,10 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
                 <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Phone Number</label>
                 <div className="flex items-center gap-2">
-                  <Phone size={14} className="text-[#2d8d9b]" />
-                  <p className="text-xs font-bold font-mono text-[#3a525d]">{lead.phone || 'No phone'}</p>
+                  <Phone size={14} className="text-[#9E1B1D]" />
+                  <div>
+                    <ContactPhoneLink phone={lead.phone} name={lead.contact_person || lead.name} />
+                  </div>
                 </div>
               </div>
 
@@ -3471,8 +3546,14 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
                 <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Email</label>
                 <div className="flex items-center gap-2">
-                  <Mail size={14} className="text-[#2d8d9b]" />
-                  <p className="text-xs font-bold text-[#3a525d] truncate">{lead.email || '—'}</p>
+                  <Mail size={14} className="text-[#9E1B1D]" />
+                  {lead.email ? (
+                    <a href={`mailto:${lead.email}`} className="text-xs font-bold text-zinc-900 hover:text-[#C82A2B] truncate transition-colors">
+                      {lead.email}
+                    </a>
+                  ) : (
+                    <span className="text-xs font-medium text-zinc-400 italic">—</span>
+                  )}
                 </div>
               </div>
 
@@ -3481,9 +3562,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Sales Operator</label>
                 {lead.employees ? (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <ShieldCheck size={14} className="text-[#2d8d9b]" />
+                    <ShieldCheck size={14} className="text-[#9E1B1D]" />
                     <div>
-                      <p className="text-xs font-black text-[#3a525d]">{lead.employees.full_name}</p>
+                      <p className="text-xs font-black text-zinc-900">{lead.employees.full_name}</p>
                       <p className="text-[9px] font-bold text-zinc-400 uppercase font-mono">{lead.employees.employee_id}</p>
                     </div>
                   </div>
@@ -3501,16 +3582,16 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-[#2d8d9b] rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors border border-teal-200/60"
+                      className="px-2 py-0.5 bg-[#FFF1F1] hover:bg-red-100 text-[#9E1B1D] rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors border border-[#C82A2B]/20"
                     >
                       <Navigation size={10} /> Maps
                     </a>
                   )}
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin size={14} className="text-[#2d8d9b] shrink-0 mt-0.5" />
+                  <MapPin size={14} className="text-[#9E1B1D]" />
                   <div className="flex-1 space-y-0.5">
-                    <p className="text-xs font-bold text-[#3a525d]">
+                    <p className="text-xs font-bold text-zinc-900">
                       {[lead.city, lead.state].filter(Boolean).join(', ') || lead.area || 'Location unlisted'}
                     </p>
                     {lead.address && <p className="text-[11px] text-zinc-600 font-medium">{lead.address}</p>}
@@ -3522,7 +3603,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     )}
                     {lead.zones?.name && (
                       <div className="pt-1 flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-black uppercase">
+                        <span className="px-2 py-0.5 rounded-md bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 text-[10px] font-black uppercase">
                           Zone: {lead.zones.name}
                         </span>
                       </div>
@@ -3533,8 +3614,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
               {/* Inquired Requirements */}
               {lead.requirements && (
-                <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100/80 shadow-2xs">
-                  <label className="text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest block mb-1">
+                <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
                     Inquired Requirements
                   </label>
                   <p className="text-xs font-semibold text-zinc-800 leading-relaxed whitespace-pre-wrap">{lead.requirements}</p>
@@ -3546,11 +3627,11 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             <div className="lg:col-span-7 p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm flex flex-col h-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100">
                 <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-[#2d8d9b]" />
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                  <FileText size={16} className="text-[#9E1B1D]" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">
                     Activity Log History
                   </h4>
-                  <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-[#2d8d9b] border border-teal-200 text-[10px] font-black">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 text-[10px] font-black">
                     {selectedStageTab === 'ALL' ? 'Showing All Stages' : `Filtered by: ${selectedStageTab}`}
                   </span>
                 </div>
@@ -3561,7 +3642,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     onClick={() => setSelectedStageTab(selectedStageTab === 'ALL' ? (lead.status || 'Follow-ups') : 'ALL')}
                     className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
                       selectedStageTab === 'ALL'
-                        ? 'bg-[#3a525d] text-white shadow-sm'
+                        ? 'bg-zinc-900 text-white shadow-sm'
                         : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                     }`}
                   >
@@ -3582,7 +3663,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       </span>
                     </div>
                     <span className="text-[9px] font-bold text-zinc-500">
-                      Lead Status: <strong className="text-[#3a525d]">{lead.status}</strong>
+                      Lead Status: <strong className="text-zinc-900">{lead.status}</strong>
                     </span>
                   </div>
                   {lead.requirements && (
@@ -3609,7 +3690,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       >
                         <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-md bg-[#2d8d9b]/15 text-[#2d8d9b] font-black">
+                            <span className="px-2 py-0.5 rounded-md bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/15 font-black">
                               {act.stage}
                             </span>
                             <span className="px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-700 font-bold">
@@ -3640,7 +3721,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                         {act.staff_name && (
                           <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/60 text-[10px] text-zinc-500 font-semibold flex-wrap">
                             <ShieldCheck size={12} className="text-[#2d8d9b]" />
-                            <span className="font-bold text-[#3a525d]">{act.staff_name}</span>
+                            <span className="font-bold text-zinc-900">{act.staff_name}</span>
                             {act.staff_employee_id && (
                               <span className="text-[9px] font-mono text-zinc-400">({act.staff_employee_id})</span>
                             )}
@@ -3664,7 +3745,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 ) : (
                   <div className="py-12 text-center bg-zinc-50/60 rounded-2xl border border-dashed border-zinc-200">
                     <p className="text-xs text-zinc-400 font-medium italic">
-                      No activity logs recorded specifically for <span className="font-bold text-[#3a525d]">{selectedStageTab}</span> stage.
+                      No activity logs recorded specifically for <span className="font-bold text-zinc-900">{selectedStageTab}</span> stage.
                     </p>
                     <p className="text-[10px] text-zinc-400 mt-1">
                       Click another stage node above or use "All Stage Logs" to view all history.
@@ -3701,7 +3782,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
             <Button
               onClick={onEdit}
-              className="h-11 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest bg-[#2d8d9b] text-white hover:bg-[#257a87] gap-1.5"
+              className="h-11 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest bg-[#C82A2B] text-white hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/20 gap-1.5 cursor-pointer"
             >
               <Edit2 size={13} /> Edit Profile
             </Button>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { 
   Lead, 
@@ -322,15 +323,15 @@ export default function FeedsRegistryPage() {
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
-          ${l.area ? `<div style="font-size: 9px; color: #2d8d9b; font-weight: normal;">${l.area}</div>` : ''}
         </td>
+        <td style="font-size: 10px; color: #4a5568;">${l.area || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568;">${zoneName || l.city || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${l.contact_person || '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
         </td>
         <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${l.phone || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Scouting Agent'}</td>
-        <td style="font-size: 10px; color: #4a5568;">${l.city || l.area || (zoneName ? `Zone: ${zoneName}` : '—')}</td>
       </tr>
     `;
     }).join('');
@@ -366,10 +367,11 @@ export default function FeedsRegistryPage() {
       <tr>
         <th style="width: 25px; text-align: center;">#</th>
         <th>Prospect / Organization</th>
+        <th>Locality</th>
+        <th>Zone</th>
         <th>Contact Person</th>
         <th>Contact Phone</th>
         <th>Scouted By</th>
-        <th>Area / City</th>
       </tr>
     </thead>
     <tbody>
@@ -441,71 +443,72 @@ export default function FeedsRegistryPage() {
       )
     },
     {
-      header: 'Area',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap',
-      sortValue: (l) => l.area || l.city || '',
+      header: 'Locality',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.area || '',
+      accessor: (l) => (
+        l.area ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
+            <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
+            <span className="truncate">{l.area}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
+        )
+      )
+    },
+    {
+      header: 'Zone',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || l.city || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-        return (
-          l.area ? (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
-              <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-              <span className="truncate">{l.area}</span>
-            </div>
-          ) : l.city ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 truncate" title={l.city}>
-              <MapPin size={12} className="text-zinc-400 shrink-0" />
-              <span className="truncate">{l.city}</span>
-            </div>
-          ) : zoneName ? (
-            <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 truncate" title={`Zone: ${zoneName}`}>
-              <MapPin size={10} className="text-zinc-400 shrink-0" />
-              <span className="truncate">Zone: {zoneName}</span>
-            </div>
-          ) : (
+        const displayVal = zoneName || l.city;
+        return displayVal ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={displayVal}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{displayVal}</span>
+          </div>
+        ) : (
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
-          )
+          </div>
         );
       }
     },
     {
       header: 'Contact Person',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
       sortValue: (l) => l.contact_person || '',
       accessor: (l) => (
         l.contact_person ? (
-          <div className="flex flex-col min-w-0 max-w-[190px]">
-            <span className="text-xs font-bold text-zinc-800 truncate block" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
+            <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
               {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
             </span>
             {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block" title={l.contact_designation}>
+              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
         )
       )
     },
     {
       header: 'Contact Phone',
-      className: 'w-[135px] min-w-[125px] whitespace-nowrap',
+      className: 'w-[145px] min-w-[135px] whitespace-nowrap text-center',
       sortValue: (l) => l.phone || '',
       accessor: (l) => (
-        l.phone ? (
-          <a
-            href={`tel:${l.phone}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-800 hover:text-[#C82A2B] transition-colors"
-            title={`Call ${l.phone}`}
-          >
-            <Phone size={12} className="text-[#9E1B1D] shrink-0" />
-            <span>{l.phone}</span>
-          </a>
-        ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">—</span>
-        )
+        <div className="flex items-center justify-center text-center">
+          <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+        </div>
       )
     },
     {

@@ -99,7 +99,17 @@ function naturalCompare(a: any, b: any): number {
     return numA - numB;
   }
 
-  // If date strings (e.g. 2026-10-06, 05/10/2026)
+  // If date strings (e.g. 28-09-2026, 2026-10-06, 05/10/2026)
+  const dmyMatchA = strA.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  const dmyMatchB = strB.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatchA && dmyMatchB) {
+    const timeA = new Date(`${dmyMatchA[3]}-${dmyMatchA[2].padStart(2, '0')}-${dmyMatchA[1].padStart(2, '0')}T00:00:00`).getTime();
+    const timeB = new Date(`${dmyMatchB[3]}-${dmyMatchB[2].padStart(2, '0')}-${dmyMatchB[1].padStart(2, '0')}T00:00:00`).getTime();
+    if (!isNaN(timeA) && !isNaN(timeB)) {
+      return timeA - timeB;
+    }
+  }
+
   const dateA = Date.parse(strA);
   const dateB = Date.parse(strB);
   if (!isNaN(dateA) && !isNaN(dateB) && (strA.includes('-') || strA.includes('/')) && strA.length >= 8 && strB.length >= 8) {
@@ -375,28 +385,28 @@ export function DataTable<T extends { id: string | number }>({
   }, [sortedData, currentPage, currentPageSize]);
 
   return (
-    <div className={`bg-white rounded-2xl md:rounded-3xl border border-[#fce4d4] overflow-hidden shadow-sm transition-all duration-300 flex flex-col ${minHeight}`}>
+    <div className={`bg-white rounded-2xl md:rounded-3xl border border-zinc-200 overflow-hidden shadow-sm transition-all duration-300 flex flex-col ${minHeight}`}>
       {/* Table Header Section - Unified One-Line Toolbar */}
       {(title || subtitle || searchPlaceholder || headerAction || rightAction || (onPrint && !hideTablePrint)) && (
-        <div className="px-4 py-2.5 md:px-6 md:py-3 border-b border-[#fce4d4] flex flex-wrap items-center justify-between gap-2.5 bg-[#fce4d4]/10 min-w-0">
+        <div className="px-4 py-2.5 md:px-6 md:py-3 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-2.5 bg-zinc-50/70 min-w-0">
           {/* Left: Title & Subtitle Info (if provided) + All Filters aligned to left side */}
           <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
             {(title || subtitle) && (
               <div className="flex items-center gap-2.5 shrink-0 mr-1">
-                {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-[#3a525d]">{title}</h3>}
+                {title && <h3 className="text-lg md:text-xl font-black tracking-tight text-zinc-900">{title}</h3>}
                 {subtitle && (
                   <div className="relative group/info inline-flex items-center">
                     <button
                       type="button"
                       tabIndex={0}
                       aria-label="Table description info"
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#2d8d9b] bg-[#2d8d9b]/15 hover:bg-[#2d8d9b]/25 hover:text-[#1b5b64] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/40 shrink-0"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#9E1B1D] bg-[#FFF1F1] hover:bg-[#FFE4E4] transition-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/40 shrink-0"
                     >
                       <Info size={12} strokeWidth={2.5} />
                     </button>
-                    <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-[#1e293b] text-white rounded-xl shadow-xl border border-slate-700/50 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
-                      <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1e293b] border-t border-l border-slate-700/50 rotate-45" />
-                      <p className="relative z-10 text-xs font-medium leading-relaxed text-slate-200 normal-case tracking-normal">
+                    <div className="pointer-events-none group-hover/info:pointer-events-auto absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-zinc-900 text-white rounded-xl shadow-xl border border-zinc-750 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-200 transform scale-95 group-hover/info:scale-100 group-focus-within/info:scale-100 origin-top-left before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
+                      <div className="absolute -top-1 left-2 w-2 h-2 bg-zinc-900 border-t border-l border-zinc-700 rotate-45" />
+                      <p className="relative z-10 text-xs font-medium leading-relaxed text-zinc-200 normal-case tracking-normal">
                         {subtitle}
                       </p>
                     </div>
@@ -421,17 +431,17 @@ export function DataTable<T extends { id: string | number }>({
                 <button
                   type="button"
                   onClick={() => setIsSearchOpen(prev => !prev)}
-                  className={`h-10 ${searchTerm.trim() ? 'px-3' : 'w-10 px-0 justify-center'} bg-white border border-[#fce4d4] hover:border-[#2d8d9b]/60 rounded-xl text-xs font-bold text-[#3a525d] transition-all flex items-center gap-2 cursor-pointer shadow-2xs ${
+                  className={`h-10 ${searchTerm.trim() ? 'px-3' : 'w-10 px-0 justify-center'} bg-white border border-zinc-200 hover:border-[#C82A2B]/60 rounded-xl text-xs font-bold text-zinc-700 transition-all flex items-center gap-2 cursor-pointer shadow-2xs ${
                     searchTerm.trim()
-                      ? '!bg-[#2d8d9b] !text-white !border-[#2d8d9b] shadow-md shadow-[#2d8d9b]/25 ring-2 ring-[#2d8d9b]/30'
+                      ? '!bg-[#C82A2B] !text-white !border-[#C82A2B] shadow-md shadow-[#C82A2B]/25 ring-2 ring-[#C82A2B]/30'
                       : isSearchOpen
-                        ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b] ring-2 ring-[#2d8d9b]/20'
-                        : 'hover:bg-[#fce4d4]/20'
+                        ? 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B] ring-2 ring-[#C82A2B]/20'
+                        : 'hover:bg-zinc-50'
                   }`}
                   title={searchTerm.trim() ? `Filtered by "${searchTerm}" (Click to edit)` : (typeof searchPlaceholder === 'string' && searchPlaceholder ? searchPlaceholder : "Search table")}
                   aria-label="Search"
                 >
-                  <Search size={15} className={searchTerm.trim() ? 'text-white' : 'text-[#2d8d9b]'} />
+                  <Search size={15} className={searchTerm.trim() ? 'text-white' : 'text-[#9E1B1D]'} />
                   {searchTerm.trim() ? (
                     <span className="flex items-center gap-1.5 max-w-[120px]">
                       <span className="truncate text-xs font-bold">{searchTerm}</span>
@@ -455,9 +465,9 @@ export function DataTable<T extends { id: string | number }>({
 
                 {/* Search Popup Dropdown */}
                 {isSearchOpen && (
-                  <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 p-3 bg-white rounded-2xl shadow-2xl border border-[#2d8d9b]/30 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#2d8d9b]/10">
+                  <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 p-3 bg-white rounded-2xl shadow-2xl border border-zinc-200 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#C82A2B]/10">
                     <div className="relative flex items-center">
-                      <Search className="absolute left-3 text-[#2d8d9b]" size={15} />
+                      <Search className="absolute left-3 text-[#9E1B1D]" size={15} />
                       <input
                         ref={searchInputRef}
                         type="text"
@@ -469,7 +479,7 @@ export function DataTable<T extends { id: string | number }>({
                           }
                         }}
                         placeholder={searchPlaceholder}
-                        className="h-10 bg-[#fce4d4]/15 border border-[#fce4d4] focus:border-[#2d8d9b] rounded-xl py-2 pl-9 pr-14 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 w-full transition-all text-[#3a525d] placeholder:text-zinc-400"
+                        className="h-10 bg-zinc-50 border border-zinc-200 focus:border-[#C82A2B] rounded-xl py-2 pl-9 pr-14 text-xs font-bold outline-none focus:ring-2 focus:ring-[#C82A2B]/20 w-full transition-all text-zinc-900 placeholder:text-zinc-400"
                       />
                       <div className="absolute right-2 flex items-center gap-1">
                         {searchTerm && (
@@ -499,7 +509,7 @@ export function DataTable<T extends { id: string | number }>({
                     </div>
                     {searchTerm && (
                       <div className="mt-2.5 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] font-bold text-zinc-500 px-1">
-                        <span>Found <span className="text-[#2d8d9b] font-black">{filteredData.length}</span> matching rows</span>
+                        <span>Found <span className="text-[#9E1B1D] font-black">{filteredData.length}</span> matching rows</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -508,7 +518,7 @@ export function DataTable<T extends { id: string | number }>({
                             if (onSearch) onSearch('');
                             setIsSearchOpen(false);
                           }}
-                          className="text-rose-500 hover:text-rose-700 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+                          className="text-rose-600 hover:text-rose-700 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
                         >
                           Clear
                         </button>
@@ -531,11 +541,11 @@ export function DataTable<T extends { id: string | number }>({
 
       {/* Active User Updates Filter Banner */}
       {appliedUserFilter && (
-        <div className="mx-4 my-2 md:mx-6 px-3.5 py-2 bg-gradient-to-r from-[#2d8d9b]/15 to-[#2d8d9b]/5 border border-[#2d8d9b]/30 rounded-xl flex items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
-          <div className="flex items-center gap-2 text-[#3a525d] min-w-0">
-            <CalendarCheck size={15} className="text-[#2d8d9b] shrink-0" strokeWidth={2.5} />
+        <div className="mx-4 my-2 md:mx-6 px-3.5 py-2 bg-gradient-to-r from-[#FFF1F1] to-white border border-[#C82A2B]/20 rounded-xl flex items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2 text-zinc-800 min-w-0">
+            <CalendarCheck size={15} className="text-[#9E1B1D] shrink-0" strokeWidth={2.5} />
             <span className="font-extrabold text-zinc-500 text-[10px] uppercase tracking-wider shrink-0">User Updates:</span>
-            <span className="text-[#2d8d9b] font-black truncate">{appliedUserFilter.summary}</span>
+            <span className="text-[#9E1B1D] font-black truncate">{appliedUserFilter.summary}</span>
           </div>
           <button
             type="button"
@@ -553,7 +563,7 @@ export function DataTable<T extends { id: string | number }>({
       <div className="overflow-x-auto relative flex-1 flex flex-col justify-between">
         <table className="w-full text-left border-collapse min-w-full">
           <thead>
-            <tr className="bg-[#fce4d4]/20 border-b border-[#fce4d4]">
+            <tr className="bg-zinc-100/70 border-b border-zinc-200">
               {columns.map((col, idx) => {
                 const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
                 const isLast = idx === columns.length - 1;
@@ -569,16 +579,16 @@ export function DataTable<T extends { id: string | number }>({
                     onClick={() => isSortable && handleSort(idx)}
                     aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                     title={isSortable ? `Click to sort by ${typeof col.header === 'string' ? col.header : 'column'} (${isSorted && sortDirection === 'asc' ? 'Descending' : 'Ascending'})` : undefined}
-                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-[#fce4d4]/30 last:border-r-0 text-center ${
+                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-zinc-200/60 last:border-r-0 text-center ${
                       isSortable 
-                        ? 'cursor-pointer hover:bg-[#fce4d4]/35 hover:text-[#3a525d] group/th' 
+                        ? 'cursor-pointer hover:bg-zinc-200/50 hover:text-zinc-900 group/th' 
                         : ''
                     } ${
                       isSorted 
-                        ? 'bg-[#fce4d4]/40 text-[#2d8d9b] border-b-2 border-b-[#2d8d9b]' 
-                        : 'text-[#8b6b5a]'
+                        ? 'bg-[#FFF1F1] text-[#9E1B1D] border-b-2 border-b-[#C82A2B]' 
+                        : 'text-zinc-600'
                     } ${
-                      isSticky ? 'sticky right-0 bg-[#fef7f2] z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
+                      isSticky ? 'sticky right-0 bg-zinc-50 z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
                     } ${col.className || ''}`}
                   >
                     <div className="flex items-center justify-center gap-1.5 w-full text-center">
@@ -587,12 +597,12 @@ export function DataTable<T extends { id: string | number }>({
                         <span className="inline-flex items-center shrink-0 ml-1">
                           {isSorted ? (
                             sortDirection === 'asc' ? (
-                              <ArrowUp size={13} strokeWidth={3} className="text-[#2d8d9b] animate-in fade-in zoom-in-75 duration-150" />
+                              <ArrowUp size={13} strokeWidth={3} className="text-[#9E1B1D] animate-in fade-in zoom-in-75 duration-150" />
                             ) : (
-                              <ArrowDown size={13} strokeWidth={3} className="text-[#2d8d9b] animate-in fade-in zoom-in-75 duration-150" />
+                              <ArrowDown size={13} strokeWidth={3} className="text-[#9E1B1D] animate-in fade-in zoom-in-75 duration-150" />
                             )
                           ) : (
-                            <ArrowUpDown size={12} strokeWidth={2} className="text-[#8b6b5a]/30 opacity-0 group-hover/th:opacity-100 transition-opacity" />
+                            <ArrowUpDown size={12} strokeWidth={2} className="text-zinc-400 opacity-0 group-hover/th:opacity-100 transition-opacity" />
                           )}
                         </span>
                       )}
@@ -708,18 +718,18 @@ export function DataTable<T extends { id: string | number }>({
       </div>
 
       {/* Modern Footer */}
-      <div className="px-4 py-3 md:px-6 md:py-3.5 border-t border-[#fce4d4] flex flex-col md:flex-row justify-between items-center gap-3 bg-[#fce4d4]/5 transition-colors mt-auto shrink-0">
+      <div className="px-4 py-3 md:px-6 md:py-3.5 border-t border-zinc-200 flex flex-col md:flex-row justify-between items-center gap-3 bg-zinc-50/60 transition-colors mt-auto shrink-0">
         <div className="flex flex-wrap items-center gap-3.5 w-full md:w-auto justify-between md:justify-start">
-          <span className="text-[10px] md:text-[11px] text-[#8b6b5a] font-black uppercase tracking-[0.2em] text-center md:text-left">
-            Showing <span className="text-[#2d8d9b] text-sm md:text-base font-black">{sortedData.length === 0 ? 0 : Math.min(sortedData.length, (currentPage - 1) * currentPageSize + 1)}</span> to <span className="text-[#2d8d9b] text-sm md:text-base font-black">{Math.min(sortedData.length, currentPage * currentPageSize)}</span> of <span className="text-[#2d8d9b] text-xs md:text-sm font-black">{sortedData.length}</span> entries
+          <span className="text-[10px] md:text-[11px] text-zinc-500 font-black uppercase tracking-[0.2em] text-center md:text-left">
+            Showing <span className="text-[#9E1B1D] text-sm md:text-base font-black">{sortedData.length === 0 ? 0 : Math.min(sortedData.length, (currentPage - 1) * currentPageSize + 1)}</span> to <span className="text-[#9E1B1D] text-sm md:text-base font-black">{Math.min(sortedData.length, currentPage * currentPageSize)}</span> of <span className="text-[#9E1B1D] text-xs md:text-sm font-black">{sortedData.length}</span> entries
           </span>
 
           {/* Option to choose number of datas (10, 20, 30, 50) */}
-          <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l sm:border-[#fce4d4]/80">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6b5a]">Rows:</span>
+          <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l sm:border-zinc-200">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Rows:</span>
 
             {/* Quick Segmented Pill Options */}
-            <div className="inline-flex items-center bg-white p-0.5 rounded-xl border border-[#fce4d4] shadow-2xs">
+            <div className="inline-flex items-center bg-white p-0.5 rounded-xl border border-zinc-200 shadow-2xs">
               {resolvedPageSizeOptions.map((size) => {
                 const isSelected = currentPageSize === size;
                 return (
@@ -732,8 +742,8 @@ export function DataTable<T extends { id: string | number }>({
                     }}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-[#2d8d9b] text-white shadow-xs'
-                        : 'text-zinc-500 hover:text-[#3a525d] hover:bg-[#fce4d4]/20'
+                        ? 'bg-[#C82A2B] text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
                     }`}
                     title={`Display ${size} rows per page`}
                   >
@@ -750,17 +760,17 @@ export function DataTable<T extends { id: string | number }>({
                 onClick={() => setIsPageSizeOpen(prev => !prev)}
                 className={`h-7 px-2.5 rounded-xl border text-[11px] font-black flex items-center gap-1.5 transition-all cursor-pointer select-none shadow-2xs ${
                   isPageSizeOpen
-                    ? 'bg-[#2d8d9b]/10 text-[#2d8d9b] border-[#2d8d9b] ring-2 ring-[#2d8d9b]/20'
-                    : 'bg-white border-[#fce4d4] hover:border-[#2d8d9b]/60 hover:bg-[#fce4d4]/10 text-[#3a525d]'
+                    ? 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B] ring-2 ring-[#C82A2B]/20'
+                    : 'bg-white border-zinc-200 hover:border-[#C82A2B]/60 hover:bg-zinc-50 text-zinc-800'
                 }`}
                 title="Select rows per page"
               >
                 <span>{currentPageSize} / page</span>
-                <ChevronDown size={12} className={`text-[#2d8d9b] transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={12} className={`text-[#9E1B1D] transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isPageSizeOpen && (
-                <div className="absolute left-0 bottom-full mb-1.5 z-50 w-32 bg-white rounded-2xl shadow-xl border border-[#2d8d9b]/30 p-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#2d8d9b]/10">
+                <div className="absolute left-0 bottom-full mb-1.5 z-50 w-32 bg-white rounded-2xl shadow-xl border border-zinc-200 p-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#C82A2B]/10">
                   <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 mb-1">
                     Rows per page
                   </div>
@@ -777,8 +787,8 @@ export function DataTable<T extends { id: string | number }>({
                         }}
                         className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-[#2d8d9b] text-white font-black shadow-xs'
-                            : 'text-zinc-700 hover:bg-[#fce4d4]/20 hover:text-[#3a525d]'
+                            ? 'bg-[#C82A2B] text-white font-black shadow-xs'
+                            : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
                         }`}
                       >
                         <span>{size} records</span>
@@ -803,8 +813,8 @@ export function DataTable<T extends { id: string | number }>({
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             Prev
           </Button>
-          <div className="flex items-center px-2 text-[10px] md:text-[11px] font-black text-[#8b6b5a] whitespace-nowrap">
-            <span>Page <strong className="text-[#2d8d9b] text-xs font-black">{totalPages === 0 ? 0 : currentPage}</strong> of <strong className="text-[#3a525d] text-xs font-black">{totalPages}</strong></span>
+          <div className="flex items-center px-2 text-[10px] md:text-[11px] font-black text-zinc-500 whitespace-nowrap">
+            <span>Page <strong className="text-[#9E1B1D] text-xs font-black">{totalPages === 0 ? 0 : currentPage}</strong> of <strong className="text-zinc-900 text-xs font-black">{totalPages}</strong></span>
           </div>
           <Button 
              variant="secondary" 
