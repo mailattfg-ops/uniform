@@ -590,6 +590,9 @@ function OrganizationDetailsPageContent() {
   const [paymentDateFilter, setPaymentDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [orderDateFilter, setOrderDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [packageDateFilter, setPackageDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [shipmentDateFilter, setShipmentDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [proformaDateFilter, setProformaDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [invoiceDateFilter, setInvoiceDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [industries, setIndustries] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
@@ -1599,20 +1602,38 @@ function OrganizationDetailsPageContent() {
   }, [ledgerData?.orders, orgDetails?.orders]);
 
   const customerShipments = React.useMemo(() => {
-    return deliveryChallans.map((dc: any) => ({
-      id: dc.id,
-      dc_no: dc.dc_no,
-      order_id: dc.order_id,
-      order_no: dc.orders?.order_no || `ORD-${dc.order_id}`,
-      quotation_no: dc.orders?.quotations?.quotation_no || '—',
-      dispatch_date: dc.dispatch_date || dc.created_at,
-      transporter_name: dc.transporter_name || 'Standard Logistics',
-      vehicle_no: dc.vehicle_no || '—',
-      total_packages: dc.total_packages || 1,
-      status: dc.status || 'Dispatched',
-      notes: dc.notes || '—'
-    }));
-  }, [deliveryChallans]);
+    return deliveryChallans.map((dc: any) => {
+      const linkedOrder = customerOrders.find((o: any) => o.id === dc.order_id || o.order_no === dc.orders?.order_no);
+      const linkedQuote = dc.orders?.quotations || quotations.find((q: any) => q.id === linkedOrder?.quotation_id || (linkedOrder?.quotations && q.id === linkedOrder.quotations.id));
+      const customerName = dc.orders?.quotations?.organizations?.name || org?.name || '—';
+      const desc = linkedQuote?.title || linkedOrder?.quotations?.title || dc.notes || 'Uniform Apparel Shipment';
+      const sp = linkedQuote?.sales_person?.full_name 
+        || linkedQuote?.sales_person?.name 
+        || org?.relationship_manager?.full_name 
+        || employees.find((e: any) => e.id === (linkedQuote?.sales_person_id || org?.relationship_manager_id))?.full_name 
+        || 'Unassigned';
+
+      return {
+        id: dc.id,
+        date: dc.dispatch_date || dc.created_at,
+        dc_no: dc.dc_no || `DC-${dc.id}`,
+        order_no: dc.orders?.order_no || linkedOrder?.order_no || (dc.order_id ? `ORD-${dc.order_id}` : '—'),
+        customer_name: customerName,
+        description: desc,
+        sales_person: sp,
+        order_update: dc.notes || linkedOrder?.latest_update || linkedOrder?.order_update || 'Dispatched for delivery',
+        shipment_date: dc.dispatch_date || dc.created_at,
+        carrier: dc.transporter_name || dc.carrier || 'Standard Logistics',
+        lr_no: dc.lr_no || dc.lorry_receipt_no || dc.tracking_no || dc.vehicle_no || '—',
+        transporter_contact: dc.transporter_contact || dc.transporter_phone || dc.driver_phone || '—',
+        total_packages: dc.total_packages || 1,
+        eway_bill_no: dc.eway_bill_no || dc.eway_bill || dc.e_way_bill || '—',
+        status: dc.status || 'Dispatched',
+        notes: dc.notes || '—',
+        raw: dc
+      };
+    });
+  }, [deliveryChallans, customerOrders, quotations, org, employees]);
 
   const customerPackages = React.useMemo(() => {
     const list: any[] = [];
@@ -1720,10 +1741,24 @@ function OrganizationDetailsPageContent() {
         paymentStatus = 'Partially Paid';
       }
 
+      const sp = inv.sales_person?.full_name 
+        || inv.sales_person?.name 
+        || linkedQuote?.sales_person?.full_name 
+        || linkedOrder?.sales_person?.full_name 
+        || org?.relationship_manager?.full_name 
+        || employees.find((e: any) => e.id === (inv.sales_person_id || linkedQuote?.sales_person_id || org?.relationship_manager_id))?.full_name 
+        || 'Unassigned';
+
+      const stageStatus = inv.stage_status || inv.stage || linkedOrder?.stage_status || linkedOrder?.stage || (dueAmt <= 0 ? 'Closed' : 'Active');
+
       return {
         ...inv,
+        date: inv.invoice_date || inv.created_at || inv.date,
         invoice_no: inv.invoice_number || inv.invoice_no || inv.reference_no || `INV-${inv.id}`,
         order_no: resolvedOrderNo,
+        customer_name: org?.name || inv.organizations?.name || '—',
+        sales_person: sp,
+        stage_status: stageStatus,
         total_amount: totalAmt,
         paid_amount: paidAmt,
         existing_credits: paidAmt,
@@ -1732,7 +1767,7 @@ function OrganizationDetailsPageContent() {
         payment_status: paymentStatus
       };
     });
-  }, [ledgerData?.invoices, ledgerData?.transactions, customerOrders, ledgerData?.orders, orgDetails?.orders, quotations, customerPayments]);
+  }, [ledgerData?.invoices, ledgerData?.transactions, customerOrders, ledgerData?.orders, orgDetails?.orders, quotations, customerPayments, org, employees]);
 
   const customerExpenses = React.useMemo(() => {
     const list: any[] = [];
@@ -1920,11 +1955,20 @@ function OrganizationDetailsPageContent() {
         piStatus = 'Draft PI';
       }
 
+      const sp = q.sales_person?.full_name
+        || q.sales_person?.name
+        || linkedOrder?.sales_person?.full_name
+        || org?.relationship_manager?.full_name
+        || employees.find((e: any) => e.id === (q.sales_person_id || org?.relationship_manager_id))?.full_name
+        || 'Unassigned';
+
       return {
         id: q.id,
         pi_no: piNo,
         order_no: resolvedOrderNo,
-        date: q.created_at,
+        customer_name: q.organizations?.name || org?.name || '—',
+        sales_person: sp,
+        date: q.quotation_date || q.created_at,
         validity_days: org?.credit_period_days || 30,
         title: q.title,
         type: q.quotation_type || q.metrics_summary?.quotation_type || 'Commercial Bulk',
@@ -1943,11 +1987,21 @@ function OrganizationDetailsPageContent() {
           item.order_no === ord.order_no
       );
       if (!alreadyIncluded) {
+        const linkedQuote = quotations.find((q: any) => q.id === ord.quotation_id) || ord.quotations;
+        const sp = ord.sales_person?.full_name
+          || ord.sales_person?.name
+          || linkedQuote?.sales_person?.full_name
+          || org?.relationship_manager?.full_name
+          || employees.find((e: any) => e.id === (ord.sales_person_id || linkedQuote?.sales_person_id || org?.relationship_manager_id))?.full_name
+          || 'Unassigned';
+
         list.push({
           id: ord.quotation_id || ord.id,
           pi_no: `PI-${ord.quotation_id || ord.id}`,
           order_no: ord.order_no,
-          date: ord.created_at,
+          customer_name: ord.organizations?.name || org?.name || '—',
+          sales_person: sp,
+          date: ord.order_date || ord.created_at,
           validity_days: org?.credit_period_days || 30,
           title: ord.quotations?.title || `Apparel Manufacturing Order ${ord.order_no}`,
           type: ord.quotations?.quotation_type || 'Commercial Bulk',
@@ -1959,7 +2013,7 @@ function OrganizationDetailsPageContent() {
     });
 
     return list;
-  }, [quotations, customerOrders, ledgerData?.orders, orgDetails?.orders, org?.credit_period_days]);
+  }, [quotations, customerOrders, ledgerData?.orders, orgDetails?.orders, org, employees]);
 
   if (isLoadingOrg) {
     return (
@@ -3869,15 +3923,34 @@ function OrganizationDetailsPageContent() {
           {transactionSubTab === 'shipments' && (
             <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
               <DataTable
-                title="Shipments & Delivery Challans"
+                title="Shipments"
                 subtitle={`Official delivery challans (DC) and dispatch consignments generated for ${org.name}`}
+                headerAction={
+                  <DateRangeFilter
+                    label="Date"
+                    value={shipmentDateFilter}
+                    onChange={setShipmentDateFilter}
+                  />
+                }
                 columns={[
                   {
-                    header: 'Challan / DC No',
-                    accessor: (dc) => (
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
-                          <Truck size={14} />
+                    header: 'Date',
+                    className: 'w-[105px] whitespace-nowrap',
+                    sortable: true,
+                    sortValue: (dc: any) => new Date(dc.date || dc.dispatch_date || dc.created_at || 0).getTime(),
+                    accessor: (dc: any) => (
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                        {formatDate(dc.date || dc.dispatch_date || dc.created_at)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Delivery Challan No.',
+                    className: 'w-[160px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+                          <Truck size={13} />
                         </div>
                         <span className="font-mono font-black text-zinc-900 text-xs">
                           {dc.dc_no}
@@ -3886,71 +3959,106 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Sales Order No',
-                    accessor: (dc) => (
-                      <span className="font-mono font-bold text-xs text-[#2d8d9b]">
+                    header: 'SO No.',
+                    className: 'w-[125px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="font-mono font-bold text-xs text-[#9E1B1D] whitespace-nowrap">
                         {dc.order_no}
                       </span>
                     )
                   },
                   {
-                    header: 'Dispatch Date',
-                    accessor: (dc) => (
-                      <span className="text-zinc-600 font-bold text-xs">
-                        {formatDate(dc.dispatch_date)}
+                    header: 'Customer Name',
+                    className: 'min-w-[150px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={dc.customer_name || org?.name}>
+                        {dc.customer_name || org?.name || '—'}
                       </span>
                     )
                   },
                   {
-                    header: 'Transporter / Carrier',
-                    accessor: (dc) => (
-                      <span className="text-zinc-800 font-bold text-xs">
-                        {dc.transporter_name}
+                    header: 'Description',
+                    className: 'min-w-[170px] max-w-[250px]',
+                    accessor: (dc: any) => (
+                      <span className="text-xs text-zinc-700 font-medium truncate block" title={dc.description}>
+                        {dc.description || 'Uniform Apparel Shipment'}
                       </span>
                     )
                   },
                   {
-                    header: 'Vehicle / Tracking',
-                    accessor: (dc) => (
-                      <span className="font-mono text-xs text-zinc-500 font-medium">
-                        {dc.vehicle_no || '—'}
+                    header: 'Sales Person',
+                    className: 'min-w-[130px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                        {dc.sales_person || 'Unassigned'}
                       </span>
                     )
                   },
                   {
-                    header: 'Packages',
-                    accessor: (dc) => (
-                      <span className="px-2.5 py-1 text-[10px] font-black bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200">
+                    header: 'Order Update',
+                    className: 'min-w-[160px] max-w-[240px]',
+                    accessor: (dc: any) => (
+                      <span className="text-xs text-zinc-600 font-medium truncate block" title={dc.order_update}>
+                        {dc.order_update || 'Dispatched for delivery'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Shipment Date',
+                    className: 'w-[115px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                        {dc.shipment_date ? formatDate(dc.shipment_date) : '—'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Carrier',
+                    className: 'min-w-[130px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap">
+                        {dc.carrier || dc.transporter_name || 'Standard Logistics'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'LR No.',
+                    className: 'w-[110px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="font-mono text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                        {dc.lr_no || '—'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Transporter Contact',
+                    className: 'w-[140px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="text-xs text-zinc-600 font-medium whitespace-nowrap">
+                        {dc.transporter_contact || '—'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'No. Of Packages',
+                    className: 'w-[120px] whitespace-nowrap text-center',
+                    accessor: (dc: any) => (
+                      <span className="px-2.5 py-0.5 text-[10px] font-black bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200 whitespace-nowrap">
                         {dc.total_packages || 1} Box(es)
                       </span>
                     )
                   },
                   {
-                    header: 'Status',
-                    accessor: (dc) => {
-                      const st = dc.status || 'Dispatched';
-                      const isDelivered = st.toLowerCase() === 'delivered';
-                      return (
-                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
-                          isDelivered
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
-                          {st}
-                        </span>
-                      );
-                    }
-                  },
-                  {
-                    header: 'Notes',
-                    accessor: (dc) => (
-                      <span className="text-xs text-zinc-400 font-medium truncate max-w-xs block" title={dc.notes}>
-                        {dc.notes || '—'}
+                    header: 'EWay Bill No.',
+                    className: 'w-[130px] whitespace-nowrap',
+                    accessor: (dc: any) => (
+                      <span className="font-mono text-xs text-zinc-600 font-medium whitespace-nowrap">
+                        {dc.eway_bill_no || '—'}
                       </span>
                     )
                   }
                 ]}
-                data={customerShipments}
+                data={customerShipments.filter((dc: any) => matchesDateFilter(dc.date || dc.dispatch_date || dc.created_at, shipmentDateFilter))}
                 isLoading={isLoadingChallans}
                 searchPlaceholder="Search"
                 emptyMessage="No shipments or delivery challans logged for this customer."
@@ -3962,28 +4070,22 @@ function OrganizationDetailsPageContent() {
           {transactionSubTab === 'pro_forma_invoice' && (
             <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
               <DataTable
-                title="Proforma Invoices (PI)"
+                title="Proforma Invoice"
                 subtitle={`Advance commercial quotes & proforma billing estimates for ${org.name}`}
                 onRowClick={(pi: any) => handleOpenProforma(pi)}
+                headerAction={
+                  <DateRangeFilter
+                    label="Date"
+                    value={proformaDateFilter}
+                    onChange={setProformaDateFilter}
+                  />
+                }
                 columns={[
                   {
-                    header: 'Order No',
-                    className: 'w-[160px] whitespace-nowrap',
-                    accessor: (pi: any) => (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenProforma(pi)}
-                        className="font-mono font-black text-[#2d8d9b] hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left flex items-center gap-1.5 whitespace-nowrap"
-                        title="Click to view official Proforma Invoice"
-                      >
-                        <ShoppingBag size={14} className="text-[#2d8d9b] shrink-0" />
-                        <span>{pi.order_no}</span>
-                      </button>
-                    )
-                  },
-                  {
-                    header: 'Issue Date',
-                    className: 'w-[110px] whitespace-nowrap',
+                    header: 'Date',
+                    className: 'w-[105px] whitespace-nowrap',
+                    sortable: true,
+                    sortValue: (pi: any) => new Date(pi.date || 0).getTime(),
                     accessor: (pi: any) => (
                       <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
                         {formatDate(pi.date)}
@@ -3991,22 +4093,60 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Validity',
-                    className: 'w-[100px] whitespace-nowrap',
+                    header: 'Proforma Invoice No.',
+                    className: 'w-[160px] whitespace-nowrap',
                     accessor: (pi: any) => (
-                      <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">
-                        {pi.validity_days} Days
+                      <div className="font-mono font-black text-[#9E1B1D] flex items-center gap-1.5 whitespace-nowrap">
+                        <FileSpreadsheet size={14} className="text-[#C82A2B] shrink-0" />
+                        <span>{pi.pi_no}</span>
+                      </div>
+                    )
+                  },
+                  {
+                    header: 'SO No.',
+                    className: 'w-[125px] whitespace-nowrap',
+                    accessor: (pi: any) => (
+                      <span className="font-mono font-bold text-xs text-zinc-800 whitespace-nowrap">
+                        {pi.order_no}
                       </span>
                     )
                   },
                   {
-                    header: 'Title',
-                    className: 'min-w-[180px]',
+                    header: 'Customer Name',
+                    className: 'min-w-[150px] whitespace-nowrap',
                     accessor: (pi: any) => (
-                      <span className="text-xs font-bold text-[#3a525d] truncate max-w-sm block" title={pi.title}>
-                        {pi.title || 'Institutional Uniforms Specification'}
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pi.customer_name || org?.name}>
+                        {pi.customer_name || org?.name || '—'}
                       </span>
                     )
+                  },
+                  {
+                    header: 'Sales Person',
+                    className: 'min-w-[130px] whitespace-nowrap',
+                    accessor: (pi: any) => (
+                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                        {pi.sales_person || 'Unassigned'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Stage Status',
+                    className: 'w-[130px] whitespace-nowrap text-center',
+                    accessor: (pi: any) => {
+                      const isOrder = pi.status?.toLowerCase().includes('order');
+                      const isReady = pi.status?.toLowerCase().includes('ready') || pi.status?.toLowerCase().includes('accept');
+                      return (
+                        <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border whitespace-nowrap ${
+                          isOrder
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isReady
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {pi.status}
+                        </span>
+                      );
+                    }
                   },
                   {
                     header: 'Amount',
@@ -4015,47 +4155,14 @@ function OrganizationDetailsPageContent() {
                     sortValue: (pi: any) => parseFloat(String(pi.amount || 0)),
                     accessor: (pi: any) => (
                       <div className="text-right">
-                        <span className="font-mono font-black text-zinc-900 text-sm whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
                           ₹{parseFloat(String(pi.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     )
-                  },
-                  {
-                    header: 'Status',
-                    className: 'w-[130px] whitespace-nowrap text-center',
-                    accessor: (pi: any) => {
-                      const isOrder = pi.status.includes('Order');
-                      return (
-                        <div className="flex justify-center">
-                          <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
-                            isOrder
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}>
-                            {pi.status}
-                          </span>
-                        </div>
-                      );
-                    }
-                  },
-                  {
-                    header: 'Actions',
-                    className: 'w-[110px] whitespace-nowrap text-center',
-                    accessor: (pi: any) => (
-                      <div className="flex justify-center">
-                        <Button
-                          onClick={() => handleOpenProforma(pi)}
-                          variant="secondary"
-                          className="h-8 px-3 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        >
-                          <Eye size={12} /> View PI
-                        </Button>
-                      </div>
-                    )
                   }
                 ]}
-                data={customerProFormaInvoices}
+                data={customerProFormaInvoices.filter((pi: any) => matchesDateFilter(pi.date, proformaDateFilter))}
                 isLoading={isLoadingOrg}
                 searchPlaceholder="Search"
                 emptyMessage="No proforma invoices generated for this customer."
@@ -4067,7 +4174,7 @@ function OrganizationDetailsPageContent() {
           {transactionSubTab === 'invoices' && (
             <div className="bg-white rounded-[2.5rem] border border-zinc-150/50 shadow-sm p-6 animate-in fade-in duration-300">
               <DataTable
-                title="Customer Tax Invoices"
+                title="Invoice"
                 onRowClick={(inv: any) => {
                   setSelectedTaxInvoice({
                     ...inv,
@@ -4088,6 +4195,13 @@ function OrganizationDetailsPageContent() {
                   setIsTaxInvoiceModalOpen(true);
                 }}
                 subtitle={`Commercial tax invoices and retail cash registers billed to ${org.name}`}
+                headerAction={
+                  <DateRangeFilter
+                    label="Date"
+                    value={invoiceDateFilter}
+                    onChange={setInvoiceDateFilter}
+                  />
+                }
                 rightAction={
                   !isClientUser && (
                     <Button
@@ -4107,85 +4221,117 @@ function OrganizationDetailsPageContent() {
                 }
                 columns={[
                   {
-                    header: 'Invoice No',
+                    header: 'Date',
+                    className: 'w-[105px] whitespace-nowrap',
+                    sortable: true,
+                    sortValue: (inv: any) => new Date(inv.date || inv.invoice_date || inv.created_at || 0).getTime(),
                     accessor: (inv: any) => (
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#2d8d9b] border border-teal-100 flex items-center justify-center shrink-0">
-                          <ReceiptText size={14} />
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                        {formatDate(inv.date || inv.invoice_date || inv.created_at)}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Invoice No.',
+                    className: 'w-[140px] whitespace-nowrap',
+                    accessor: (inv: any) => (
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <div className="w-6 h-6 rounded-md bg-rose-50 text-[#9E1B1D] border border-rose-200 flex items-center justify-center shrink-0">
+                          <ReceiptText size={13} />
                         </div>
-                        <span className="font-mono font-bold text-[#991b1b] text-xs">
+                        <span className="font-mono font-black text-[#9E1B1D] text-xs">
                           {inv.invoice_no}
                         </span>
                       </div>
                     )
                   },
                   {
-                    header: 'Order No',
+                    header: 'SO No.',
+                    className: 'w-[125px] whitespace-nowrap',
                     accessor: (inv: any) => (
-                      <span className="font-mono font-bold text-xs text-zinc-800">
+                      <span className="font-mono font-bold text-xs text-zinc-800 whitespace-nowrap">
                         {inv.order_no || '—'}
                       </span>
                     )
                   },
                   {
-                    header: 'Invoice Date',
+                    header: 'Customer Name',
+                    className: 'min-w-[150px] whitespace-nowrap',
                     accessor: (inv: any) => (
-                      <span className="text-zinc-600 font-bold text-xs">
-                        {formatDate(inv.invoice_date || inv.created_at)}
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={inv.customer_name || org?.name}>
+                        {inv.customer_name || org?.name || '—'}
                       </span>
                     )
                   },
                   {
-                    header: 'Due Date',
+                    header: 'Sales Person',
+                    className: 'min-w-[130px] whitespace-nowrap',
                     accessor: (inv: any) => (
-                      <span className="text-zinc-500 font-semibold text-xs">
-                        {formatDate(inv.due_date)}
+                      <span className="text-xs text-zinc-600 font-semibold whitespace-nowrap">
+                        {inv.sales_person || 'Unassigned'}
                       </span>
                     )
                   },
                   {
-                    header: 'Sale Type',
-                    accessor: (inv: any) => (
-                      <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-zinc-50 text-zinc-600 border-zinc-200">
-                        {inv.sale_type === 'retail' ? 'Retail' : 'Bulk Order'}
-                      </span>
-                    )
+                    header: 'Stage Status',
+                    className: 'w-[110px] whitespace-nowrap text-center',
+                    accessor: (inv: any) => {
+                      const st = inv.stage_status || (inv.due_amount <= 0 ? 'Closed' : 'Active');
+                      const isClosed = st.toLowerCase().includes('close') || st.toLowerCase().includes('paid');
+                      return (
+                        <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border whitespace-nowrap ${
+                          isClosed
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {st}
+                        </span>
+                      );
+                    }
                   },
                   {
-                    header: 'Total Amount',
+                    header: 'Amount',
+                    className: 'w-[125px] whitespace-nowrap text-right',
+                    sortable: true,
+                    sortValue: (inv: any) => parseFloat(String(inv.total_amount || 0)),
                     accessor: (inv: any) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs">
+                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
                         ₹{parseFloat(String(inv.total_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
                   },
                   {
-                    header: 'Paid Amount',
-                    accessor: (inv: any) => (
-                      <span className="font-mono font-black text-emerald-600 text-xs">
-                        ₹{parseFloat(String(inv.paid_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    )
-                  },
-                  {
                     header: 'Balance Due',
+                    className: 'w-[125px] whitespace-nowrap text-right',
+                    sortable: true,
+                    sortValue: (inv: any) => parseFloat(String(inv.due_amount !== undefined ? inv.due_amount : (parseFloat(String(inv.total_amount || 0)) - parseFloat(String(inv.paid_amount || 0))))),
                     accessor: (inv: any) => {
-                      const bal = parseFloat(String(inv.total_amount || 0)) - parseFloat(String(inv.paid_amount || 0));
+                      const bal = parseFloat(String(inv.due_amount !== undefined ? inv.due_amount : (parseFloat(String(inv.total_amount || 0)) - parseFloat(String(inv.paid_amount || 0)))));
                       return (
-                        <span className={`font-mono font-black text-xs ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        <span className={`font-mono font-black text-xs whitespace-nowrap ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
                           ₹{Math.max(0, bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       );
                     }
                   },
                   {
-                    header: 'Payment Status',
+                    header: 'Due Date',
+                    className: 'w-[110px] whitespace-nowrap',
+                    accessor: (inv: any) => (
+                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap">
+                        {inv.due_date ? formatDate(inv.due_date) : '—'}
+                      </span>
+                    )
+                  },
+                  {
+                    header: 'Status',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (inv: any) => {
                       const st = inv.payment_status || 'Unpaid';
-                      const isPaid = st.toLowerCase() === 'paid';
-                      const isPartial = st.toLowerCase() === 'partially paid';
+                      const isPaid = st.toLowerCase().includes('paid') && !st.toLowerCase().includes('partial');
+                      const isPartial = st.toLowerCase().includes('partial');
                       return (
-                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                        <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border whitespace-nowrap ${
                           isPaid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           isPartial ? 'bg-amber-50 text-amber-700 border-amber-200' :
                           'bg-rose-50 text-rose-700 border-rose-200'
@@ -4194,49 +4340,9 @@ function OrganizationDetailsPageContent() {
                         </span>
                       );
                     }
-                  },
-                  {
-                    header: 'Actions',
-                    accessor: (inv: any) => (
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          onClick={() => {
-                            setSelectedTaxInvoice({
-                              ...inv,
-                              order_no: inv.order_no,
-                              customer: {
-                                name: org.name,
-                                address: org.address,
-                                city: org.city,
-                                state: org.state,
-                                pincode: org.pincode,
-                                country: org.country || 'India',
-                                gst_number: org.gst_number,
-                                contact_person: org.contact_person || (orgDetails?.staff?.[0]?.name),
-                                phone: org.phone,
-                                email: org.email
-                              }
-                            });
-                            setIsTaxInvoiceModalOpen(true);
-                          }}
-                          variant="secondary"
-                          className="h-8 px-2.5 rounded-lg border border-zinc-200 text-[10px] font-black uppercase text-[#991b1b] hover:bg-[#991b1b] hover:text-white transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-                        >
-                          <Eye size={12} /> View
-                        </Button>
-                        <Button
-                          onClick={() => handleOpenQuickPaymentModal('invoice', String(inv.id))}
-                          variant="secondary"
-                          className="h-8 px-2.5 rounded-lg border border-emerald-200 text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-                          title="Record payment against this invoice"
-                        >
-                          <CreditCard size={12} /> Pay
-                        </Button>
-                      </div>
-                    )
                   }
                 ]}
-                data={customerInvoices}
+                data={customerInvoices.filter((inv: any) => matchesDateFilter(inv.date || inv.invoice_date || inv.created_at, invoiceDateFilter))}
                 isLoading={isLoadingLedger}
                 searchPlaceholder="Search"
                 emptyMessage="No invoices generated yet for this customer."
