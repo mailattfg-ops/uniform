@@ -580,7 +580,7 @@ export default function InvoicesPage() {
             </p>
           </div>
           <span className="text-[11px] font-mono text-zinc-400 bg-zinc-50 px-3 py-1 rounded-lg border border-zinc-200 self-start sm:self-auto">
-            Scheme: YY/MM/INV-XXXX
+            Scheme: INV-IU[BR]-[YY]/[MM][NN]
           </span>
         </div>
 

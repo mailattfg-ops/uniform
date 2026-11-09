@@ -75,9 +75,11 @@ import ProFormaInvoiceModal from '@/components/documents/ProFormaInvoiceModal';
 import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 import QuotationDetails from '@/app/(dashboard)/marketing/quotations/_components/QuotationDetails';
 import CustomJournalModal from '@/components/finance/CustomJournalModal';
+import { formatDocumentNumber } from '@/lib/documentNumberGenerator';
 
 interface Organization {
   id: number;
+  branch_id?: number | string | null;
   customer_code: string | null;
   name: string;
   contact_person?: string | null;
@@ -1649,11 +1651,16 @@ function OrganizationDetailsPageContent() {
         || employees.find((e: any) => e.id === (linkedQuote?.sales_person_id || org?.relationship_manager_id))?.full_name 
         || 'Unassigned';
 
+      const effectiveDCNo = dc.dc_no && dc.dc_no.startsWith('DC-') 
+        ? dc.dc_no 
+        : formatDocumentNumber({ prefix: 'DC', branch: dc.branch_id || org?.branch_id, date: dc.dispatch_date || dc.created_at, seq: dc.id || 1 });
+      const effectiveOrderNo = dc.orders?.order_no || linkedOrder?.order_no || (dc.order_id ? formatDocumentNumber({ prefix: 'SO', branch: dc.branch_id || org?.branch_id, date: dc.created_at, seq: dc.order_id }) : '—');
+
       return {
         id: dc.id,
         date: dc.dispatch_date || dc.created_at,
-        dc_no: dc.dc_no || `DC-${dc.id}`,
-        order_no: dc.orders?.order_no || linkedOrder?.order_no || (dc.order_id ? `ORD-${dc.order_id}` : '—'),
+        dc_no: effectiveDCNo,
+        order_no: effectiveOrderNo,
         customer_name: customerName,
         description: desc,
         sales_person: sp,
@@ -1689,12 +1696,18 @@ function OrganizationDetailsPageContent() {
         || employees.find((e: any) => e.id === (linkedQuote?.sales_person_id || org?.relationship_manager_id))?.full_name 
         || 'Unassigned';
 
+      const effectiveDCNo = dc.dc_no && dc.dc_no.startsWith('DC-') 
+        ? dc.dc_no 
+        : formatDocumentNumber({ prefix: 'DC', branch: dc.branch_id || org?.branch_id, date: dc.dispatch_date || dc.created_at, seq: dc.id || 1 });
+      const basePKNo = effectiveDCNo.replace(/^DC-/, 'PK-');
+      const effectiveOrderNo = dc.orders?.order_no || linkedOrder?.order_no || (dc.order_id ? formatDocumentNumber({ prefix: 'SO', branch: dc.branch_id || org?.branch_id, date: dc.created_at, seq: dc.order_id }) : '—');
+
       if (count <= 6) {
         for (let i = 1; i <= count; i++) {
           list.push({
-            id: `PKG-${dc.dc_no || dc.id}-${i}`,
-            package_no: `PKG-${dc.dc_no || dc.id}-BX${String(i).padStart(2, '0')}`,
-            order_no: dc.orders?.order_no || linkedOrder?.order_no || `ORD-${dc.order_id}`,
+            id: `PKG-${basePKNo}-${i}`,
+            package_no: count === 1 ? basePKNo : `${basePKNo}-BX${String(i).padStart(2, '0')}`,
+            order_no: effectiveOrderNo,
             customer_name: customerName,
             description: desc,
             sales_person: sp,
@@ -1711,9 +1724,9 @@ function OrganizationDetailsPageContent() {
         }
       } else {
         list.push({
-          id: `PKG-${dc.dc_no || dc.id}-BULK`,
-          package_no: `PKG-${dc.dc_no || dc.id}-BX01~${count}`,
-          order_no: dc.orders?.order_no || linkedOrder?.order_no || `ORD-${dc.order_id}`,
+          id: `PKG-${basePKNo}-BULK`,
+          package_no: `${basePKNo}-BX01~${count}`,
+          order_no: effectiveOrderNo,
           customer_name: customerName,
           description: desc,
           sales_person: sp,
@@ -1790,7 +1803,7 @@ function OrganizationDetailsPageContent() {
       return {
         ...inv,
         date: inv.invoice_date || inv.created_at || inv.date,
-        invoice_no: inv.invoice_number || inv.invoice_no || inv.reference_no || `INV-${inv.id}`,
+        invoice_no: inv.invoice_number || inv.invoice_no || inv.reference_no || formatDocumentNumber({ prefix: 'INV', branch: inv.branch_id || org?.branch_id, date: inv.invoice_date || inv.created_at || inv.date, seq: inv.id || 1 }),
         order_no: resolvedOrderNo,
         customer_name: org?.name || inv.organizations?.name || '—',
         sales_person: sp,
@@ -1810,17 +1823,24 @@ function OrganizationDetailsPageContent() {
 
     // Primary: Expenses linked to confirmed sales orders
     if (customerOrders && customerOrders.length > 0) {
-      customerOrders.forEach((ord: any) => {
+      customerOrders.forEach((ord: any, ordIdx: number) => {
         const ordVal = parseFloat(ord.total_amount || ord.quotations?.final_quote_value || 0);
         const totalExp = parseFloat(ord.quotations?.estimated_expenses || 0);
         const fabricExp = totalExp > 0 ? (totalExp * 0.65) : (ordVal * 0.45);
         const trimExp = totalExp > 0 ? (totalExp * 0.20) : (ordVal * 0.12);
         const opsExp = totalExp > 0 ? (totalExp * 0.15) : (ordVal * 0.08);
 
+        const baseExpNo = formatDocumentNumber({
+          prefix: 'EXP',
+          branch: ord.branch_id || org?.branch_id,
+          date: ord.order_date || ord.created_at,
+          seq: ordIdx + 1
+        });
+
         if (ordVal > 0 || totalExp > 0) {
           list.push({
             id: `EXP-ORD-${ord.id}-01`,
-            expense_ref: `EXP-${ord.order_no}-FAB`,
+            expense_ref: `${baseExpNo}/01`,
             date: ord.order_date || ord.created_at,
             category: 'Fabric & Raw Materials',
             order_no: ord.order_no,
@@ -1831,7 +1851,7 @@ function OrganizationDetailsPageContent() {
           });
           list.push({
             id: `EXP-ORD-${ord.id}-02`,
-            expense_ref: `EXP-${ord.order_no}-TRM`,
+            expense_ref: `${baseExpNo}/02`,
             date: ord.order_date || ord.created_at,
             category: 'Trims, Buttons & Labels',
             order_no: ord.order_no,
@@ -1842,7 +1862,7 @@ function OrganizationDetailsPageContent() {
           });
           list.push({
             id: `EXP-ORD-${ord.id}-03`,
-            expense_ref: `EXP-${ord.order_no}-DEV`,
+            expense_ref: `${baseExpNo}/03`,
             date: ord.order_date || ord.created_at,
             category: 'Sampling & Pattern Development',
             order_no: ord.order_no,
@@ -1855,7 +1875,7 @@ function OrganizationDetailsPageContent() {
       });
     } else {
       // Fallback: If no orders placed yet, link quotations with their corresponding order number
-      quotations.forEach((q: any) => {
+      quotations.forEach((q: any, qIdx: number) => {
         const totalExp = parseFloat(q.estimated_expenses || 0);
         const quoteVal = parseFloat(q.final_quote_value || 0);
         const fabricExp = totalExp > 0 ? (totalExp * 0.65) : (quoteVal * 0.45);
@@ -1865,10 +1885,17 @@ function OrganizationDetailsPageContent() {
         const matchingOrder = customerOrders?.find((o: any) => o.quotation_id === q.id || o.quotations?.id === q.id);
         const orderNo = matchingOrder?.order_no || (q.order_no ? q.order_no : `ORD-${q.quotation_no?.replace(/^QT-?/i, '') || q.id}`);
 
+        const baseExpNo = formatDocumentNumber({
+          prefix: 'EXP',
+          branch: q.branch_id || org?.branch_id,
+          date: q.quotation_date || q.created_at,
+          seq: qIdx + 1
+        });
+
         if (quoteVal > 0 || totalExp > 0) {
           list.push({
             id: `EXP-${q.id}-01`,
-            expense_ref: `EXP-${orderNo}-FAB`,
+            expense_ref: `${baseExpNo}/01`,
             date: q.created_at,
             category: 'Fabric & Raw Materials',
             order_no: orderNo,
@@ -1879,7 +1906,7 @@ function OrganizationDetailsPageContent() {
           });
           list.push({
             id: `EXP-${q.id}-02`,
-            expense_ref: `EXP-${orderNo}-TRM`,
+            expense_ref: `${baseExpNo}/02`,
             date: q.created_at,
             category: 'Trims, Buttons & Labels',
             order_no: orderNo,
@@ -1890,7 +1917,7 @@ function OrganizationDetailsPageContent() {
           });
           list.push({
             id: `EXP-${q.id}-03`,
-            expense_ref: `EXP-${orderNo}-DEV`,
+            expense_ref: `${baseExpNo}/03`,
             date: q.created_at,
             category: 'Sampling & Pattern Development',
             order_no: orderNo,
@@ -1926,15 +1953,21 @@ function OrganizationDetailsPageContent() {
 
       const debitVal = parseFloat(String(cj.total_debit || cj.debit || 0));
       const creditVal = parseFloat(String(cj.total_credit || cj.credit || 0));
+      const effectiveJvNo = cj.journal_no && cj.journal_no.startsWith('JV-')
+        ? cj.journal_no
+        : (cj.journal_no && cj.journal_no.startsWith('JN-')
+            ? cj.journal_no.replace(/^JN-/, 'JV-')
+            : formatDocumentNumber({ prefix: 'JV', branch: org?.branch_id, date: cj.date || cj.created_at, seq: cj.id || 1 }));
+
       list.push({
         id: cj.id,
-        journal_no: cj.journal_no || `JN-${cj.id}`,
-        ref: cj.reference_no || cj.journal_no || `JN-${cj.id}`,
+        journal_no: effectiveJvNo,
+        ref: cj.reference_no || effectiveJvNo,
         date: cj.date || cj.created_at,
         category: 'Manual Journal',
         account: cj.account_summary || cj.account || 'Custom Manual Journal',
         offset_account: cj.offset_summary || cj.offset_account || 'General Ledger',
-        title: cj.title || `Manual Journal #${cj.journal_no || cj.id}`,
+        title: cj.title || `Manual Journal #${effectiveJvNo}`,
         narration: cj.notes || cj.narration || (cj.rows ? cj.rows.map((r: any) => r.description).filter(Boolean).join('; ') : 'Manual double-entry voucher'),
         order_ref: cj.reference_no || 'Manual JV',
         debit: debitVal,
@@ -1961,7 +1994,9 @@ function OrganizationDetailsPageContent() {
     ];
 
     const list = quotations.map((q: any) => {
-      const piNo = `PI-${q.quotation_no ? q.quotation_no.replace('QT-', '') : q.id}`;
+      const piNo = q.quotation_no && q.quotation_no.startsWith('QT-')
+        ? q.quotation_no.replace(/^QT-/, 'PR-')
+        : formatDocumentNumber({ prefix: 'PR', branch: q.branch_id || org?.branch_id, date: q.quotation_date || q.created_at, seq: q.id || 1 });
       
       const linkedOrder =
         (Array.isArray(q.orders) && q.orders.length > 0 ? q.orders[0] : null) ||
@@ -3532,7 +3567,16 @@ function OrganizationDetailsPageContent() {
                           <CreditCard size={13} />
                         </div>
                         <span className="font-mono font-bold text-xs text-zinc-900">
-                          {p.voucher_no || p.reference_no || p.receipt_no || (p.id ? `PAY-${p.id}` : '—')}
+                          {p.voucher_no && p.voucher_no.startsWith('CP-')
+                            ? p.voucher_no
+                            : (p.reference_no && p.reference_no.startsWith('CP-')
+                                ? p.reference_no
+                                : formatDocumentNumber({
+                                    prefix: 'CP',
+                                    branch: p.branch_id || org?.branch_id,
+                                    date: p.paid_at || p.created_at || p.date,
+                                    seq: p.id || 1
+                                  }))}
                         </span>
                       </div>
                     )

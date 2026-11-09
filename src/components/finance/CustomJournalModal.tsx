@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import toast from '@/components/ui/toast';
+import { formatDocumentNumber } from '@/lib/documentNumberGenerator';
 
 interface JournalRow {
   id: string;
@@ -65,8 +66,7 @@ export default function CustomJournalModal({
 
   useEffect(() => {
     if (isOpen) {
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      setJournalNo(`JN-${new Date().getFullYear()}-${randomSuffix}`);
+      setJournalNo(formatDocumentNumber({ prefix: 'JV', branch: 1, date: new Date(), seq: Math.floor(1 + Math.random() * 90) }));
       setJournalDate(new Date().toISOString().split('T')[0]);
       setTitle('');
       setNotes('');
@@ -179,7 +179,7 @@ export default function CustomJournalModal({
 
     const journalEntry = {
       id: `CUSTOM-JN-${Date.now()}`,
-      journal_no: journalNo.trim() || `JN-${Date.now().toString().slice(-4)}`,
+      journal_no: journalNo.trim() || formatDocumentNumber({ prefix: 'JV', branch: 1, date: journalDate || new Date(), seq: 1 }),
       reference_no: referenceNo.trim() || undefined,
       title: title.trim(),
       date: journalDate,
@@ -248,7 +248,7 @@ export default function CustomJournalModal({
                 value={journalNo}
                 onChange={e => setJournalNo(e.target.value)}
                 required
-                placeholder="e.g. JN-2026-0001"
+                placeholder="e.g. JV-IU01-26/1101"
                 className="w-full h-10 px-3.5 bg-white border border-zinc-300 rounded-xl text-xs font-mono font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-[#C82A2B]/15 focus:border-[#C82A2B] transition-all"
               />
             </div>
