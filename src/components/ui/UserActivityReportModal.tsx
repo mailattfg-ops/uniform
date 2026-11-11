@@ -509,6 +509,7 @@ export function UserActivityReportModal<T = any>({
     else if (datePreset === 'custom') presetLabel = 'Custom Range';
 
     if (!fromDate && !toDate) return presetLabel;
+    if (fromDate === toDate) return `${formatISTDateOnly(fromDate)} (${presetLabel})`;
     return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)} (${presetLabel})`;
   }, [fromDate, toDate, datePreset, selectedYear]);
 
@@ -692,7 +693,7 @@ export function UserActivityReportModal<T = any>({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-5xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-6xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
@@ -733,8 +734,8 @@ export function UserActivityReportModal<T = any>({
         {/* Filter Controls Bar */}
         <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200/80 space-y-3.5">
           {/* Row 1: Quick Ranges & Custom Date Pickers in One Line */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 w-32 shrink-0 h-8">
+          <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto pb-0.5">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0 h-8">
               <Calendar size={13} className="text-[#C82A2B]" /> Quick Range:
             </span>
 
@@ -753,7 +754,7 @@ export function UserActivityReportModal<T = any>({
                   key={preset}
                   type="button"
                   onClick={() => setPresetDates(preset)}
-                  className={`h-8 px-3 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer ${
+                  className={`h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isActive
                       ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
                       : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
@@ -765,13 +766,13 @@ export function UserActivityReportModal<T = any>({
             })}
 
             {/* Subtle Divider */}
-            <div className="h-4 w-px bg-zinc-300 mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0" />
 
-            {/* Custom Range button & DatePickers in the same baseline */}
+            {/* Custom Range button & DatePickers in the same line */}
             <button
               type="button"
               onClick={() => setDatePreset('custom')}
-              className={`h-8 px-3 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+              className={`h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                 datePreset === 'custom'
                   ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black'
                   : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
@@ -780,7 +781,7 @@ export function UserActivityReportModal<T = any>({
               Custom Range
             </button>
 
-            <div className="inline-flex items-center gap-1.5">
+            <div className="inline-flex items-center gap-1 shrink-0">
               <DatePicker
                 size="sm"
                 value={fromDate}
@@ -790,10 +791,10 @@ export function UserActivityReportModal<T = any>({
                 }}
                 placeholder="From Date"
                 max={toDate || undefined}
-                className="w-28 bg-white !h-8"
-                wrapperClassName="!gap-0 h-8 flex items-center"
+                className="w-26 bg-white !h-8"
+                wrapperClassName="!gap-0 h-8 flex items-center shrink-0"
               />
-              <span className="text-zinc-400 text-xs font-bold inline-flex items-center h-8 leading-none">—</span>
+              <span className="text-zinc-400 text-xs font-bold inline-flex items-center h-8 leading-none shrink-0">—</span>
               <DatePicker
                 size="sm"
                 value={toDate}
@@ -803,15 +804,15 @@ export function UserActivityReportModal<T = any>({
                 }}
                 placeholder="To Date"
                 min={fromDate || undefined}
-                className="w-28 bg-white !h-8"
-                wrapperClassName="!gap-0 h-8 flex items-center"
+                className="w-26 bg-white !h-8"
+                wrapperClassName="!gap-0 h-8 flex items-center shrink-0"
               />
             </div>
           </div>
 
-          {/* Row 2: Quarterly Reports & Active Range in One Continuous Line */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-3 border-t border-zinc-200/70">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 w-32 shrink-0 h-8">
+          {/* Row 2: Quarterly Reports & Date Range in One Continuous Line */}
+          <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto pt-3 border-t border-zinc-200/70 pb-0.5">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0 h-8">
               <Clock size={13} className="text-amber-600" /> Quarterly Report:
             </span>
 
@@ -839,7 +840,7 @@ export function UserActivityReportModal<T = any>({
             </div>
 
             {/* Subtle Divider matching Row 1 */}
-            <div className="h-4 w-px bg-zinc-300 mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0" />
 
             {/* 4 Quarters in strict chronological order */}
             {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
@@ -857,7 +858,7 @@ export function UserActivityReportModal<T = any>({
                   type="button"
                   onClick={() => setPresetDates(preset)}
                   title={`${meta.label} (${meta.period} ${selectedYear})`}
-                  className={`h-8 px-3 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer ${
+                  className={`h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isActive
                       ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
                       : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
@@ -869,11 +870,11 @@ export function UserActivityReportModal<T = any>({
             })}
 
             {/* Subtle Divider */}
-            <div className="h-4 w-px bg-zinc-300 mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0" />
 
-            {/* Active Range Pill in-line with Row 2 */}
-            <div className="h-8 text-[11px] font-bold text-zinc-500 bg-white px-3 rounded-xl border border-zinc-200/90 shadow-2xs shrink-0 inline-flex items-center gap-1.5">
-              <span className="text-zinc-400 uppercase text-[9px] font-black tracking-wider">Active:</span>
+            {/* Date Range Display in-line with Row 2 */}
+            <div className="h-8 text-xs font-bold text-zinc-600 bg-white px-3 rounded-xl border border-zinc-200/90 shadow-2xs shrink-0 inline-flex items-center gap-1.5">
+              <span className="text-zinc-400 uppercase text-[9px] font-black tracking-wider">Date Range:</span>
               <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
             </div>
           </div>
