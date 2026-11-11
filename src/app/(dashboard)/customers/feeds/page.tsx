@@ -420,14 +420,6 @@ export default function FeedsRegistryPage() {
               {l.requirements}
             </p>
           )}
-          {!isFeedContacted(l) && (
-            <div className="mt-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title="No follow-up: Prospect has not been contacted yet">
-                <Clock size={10} className="text-rose-600 shrink-0" />
-                <span>No Follow-up</span>
-              </span>
-            </div>
-          )}
         </div>
       )
     },
@@ -476,13 +468,11 @@ export default function FeedsRegistryPage() {
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
                 {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
-              </span>
-            )}
-            {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
-                {l.contact_designation}
+                {l.contact_designation && (
+                  <span className="text-[10px] text-zinc-400 font-normal ml-1">({l.contact_designation})</span>
+                )}
               </span>
             )}
             {l.phone && (
@@ -567,7 +557,7 @@ export default function FeedsRegistryPage() {
         rowClassName={getRowClassName}
         onPrint={handlePrintFeeds}
         hideTablePrint={true}
-        hidePageSizeSelector={true}
+        hidePageSizeDropdown={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
         headerAction={

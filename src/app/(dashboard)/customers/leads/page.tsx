@@ -630,18 +630,6 @@ export default function LeadsRegistryPage() {
           {l.status === 'Hot Leads' && <Flame size={11} className="text-orange-500" />}
           {l.status}
         </span>
-        {isOverdueSales && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title={`Overdue: No follow-up for ${daysInactive} days`}>
-            <Clock size={10} className="text-rose-600 shrink-0" />
-            <span>No Follow-up ({daysInactive}d)</span>
-          </span>
-        )}
-        {!isOverdueSales && isOtherInactive && !l.is_cold && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs" title={`No follow-up logged for ${daysInactive} days`}>
-            <Clock size={10} className="text-amber-600 shrink-0" />
-            <span>No Follow-up ({daysInactive}d)</span>
-          </span>
-        )}
         {l.is_cold && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
             <Snowflake size={10} className="text-rose-500 shrink-0" />
@@ -656,20 +644,30 @@ export default function LeadsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[160px] max-w-[280px] text-center',
+      className: 'min-w-[180px] max-w-[280px] text-left',
       sortValue: (l) => l.name,
-      accessor: (l) => (
-        <div className="min-w-0 text-center flex flex-col items-center">
-          <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
-            {l.name}
-          </p>
-          {l.industries?.name && (
-            <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-              {l.industries.name}
+      accessor: (l) => {
+        const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
+        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+        return (
+          <div className="min-w-0 text-left flex flex-col items-start">
+            <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate w-full" title={l.name}>
+              {l.name}
             </p>
-          )}
-        </div>
-      )
+            {industryName && (
+              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
+                {industryName}
+              </p>
+            )}
+            {zoneName && (
+              <p className="text-[10px] font-medium text-zinc-500 truncate mt-0.5 flex items-center gap-1 w-full" title={`Zone: ${zoneName}`}>
+                <MapPin size={10} className="shrink-0 text-zinc-400" />
+                <span className="truncate">{zoneName}</span>
+              </p>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Locality',
@@ -697,13 +695,11 @@ export default function LeadsRegistryPage() {
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
                 {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
-              </span>
-            )}
-            {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
-                {l.contact_designation}
+                {l.contact_designation && (
+                  <span className="text-[10px] text-zinc-400 font-normal ml-1">({l.contact_designation})</span>
+                )}
               </span>
             )}
             {l.phone && (
@@ -871,7 +867,7 @@ export default function LeadsRegistryPage() {
         );
       }
     }
-  ], [branches, zones, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
+  ], [branches, zones, industries, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
 
   // Print Report & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
