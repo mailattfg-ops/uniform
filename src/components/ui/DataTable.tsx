@@ -171,7 +171,7 @@ export function DataTable<T extends { id: string | number }>({
   userReportTriggerRef,
   enableUserReport = true,
   hidePageSizeSelector = false,
-  hidePageSizeDropdown = false,
+  hidePageSizeDropdown = true,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
