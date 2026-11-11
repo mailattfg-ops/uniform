@@ -11,7 +11,7 @@ import {
   CheckCircle2, PauseCircle, Building2, FileSpreadsheet, Sparkles, User, 
   Compass, UserCheck, ExternalLink, Flame, Snowflake, ArrowRight,
   Filter, Layers, Send, ChevronRight, CheckCircle, Navigation, AlertCircle, Lock,
-  ShoppingBag, Search, ChevronDown
+  ShoppingBag, Search, ChevronDown, Calendar, MessageSquare, Award
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -2781,9 +2781,19 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
   useEffect(() => {
     if (lead) {
-      // By default, select the lead's current stage to focus on relevant logs
-      const defaultStage = (lead.status === 'Open Feeds' || lead.status === 'Contacted Leads') ? 'Feeds' : (lead.status || 'Follow-ups');
-      setSelectedStageTab(defaultStage);
+      if (lead.status === 'Open Feeds' || lead.status === 'Contacted Leads' || lead.status === 'Feeds') {
+        setSelectedStageTab('Feeds');
+      } else if (['Open Leads', 'New Leads', 'Sales Leads', 'Follow-ups', 'Meetings', 'Hot Leads'].includes(lead.status)) {
+        setSelectedStageTab('Leads');
+      } else if (lead.status === 'Quotations') {
+        setSelectedStageTab('Quotations');
+      } else if (lead.status === 'Deals') {
+        setSelectedStageTab('Deals');
+      } else if (lead.status === 'SO Converted Deals' || lead.status === 'SO Converted') {
+        setSelectedStageTab('SO Converted');
+      } else {
+        setSelectedStageTab('Feeds');
+      }
     }
   }, [lead]);
 
@@ -2792,7 +2802,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
     if (!lead) return;
     setIsLoadingLogs(true);
     try {
-      const stageParam = selectedStageTab === 'ALL' ? '' : `?stage=${encodeURIComponent(selectedStageTab)}`;
+      const stageParam = `?stage=${encodeURIComponent(selectedStageTab)}`;
       const res = await api.get(`/leads/${lead.id}/activities${stageParam}`);
       
       const rawList = Array.isArray(res.data)
@@ -2801,7 +2811,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         ? res.data.activities
         : [];
 
-      const mapped: LeadActivity[] = rawList.map((act: any, idx: number) => ({
+      let mapped: LeadActivity[] = rawList.map((act: any, idx: number) => ({
         id: act.id || idx,
         lead_id: act.lead_id || lead.id,
         stage: act.stage || selectedStageTab,
@@ -2818,15 +2828,16 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
       if (mapped.length === 0 && Array.isArray(lead.remarks) && lead.remarks.length > 0) {
         let derived: LeadActivity[] = lead.remarks
           .filter(r => {
-            if (selectedStageTab === 'ALL') return true;
-            if (selectedStageTab === 'Feeds' || selectedStageTab === 'Open Feeds' || selectedStageTab === 'Contacted Leads') {
-              return r.stage === 'Feeds' || r.stage === 'Open Feeds' || r.stage === 'Contacted Leads';
+            if (selectedStageTab === 'Feeds') {
+              return r.stage === 'Feeds' || r.stage === 'Open Feeds' || r.stage === 'Contacted Leads' || 
+                     String(r.activity_type || '').toLowerCase().includes('feed');
             }
-            if (selectedStageTab === 'Follow-ups') {
-              return r.stage === 'Follow-ups' || (!r.stage) || 
-                     String(r.response_type || '').toLowerCase().includes('cold') || 
-                     String(r.outcome || '').toLowerCase().includes('cold') ||
-                     String(r.stage || '').toLowerCase().includes('cold');
+            if (selectedStageTab === 'Leads') {
+              return ['Open Leads', 'New Leads', 'Sales Leads', 'Follow-ups', 'Meetings', 'Hot Leads', 'Leads'].includes(r.stage) ||
+                     (!r.stage && !['Feeds', 'Open Feeds', 'Contacted Leads', 'Quotations', 'Deals', 'SO Converted Deals'].includes(r.stage));
+            }
+            if (selectedStageTab === 'Quotations') {
+              return r.stage === 'Quotations' || String(r.remarks || r.notes || r.text || '').includes('QT-') || String(r.remarks || r.notes || r.text || '').includes('Q-');
             }
             if (selectedStageTab === 'Deals') {
               return r.stage === 'Deals' || 
@@ -2837,8 +2848,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                      String(r.notes || r.remarks || r.text || '').toLowerCase().includes('initial payment') ||
                      String(r.notes || r.remarks || r.text || '').toLowerCase().includes('deal');
             }
-            if (selectedStageTab === 'SO Converted Deals') {
-              return r.stage === 'SO Converted Deals' || 
+            if (selectedStageTab === 'SO Converted') {
+              return r.stage === 'SO Converted Deals' || r.stage === 'SO Converted' ||
                      String(r.response_type || '').toLowerCase().includes('so_converted') || 
                      String(r.outcome || '').toLowerCase().includes('so_converted') ||
                      String(r.activity_type || '').toLowerCase().includes('order') ||
@@ -2862,110 +2873,96 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           }))
           .reverse();
 
-        if (derived.length === 0 && selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
-          derived = [{
-            id: 'milestone_deal',
-            lead_id: lead.id,
-            stage: 'Deals',
-            activity_type: 'Deal Milestone',
-            response_type: 'deal_won',
-            remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
-            staff_name: lead.employees?.full_name || 'Commercial Team',
-            staff_employee_id: lead.employees?.employee_id || 'SALES',
-            staff_designation: 'Commercial Manager',
-            staff_department: 'Sales & Marketing',
-            created_at: lead.updated_at || lead.created_at
-          }];
-        } else if (derived.length === 0 && selectedStageTab === 'SO Converted Deals' && lead.status === 'SO Converted Deals') {
-          derived = [{
-            id: 'milestone_so',
-            lead_id: lead.id,
-            stage: 'SO Converted Deals',
-            activity_type: 'Order Conversion',
-            response_type: 'so_converted',
-            remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
-            staff_name: lead.employees?.full_name || 'Production Lead',
-            staff_employee_id: lead.employees?.employee_id || 'OPS',
-            staff_designation: 'Production Executive',
-            staff_department: 'Operations',
-            created_at: lead.updated_at || lead.created_at
-          }];
-        } else if (derived.length === 0 && selectedStageTab === 'Feeds' && lead.requirements) {
-          derived = [{
-            id: 'milestone_feed',
-            lead_id: lead.id,
-            stage: 'Feeds',
-            activity_type: 'Raw Feed Intake',
-            response_type: 'feed_recorded',
-            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
-            staff_name: 'Field Scout',
-            staff_employee_id: 'FIELD',
-            staff_designation: 'Field Agent',
-            staff_department: 'Field Scouting',
-            created_at: lead.created_at
-          }];
-        }
-        setStageActivities(derived);
-      } else {
-        if (mapped.length === 0 && selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
-          setStageActivities([{
-            id: 'milestone_deal',
-            lead_id: lead.id,
-            stage: 'Deals',
-            activity_type: 'Deal Milestone',
-            response_type: 'deal_won',
-            remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
-            staff_name: lead.employees?.full_name || 'Commercial Team',
-            staff_employee_id: lead.employees?.employee_id || 'SALES',
-            staff_designation: 'Commercial Manager',
-            staff_department: 'Sales & Marketing',
-            created_at: lead.updated_at || lead.created_at
-          }]);
-        } else if (mapped.length === 0 && selectedStageTab === 'SO Converted Deals' && lead.status === 'SO Converted Deals') {
-          setStageActivities([{
-            id: 'milestone_so',
-            lead_id: lead.id,
-            stage: 'SO Converted Deals',
-            activity_type: 'Order Conversion',
-            response_type: 'so_converted',
-            remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
-            staff_name: lead.employees?.full_name || 'Production Lead',
-            staff_employee_id: lead.employees?.employee_id || 'OPS',
-            staff_designation: 'Production Executive',
-            staff_department: 'Operations',
-            created_at: lead.updated_at || lead.created_at
-          }]);
-        } else if (mapped.length === 0 && selectedStageTab === 'Feeds' && lead.requirements) {
-          setStageActivities([{
-            id: 'milestone_feed',
-            lead_id: lead.id,
-            stage: 'Feeds',
-            activity_type: 'Raw Feed Intake',
-            response_type: 'feed_recorded',
-            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
-            staff_name: 'Field Scout',
-            staff_employee_id: 'FIELD',
-            staff_designation: 'Field Agent',
-            staff_department: 'Field Scouting',
-            created_at: lead.created_at
-          }]);
-        } else {
-          setStageActivities(mapped);
+        mapped = derived;
+      }
+
+      // If Quotations stage is selected and has quotations, include them
+      if (selectedStageTab === 'Quotations' && leadQuotations.length > 0) {
+        const quoteActs = leadQuotations.map((q: any) => ({
+          id: `quote_${q.id}`,
+          lead_id: lead.id,
+          stage: 'Quotations',
+          activity_type: 'Quotation Generated',
+          response_type: q.status || 'Active',
+          remarks: `Quotation #${q.quotation_number} generated for ₹${Number(q.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`,
+          staff_name: q.sales_person?.name || q.created_by_name || 'Commercial Team',
+          staff_employee_id: q.sales_person?.employee_id || 'SALES',
+          staff_designation: 'Sales & Marketing',
+          staff_department: 'Commercial',
+          created_at: q.created_at || lead.updated_at
+        }));
+        const existingIds = new Set(mapped.map(m => String(m.id)));
+        for (const qa of quoteActs) {
+          if (!existingIds.has(String(qa.id))) {
+            mapped.unshift(qa);
+          }
         }
       }
+
+      // Stage milestones when no activities recorded yet
+      if (mapped.length === 0) {
+        if (selectedStageTab === 'Feeds' && lead.requirements) {
+          mapped = [{
+            id: 'milestone_feed',
+            lead_id: lead.id,
+            stage: 'Feeds',
+            activity_type: 'Raw Feed Intake',
+            response_type: 'feed_recorded',
+            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
+            staff_name: 'Field Scout',
+            staff_employee_id: 'FIELD',
+            staff_designation: 'Field Agent',
+            staff_department: 'Field Scouting',
+            created_at: lead.created_at
+          }];
+        } else if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
+          mapped = [{
+            id: 'milestone_deal',
+            lead_id: lead.id,
+            stage: 'Deals',
+            activity_type: 'Deal Milestone',
+            response_type: 'deal_won',
+            remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
+            staff_name: lead.employees?.full_name || 'Commercial Team',
+            staff_employee_id: lead.employees?.employee_id || 'SALES',
+            staff_designation: 'Commercial Manager',
+            staff_department: 'Sales & Marketing',
+            created_at: lead.updated_at || lead.created_at
+          }];
+        } else if (selectedStageTab === 'SO Converted' && lead.status === 'SO Converted Deals') {
+          mapped = [{
+            id: 'milestone_so',
+            lead_id: lead.id,
+            stage: 'SO Converted',
+            activity_type: 'Order Conversion',
+            response_type: 'so_converted',
+            remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
+            staff_name: lead.employees?.full_name || 'Production Lead',
+            staff_employee_id: lead.employees?.employee_id || 'OPS',
+            staff_designation: 'Production Executive',
+            staff_department: 'Operations',
+            created_at: lead.updated_at || lead.created_at
+          }];
+        }
+      }
+
+      setStageActivities(mapped);
     } catch (e) {
       console.error('Failed to load stage-specific activities', e);
-      // Fallback: derive from lead.remarks JSONB
       let derived: LeadActivity[] = [];
       if (Array.isArray(lead.remarks)) {
         derived = lead.remarks
           .filter(r => {
-            if (selectedStageTab === 'ALL') return true;
-            if (selectedStageTab === 'Follow-ups') {
-              return r.stage === 'Follow-ups' || (!r.stage) || 
-                     String(r.response_type || '').toLowerCase().includes('cold') || 
-                     String(r.outcome || '').toLowerCase().includes('cold') ||
-                     String(r.stage || '').toLowerCase().includes('cold');
+            if (selectedStageTab === 'Feeds') {
+              return r.stage === 'Feeds' || r.stage === 'Open Feeds' || r.stage === 'Contacted Leads' || 
+                     String(r.activity_type || '').toLowerCase().includes('feed');
+            }
+            if (selectedStageTab === 'Leads') {
+              return ['Open Leads', 'New Leads', 'Sales Leads', 'Follow-ups', 'Meetings', 'Hot Leads', 'Leads'].includes(r.stage) ||
+                     (!r.stage && !['Feeds', 'Open Feeds', 'Contacted Leads', 'Quotations', 'Deals', 'SO Converted Deals'].includes(r.stage));
+            }
+            if (selectedStageTab === 'Quotations') {
+              return r.stage === 'Quotations' || String(r.remarks || r.notes || r.text || '').includes('QT-') || String(r.remarks || r.notes || r.text || '').includes('Q-');
             }
             if (selectedStageTab === 'Deals') {
               return r.stage === 'Deals' || 
@@ -2976,8 +2973,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                      String(r.notes || r.remarks || r.text || '').toLowerCase().includes('initial payment') ||
                      String(r.notes || r.remarks || r.text || '').toLowerCase().includes('deal');
             }
-            if (selectedStageTab === 'SO Converted Deals') {
-              return r.stage === 'SO Converted Deals' || 
+            if (selectedStageTab === 'SO Converted') {
+              return r.stage === 'SO Converted Deals' || r.stage === 'SO Converted' ||
                      String(r.response_type || '').toLowerCase().includes('so_converted') || 
                      String(r.outcome || '').toLowerCase().includes('so_converted') ||
                      String(r.activity_type || '').toLowerCase().includes('order') ||
@@ -3000,56 +2997,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
-      }
-
-      if (derived.length === 0 && selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
-        derived = [{
-          id: 'milestone_deal',
-          lead_id: lead.id,
-          stage: 'Deals',
-          activity_type: 'Deal Milestone',
-          response_type: 'deal_won',
-          remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
-          staff_name: lead.employees?.full_name || 'Commercial Team',
-          staff_employee_id: lead.employees?.employee_id || 'SALES',
-          staff_designation: 'Commercial Manager',
-          staff_department: 'Sales & Marketing',
-          created_at: lead.updated_at || lead.created_at
-        }];
-      } else if (derived.length === 0 && selectedStageTab === 'SO Converted Deals' && lead.status === 'SO Converted Deals') {
-        derived = [{
-          id: 'milestone_so',
-          lead_id: lead.id,
-          stage: 'SO Converted Deals',
-          activity_type: 'Order Conversion',
-          response_type: 'so_converted',
-          remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
-          staff_name: lead.employees?.full_name || 'Production Lead',
-          staff_employee_id: lead.employees?.employee_id || 'OPS',
-          staff_designation: 'Production Executive',
-          staff_department: 'Operations',
-          created_at: lead.updated_at || lead.created_at
-        }];
-      } else if (derived.length === 0 && selectedStageTab === 'Feeds' && lead.requirements) {
-        derived = [{
-          id: 'milestone_feed',
-          lead_id: lead.id,
-          stage: 'Feeds',
-          activity_type: 'Raw Feed Intake',
-          response_type: 'feed_recorded',
-          remarks: `Inquired Feed Requirements: ${lead.requirements}`,
-          staff_name: 'Field Scout',
-          staff_employee_id: 'FIELD',
-          staff_designation: 'Field Agent',
-          staff_department: 'Field Scouting',
-          created_at: lead.created_at
-        }];
       }
       setStageActivities(derived);
     } finally {
       setIsLoadingLogs(false);
     }
-  }, [lead, selectedStageTab]);
+  }, [lead, selectedStageTab, leadQuotations]);
 
   useEffect(() => {
     if (isOpen && lead) {
@@ -3107,21 +3060,30 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
             <div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (lead.organization_id) {
-                    window.open(`/customers/${lead.organization_id}`, '_blank');
-                  } else {
-                    window.open(`/customers?search=${encodeURIComponent(lead.name)}`, '_blank');
-                  }
-                }}
-                className="text-2xl font-black italic tracking-tight text-white hover:text-red-200 transition-colors cursor-pointer text-left flex items-center gap-2 group"
-                title={lead.organization_id ? "View Customer Profile" : `Search for "${lead.name}" in Customers`}
-              >
-                <span>{lead.name}</span>
-                <ExternalLink size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
-              </button>
+              {(() => {
+                const isLeadOrFeed = lead.status === 'Feeds' || lead.status === 'Open Feeds' || lead.status === 'Contacted Leads' ||
+                  ['Open Leads', 'New Leads', 'Sales Leads', 'Follow-ups', 'Meetings', 'Hot Leads'].includes(lead.status) || !lead.organization_id;
+
+                if (!isLeadOrFeed && lead.organization_id) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => window.open(`/customers/${lead.organization_id}`, '_blank')}
+                      className="text-2xl font-black italic tracking-tight text-white hover:text-red-200 transition-colors cursor-pointer text-left flex items-center gap-2 group"
+                      title="View Customer Profile"
+                    >
+                      <span>{lead.name}</span>
+                      <ExternalLink size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  );
+                }
+
+                return (
+                  <div className="text-2xl font-black italic tracking-tight text-white select-text text-left">
+                    {lead.name}
+                  </div>
+                );
+              })()}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-red-300">
                   {lead.industries?.name || 'Institutional'}
@@ -3285,6 +3247,22 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           {/* 5-Stage Commercial Sales Pipeline Interactive Roadmap Stepper */}
           {(() => {
             const isAtFeedStage = lead.status === 'Feeds' || lead.status === 'Open Feeds' || lead.status === 'Contacted Leads';
+            const isLeadStage = [
+              'Open Leads',
+              'New Leads',
+              'Sales Leads',
+              'Follow-ups',
+              'Meetings',
+              'Hot Leads'
+            ].includes(lead.status);
+            const isQuotationStage = lead.status === 'Quotations';
+            const isDealStage = lead.status === 'Deals';
+            const isSOStage = lead.status === 'SO Converted Deals' || lead.status === 'SO Converted';
+
+            const isPastFeed = !isAtFeedStage;
+            const isPastLead = isQuotationStage || isDealStage || isSOStage;
+            const isPastQuotation = isDealStage || isSOStage;
+            const isPastDeal = isSOStage;
             
             // Helper to check if an activity is initial feed creation / intake note from Add New Feed modal
             const isFeedIntakeActivity = (act: any) => {
@@ -3301,7 +3279,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             };
 
             // Check if feed has any genuine follow-up response or activity
-            // (Initial contact notes / remarks added during new feed creation must NOT mark it as contacted)
             const hasFeedFollowUp = lead.status === 'Contacted Leads' || 
               (Array.isArray(lead.remarks) && lead.remarks.some((r: any) => {
                 if (isFeedIntakeActivity(r)) return false;
@@ -3322,73 +3299,58 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 return isFeedStage && hasValidOutcome;
               });
 
-            const feedLabel = isAtFeedStage ? (hasFeedFollowUp ? 'Contacted Leads' : 'Open Feeds') : 'Contacted Leads';
-
-            const LEAD_STAGES_CONFIG: Record<string, { num: number; label: string }> = {
-              'Open Leads': { num: 2, label: 'Open Leads' },
-              'New Leads': { num: 3, label: 'New Leads' },
-              'Sales Leads': { num: 4, label: 'Sales Leads' },
-              'Follow-ups': { num: 5, label: 'Follow-ups' },
-              'Meetings': { num: 6, label: 'Meetings' },
-              'Hot Leads': { num: 7, label: 'Hot Leads' }
-            };
-
-            const isPastLeads = ['Quotations', 'Deals', 'SO Converted Deals'].includes(lead.status);
-            const isCurrentInLeads = Boolean(LEAD_STAGES_CONFIG[lead.status]);
-
-            let leadStageNum = 2;
-            let leadStageLabel = 'Open Leads';
-            if (isCurrentInLeads) {
-              leadStageNum = LEAD_STAGES_CONFIG[lead.status].num;
-              leadStageLabel = LEAD_STAGES_CONFIG[lead.status].label;
-            } else if (isPastLeads) {
-              leadStageNum = 7;
-              leadStageLabel = 'Hot Leads';
-            }
-
             const stepperItems = [
               {
                 id: 'feeds',
                 num: 1,
-                label: feedLabel,
+                mainTitle: 'Feeds',
+                subTitle: hasFeedFollowUp ? 'Contacted Feed' : 'Open Feed',
                 stageKey: 'Feeds',
                 isCurrent: isAtFeedStage,
-                isPassed: !isAtFeedStage,
+                isPassed: isPastFeed,
                 hasCold: false,
               },
               {
                 id: 'leads',
-                num: leadStageNum,
-                label: leadStageLabel,
-                stageKey: leadStageLabel,
-                isCurrent: isCurrentInLeads,
-                isPassed: isPastLeads,
+                num: 2,
+                mainTitle: 'Leads',
+                subTitle: isLeadStage 
+                  ? (lead.status === 'Open Leads' ? 'Open Lead' : lead.status === 'New Leads' ? 'New Lead' : lead.status === 'Sales Leads' ? 'Sales Lead' : lead.status === 'Follow-ups' ? 'Follow-up' : lead.status === 'Meetings' ? 'Meeting' : 'Hot Lead')
+                  : isPastLead ? 'Hot Lead' : 'Pending',
+                stageKey: 'Leads',
+                isCurrent: isLeadStage,
+                isPassed: isPastLead,
                 hasCold: lead.status === 'Follow-ups' && lead.is_cold,
               },
               {
                 id: 'quotations',
-                num: 8,
-                label: 'Quotations',
+                num: 3,
+                mainTitle: 'Quotations',
+                subTitle: isQuotationStage 
+                  ? (leadQuotations.length > 0 ? `${leadQuotations.length} Quote${leadQuotations.length > 1 ? 's' : ''}` : 'Active')
+                  : isPastQuotation ? 'Approved' : 'Pending',
                 stageKey: 'Quotations',
-                isCurrent: lead.status === 'Quotations',
-                isPassed: ['Deals', 'SO Converted Deals'].includes(lead.status),
+                isCurrent: isQuotationStage,
+                isPassed: isPastQuotation,
                 hasCold: false,
               },
               {
                 id: 'deals',
-                num: 9,
-                label: 'Deals',
+                num: 4,
+                mainTitle: 'Deals',
+                subTitle: isDealStage ? 'Active' : isPastDeal ? 'Converted' : 'Pending',
                 stageKey: 'Deals',
-                isCurrent: lead.status === 'Deals',
-                isPassed: lead.status === 'SO Converted Deals',
+                isCurrent: isDealStage,
+                isPassed: isPastDeal,
                 hasCold: false,
               },
               {
                 id: 'so_converted',
-                num: 10,
-                label: 'SO Converted Deals',
-                stageKey: 'SO Converted Deals',
-                isCurrent: lead.status === 'SO Converted Deals',
+                num: 5,
+                mainTitle: 'SO Converted',
+                subTitle: isSOStage ? 'Production' : 'Pending',
+                stageKey: 'SO Converted',
+                isCurrent: isSOStage,
                 isPassed: false,
                 hasCold: false,
               }
@@ -3399,7 +3361,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-900 flex items-center gap-1.5">
                     <Layers size={13} className="text-[#9E1B1D]" />
-                    Commercial Sales Pipeline Stepper (Click to filter logs)
+                    Commercial Sales Pipeline Stepper (Click stage to filter logs)
                   </span>
                   <span className="text-[9px] font-bold text-zinc-400">
                     Current: <span className="text-[#9E1B1D] font-black">{lead.status}</span>
@@ -3444,8 +3406,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 {/* 5-Node Stepper with Connecting Lines */}
                 <div className="flex items-center justify-between relative px-2 sm:px-6">
                   {stepperItems.map((item, idx) => {
-                    const isSelected = selectedStageTab === item.stageKey || 
-                      (item.id === 'feeds' && (selectedStageTab === 'Feeds' || selectedStageTab === 'Open Feeds' || selectedStageTab === 'Contacted Leads'));
+                    const isSelected = selectedStageTab === item.stageKey;
                     let circleClass = 'bg-white border-zinc-300 text-zinc-400';
                     if (item.isCurrent) {
                       circleClass = 'bg-[#C82A2B] border-[#C82A2B] text-white ring-4 ring-red-100 shadow-md';
@@ -3464,10 +3425,10 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                           onClick={() => setSelectedStageTab(item.stageKey)}
                           className={`flex flex-col items-center min-w-[85px] sm:min-w-[105px] max-w-[130px] p-2 rounded-2xl cursor-pointer transition-all ${
                             isSelected
-                              ? 'bg-white shadow-md border-2 border-[#C82A2B] scale-105'
+                              ? 'bg-white shadow-md border-2 border-[#C82A2B] scale-105 ring-2 ring-red-100'
                               : 'hover:bg-white/60 border border-transparent'
                           }`}
-                          title={`Click to filter logs for ${item.label}`}
+                          title={`Click to view logs for ${item.mainTitle} (${item.subTitle})`}
                         >
                           {/* Circle Node */}
                           <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-black mb-1.5 transition-all ${circleClass}`}>
@@ -3478,23 +3439,25 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                             )}
                           </div>
 
-                          {/* Stage Label */}
+                          {/* Main Stage Label */}
                           <span className={`text-[10px] text-center font-black leading-tight truncate w-full ${
                             item.isCurrent
                               ? 'text-[#9E1B1D]'
                               : isSelected ? 'text-zinc-900' : 'text-zinc-600'
                           }`}>
-                            {item.label}
+                            {item.mainTitle}
                           </span>
 
-                          {/* Subtitle / Cold Lead Tag */}
+                          {/* Subtitle / Sub-stage */}
                           {item.hasCold ? (
                             <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-rose-600 bg-rose-50 px-1 py-0.2 rounded border border-rose-200 mt-0.5">
                               <Snowflake size={8} /> Cold Lead
                             </span>
                           ) : (
-                            <span className="text-[8px] text-zinc-400 text-center font-medium truncate w-full mt-0.5">
-                              {item.isCurrent ? '• Active' : item.isPassed ? 'Done' : 'Pending'}
+                            <span className={`text-[8px] text-center font-semibold truncate w-full mt-0.5 ${
+                              isSelected ? 'text-[#C82A2B] font-bold' : item.isCurrent ? 'text-zinc-800 font-bold' : 'text-zinc-400'
+                            }`}>
+                              {item.subTitle}
                             </span>
                           )}
                         </div>
@@ -3620,43 +3583,36 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
               )}
             </div>
 
-            {/* Right Column: Stage-Specific Activity Log Section */}
-            <div className="lg:col-span-7 p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm flex flex-col h-full">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-[#9E1B1D]" />
-                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">
-                    Activity Log History
-                  </h4>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 text-[10px] font-black">
-                    {selectedStageTab === 'ALL' ? 'Showing All Stages' : `Filtered by: ${selectedStageTab}`}
-                  </span>
+            {/* Right Column: Stage-Specific Activity Log Section (Zoho Style Timeline) */}
+            <div className="lg:col-span-7 p-6 bg-white rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col h-full">
+              <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-red-50 border border-red-200/60 flex items-center justify-center text-[#9E1B1D]">
+                    <FileText size={15} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                      Stage Timeline &amp; Activity History
+                    </h4>
+                    <p className="text-[10px] text-zinc-400 font-medium">
+                      Showing logs for: <strong className="text-zinc-800">{selectedStageTab}</strong> stage
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStageTab(selectedStageTab === 'ALL' ? (lead.status || 'Follow-ups') : 'ALL')}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
-                      selectedStageTab === 'ALL'
-                        ? 'bg-zinc-900 text-white shadow-sm'
-                        : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                    }`}
-                  >
-                    <FileText size={12} />
-                    {selectedStageTab === 'ALL' ? 'Show Current Stage Only' : 'All Stage Logs (with stages)'}
-                  </button>
-                </div>
+                <span className="px-2.5 py-1 rounded-xl bg-zinc-100 text-zinc-600 text-[10px] font-bold font-mono">
+                  {stageActivities.length} {stageActivities.length === 1 ? 'entry' : 'entries'}
+                </span>
               </div>
 
               {/* Feed & Commercial Stage Summary Banner */}
-              {(selectedStageTab === 'Deals' || selectedStageTab === 'SO Converted Deals' || selectedStageTab === 'Feeds') && (
-                <div className="mt-3 p-3 bg-gradient-to-r from-teal-50/80 via-emerald-50/50 to-slate-50 rounded-2xl border border-teal-200/70 space-y-1">
+              {(selectedStageTab === 'Deals' || selectedStageTab === 'SO Converted' || selectedStageTab === 'Feeds') && (
+                <div className="mt-3.5 p-3 bg-gradient-to-r from-teal-50/80 via-emerald-50/40 to-slate-50 rounded-2xl border border-teal-200/60 space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-teal-900">
-                        {selectedStageTab === 'Feeds' ? 'Raw Intake Feed Prospect' : selectedStageTab === 'Deals' ? 'Deals Commercial Stage & Feeds' : 'SO Converted Production Stage & Feeds'}
+                        {selectedStageTab === 'Feeds' ? 'Pre-Pipeline Field Scouting Feeds' : selectedStageTab === 'Deals' ? 'Deals Commercial Stage & Feeds' : 'SO Converted Production Stage & Feeds'}
                       </span>
                     </div>
                     <span className="text-[9px] font-bold text-zinc-500">
@@ -3665,87 +3621,128 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   </div>
                   {lead.requirements && (
                     <p className="text-xs font-semibold text-zinc-700">
-                      <span className="font-bold text-[#2d8d9b]">Origin Feed Requirements: </span>
+                      <span className="font-bold text-[#2d8d9b]">Origin Inquired Requirements: </span>
                       {lead.requirements}
                     </p>
                   )}
                 </div>
               )}
 
-              {/* Scrollable Logs List */}
+              {/* Zoho Style Activity Timeline */}
               <div className="mt-4 flex-1">
                 {isLoadingLogs ? (
-                  <div className="py-12 text-center text-xs text-zinc-400 font-bold">
-                    Loading stage logs...
+                  <div className="py-16 text-center text-xs text-zinc-400 font-bold flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                    <span>Loading {selectedStageTab} stage logs...</span>
                   </div>
                 ) : stageActivities.length > 0 ? (
-                  <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1 custom-scrollbar">
-                    {stageActivities.map((act) => (
-                      <div
-                        key={act.id}
-                        className="p-4 bg-zinc-50 hover:bg-teal-50/30 rounded-2xl border border-zinc-150 space-y-2 transition-all"
-                      >
-                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-md bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/15 font-black">
-                              {act.stage}
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-700 font-bold">
-                              {act.activity_type}
-                            </span>
-                            {act.response_type && (
-                              <span className={`px-2 py-0.5 rounded-md font-bold ${
-                                act.response_type === 'positive' || act.response_type === 'hot_lead'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : act.response_type === 'cold_lead'
-                                  ? 'bg-rose-100 text-rose-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {act.response_type}
+                  <div className="max-h-[500px] overflow-y-auto pr-2 relative pl-6 custom-scrollbar before:absolute before:left-[17px] before:top-3 before:bottom-3 before:w-0.5 before:bg-zinc-200">
+                    {stageActivities.map((act) => {
+                      const typeLower = String(act.activity_type || '').toLowerCase();
+                      const respLower = String(act.response_type || (act as any).response || '').toLowerCase();
+                      
+                      let IconComponent = MessageSquare;
+                      let iconColor = 'bg-blue-50 text-blue-600 border-blue-200';
+
+                      if (typeLower.includes('phone') || typeLower.includes('call') || typeLower.includes('follow-up')) {
+                        IconComponent = Phone;
+                        iconColor = 'bg-sky-50 text-sky-600 border-sky-200';
+                      } else if (typeLower.includes('meeting')) {
+                        IconComponent = Calendar;
+                        iconColor = 'bg-purple-50 text-purple-600 border-purple-200';
+                      } else if (typeLower.includes('quot') || typeLower.includes('quote')) {
+                        IconComponent = FileText;
+                        iconColor = 'bg-orange-50 text-orange-600 border-orange-200';
+                      } else if (typeLower.includes('deal') || typeLower.includes('payment')) {
+                        IconComponent = Award;
+                        iconColor = 'bg-emerald-50 text-emerald-600 border-emerald-200';
+                      } else if (typeLower.includes('order') || typeLower.includes('so') || typeLower.includes('convert')) {
+                        IconComponent = ShoppingBag;
+                        iconColor = 'bg-teal-50 text-teal-600 border-teal-200';
+                      } else if (typeLower.includes('assign') || typeLower.includes('staff') || typeLower.includes('branch')) {
+                        IconComponent = ShieldCheck;
+                        iconColor = 'bg-indigo-50 text-indigo-600 border-indigo-200';
+                      }
+
+                      const staffName = act.staff_name || 'Staff Member';
+                      const initials = staffName.split(' ').map((n: string) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'ST';
+
+                      return (
+                        <div key={act.id} className="relative mb-4 group">
+                          {/* Zoho Timeline Icon Dot */}
+                          <div className={`absolute -left-[27px] top-3.5 w-6 h-6 rounded-full border-2 border-white shadow-xs flex items-center justify-center z-10 transition-transform group-hover:scale-110 ${iconColor}`}>
+                            <IconComponent size={11} strokeWidth={2.5} />
+                          </div>
+
+                          {/* Zoho Activity Card */}
+                          <div className="bg-white hover:bg-zinc-50/70 border border-zinc-200/90 rounded-2xl p-4 shadow-2xs transition-all space-y-2.5">
+                            {/* Card Header */}
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-bold text-zinc-900 tracking-tight">
+                                  {act.activity_type || 'Activity Note'}
+                                </span>
+                                {act.response_type && (
+                                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                    respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : respLower === 'cold_lead' || respLower === 'negative'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {act.response_type}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-zinc-400 font-mono font-medium flex items-center gap-1">
+                                <Clock size={10} className="text-zinc-400" />
+                                {formatDate(act.created_at, true)}
                               </span>
-                            )}
+                            </div>
+
+                            {/* Remarks / Notes Text */}
+                            <p className="text-xs font-medium text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                              {renderRemarksWithQuoteLinks(act.remarks)}
+                            </p>
+
+                            {/* Card Footer: Performed by */}
+                            <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-[10px] text-zinc-400 flex-wrap gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded-full bg-zinc-100 border border-zinc-200/80 text-zinc-600 flex items-center justify-center text-[9px] font-black">
+                                  {initials}
+                                </div>
+                                <span className="font-bold text-zinc-800">{staffName}</span>
+                                {act.staff_employee_id && (
+                                  <span className="font-mono text-[9px] text-zinc-400">({act.staff_employee_id})</span>
+                                )}
+                                {act.staff_designation && (
+                                  <>
+                                    <span className="text-zinc-300">•</span>
+                                    <span>{act.staff_designation}</span>
+                                  </>
+                                )}
+                              </div>
+                              {act.staff_department && (
+                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
+                                  {act.staff_department}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-zinc-400 font-mono font-medium">
-                            {formatDate(act.created_at, true)}
-                          </span>
                         </div>
-
-                        <p className="text-xs font-semibold text-zinc-700 whitespace-pre-wrap leading-relaxed">
-                          {renderRemarksWithQuoteLinks(act.remarks)}
-                        </p>
-
-                        {/* Updating Staff Badge */}
-                        {act.staff_name && (
-                          <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/60 text-[10px] text-zinc-500 font-semibold flex-wrap">
-                            <ShieldCheck size={12} className="text-[#2d8d9b]" />
-                            <span className="font-bold text-zinc-900">{act.staff_name}</span>
-                            {act.staff_employee_id && (
-                              <span className="text-[9px] font-mono text-zinc-400">({act.staff_employee_id})</span>
-                            )}
-                            {act.staff_designation && (
-                              <>
-                                <span className="text-zinc-300">•</span>
-                                <span className="text-zinc-600">{act.staff_designation}</span>
-                              </>
-                            )}
-                            {act.staff_department && (
-                              <>
-                                <span className="text-zinc-300">•</span>
-                                <span className="text-zinc-400">{act.staff_department}</span>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="py-12 text-center bg-zinc-50/60 rounded-2xl border border-dashed border-zinc-200">
-                    <p className="text-xs text-zinc-400 font-medium italic">
-                      No activity logs recorded specifically for <span className="font-bold text-zinc-900">{selectedStageTab}</span> stage.
+                  <div className="py-14 text-center bg-zinc-50/60 rounded-2xl border border-dashed border-zinc-200 p-6 flex flex-col items-center justify-center">
+                    <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mb-2.5">
+                      <Clock size={20} />
+                    </div>
+                    <p className="text-xs text-zinc-700 font-bold">
+                      No activity logs recorded for <span className="text-[#9E1B1D]">{selectedStageTab}</span> stage.
                     </p>
-                    <p className="text-[10px] text-zinc-400 mt-1">
-                      Click another stage node above or use "All Stage Logs" to view all history.
+                    <p className="text-[10px] text-zinc-400 mt-1 max-w-xs leading-relaxed">
+                      Activities, calls, follow-ups, and milestone notes logged in this stage will appear here. Click another stage in the pipeline above to see its logs.
                     </p>
                   </div>
                 )}
