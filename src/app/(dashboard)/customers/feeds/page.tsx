@@ -408,22 +408,11 @@ export default function FeedsRegistryPage() {
           </p>
           {(() => {
             const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
-            const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-            if (!industryName && !zoneName) return null;
+            if (!industryName) return null;
             return (
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                {industryName && (
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
-                    {industryName}
-                  </span>
-                )}
-                {zoneName && (
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-0.5">
-                    <MapPin size={9} className="shrink-0 text-zinc-400" />
-                    <span>Zone: {zoneName}</span>
-                  </span>
-                )}
-              </div>
+              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                {industryName}
+              </p>
             );
           })()}
           {l.requirements && (
@@ -578,6 +567,7 @@ export default function FeedsRegistryPage() {
         rowClassName={getRowClassName}
         onPrint={handlePrintFeeds}
         hideTablePrint={true}
+        hidePageSizeSelector={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
         headerAction={

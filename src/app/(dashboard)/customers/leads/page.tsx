@@ -1510,14 +1510,12 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
       toast.error('Contact phone number is required');
       return;
     }
-    if (!email.trim()) {
-      toast.error('Email address is required');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error('Please enter a valid email address');
-      return;
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -1531,7 +1529,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
         contact_number: phone.trim(),
-        email: email.trim().toLowerCase(),
+        email: email.trim() ? email.trim().toLowerCase() : null,
         address: address.trim() || null,
         area: area.trim() || null,
         city: city.trim() || null,
@@ -1701,11 +1699,10 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
-                Email Address *
+                Email Address
               </label>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@institution.com"
@@ -3097,17 +3094,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     </span>
                   </>
                 )}
-                {lead.google_maps_link && (
-                  <a
-                    href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 rounded bg-white/10 text-white/90 hover:text-white transition-colors"
-                    title="Open Google Maps Location"
-                  >
-                    <Navigation size={11} />
-                  </a>
-                )}
               </div>
             </div>
 
@@ -3823,7 +3809,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
   onSuccess,
   onConvertToLead
 }) => {
-  const [responseType, setResponseType] = useState<'positive' | 'negative'>('positive');
+  const [responseType, setResponseType] = useState<'positive' | 'negative'>('negative');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 

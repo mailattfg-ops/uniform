@@ -7,16 +7,13 @@ import {
   User, 
   Printer, 
   Download, 
-  Search, 
   CheckCircle2, 
   Clock, 
   FileText, 
   MessageSquare, 
   PlusCircle, 
   RefreshCw, 
-  ArrowRight,
-  Filter,
-  Check
+  ArrowRight
 } from 'lucide-react';
 import { Button } from './Button';
 import { DatePicker } from './DatePicker';
@@ -128,7 +125,6 @@ export function UserActivityReportModal<T = any>({
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
   
   // Activity Category Toggles
   const [includeAdded, setIncludeAdded] = useState(true);
@@ -494,18 +490,8 @@ export function UserActivityReportModal<T = any>({
     };
   }, [fromDate, toDate, data, includeAdded, includeUpdated, includeFollowups, matchesUser, title]);
 
-  // Filter activities by search query
-  const filteredActivities = useMemo(() => {
-    if (!searchQuery.trim()) return activities;
-    const q = searchQuery.toLowerCase();
-    return activities.filter(a => 
-      a.itemTitle.toLowerCase().includes(q) ||
-      (a.itemSubtitle && a.itemSubtitle.toLowerCase().includes(q)) ||
-      a.activityLabel.toLowerCase().includes(q) ||
-      (a.notes && a.notes.toLowerCase().includes(q)) ||
-      a.performerName.toLowerCase().includes(q)
-    );
-  }, [activities, searchQuery]);
+  // Activities list
+  const filteredActivities = activities;
 
   // Compute active range label
   const rangeLabel = useMemo(() => {
@@ -524,28 +510,6 @@ export function UserActivityReportModal<T = any>({
     if (!fromDate && !toDate) return presetLabel;
     return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)} (${presetLabel})`;
   }, [fromDate, toDate, datePreset, selectedYear]);
-
-  // Handle Apply Filter to Table
-  const handleApplyToTable = () => {
-    if (!onApplyFilter) return;
-    const uniqueItems = Array.from(matchedItemsMap.values());
-    let presetLabel = datePreset.toUpperCase();
-    if (datePreset === 'janQuarter') presetLabel = `January Quarter (Jan-Mar ${selectedYear})`;
-    else if (datePreset === 'aprQuarter') presetLabel = `April Quarter (Apr-Jun ${selectedYear})`;
-    else if (datePreset === 'julQuarter') presetLabel = `July Quarter (Jul-Sep ${selectedYear})`;
-    else if (datePreset === 'octQuarter') presetLabel = `October Quarter (Oct-Dec ${selectedYear})`;
-    else if (datePreset === 'today') presetLabel = 'Today';
-    else if (datePreset === 'yesterday') presetLabel = 'Yesterday';
-    else if (datePreset === 'last7days') presetLabel = 'Last 7 Days';
-    else if (datePreset === 'last30days') presetLabel = 'Last 30 Days';
-    else if (datePreset === 'thisMonth') presetLabel = 'This Month';
-    else presetLabel = `${formatISTDateOnly(fromDate)} - ${formatISTDateOnly(toDate)}`;
-
-    const filterSummary = `${presetLabel} (${uniqueItems.length} items)`;
-    onApplyFilter(uniqueItems, filterSummary);
-    toast.success(`Table filtered to ${uniqueItems.length} items updated by ${currentUser?.fullName || 'user'}`);
-    onClose();
-  };
 
   // Handle Print Report
   const handlePrintReport = () => {
@@ -903,50 +867,36 @@ export function UserActivityReportModal<T = any>({
             </div>
           </div>
 
-          {/* Row 2: Category Checkboxes & Search */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-zinc-200/60">
-            <div className="flex items-center gap-3 text-xs font-bold text-zinc-600">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-400">Include:</span>
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={includeAdded}
-                  onChange={e => setIncludeAdded(e.target.checked)}
-                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
-                />
-                <span>Added / Created</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={includeUpdated}
-                  onChange={e => setIncludeUpdated(e.target.checked)}
-                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
-                />
-                <span>Updated / Modified</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={includeFollowups}
-                  onChange={e => setIncludeFollowups(e.target.checked)}
-                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
-                />
-                <span>Follow-ups & Notes Logged</span>
-              </label>
-            </div>
-
-            {/* Quick search input */}
-            <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+          {/* Row 3: Category Checkboxes */}
+          <div className="flex items-center gap-3 pt-2.5 border-t border-zinc-200/60 text-xs font-bold text-zinc-700 flex-wrap">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Include Activities:</span>
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-xl border border-zinc-200/90 shadow-2xs hover:bg-zinc-50 transition-colors">
               <input
-                type="text"
-                placeholder="Search report..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-700 placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]"
+                type="checkbox"
+                checked={includeAdded}
+                onChange={e => setIncludeAdded(e.target.checked)}
+                className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
               />
-            </div>
+              <span className="text-zinc-700 font-bold text-xs">Added / Created</span>
+            </label>
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-xl border border-zinc-200/90 shadow-2xs hover:bg-zinc-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={includeUpdated}
+                onChange={e => setIncludeUpdated(e.target.checked)}
+                className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
+              />
+              <span className="text-zinc-700 font-bold text-xs">Updated / Modified</span>
+            </label>
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-xl border border-zinc-200/90 shadow-2xs hover:bg-zinc-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={includeFollowups}
+                onChange={e => setIncludeFollowups(e.target.checked)}
+                className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
+              />
+              <span className="text-zinc-700 font-bold text-xs">Follow-ups & Notes Logged</span>
+            </label>
           </div>
         </div>
 
@@ -1043,39 +993,18 @@ export function UserActivityReportModal<T = any>({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-zinc-500">
-            {isFilterApplied ? (
-              <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200">
-                <Check size={14} strokeWidth={3} /> Filter currently applied to table
-              </span>
-            ) : (
-              <span>Showing <strong>{filteredActivities.length}</strong> activity logs across <strong>{counts.total}</strong> records</span>
-            )}
+        <div className="px-6 py-3.5 bg-zinc-50 border-t border-zinc-200/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-zinc-500 font-medium">
+            Showing <strong className="text-zinc-900 font-bold">{filteredActivities.length}</strong> activity logs across <strong className="text-zinc-900 font-bold">{counts.total}</strong> records
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {isFilterApplied && onClearFilter && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  onClearFilter();
-                  toast.success('Table filter cleared');
-                  onClose();
-                }}
-                className="text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl font-bold cursor-pointer"
-              >
-                Clear Filter
-              </Button>
-            )}
-
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={handleExportCSV}
               disabled={filteredActivities.length === 0}
-              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer"
+              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Download size={14} />
               <span>Export CSV</span>
@@ -1086,23 +1015,19 @@ export function UserActivityReportModal<T = any>({
               size="sm"
               onClick={handlePrintReport}
               disabled={filteredActivities.length === 0}
-              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer"
+              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Printer size={14} />
               <span>Print Report</span>
             </Button>
 
-            {onApplyFilter && (
-              <Button
-                size="sm"
-                onClick={handleApplyToTable}
-                disabled={matchedItemsMap.size === 0}
-                className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md shadow-[#C82A2B]/20 cursor-pointer"
-              >
-                <Filter size={14} />
-                <span>Filter Table ({matchedItemsMap.size})</span>
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={onClose}
+              className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold px-4 cursor-pointer shadow-sm shadow-[#C82A2B]/20"
+            >
+              Close
+            </Button>
           </div>
         </div>
       </div>
