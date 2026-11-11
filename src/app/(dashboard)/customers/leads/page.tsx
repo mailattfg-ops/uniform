@@ -3636,8 +3636,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     <span>Loading {selectedStageTab} stage logs...</span>
                   </div>
                 ) : stageActivities.length > 0 ? (
-                  <div className="max-h-[500px] overflow-y-auto pr-2 relative pl-6 custom-scrollbar before:absolute before:left-[17px] before:top-3 before:bottom-3 before:w-0.5 before:bg-zinc-200">
-                    {stageActivities.map((act) => {
+                  <div className="max-h-[500px] overflow-y-auto pr-2 relative custom-scrollbar space-y-4">
+                    {stageActivities.map((act, idx) => {
                       const typeLower = String(act.activity_type || '').toLowerCase();
                       const respLower = String(act.response_type || (act as any).response || '').toLowerCase();
                       
@@ -3667,67 +3667,85 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       const staffName = act.staff_name || 'Staff Member';
                       const initials = staffName.split(' ').map((n: string) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'ST';
 
+                      let timeString = '';
+                      try {
+                        const d = new Date(act.created_at);
+                        if (!isNaN(d.getTime())) {
+                          timeString = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+                        }
+                      } catch {}
+
                       return (
-                        <div key={act.id} className="relative mb-4 group">
-                          {/* Zoho Timeline Icon Dot */}
-                          <div className={`absolute -left-[27px] top-3.5 w-6 h-6 rounded-full border-2 border-white shadow-xs flex items-center justify-center z-10 transition-transform group-hover:scale-110 ${iconColor}`}>
-                            <IconComponent size={11} strokeWidth={2.5} />
+                        <div key={act.id} className="grid grid-cols-[120px_28px_1fr] sm:grid-cols-[150px_28px_1fr] items-start gap-3 group relative">
+                          {/* Left Side: Date, Time & Updating Staff */}
+                          <div className="text-right flex flex-col items-end pt-0.5 min-w-0 pr-1">
+                            <span className="text-xs font-black text-zinc-900 tracking-tight whitespace-nowrap">
+                              {formatDate(act.created_at, false)}
+                            </span>
+                            {timeString && (
+                              <span className="text-[10px] font-mono font-bold text-zinc-400 flex items-center gap-1 justify-end whitespace-nowrap mt-0.5">
+                                <Clock size={10} className="text-zinc-400 shrink-0" />
+                                {timeString}
+                              </span>
+                            )}
+
+                            <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-zinc-150 w-full mt-1.5">
+                              <div className="min-w-0 text-right">
+                                <p className="text-[11px] font-bold text-zinc-800 truncate" title={staffName}>
+                                  {staffName}
+                                </p>
+                                {act.staff_designation && (
+                                  <p className="text-[9px] font-semibold text-zinc-400 truncate" title={act.staff_designation}>
+                                    {act.staff_designation}
+                                  </p>
+                                )}
+                                {act.staff_employee_id && (
+                                  <p className="text-[8px] font-mono font-medium text-zinc-400 truncate">
+                                    {act.staff_employee_id}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="w-6 h-6 rounded-full bg-zinc-100 border border-zinc-200/80 text-zinc-700 flex items-center justify-center text-[9px] font-black shrink-0">
+                                {initials}
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Zoho Activity Card */}
-                          <div className="bg-white hover:bg-zinc-50/70 border border-zinc-200/90 rounded-2xl p-4 shadow-2xs transition-all space-y-2.5">
-                            {/* Card Header */}
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs font-bold text-zinc-900 tracking-tight">
-                                  {act.activity_type || 'Activity Note'}
-                                </span>
-                                {act.response_type && (
-                                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
-                                    respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : respLower === 'cold_lead' || respLower === 'negative'
-                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                      : 'bg-amber-50 text-amber-700 border-amber-200'
-                                  }`}>
-                                    {act.response_type}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[10px] text-zinc-400 font-mono font-medium flex items-center gap-1">
-                                <Clock size={10} className="text-zinc-400" />
-                                {formatDate(act.created_at, true)}
-                              </span>
+                          {/* Center Column: Vertical Rail & Icon Node */}
+                          <div className="relative flex flex-col items-center h-full self-stretch">
+                            {/* Continuous Vertical Rail */}
+                            <div className={`absolute top-0 w-0.5 bg-zinc-200 ${
+                              idx === stageActivities.length - 1 ? 'bottom-0' : 'bottom-[-16px]'
+                            }`} />
+                            
+                            {/* Icon Node Dot */}
+                            <div className={`relative z-10 w-7 h-7 rounded-full border-2 border-white shadow-xs flex items-center justify-center transition-transform group-hover:scale-110 mt-0.5 ${iconColor}`}>
+                              <IconComponent size={12} strokeWidth={2.5} />
                             </div>
+                          </div>
 
-                            {/* Remarks / Notes Text */}
-                            <p className="text-xs font-medium text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                              {renderRemarksWithQuoteLinks(act.remarks)}
-                            </p>
-
-                            {/* Card Footer: Performed by */}
-                            <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-[10px] text-zinc-400 flex-wrap gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-5 h-5 rounded-full bg-zinc-100 border border-zinc-200/80 text-zinc-600 flex items-center justify-center text-[9px] font-black">
-                                  {initials}
-                                </div>
-                                <span className="font-bold text-zinc-800">{staffName}</span>
-                                {act.staff_employee_id && (
-                                  <span className="font-mono text-[9px] text-zinc-400">({act.staff_employee_id})</span>
-                                )}
-                                {act.staff_designation && (
-                                  <>
-                                    <span className="text-zinc-300">•</span>
-                                    <span>{act.staff_designation}</span>
-                                  </>
-                                )}
-                              </div>
-                              {act.staff_department && (
-                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
-                                  {act.staff_department}
+                          {/* Right Side: Activity Card */}
+                          <div className="bg-white hover:bg-zinc-50/70 border border-zinc-200/90 rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-zinc-900 tracking-tight">
+                                {act.activity_type || 'Activity Note'}
+                              </span>
+                              {act.response_type && (
+                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                  respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : respLower === 'cold_lead' || respLower === 'negative'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                  {act.response_type}
                                 </span>
                               )}
                             </div>
+
+                            <p className="text-xs font-medium text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                              {renderRemarksWithQuoteLinks(act.remarks)}
+                            </p>
                           </div>
                         </div>
                       );
