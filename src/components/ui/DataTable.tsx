@@ -157,7 +157,7 @@ export function DataTable<T extends { id: string | number }>({
   rightAction,
   pageSize = 10,
   pageSizeOptions = [10, 20, 30, 50],
-  minHeight = 'min-h-[calc(100vh-13.5rem)] md:min-h-[calc(100vh-15.5rem)]',
+  minHeight = 'min-h-[calc(100vh-13.5rem)] md:min-h-[calc(100vh-11.25rem)]',
   emptyMessage,
   defaultSortIndex = null,
   defaultSortDirection = 'asc',
