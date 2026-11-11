@@ -126,10 +126,10 @@ export function UserActivityReportModal<T = any>({
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   
-  // Activity Category Toggles
-  const [includeAdded, setIncludeAdded] = useState(true);
-  const [includeUpdated, setIncludeUpdated] = useState(true);
-  const [includeFollowups, setIncludeFollowups] = useState(true);
+  // Activity Category Toggles (all activities included by default)
+  const includeAdded = true;
+  const includeUpdated = true;
+  const includeFollowups = true;
 
   // Load current logged in user from localStorage
   useEffect(() => {
@@ -691,7 +691,7 @@ export function UserActivityReportModal<T = any>({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-4xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-5xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
@@ -730,49 +730,51 @@ export function UserActivityReportModal<T = any>({
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="px-6 py-3.5 bg-zinc-50/90 border-b border-zinc-200/80 space-y-3">
-          {/* Tier 1: Quick Ranges & Custom Date Pickers */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200/80 space-y-3.5">
+          {/* Row 1: Quick Ranges & Custom Date Pickers */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* Quick Presets */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mr-1 flex items-center gap-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 w-32 shrink-0">
                 <Calendar size={13} className="text-[#C82A2B]" /> Quick Range:
               </span>
-              {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth'] as DatePreset[]).map(preset => {
-                const labels: Record<string, string> = {
-                  today: 'Today',
-                  yesterday: 'Yesterday',
-                  last7days: 'Last 7 Days',
-                  last30days: 'Last 30 Days',
-                  thisMonth: 'This Month'
-                };
-                const isActive = datePreset === preset;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setPresetDates(preset)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#C82A2B] text-white shadow-xs scale-102 ring-2 ring-[#C82A2B]/20 font-black'
-                        : 'bg-white text-zinc-700 hover:bg-zinc-200/60 border border-zinc-200/90 shadow-2xs'
-                    }`}
-                  >
-                    {labels[preset]}
-                  </button>
-                );
-              })}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth'] as DatePreset[]).map(preset => {
+                  const labels: Record<string, string> = {
+                    today: 'Today',
+                    yesterday: 'Yesterday',
+                    last7days: 'Last 7 Days',
+                    last30days: 'Last 30 Days',
+                    thisMonth: 'This Month'
+                  };
+                  const isActive = datePreset === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPresetDates(preset)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
+                          : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
+                      }`}
+                    >
+                      {labels[preset]}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Custom Range with Custom DatePicker */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0 self-start lg:self-auto">
               <button
                 type="button"
                 onClick={() => setDatePreset('custom')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                   datePreset === 'custom'
                     ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black'
-                    : 'bg-white text-zinc-700 hover:bg-zinc-200/60 border border-zinc-200/90 shadow-2xs'
+                    : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
                 }`}
               >
                 Custom Range
@@ -806,15 +808,15 @@ export function UserActivityReportModal<T = any>({
             </div>
           </div>
 
-          {/* Tier 2: Quarterly Reports with Year Selector in Proper Order */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-zinc-200/70">
+          {/* Row 2: Quarterly Reports with Year Selector & Active Range */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 border-t border-zinc-200/70">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 w-32 shrink-0">
                 <Clock size={13} className="text-amber-600" /> Quarterly Report:
               </span>
 
               {/* Year Selector */}
-              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs shrink-0">
                 <span className="text-[10px] font-black uppercase text-zinc-400">Year</span>
                 <select
                   value={selectedYear}
@@ -834,69 +836,40 @@ export function UserActivityReportModal<T = any>({
               </div>
 
               {/* 4 Quarters in strict chronological order */}
-              {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
-                const quartersMeta: Record<string, { label: string }> = {
-                  janQuarter: { label: 'January Quarter' },
-                  aprQuarter: { label: 'April Quarter' },
-                  julQuarter: { label: 'July Quarter' },
-                  octQuarter: { label: 'October Quarter' }
-                };
-                const meta = quartersMeta[preset];
-                const isActive = datePreset === preset;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setPresetDates(preset)}
-                    title={`${meta.label} ${selectedYear}`}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
-                        : 'bg-white text-zinc-700 hover:bg-amber-50 hover:border-amber-200/80 border border-zinc-200/80 shadow-2xs'
-                    }`}
-                  >
-                    {meta.label}
-                  </button>
-                );
-              })}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
+                  const quartersMeta: Record<string, { label: string }> = {
+                    janQuarter: { label: 'January Quarter' },
+                    aprQuarter: { label: 'April Quarter' },
+                    julQuarter: { label: 'July Quarter' },
+                    octQuarter: { label: 'October Quarter' }
+                  };
+                  const meta = quartersMeta[preset];
+                  const isActive = datePreset === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPresetDates(preset)}
+                      title={`${meta.label} ${selectedYear}`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
+                          : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
+                      }`}
+                    >
+                      {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Active Range Pill */}
-            <div className="text-[11px] font-bold text-zinc-500 bg-white px-3 py-1 rounded-xl border border-zinc-200/80 shadow-2xs shrink-0">
-              Active: <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
+            <div className="text-[11px] font-bold text-zinc-500 bg-white px-3 py-1.5 rounded-xl border border-zinc-200/80 shadow-2xs shrink-0 flex items-center gap-1.5 self-start lg:self-auto">
+              <span className="text-zinc-400 uppercase text-[9px] font-black tracking-wider">Active:</span>
+              <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
             </div>
-          </div>
-
-          {/* Row 3: Category Checkboxes */}
-          <div className="flex items-center gap-3 pt-2.5 border-t border-zinc-200/60 text-xs font-bold text-zinc-700 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Include Activities:</span>
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-xl border border-zinc-200/90 shadow-2xs hover:bg-zinc-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={includeAdded}
-                onChange={e => setIncludeAdded(e.target.checked)}
-                className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
-              />
-              <span className="text-zinc-700 font-bold text-xs">Added / Created</span>
-            </label>
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-xl border border-zinc-200/90 shadow-2xs hover:bg-zinc-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={includeUpdated}
-                onChange={e => setIncludeUpdated(e.target.checked)}
-                className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
-              />
-              <span className="text-zinc-700 font-bold text-xs">Updated / Modified</span>
-            </label>
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-xl border border-zinc-200/90 shadow-2xs hover:bg-zinc-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={includeFollowups}
-                onChange={e => setIncludeFollowups(e.target.checked)}
-                className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer accent-[#C82A2B]"
-              />
-              <span className="text-zinc-700 font-bold text-xs">Follow-ups & Notes Logged</span>
-            </label>
           </div>
         </div>
 
