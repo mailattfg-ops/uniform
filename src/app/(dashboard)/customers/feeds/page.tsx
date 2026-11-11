@@ -318,19 +318,20 @@ export default function FeedsRegistryPage() {
 
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${l.area || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568;">${locality}</td>
         <td style="font-size: 10px; color: #4a5568;">${zoneName || l.city || '—'}</td>
-        <td style="font-size: 10px; color: #4a5568;">
-          <div style="font-weight: 600;">${l.contact_person || '—'}</div>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">
+          <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
+          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
         </td>
-        <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${l.phone || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Scouting Agent'}</td>
       </tr>
     `;
@@ -369,8 +370,7 @@ export default function FeedsRegistryPage() {
         <th>Prospect / Organization</th>
         <th>Locality</th>
         <th>Zone</th>
-        <th>Contact Person</th>
-        <th>Contact Phone</th>
+        <th style="text-align: left;">Contact</th>
         <th>Scouted By</th>
       </tr>
     </thead>
@@ -413,7 +413,7 @@ export default function FeedsRegistryPage() {
             return (
               <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                 {industryName && (
-                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/60 rounded">
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
                     {industryName}
                   </span>
                 )}
@@ -444,20 +444,21 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Locality',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
-      sortValue: (l) => l.area || '',
-      accessor: (l) => (
-        l.area ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
+      className: 'w-[140px] min-w-[120px] whitespace-nowrap text-center',
+      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.area || '',
+      accessor: (l) => {
+        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area;
+        return locality ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={locality}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-            <span className="truncate">{l.area}</span>
+            <span className="truncate">{locality}</span>
           </div>
         ) : (
           <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
-        )
-      )
+        );
+      }
     },
     {
       header: 'Zone',
@@ -479,36 +480,33 @@ export default function FeedsRegistryPage() {
       }
     },
     {
-      header: 'Contact Person',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
-      sortValue: (l) => l.contact_person || '',
+      header: 'Contact',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
-        l.contact_person ? (
-          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
-            <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
-              {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
-            </span>
+        l.contact_person || l.phone ? (
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+            {l.contact_person && (
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+                {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
+              </span>
+            )}
             {l.contact_designation && (
               <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
+            {l.phone && (
+              <div className="mt-0.5">
+                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+              </div>
+            )}
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         )
-      )
-    },
-    {
-      header: 'Contact Phone',
-      className: 'w-[145px] min-w-[135px] whitespace-nowrap text-center',
-      sortValue: (l) => l.phone || '',
-      accessor: (l) => (
-        <div className="flex items-center justify-center text-center">
-          <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
-        </div>
       )
     },
     {

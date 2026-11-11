@@ -241,7 +241,7 @@ export default function QuotationList({
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-center',
+      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-left',
       sortValue: (q) => (q.organizations as any)?.contact_person || (q.organizations as any)?.contact_number || (q.organizations as any)?.phone || '',
       accessor: (q) => {
         const org = q.organizations as any;
@@ -252,14 +252,14 @@ export default function QuotationList({
 
         if (!person && !ph && !desig) {
           return (
-            <div className="text-center">
+            <div className="text-left">
               <span className="text-zinc-400 text-xs italic font-medium">—</span>
             </div>
           );
         }
 
         return (
-          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[190px]">
             {person && (
               <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={`${title ? title + ' ' : ''}${person}`}>
                 {title ? `${title} ` : ''}{person}
@@ -271,7 +271,7 @@ export default function QuotationList({
               </span>
             )}
             {ph && (
-              <div className="mt-0.5 flex justify-center">
+              <div className="mt-0.5">
                 <ContactPhoneLink phone={ph} name={person || org?.name} />
               </div>
             )}

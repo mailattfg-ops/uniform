@@ -673,53 +673,50 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Locality',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
-      sortValue: (l) => l.area || '',
-      accessor: (l) => (
-        l.area ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={l.area}>
+      className: 'w-[140px] min-w-[120px] whitespace-nowrap text-center',
+      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.area || '',
+      accessor: (l) => {
+        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area;
+        return locality ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={locality}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-            <span className="truncate">{l.area}</span>
+            <span className="truncate">{locality}</span>
           </div>
         ) : (
           <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
-        )
-      )
+        );
+      }
     },
-
     {
-      header: 'Contact Person',
-      className: 'min-w-[130px] max-w-[200px] whitespace-nowrap text-center',
-      sortValue: (l) => l.contact_person || '',
+      header: 'Contact',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
-        l.contact_person ? (
-          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[190px] mx-auto">
-            <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
-              {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
-            </span>
+        l.contact_person || l.phone ? (
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+            {l.contact_person && (
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
+                {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
+              </span>
+            )}
             {l.contact_designation && (
               <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
                 {l.contact_designation}
               </span>
             )}
+            {l.phone && (
+              <div className="mt-0.5">
+                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+              </div>
+            )}
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         )
-      )
-    },
-    {
-      header: 'Contact Phone',
-      className: 'w-[145px] min-w-[135px] whitespace-nowrap text-center',
-      sortValue: (l) => l.phone || '',
-      accessor: (l) => (
-        <div className="flex items-center justify-center text-center">
-          <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
-        </div>
       )
     },
     {
@@ -894,16 +891,17 @@ export default function LeadsRegistryPage() {
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
     const rowsHtml = dataToPrint.map((l, idx) => {
+      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
-        <td style="font-size: 10px; color: #4a5568;">${l.area || '—'}</td>
-        <td style="font-size: 10px; color: #4a5568;">
-          <div style="font-weight: 600;">${l.contact_person ? `${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}` : '—'}</div>
+        <td style="font-size: 10px; color: #4a5568;">${locality}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">
+          <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
+          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
         </td>
-        <td style="font-size: 10px; font-family: monospace; color: #4a5568;">${l.phone || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Unassigned'}</td>
         <td style="text-align: center;">
           <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
@@ -955,8 +953,7 @@ export default function LeadsRegistryPage() {
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
         <th>Locality</th>
-        <th>Contact Person</th>
-        <th>Contact Phone</th>
+        <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Status</th>
       </tr>

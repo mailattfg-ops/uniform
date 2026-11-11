@@ -138,15 +138,13 @@ export default function VendorManagementPage() {
       accessor: (v) => <span className="text-sm font-bold text-zinc-900">{v.name}</span>
     },
     {
-      header: 'Contact Person',
-      accessor: (v) => <span className="text-xs text-zinc-500 font-medium">{v.contact_person || '—'}</span>
-    },
-    {
-      header: 'Phone / Email',
+      header: 'Contact',
+      className: 'text-left',
       accessor: (v) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-zinc-500 font-mono font-bold">{v.phone || '—'}</span>
-          <span className="text-[10px] text-zinc-400 font-medium">{v.email || '—'}</span>
+        <div className="flex flex-col items-start text-left">
+          <span className="text-xs font-bold text-zinc-900">{v.contact_person || '—'}</span>
+          {v.phone && <span className="text-xs text-zinc-500 font-mono font-bold mt-0.5">{v.phone}</span>}
+          {v.email && <span className="text-[10px] text-zinc-400 font-medium">{v.email}</span>}
         </div>
       )
     },

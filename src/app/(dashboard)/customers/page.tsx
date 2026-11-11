@@ -1072,7 +1072,7 @@ export default function CustomersRegistry() {
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-center',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
       sortValue: (c) => c.contact_person || c.contact_number || c.phone || '',
       accessor: (c) => {
         const person = c.contact_person;
@@ -1081,14 +1081,14 @@ export default function CustomersRegistry() {
 
         if (!person && !num && !desig) {
           return (
-            <div className="text-center">
+            <div className="text-left">
               <span className="text-zinc-400 text-xs italic font-medium">—</span>
             </div>
           );
         }
 
         return (
-          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[210px] mx-auto">
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {person && (
               <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${c.contact_title ? c.contact_title + ' ' : ''}${person}`}>
                 {c.contact_title ? `${c.contact_title} ` : ''}{person}
@@ -1100,7 +1100,7 @@ export default function CustomersRegistry() {
               </span>
             )}
             {num && (
-              <div className="mt-0.5 flex justify-center">
+              <div className="mt-0.5">
                 <ContactPhoneLink phone={num} name={person || c.name} />
               </div>
             )}
