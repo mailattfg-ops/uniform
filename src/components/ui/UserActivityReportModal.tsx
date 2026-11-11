@@ -509,8 +509,8 @@ export function UserActivityReportModal<T = any>({
     else if (datePreset === 'custom') presetLabel = 'Custom Range';
 
     if (!fromDate && !toDate) return presetLabel;
-    if (fromDate === toDate) return `${formatISTDateOnly(fromDate)} (${presetLabel})`;
-    return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)} (${presetLabel})`;
+    if (fromDate === toDate) return formatISTDateOnly(fromDate);
+    return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)}`;
   }, [fromDate, toDate, datePreset, selectedYear]);
 
   // Handle Print Report
