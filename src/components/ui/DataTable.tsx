@@ -45,6 +45,8 @@ export interface DataTableProps<T> {
   onSortedChange?: (sortedData: T[], sortInfo: SortInfo<T>) => void;
   userReportTriggerRef?: React.MutableRefObject<(() => void) | null>;
   enableUserReport?: boolean;
+  hidePageSizeSelector?: boolean;
+  hidePageSizeDropdown?: boolean;
 }
 
 function extractTextFromReactNode(node: React.ReactNode): string {
@@ -155,7 +157,7 @@ export function DataTable<T extends { id: string | number }>({
   rightAction,
   pageSize = 10,
   pageSizeOptions = [10, 20, 30, 50],
-  minHeight = 'min-h-[calc(100vh-13.5rem)] md:min-h-[calc(100vh-15.5rem)]',
+  minHeight = 'min-h-[calc(100vh-13.5rem)] md:min-h-[calc(100vh-11.25rem)]',
   emptyMessage,
   defaultSortIndex = null,
   defaultSortDirection = 'asc',
@@ -168,6 +170,8 @@ export function DataTable<T extends { id: string | number }>({
   onSortedChange,
   userReportTriggerRef,
   enableUserReport = true,
+  hidePageSizeSelector = false,
+  hidePageSizeDropdown = true,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -725,81 +729,85 @@ export function DataTable<T extends { id: string | number }>({
           </span>
 
           {/* Option to choose number of datas (10, 20, 30, 50) */}
-          <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l sm:border-zinc-200">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Rows:</span>
+          {!hidePageSizeSelector && (
+            <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l sm:border-zinc-200">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Rows:</span>
 
-            {/* Quick Segmented Pill Options */}
-            <div className="inline-flex items-center bg-white p-0.5 rounded-xl border border-zinc-200 shadow-2xs">
-              {resolvedPageSizeOptions.map((size) => {
-                const isSelected = currentPageSize === size;
-                return (
+              {/* Quick Segmented Pill Options */}
+              <div className="inline-flex items-center bg-white p-0.5 rounded-xl border border-zinc-200 shadow-2xs">
+                {resolvedPageSizeOptions.map((size) => {
+                  const isSelected = currentPageSize === size;
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        setCurrentPageSize(size);
+                        setCurrentPage(1);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#C82A2B] text-white shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                      }`}
+                      title={`Display ${size} rows per page`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Modern Dropdown Style Selector */}
+              {!hidePageSizeDropdown && (
+                <div className="relative inline-block text-left" ref={pageSizeDropdownRef}>
                   <button
-                    key={size}
                     type="button"
-                    onClick={() => {
-                      setCurrentPageSize(size);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#C82A2B] text-white shadow-xs'
-                        : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                    onClick={() => setIsPageSizeOpen(prev => !prev)}
+                    className={`h-7 px-2.5 rounded-xl border text-[11px] font-black flex items-center gap-1.5 transition-all cursor-pointer select-none shadow-2xs ${
+                      isPageSizeOpen
+                        ? 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B] ring-2 ring-[#C82A2B]/20'
+                        : 'bg-white border-zinc-200 hover:border-[#C82A2B]/60 hover:bg-zinc-50 text-zinc-800'
                     }`}
-                    title={`Display ${size} rows per page`}
+                    title="Select rows per page"
                   >
-                    {size}
+                    <span>{currentPageSize} / page</span>
+                    <ChevronDown size={12} className={`text-[#9E1B1D] transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
                   </button>
-                );
-              })}
-            </div>
 
-            {/* Modern Dropdown Style Selector */}
-            <div className="relative inline-block text-left" ref={pageSizeDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setIsPageSizeOpen(prev => !prev)}
-                className={`h-7 px-2.5 rounded-xl border text-[11px] font-black flex items-center gap-1.5 transition-all cursor-pointer select-none shadow-2xs ${
-                  isPageSizeOpen
-                    ? 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B] ring-2 ring-[#C82A2B]/20'
-                    : 'bg-white border-zinc-200 hover:border-[#C82A2B]/60 hover:bg-zinc-50 text-zinc-800'
-                }`}
-                title="Select rows per page"
-              >
-                <span>{currentPageSize} / page</span>
-                <ChevronDown size={12} className={`text-[#9E1B1D] transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isPageSizeOpen && (
-                <div className="absolute left-0 bottom-full mb-1.5 z-50 w-32 bg-white rounded-2xl shadow-xl border border-zinc-200 p-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#C82A2B]/10">
-                  <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 mb-1">
-                    Rows per page
-                  </div>
-                  {resolvedPageSizeOptions.map((size) => {
-                    const isSelected = currentPageSize === size;
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => {
-                          setCurrentPageSize(size);
-                          setCurrentPage(1);
-                          setIsPageSizeOpen(false);
-                        }}
-                        className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#C82A2B] text-white font-black shadow-xs'
-                            : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
-                        }`}
-                      >
-                        <span>{size} records</span>
-                        {isSelected && <Check size={13} strokeWidth={3} className="text-white" />}
-                      </button>
-                    );
-                  })}
+                  {isPageSizeOpen && (
+                    <div className="absolute left-0 bottom-full mb-1.5 z-50 w-32 bg-white rounded-2xl shadow-xl border border-zinc-200 p-1.5 animate-in fade-in zoom-in-95 duration-150 ring-4 ring-[#C82A2B]/10">
+                      <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 mb-1">
+                        Rows per page
+                      </div>
+                      {resolvedPageSizeOptions.map((size) => {
+                        const isSelected = currentPageSize === size;
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => {
+                              setCurrentPageSize(size);
+                              setCurrentPage(1);
+                              setIsPageSizeOpen(false);
+                            }}
+                            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#C82A2B] text-white font-black shadow-xs'
+                                : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
+                            }`}
+                          >
+                            <span>{size} records</span>
+                            {isSelected && <Check size={13} strokeWidth={3} className="text-white" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Prev / Next Pagination Controls */}

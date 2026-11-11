@@ -458,11 +458,11 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Contact',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-center',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
       sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
         l.contact_person || l.phone ? (
-          <div className="flex flex-col items-center justify-center text-center min-w-0 max-w-[210px] mx-auto">
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
               <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
                 {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
@@ -474,13 +474,13 @@ export default function DealsRegistryPage() {
               </span>
             )}
             {l.phone && (
-              <div className="mt-0.5 flex justify-center">
+              <div className="mt-0.5">
                 <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         )

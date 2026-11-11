@@ -7,7 +7,6 @@ import {
   User, 
   Printer, 
   Download, 
-  Search, 
   CheckCircle2, 
   Clock, 
   FileText, 
@@ -15,8 +14,7 @@ import {
   PlusCircle, 
   RefreshCw, 
   ArrowRight,
-  Filter,
-  Check
+  ChevronDown
 } from 'lucide-react';
 import { Button } from './Button';
 import { DatePicker } from './DatePicker';
@@ -128,12 +126,11 @@ export function UserActivityReportModal<T = any>({
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
   
-  // Activity Category Toggles
-  const [includeAdded, setIncludeAdded] = useState(true);
-  const [includeUpdated, setIncludeUpdated] = useState(true);
-  const [includeFollowups, setIncludeFollowups] = useState(true);
+  // Activity Category Toggles (all activities included by default)
+  const includeAdded = true;
+  const includeUpdated = true;
+  const includeFollowups = true;
 
   // Load current logged in user from localStorage
   useEffect(() => {
@@ -494,18 +491,8 @@ export function UserActivityReportModal<T = any>({
     };
   }, [fromDate, toDate, data, includeAdded, includeUpdated, includeFollowups, matchesUser, title]);
 
-  // Filter activities by search query
-  const filteredActivities = useMemo(() => {
-    if (!searchQuery.trim()) return activities;
-    const q = searchQuery.toLowerCase();
-    return activities.filter(a => 
-      a.itemTitle.toLowerCase().includes(q) ||
-      (a.itemSubtitle && a.itemSubtitle.toLowerCase().includes(q)) ||
-      a.activityLabel.toLowerCase().includes(q) ||
-      (a.notes && a.notes.toLowerCase().includes(q)) ||
-      a.performerName.toLowerCase().includes(q)
-    );
-  }, [activities, searchQuery]);
+  // Activities list
+  const filteredActivities = activities;
 
   // Compute active range label
   const rangeLabel = useMemo(() => {
@@ -522,30 +509,9 @@ export function UserActivityReportModal<T = any>({
     else if (datePreset === 'custom') presetLabel = 'Custom Range';
 
     if (!fromDate && !toDate) return presetLabel;
-    return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)} (${presetLabel})`;
+    if (fromDate === toDate) return formatISTDateOnly(fromDate);
+    return `${formatISTDateOnly(fromDate)} – ${formatISTDateOnly(toDate)}`;
   }, [fromDate, toDate, datePreset, selectedYear]);
-
-  // Handle Apply Filter to Table
-  const handleApplyToTable = () => {
-    if (!onApplyFilter) return;
-    const uniqueItems = Array.from(matchedItemsMap.values());
-    let presetLabel = datePreset.toUpperCase();
-    if (datePreset === 'janQuarter') presetLabel = `January Quarter (Jan-Mar ${selectedYear})`;
-    else if (datePreset === 'aprQuarter') presetLabel = `April Quarter (Apr-Jun ${selectedYear})`;
-    else if (datePreset === 'julQuarter') presetLabel = `July Quarter (Jul-Sep ${selectedYear})`;
-    else if (datePreset === 'octQuarter') presetLabel = `October Quarter (Oct-Dec ${selectedYear})`;
-    else if (datePreset === 'today') presetLabel = 'Today';
-    else if (datePreset === 'yesterday') presetLabel = 'Yesterday';
-    else if (datePreset === 'last7days') presetLabel = 'Last 7 Days';
-    else if (datePreset === 'last30days') presetLabel = 'Last 30 Days';
-    else if (datePreset === 'thisMonth') presetLabel = 'This Month';
-    else presetLabel = `${formatISTDateOnly(fromDate)} - ${formatISTDateOnly(toDate)}`;
-
-    const filterSummary = `${presetLabel} (${uniqueItems.length} items)`;
-    onApplyFilter(uniqueItems, filterSummary);
-    toast.success(`Table filtered to ${uniqueItems.length} items updated by ${currentUser?.fullName || 'user'}`);
-    onClose();
-  };
 
   // Handle Print Report
   const handlePrintReport = () => {
@@ -727,7 +693,7 @@ export function UserActivityReportModal<T = any>({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-4xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-6xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
@@ -766,96 +732,98 @@ export function UserActivityReportModal<T = any>({
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="px-6 py-3.5 bg-zinc-50/90 border-b border-zinc-200/80 space-y-3">
-          {/* Tier 1: Quick Ranges & Custom Date Pickers */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Quick Presets */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mr-1 flex items-center gap-1.5">
-                <Calendar size={13} className="text-[#C82A2B]" /> Quick Range:
-              </span>
-              {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth'] as DatePreset[]).map(preset => {
-                const labels: Record<string, string> = {
-                  today: 'Today',
-                  yesterday: 'Yesterday',
-                  last7days: 'Last 7 Days',
-                  last30days: 'Last 30 Days',
-                  thisMonth: 'This Month'
-                };
-                const isActive = datePreset === preset;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setPresetDates(preset)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#C82A2B] text-white shadow-xs scale-102 ring-2 ring-[#C82A2B]/20 font-black'
-                        : 'bg-white text-zinc-700 hover:bg-zinc-200/60 border border-zinc-200/90 shadow-2xs'
-                    }`}
-                  >
-                    {labels[preset]}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200/80 space-y-3.5">
+          {/* Row 1: Quick Ranges & Custom Date Pickers in One Line */}
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap relative z-30">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0 h-8">
+              <Calendar size={13} className="text-[#C82A2B]" /> Quick Range:
+            </span>
 
-            {/* Custom Range with Custom DatePicker */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setDatePreset('custom')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  datePreset === 'custom'
-                    ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black'
-                    : 'bg-white text-zinc-700 hover:bg-zinc-200/60 border border-zinc-200/90 shadow-2xs'
-                }`}
-              >
-                Custom Range
-              </button>
+            {/* Presets */}
+            {(['today', 'yesterday', 'last7days', 'last30days', 'thisMonth'] as DatePreset[]).map(preset => {
+              const labels: Record<string, string> = {
+                today: 'Today',
+                yesterday: 'Yesterday',
+                last7days: 'Last 7 Days',
+                last30days: 'Last 30 Days',
+                thisMonth: 'This Month'
+              };
+              const isActive = datePreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPresetDates(preset)}
+                  className={`h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
+                      : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
+                  }`}
+                >
+                  {labels[preset]}
+                </button>
+              );
+            })}
 
-              <div className="flex items-center gap-1.5">
-                <DatePicker
-                  size="sm"
-                  value={fromDate}
-                  onChange={(val) => {
-                    setFromDate(val);
-                    setDatePreset('custom');
-                  }}
-                  placeholder="From Date"
-                  max={toDate || undefined}
-                  className="w-32 bg-white"
-                />
-                <span className="text-zinc-400 text-xs font-bold">—</span>
-                <DatePicker
-                  size="sm"
-                  value={toDate}
-                  onChange={(val) => {
-                    setToDate(val);
-                    setDatePreset('custom');
-                  }}
-                  placeholder="To Date"
-                  min={fromDate || undefined}
-                  className="w-32 bg-white"
-                />
-              </div>
+            {/* Subtle Divider */}
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0" />
+
+            {/* Custom Range button & DatePickers in the same line */}
+            <button
+              type="button"
+              onClick={() => setDatePreset('custom')}
+              className={`h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                datePreset === 'custom'
+                  ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black'
+                  : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
+              }`}
+            >
+              Custom Range
+            </button>
+
+            <div className="inline-flex items-center gap-1 shrink-0">
+              <DatePicker
+                size="sm"
+                value={fromDate}
+                onChange={(val) => {
+                  setFromDate(val);
+                  setDatePreset('custom');
+                }}
+                placeholder="From Date"
+                max={toDate || undefined}
+                className="w-28 bg-white"
+                wrapperClassName="shrink-0"
+              />
+              <span className="text-zinc-400 text-xs font-bold inline-flex items-center h-8 leading-none shrink-0">—</span>
+              <DatePicker
+                size="sm"
+                value={toDate}
+                onChange={(val) => {
+                  setToDate(val);
+                  setDatePreset('custom');
+                }}
+                placeholder="To Date"
+                min={fromDate || undefined}
+                className="w-28 bg-white"
+                wrapperClassName="shrink-0"
+              />
             </div>
           </div>
 
-          {/* Tier 2: Quarterly Reports with Year Selector in Proper Order */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-zinc-200/70">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 mr-1">
-                <Clock size={13} className="text-amber-600" /> Quarterly Report:
-              </span>
+          {/* Row 2: Quarterly Reports & Date Range in One Continuous Line */}
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap pt-3 border-t border-zinc-200/70 relative z-20">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0 h-8">
+              <Clock size={13} className="text-amber-600" /> Quarterly Report:
+            </span>
 
-              {/* Year Selector */}
-              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-                <span className="text-[10px] font-black uppercase text-zinc-400">Year</span>
+            {/* Year Selector */}
+            <div className="h-8 flex items-center gap-1.5 bg-white border border-zinc-200/90 hover:border-zinc-300 rounded-xl px-2.5 text-xs shadow-2xs shrink-0 transition-colors">
+              <span className="text-[10px] font-black uppercase text-zinc-400">Year</span>
+              <div className="relative inline-flex items-center">
                 <select
                   value={selectedYear}
                   onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-                  className="font-black text-xs text-zinc-900 outline-none bg-transparent cursor-pointer"
+                  className="font-black text-xs text-zinc-900 outline-none bg-transparent cursor-pointer pr-4 appearance-none"
                 >
                   {[
                     new Date().getFullYear(),
@@ -867,85 +835,47 @@ export function UserActivityReportModal<T = any>({
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
+                <ChevronDown size={11} className="text-zinc-400 pointer-events-none absolute right-0" />
               </div>
-
-              {/* 4 Quarters in strict chronological order */}
-              {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
-                const quartersMeta: Record<string, { label: string }> = {
-                  janQuarter: { label: 'January Quarter' },
-                  aprQuarter: { label: 'April Quarter' },
-                  julQuarter: { label: 'July Quarter' },
-                  octQuarter: { label: 'October Quarter' }
-                };
-                const meta = quartersMeta[preset];
-                const isActive = datePreset === preset;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setPresetDates(preset)}
-                    title={`${meta.label} ${selectedYear}`}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
-                        : 'bg-white text-zinc-700 hover:bg-amber-50 hover:border-amber-200/80 border border-zinc-200/80 shadow-2xs'
-                    }`}
-                  >
-                    {meta.label}
-                  </button>
-                );
-              })}
             </div>
 
-            {/* Active Range Pill */}
-            <div className="text-[11px] font-bold text-zinc-500 bg-white px-3 py-1 rounded-xl border border-zinc-200/80 shadow-2xs shrink-0">
-              Active: <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
-            </div>
-          </div>
+            {/* Subtle Divider matching Row 1 */}
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0" />
 
-          {/* Row 2: Category Checkboxes & Search */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-zinc-200/60">
-            <div className="flex items-center gap-3 text-xs font-bold text-zinc-600">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-400">Include:</span>
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={includeAdded}
-                  onChange={e => setIncludeAdded(e.target.checked)}
-                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
-                />
-                <span>Added / Created</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={includeUpdated}
-                  onChange={e => setIncludeUpdated(e.target.checked)}
-                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
-                />
-                <span>Updated / Modified</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={includeFollowups}
-                  onChange={e => setIncludeFollowups(e.target.checked)}
-                  className="rounded text-[#C82A2B] focus:ring-[#C82A2B] cursor-pointer"
-                />
-                <span>Follow-ups & Notes Logged</span>
-              </label>
-            </div>
+            {/* 4 Quarters in strict chronological order */}
+            {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
+              const quartersMeta: Record<string, { label: string; period: string }> = {
+                janQuarter: { label: 'January Quarter', period: 'Jan – Mar' },
+                aprQuarter: { label: 'April Quarter', period: 'Apr – Jun' },
+                julQuarter: { label: 'July Quarter', period: 'Jul – Sep' },
+                octQuarter: { label: 'October Quarter', period: 'Oct – Dec' }
+              };
+              const meta = quartersMeta[preset];
+              const isActive = datePreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPresetDates(preset)}
+                  title={`${meta.label} (${meta.period} ${selectedYear})`}
+                  className={`h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
+                      : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
+                  }`}
+                >
+                  {meta.label}
+                </button>
+              );
+            })}
 
-            {/* Quick search input */}
-            <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-              <input
-                type="text"
-                placeholder="Search report..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-700 placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]"
-              />
+            {/* Subtle Divider */}
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0" />
+
+            {/* Date Range Display in-line with Row 2 */}
+            <div className="h-8 text-xs font-bold text-zinc-600 bg-white px-3 rounded-xl border border-zinc-200/90 shadow-2xs shrink-0 inline-flex items-center gap-1.5">
+              <span className="text-zinc-400 uppercase text-[9px] font-black tracking-wider">Date Range:</span>
+              <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
             </div>
           </div>
         </div>
@@ -1043,39 +973,18 @@ export function UserActivityReportModal<T = any>({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-zinc-500">
-            {isFilterApplied ? (
-              <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200">
-                <Check size={14} strokeWidth={3} /> Filter currently applied to table
-              </span>
-            ) : (
-              <span>Showing <strong>{filteredActivities.length}</strong> activity logs across <strong>{counts.total}</strong> records</span>
-            )}
+        <div className="px-6 py-3.5 bg-zinc-50 border-t border-zinc-200/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-zinc-500 font-medium">
+            Showing <strong className="text-zinc-900 font-bold">{filteredActivities.length}</strong> activity logs across <strong className="text-zinc-900 font-bold">{counts.total}</strong> records
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {isFilterApplied && onClearFilter && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  onClearFilter();
-                  toast.success('Table filter cleared');
-                  onClose();
-                }}
-                className="text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl font-bold cursor-pointer"
-              >
-                Clear Filter
-              </Button>
-            )}
-
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={handleExportCSV}
               disabled={filteredActivities.length === 0}
-              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer"
+              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Download size={14} />
               <span>Export CSV</span>
@@ -1086,23 +995,19 @@ export function UserActivityReportModal<T = any>({
               size="sm"
               onClick={handlePrintReport}
               disabled={filteredActivities.length === 0}
-              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer"
+              className="border-zinc-300 rounded-xl font-bold text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Printer size={14} />
               <span>Print Report</span>
             </Button>
 
-            {onApplyFilter && (
-              <Button
-                size="sm"
-                onClick={handleApplyToTable}
-                disabled={matchedItemsMap.size === 0}
-                className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md shadow-[#C82A2B]/20 cursor-pointer"
-              >
-                <Filter size={14} />
-                <span>Filter Table ({matchedItemsMap.size})</span>
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={onClose}
+              className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-bold px-4 cursor-pointer shadow-sm shadow-[#C82A2B]/20"
+            >
+              Close
+            </Button>
           </div>
         </div>
       </div>
