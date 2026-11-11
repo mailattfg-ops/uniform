@@ -13,7 +13,8 @@ import {
   MessageSquare, 
   PlusCircle, 
   RefreshCw, 
-  ArrowRight
+  ArrowRight,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from './Button';
 import { DatePicker } from './DatePicker';
@@ -808,20 +809,20 @@ export function UserActivityReportModal<T = any>({
             </div>
           </div>
 
-          {/* Row 2: Quarterly Reports with Year Selector & Active Range */}
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-zinc-200/70 flex-wrap">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 w-32 shrink-0 h-8">
-                <Clock size={13} className="text-amber-600" /> Quarterly Report:
-              </span>
+          {/* Row 2: Quarterly Reports & Active Range in One Continuous Line */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-3 border-t border-zinc-200/70">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 w-32 shrink-0 h-8">
+              <Clock size={13} className="text-amber-600" /> Quarterly Report:
+            </span>
 
-              {/* Year Selector */}
-              <div className="h-8 flex items-center gap-1.5 bg-white border border-zinc-200 rounded-xl px-2.5 text-xs shadow-2xs shrink-0">
-                <span className="text-[10px] font-black uppercase text-zinc-400">Year</span>
+            {/* Year Selector */}
+            <div className="h-8 flex items-center gap-1.5 bg-white border border-zinc-200/90 hover:border-zinc-300 rounded-xl px-2.5 text-xs shadow-2xs shrink-0 transition-colors">
+              <span className="text-[10px] font-black uppercase text-zinc-400">Year</span>
+              <div className="relative inline-flex items-center">
                 <select
                   value={selectedYear}
                   onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-                  className="font-black text-xs text-zinc-900 outline-none bg-transparent cursor-pointer"
+                  className="font-black text-xs text-zinc-900 outline-none bg-transparent cursor-pointer pr-4 appearance-none"
                 >
                   {[
                     new Date().getFullYear(),
@@ -833,38 +834,45 @@ export function UserActivityReportModal<T = any>({
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
+                <ChevronDown size={11} className="text-zinc-400 pointer-events-none absolute right-0" />
               </div>
-
-              {/* 4 Quarters in strict chronological order */}
-              {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
-                const quartersMeta: Record<string, { label: string }> = {
-                  janQuarter: { label: 'January Quarter' },
-                  aprQuarter: { label: 'April Quarter' },
-                  julQuarter: { label: 'July Quarter' },
-                  octQuarter: { label: 'October Quarter' }
-                };
-                const meta = quartersMeta[preset];
-                const isActive = datePreset === preset;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setPresetDates(preset)}
-                    title={`${meta.label} ${selectedYear}`}
-                    className={`h-8 px-3 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
-                        : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
-                    }`}
-                  >
-                    {meta.label}
-                  </button>
-                );
-              })}
             </div>
 
-            {/* Active Range Pill */}
-            <div className="h-8 text-[11px] font-bold text-zinc-500 bg-white px-3 rounded-xl border border-zinc-200/80 shadow-2xs shrink-0 inline-flex items-center gap-1.5">
+            {/* Subtle Divider matching Row 1 */}
+            <div className="h-4 w-px bg-zinc-300 mx-1 hidden sm:block" />
+
+            {/* 4 Quarters in strict chronological order */}
+            {(['janQuarter', 'aprQuarter', 'julQuarter', 'octQuarter'] as DatePreset[]).map(preset => {
+              const quartersMeta: Record<string, { label: string; period: string }> = {
+                janQuarter: { label: 'January Quarter', period: 'Jan – Mar' },
+                aprQuarter: { label: 'April Quarter', period: 'Apr – Jun' },
+                julQuarter: { label: 'July Quarter', period: 'Jul – Sep' },
+                octQuarter: { label: 'October Quarter', period: 'Oct – Dec' }
+              };
+              const meta = quartersMeta[preset];
+              const isActive = datePreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPresetDates(preset)}
+                  title={`${meta.label} (${meta.period} ${selectedYear})`}
+                  className={`h-8 px-3 rounded-xl text-xs font-bold inline-flex items-center justify-center transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-[#C82A2B] text-white shadow-xs ring-2 ring-[#C82A2B]/20 font-black scale-102'
+                      : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200/90 shadow-2xs'
+                  }`}
+                >
+                  {meta.label}
+                </button>
+              );
+            })}
+
+            {/* Subtle Divider */}
+            <div className="h-4 w-px bg-zinc-300 mx-1 hidden sm:block" />
+
+            {/* Active Range Pill in-line with Row 2 */}
+            <div className="h-8 text-[11px] font-bold text-zinc-500 bg-white px-3 rounded-xl border border-zinc-200/90 shadow-2xs shrink-0 inline-flex items-center gap-1.5">
               <span className="text-zinc-400 uppercase text-[9px] font-black tracking-wider">Active:</span>
               <span className="text-[#9E1B1D] font-black">{rangeLabel}</span>
             </div>
