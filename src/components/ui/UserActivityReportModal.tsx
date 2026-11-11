@@ -734,7 +734,7 @@ export function UserActivityReportModal<T = any>({
         {/* Filter Controls Bar */}
         <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200/80 space-y-3.5">
           {/* Row 1: Quick Ranges & Custom Date Pickers in One Line */}
-          <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto pb-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap relative z-30">
             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0 h-8">
               <Calendar size={13} className="text-[#C82A2B]" /> Quick Range:
             </span>
@@ -791,8 +791,8 @@ export function UserActivityReportModal<T = any>({
                 }}
                 placeholder="From Date"
                 max={toDate || undefined}
-                className="w-26 bg-white !h-8"
-                wrapperClassName="!gap-0 h-8 flex items-center shrink-0"
+                className="w-28 bg-white"
+                wrapperClassName="shrink-0"
               />
               <span className="text-zinc-400 text-xs font-bold inline-flex items-center h-8 leading-none shrink-0">—</span>
               <DatePicker
@@ -804,14 +804,14 @@ export function UserActivityReportModal<T = any>({
                 }}
                 placeholder="To Date"
                 min={fromDate || undefined}
-                className="w-26 bg-white !h-8"
-                wrapperClassName="!gap-0 h-8 flex items-center shrink-0"
+                className="w-28 bg-white"
+                wrapperClassName="shrink-0"
               />
             </div>
           </div>
 
           {/* Row 2: Quarterly Reports & Date Range in One Continuous Line */}
-          <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto pt-3 border-t border-zinc-200/70 pb-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap pt-3 border-t border-zinc-200/70 relative z-20">
             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0 h-8">
               <Clock size={13} className="text-amber-600" /> Quarterly Report:
             </span>
