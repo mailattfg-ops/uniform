@@ -21,8 +21,7 @@ import {
   Branch, 
   Zone,
   LeadViewModal,
-  LeadFormModal,
-  FollowUpOutcomeModal
+  LeadFormModal
 } from '../leads/page';
 
 export default function DealsRegistryPage() {
@@ -46,7 +45,6 @@ export default function DealsRegistryPage() {
   // Modal States
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
-  const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
 
   // SO Deal Workflow Modals
   const [remarksModalDeal, setRemarksModalDeal] = useState<Lead | null>(null);
@@ -140,14 +138,6 @@ export default function DealsRegistryPage() {
     if (selectedBranch === 'ALL') return zones;
     return zones.filter(z => String(z.branch_id) === selectedBranch);
   }, [zones, selectedBranch]);
-
-  // Helper to check if a deal has had no follow up for 2+ days
-  const isNoFollowupDeal = useCallback((l: Lead) => {
-    const refDate = l.updated_at || l.created_at;
-    if (!refDate) return false;
-    const daysInactive = Math.floor((Date.now() - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24));
-    return daysInactive >= 2;
-  }, []);
 
   // Helper to calculate financials and the exact Sales Order deal lifecycle stage
   const getDealFinancials = useCallback((l: Lead) => {
@@ -583,9 +573,6 @@ export default function DealsRegistryPage() {
       className: 'w-[180px] whitespace-nowrap',
       sortValue: (l) => getDealFinancials(l).dealStage,
       accessor: (l) => {
-        const refDate = l.updated_at || l.created_at;
-        const daysInactive = refDate ? Math.floor((Date.now() - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-        const isOverdue = isNoFollowupDeal(l);
         const { dealStage } = getDealFinancials(l);
 
         return (
@@ -604,7 +591,7 @@ export default function DealsRegistryPage() {
             )}
             {dealStage === 'PENDING_BM_APPROVAL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-orange-50 text-orange-800 border-orange-300 shadow-2xs">
-                <Lock size={12} className="text-orange-600 shrink-0" />
+                <Lock size={10} />
                 <span>Pending BM Approval</span>
               </span>
             )}
@@ -618,13 +605,6 @@ export default function DealsRegistryPage() {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-purple-50 text-purple-800 border-purple-200 shadow-2xs">
                 <ShieldCheck size={12} className="text-purple-600 shrink-0" />
                 <span>Pending Corp Approval</span>
-              </span>
-            )}
-
-            {isOverdue && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs" title={`Overdue: No follow-up for ${daysInactive} days`}>
-                <Clock size={10} className="text-rose-600 shrink-0" />
-                <span>No Follow-up ({daysInactive}d)</span>
               </span>
             )}
           </div>
@@ -812,26 +792,8 @@ export default function DealsRegistryPage() {
           </div>
         );
       }
-    },
-    {
-      header: 'Follow-up',
-      className: 'w-[110px] whitespace-nowrap text-right',
-      sortable: false,
-      accessor: (l) => (
-        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setViewingLead(l)}
-            className="px-3 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95"
-            title="View deal timeline and follow-up history"
-          >
-            <Eye size={12} />
-            <span>Follow-up</span>
-          </button>
-        </div>
-      )
     }
-  ], [getDealFinancials, isNoFollowupDeal, zones, isBranchManager, isCorporate, openMenuDealId]);
+  ], [getDealFinancials, zones, isBranchManager, isCorporate, openMenuDealId]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -873,7 +835,6 @@ export default function DealsRegistryPage() {
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        pinRowTop={isNoFollowupDeal}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Deals Stage Filter */}
@@ -955,7 +916,7 @@ export default function DealsRegistryPage() {
             canAssignBranch: canManageLeads,
             canAssignStaff: canManageLeads,
             canSalesContact: canManageLeads,
-            canManageFollowups: canManageLeads,
+            canManageFollowups: false,
             canManageMeetings: canManageLeads,
             canManageHotLeads: canManageLeads
           }}
@@ -966,23 +927,10 @@ export default function DealsRegistryPage() {
           onFeedOutcome={() => {}}
           onAssignBranch={() => {}}
           onAssignStaff={() => {}}
-          onFollowUp={() => {
-            setFollowUpLead(viewingLead);
-          }}
+          onFollowUp={() => {}}
           onMeetingOutcome={() => {}}
           onConvertFeed={() => {}}
           onReload={fetchData}
-        />
-      )}
-
-      {followUpLead && (
-        <FollowUpOutcomeModal
-          lead={followUpLead}
-          onClose={() => setFollowUpLead(null)}
-          onSuccess={() => {
-            setFollowUpLead(null);
-            fetchData();
-          }}
         />
       )}
 
