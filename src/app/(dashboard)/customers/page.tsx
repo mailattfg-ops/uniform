@@ -115,6 +115,7 @@ function compileCustomerDirectoryHTML({
     const custId = c.customer_code || `#${c.id}`;
     const name = c.name || 'Unnamed Customer';
     const sector = c.industries?.name || '';
+    const locality = [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '—';
     const zoneName = c.zones?.name || (zones?.find((z: any) => String(z.id) === String(c.zone_id))?.name) || '—';
     const branchName = branches?.find((b: any) => String(b.id) === String(c.branch_id))?.name || (c as any).branches?.name || '—';
     const contactPerson = c.contact_person || '—';
@@ -139,16 +140,17 @@ function compileCustomerDirectoryHTML({
     return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; font-size: 10px;">${custId}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; font-size: 10px;">${custId}</td>
         <td>
           <div style="font-weight: 800; color: #1a202c; font-size: 11px;">${name}</div>
-          ${sector ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
+          ${sector ? `<div style="font-size: 8px; color: #C82A2B; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
+        <td style="font-size: 10px; color: #4a5568;">${locality}</td>
         <td style="font-size: 10px; color: #4a5568;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
           ${designation ? `<div style="color: #a0aec0; font-size: 8px;">${designation}</div>` : ''}
-          ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #2d8d9b; margin-top: 2px;">${phone}</div>` : ''}
+          ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #C82A2B; margin-top: 2px;">${phone}</div>` : ''}
         </td>
         <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${receivables > 0 ? '#e53e3e' : '#4a5568'}; white-space: nowrap;">
           ₹${receivables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -196,7 +198,7 @@ function compileCustomerDirectoryHTML({
       justify-content: space-between;
       align-items: flex-start;
       gap: 12px;
-      border-bottom: 2px solid #3a525d;
+      border-bottom: 2px solid #C82A2B;
       padding-bottom: 14px;
       margin-bottom: 14px;
     }
@@ -205,14 +207,14 @@ function compileCustomerDirectoryHTML({
       font-size: 22px;
       font-weight: 900;
       letter-spacing: -0.5px;
-      color: #3a525d;
+      color: #9E1B1D;
     }
 
     .brand-subtitle {
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 2px;
-      color: #2d8d9b;
+      color: #C82A2B;
       font-weight: 800;
       margin-top: 2px;
     }
@@ -294,14 +296,14 @@ function compileCustomerDirectoryHTML({
     }
 
     th {
-      background: #3a525d;
+      background: #9E1B1D;
       color: #ffffff;
       font-size: 9px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.8px;
       padding: 8px 6px;
-      border: 1px solid #2d424b;
+      border: 1px solid #7F1416;
       white-space: nowrap;
     }
 
@@ -380,7 +382,7 @@ function compileCustomerDirectoryHTML({
     <div>
       <div class="brand-title">FORMA APPARELS</div>
       <div class="brand-subtitle">Central Manufacturing & Institutional Distribution</div>
-      <div style="font-size: 14px; font-weight: 800; color: #2d8d9b; margin-top: 6px;">Customer Directory Registry</div>
+      <div style="font-size: 14px; font-weight: 800; color: #C82A2B; margin-top: 6px;">Customer Directory Registry</div>
     </div>
     <div class="report-meta">
       <div class="meta-item"><strong>Printed:</strong> ${printedAt}</div>
@@ -423,6 +425,7 @@ function compileCustomerDirectoryHTML({
         <th style="width: 25px;">#</th>
         <th style="width: 80px;">CUST. ID</th>
         <th>CUSTOMER NAME</th>
+        <th>LOCALITY</th>
         <th>ZONE</th>
         <th>CONTACT</th>
         <th style="text-align: right; width: 85px;">RECEIVABLES</th>
@@ -430,7 +433,7 @@ function compileCustomerDirectoryHTML({
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #718096;">No customer records matching the active filters.</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #718096;">No customer records matching the active filters.</td></tr>'}
     </tbody>
   </table>
 
@@ -547,12 +550,23 @@ export default function CustomersRegistry() {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       // ignore
     }
   }, []);
+
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
 
   const isClientUser = Boolean(
     currentUser?.organizationId || 
@@ -561,9 +575,10 @@ export default function CustomersRegistry() {
   );
 
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -963,8 +978,10 @@ export default function CustomersRegistry() {
   // Filtered customer list
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
-      // Branch filter
-      if (selectedBranch !== 'ALL' && String(c.branch_id || '') !== selectedBranch) {
+      // Branch filter & branch staff isolation
+      if (!isSuperAdmin && currentUser?.branchId) {
+        if (String(c.branch_id || '') !== String(currentUser.branchId)) return false;
+      } else if (selectedBranch !== 'ALL' && String(c.branch_id || '') !== selectedBranch) {
         return false;
       }
 
@@ -986,15 +1003,16 @@ export default function CustomersRegistry() {
 
       return true;
     });
-  }, [customers, selectedBranch, selectedZone, selectedIndustry, statusFilter]);
+  }, [customers, selectedBranch, selectedZone, selectedIndustry, statusFilter, isSuperAdmin, currentUser?.branchId]);
 
-  // Exact 6 Standardized Columns:
+  // Standardized Columns:
   // 1. CUST. ID
   // 2. CUSTOMER NAME (enlarged Risk & Favorite icons to 18px)
-  // 3. CONTACT PERSON
-  // 4. CONTACT PHONE
-  // 5. RECEIVABLES
-  // 6. CREDITS
+  // 3. LOCALITY (City, State from address)
+  // 4. ZONE
+  // 5. CONTACT
+  // 6. RECEIVABLES
+  // 7. CREDITS
   const columns: Column<Customer>[] = [
     {
       header: 'CUST. ID',
@@ -1027,7 +1045,7 @@ export default function CustomersRegistry() {
                 title={isActive ? 'Active Customer' : 'Inactive Customer'}
               />
               <span
-                className="text-left font-bold text-xs md:text-sm tracking-tight text-[#3a525d] truncate block"
+                className="text-left font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate block"
                 title={c.name}
               >
                 {c.name}
@@ -1044,10 +1062,29 @@ export default function CustomersRegistry() {
               )}
             </div>
             {c.industries?.name && (
-              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider truncate mt-0.5 ml-4">
+              <p className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-wider truncate mt-0.5 ml-4">
                 {c.industries.name}
               </p>
             )}
+          </div>
+        );
+      }
+    },
+    {
+      header: 'LOCALITY',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      sortValue: (c) => [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '',
+      accessor: (c) => {
+        const locality = [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '';
+        const fullTooltip = [c.address, c.city, c.state, c.pincode].filter(Boolean).join(', ') || locality;
+        return locality ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
+            <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
+            <span className="truncate">{locality}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
       }
@@ -1242,15 +1279,17 @@ export default function CustomersRegistry() {
               maxWidth="max-w-[220px]"
             />
 
-            {/* 2. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              value={selectedBranch}
-              onChange={setSelectedBranch}
-              options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
-              maxWidth="max-w-[200px]"
-            />
+            {/* 2. Branch Filter - Only for Global Admins */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                value={selectedBranch}
+                onChange={setSelectedBranch}
+                options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
+                maxWidth="max-w-[200px]"
+              />
+            )}
 
             {/* 3. Zone Filter */}
             <FilterDropdown
@@ -1356,7 +1395,7 @@ export default function CustomersRegistry() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-[#3a525d]">
+                    <h2 className="text-xl font-black text-zinc-900">
                       {financialModal.type === 'upcoming' && 'Upcoming Dues (Next 7 Days)'}
                       {financialModal.type === 'due' && 'Dues (Due Today)'}
                       {financialModal.type === 'overdue' && 'Overdue Receivables'}
@@ -1387,7 +1426,7 @@ export default function CustomersRegistry() {
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
                   <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Outstanding</p>
-                  <p className="text-lg font-black font-mono text-[#3a525d]">
+                  <p className="text-lg font-black font-mono text-zinc-900">
                     ₹{modalItems.reduce((acc, i) => acc + i.balance_amount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -1459,7 +1498,7 @@ export default function CustomersRegistry() {
                   value={modalSearchQuery}
                   onChange={(e) => setModalSearchQuery(e.target.value)}
                   placeholder="Filter customer, code, contact, phone, inv #..."
-                  className="w-full pl-9 pr-8 py-2 bg-white border border-zinc-200 rounded-xl text-xs text-[#3a525d] placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/30"
+                  className="w-full pl-9 pr-8 py-2 bg-white border border-zinc-200 rounded-xl text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/30"
                 />
                 {modalSearchQuery && (
                   <button
@@ -1480,7 +1519,7 @@ export default function CustomersRegistry() {
                   <div className="w-16 h-16 rounded-3xl bg-zinc-100 flex items-center justify-center text-zinc-400 mx-auto mb-3">
                     <ReceiptText size={28} />
                   </div>
-                  <h3 className="text-sm font-black text-[#3a525d]">No records found</h3>
+                  <h3 className="text-sm font-black text-zinc-900">No records found</h3>
                   <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
                     {modalSearchQuery
                       ? 'No items match your search filter in this category.'
@@ -1506,7 +1545,7 @@ export default function CustomersRegistry() {
                           {/* Customer */}
                           <td className="py-3.5 px-4">
                             <div className="flex flex-col">
-                              <span className="font-black text-[#3a525d] hover:text-[#2d8d9b] cursor-pointer"
+                              <span className="font-black text-zinc-900 hover:text-[#C82A2B] cursor-pointer"
                                 onClick={() => {
                                   if (item.customer_id) {
                                     setFinancialModal({ isOpen: false, type: null });
@@ -1545,7 +1584,7 @@ export default function CustomersRegistry() {
                           {/* Reference / Type */}
                           <td className="py-3.5 px-4">
                             <div className="flex flex-col">
-                              <span className="font-black font-mono text-[#3a525d]">
+                              <span className="font-black font-mono text-zinc-900">
                                 {item.invoice_no || 'Opening Balance'}
                               </span>
                               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
@@ -1643,10 +1682,10 @@ export default function CustomersRegistry() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-xl font-black text-[#3a525d]">
+                    <h2 className="text-xl font-black text-zinc-900">
                       Customer Directory Print Preview
                     </h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-teal-100 text-teal-800">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                       {printModal.data.length} {printModal.data.length === 1 ? 'Record' : 'Records'}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-blue-100 text-blue-800">

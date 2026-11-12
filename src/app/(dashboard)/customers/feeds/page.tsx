@@ -58,7 +58,14 @@ export default function FeedsRegistryPage() {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       console.error('Failed to parse current user from localStorage:', e);
@@ -121,8 +128,12 @@ export default function FeedsRegistryPage() {
 
   // Feeds list: raw field prospect scouting feeds
   const feedsList = useMemo(() => {
-    return leads.filter(l => l.status === 'Feeds' || l.status === 'Open Feeds' || l.status === 'Contacted Leads');
-  }, [leads]);
+    let list = leads.filter(l => l.status === 'Feeds' || l.status === 'Open Feeds' || l.status === 'Contacted Leads');
+    if (!isSuperAdmin && currentUser?.branchId) {
+      list = list.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(currentUser.branchId));
+    }
+    return list;
+  }, [leads, isSuperAdmin, currentUser?.branchId]);
 
   // Helper to determine if an activity is initial feed creation / intake note
   const isFeedIntakeActivity = (act: any) => {
@@ -180,13 +191,14 @@ export default function FeedsRegistryPage() {
 
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    if (selectedBranch === 'HQ') {
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    if (effectiveBranch === 'HQ') {
       const hqZones = zones.filter(z => !z.branch_id);
       return hqZones.length > 0 ? hqZones : zones;
     }
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   // Filtered Feeds
   const filteredFeeds = useMemo(() => {
@@ -195,8 +207,11 @@ export default function FeedsRegistryPage() {
       if (selectedFeedStatus === 'OPEN' && isFeedContacted(l)) return false;
       if (selectedFeedStatus === 'CONTACTED' && !isFeedContacted(l)) return false;
 
-      // 2. Branch filter
-      if (selectedBranch !== 'ALL') {
+      // 2. Branch filter & branch staff isolation
+      if (!isSuperAdmin && currentUser?.branchId) {
+        const bId = String(l.branch_id || l.employees?.branch_id || '');
+        if (bId !== String(currentUser.branchId)) return false;
+      } else if (selectedBranch !== 'ALL') {
         if (selectedBranch === 'HQ') {
           const isHq = !l.branch_id || l.origin === 'HQ';
           if (!isHq) return false;
@@ -318,7 +333,7 @@ export default function FeedsRegistryPage() {
 
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area || '—';
+      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -326,7 +341,7 @@ export default function FeedsRegistryPage() {
           <div>${l.name}</div>
         </td>
         <td style="font-size: 10px; color: #4a5568;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568;">${zoneName || l.city || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -425,12 +440,13 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Locality',
-      className: 'w-[140px] min-w-[120px] whitespace-nowrap text-center',
-      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.area || '',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
-        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area;
+        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
+        const fullTooltip = [l.address, l.city, l.state, l.pincode].filter(Boolean).join(', ') || locality;
         return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={locality}>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{locality}</span>
           </div>
@@ -444,14 +460,13 @@ export default function FeedsRegistryPage() {
     {
       header: 'Zone',
       className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
-      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || l.city || '',
+      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-        const displayVal = zoneName || l.city;
-        return displayVal ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={displayVal}>
+        return zoneName ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <MapPin size={12} className="text-zinc-400 shrink-0" />
-            <span className="truncate">{displayVal}</span>
+            <span className="truncate">{zoneName}</span>
           </div>
         ) : (
           <div className="text-center">
@@ -576,29 +591,31 @@ export default function FeedsRegistryPage() {
               ]}
             />
 
-            {/* 2. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              allBadge={feedsList.length}
-              value={selectedBranch}
-              onChange={(val) => {
-                setSelectedBranch(val);
-                setSelectedZone('ALL');
-              }}
-              options={[
-                {
-                  label: 'Headquarters (HQ Central)',
-                  value: 'HQ',
-                  badge: feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length
-                },
-                ...branches.map((b) => ({
-                  label: b.name,
-                  value: String(b.id),
-                  badge: feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
-                }))
-              ]}
-            />
+            {/* 2. Branch Filter - Only for Global Admins */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                allBadge={feedsList.length}
+                value={selectedBranch}
+                onChange={(val) => {
+                  setSelectedBranch(val);
+                  setSelectedZone('ALL');
+                }}
+                options={[
+                  {
+                    label: 'Headquarters (HQ Central)',
+                    value: 'HQ',
+                    badge: feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length
+                  },
+                  ...branches.map((b) => ({
+                    label: b.name,
+                    value: String(b.id),
+                    badge: feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                  }))
+                ]}
+              />
+            )}
 
             {/* 3. Zone Filter */}
             <FilterDropdown

@@ -87,6 +87,17 @@ export const AuditLog: React.FC = () => {
 
   const columns: Column<AuditEntry>[] = [
     {
+       header: 'Timestamp (IST)',
+       accessor: (l) => (
+         <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
+           <Clock size={12} className="shrink-0 text-[#2d8d9b]" />
+           <span className="text-[10px] font-bold tracking-wider text-slate-700">
+             {formatDate(l.created_at || l.time, true, true)}
+           </span>
+         </div>
+       ),
+    },
+    {
       header: 'System Activity',
       accessor: (l) => (
         <div className="flex items-center gap-4">
@@ -213,17 +224,6 @@ export const AuditLog: React.FC = () => {
            return <p className="text-xs text-muted-foreground italic truncate max-w-[400px]">"{l.details}"</p>;
          }
        },
-    },
-    {
-       header: 'Timestamp (IST)',
-       accessor: (l) => (
-         <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
-           <Clock size={12} className="shrink-0 text-[#2d8d9b]" />
-           <span className="text-[10px] font-bold tracking-wider text-slate-700">
-             {formatDate(l.created_at || l.time, true, true)}
-           </span>
-         </div>
-       ),
     },
   ];
 

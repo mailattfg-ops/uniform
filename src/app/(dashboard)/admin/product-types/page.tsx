@@ -94,6 +94,14 @@ export default function ProductTypeManagementPage() {
 
   const columns: Column<ProductType>[] = [
     {
+      header: 'Creation Date',
+      accessor: (pt) => (
+        <p className="text-xs font-bold text-zinc-500">
+          {formatDate(pt.created_at)}
+        </p>
+      )
+    },
+    {
       header: 'Product Type',
       accessor: (pt) => (
         <div className="flex items-center gap-4">
@@ -105,14 +113,6 @@ export default function ProductTypeManagementPage() {
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">UID: TYP-{pt.id}</p>
           </div>
         </div>
-      )
-    },
-    {
-      header: 'Creation Date',
-      accessor: (pt) => (
-        <p className="text-xs font-bold text-zinc-500">
-          {formatDate(pt.created_at)}
-        </p>
       )
     },
     {

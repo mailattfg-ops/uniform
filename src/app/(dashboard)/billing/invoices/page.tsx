@@ -588,11 +588,11 @@ export default function InvoicesPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#3a525d]/5 text-[#3a525d] font-black uppercase text-[10px] tracking-wider border-b border-zinc-200">
               <tr>
+                <th className="px-5 py-3.5 text-center">Invoice Date</th>
                 <th className="px-5 py-3.5 text-center">Invoice No</th>
                 <th className="px-5 py-3.5 text-center">Sales Order</th>
                 <th className="px-5 py-3.5 text-center">Customer / Organization</th>
                 <th className="px-5 py-3.5 text-center">Type</th>
-                <th className="px-5 py-3.5 text-center">Invoice Date</th>
                 <th className="px-5 py-3.5 text-center">Due Date</th>
                 <th className="px-5 py-3.5 text-center">Total Amount</th>
                 <th className="px-5 py-3.5 text-center">Status</th>
@@ -616,6 +616,11 @@ export default function InvoicesPage() {
                     }}
                     className="hover:bg-red-50/45 cursor-pointer transition-colors group"
                   >
+                    {/* Invoice Date */}
+                    <td className="px-5 py-4 text-zinc-600 font-semibold whitespace-nowrap text-center">
+                      {formatDate(inv.invoice_date || inv.created_at)}
+                    </td>
+
                     {/* Invoice No */}
                     <td className="px-5 py-4">
                       <div className="font-mono font-bold text-[#991b1b] text-xs flex items-center gap-1.5">
@@ -657,11 +662,6 @@ export default function InvoicesPage() {
                       >
                         {inv.sale_type === 'bulk' || linkedOrderNo ? 'Bulk Order' : 'Counter Sale'}
                       </span>
-                    </td>
-
-                    {/* Invoice Date */}
-                    <td className="px-5 py-4 text-zinc-600 font-medium">
-                      {formatDate(inv.invoice_date || inv.created_at)}
                     </td>
 
                     {/* Due Date & Overdue Tag */}

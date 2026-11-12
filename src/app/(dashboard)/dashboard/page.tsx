@@ -1291,26 +1291,30 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── 6. SIDE DOCK FLOATING TASK DRAWER (APPEARS ON HOVER FROM SIDE) ── */}
+      {/* ── 6. SIDE DOCK FLOATING TASK DRAWER (APPEARS ON CLICK ONLY) ── */}
+      {isTaskDrawerPinned && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+          onClick={() => setIsTaskDrawerPinned(false)}
+        />
+      )}
       <div
         className={`fixed right-0 top-24 bottom-6 z-50 flex items-start transition-transform duration-300 ease-in-out ${
-          isTaskDrawerPinned || isTaskDrawerHovered
+          isTaskDrawerPinned
             ? 'translate-x-0'
             : 'translate-x-[calc(100%-48px)]'
         }`}
-        onMouseEnter={() => setIsTaskDrawerHovered(true)}
-        onMouseLeave={() => setIsTaskDrawerHovered(false)}
       >
         {/* Edge Handle Tab */}
         <button
           type="button"
           onClick={() => setIsTaskDrawerPinned(prev => !prev)}
           className={`w-12 py-5 rounded-l-2xl shadow-xl flex flex-col items-center gap-3 transition-colors border-l border-y ${
-            isTaskDrawerPinned || isTaskDrawerHovered
-              ? 'bg-[#3a525d] text-white border-[#3a525d]'
+            isTaskDrawerPinned
+              ? 'bg-[#9E1B1D] text-white border-[#9E1B1D]'
               : 'bg-[#C82A2B] text-white border-[#C82A2B] hover:bg-[#A81D1E]'
           }`}
-          title="My Priority Tasks (Hover or Click to toggle)"
+          title="My Priority Tasks (Click to open)"
         >
           <CheckSquare size={18} strokeWidth={2.5} />
           <span className="[writing-mode:vertical-rl] text-[10px] font-black uppercase tracking-widest rotate-180">

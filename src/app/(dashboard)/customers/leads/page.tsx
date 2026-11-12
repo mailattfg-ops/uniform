@@ -175,15 +175,22 @@ export default function LeadsRegistryPage() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(true);
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
+
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    if (selectedBranch === 'HQ') {
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    if (effectiveBranch === 'HQ') {
       const hqZones = zones.filter(z => !z.branch_id);
       return hqZones.length > 0 ? hqZones : zones;
     }
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   // Modals
   const [isAddingLead, setIsAddingLead] = useState(false);
@@ -209,13 +216,18 @@ export default function LeadsRegistryPage() {
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
   const [meetingOutcomeLead, setMeetingOutcomeLead] = useState<Lead | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       console.error('Failed to parse current user from localStorage:', e);
@@ -234,10 +246,6 @@ export default function LeadsRegistryPage() {
       }
     }
   }, [searchParams, leads]);
-
-  const userRole = (currentUser?.role || '').toLowerCase();
-  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
 
   const canViewAllLeads = isSuperAdmin || userPermissions.includes('view_all_leads');
   const canManageLeads = isSuperAdmin || userPermissions.includes('manage_leads');
@@ -552,8 +560,11 @@ export default function LeadsRegistryPage() {
       if (!ACTIVE_LEAD_STAGE_KEYS.includes(l.status)) {
         return false;
       }
-      // 1. Branch filter
-      if (selectedBranch !== 'ALL') {
+      // 1. Branch filter & branch staff isolation
+      if (!isSuperAdmin && currentUser?.branchId) {
+        const bId = String(l.branch_id || l.employees?.branch_id || '');
+        if (bId !== String(currentUser.branchId)) return false;
+      } else if (selectedBranch !== 'ALL') {
         if (selectedBranch === 'HQ') {
           const isHq = !l.branch_id || l.origin === 'HQ';
           if (!isHq) return false;
@@ -648,7 +659,6 @@ export default function LeadsRegistryPage() {
       sortValue: (l) => l.name,
       accessor: (l) => {
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
-        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return (
           <div className="min-w-0 text-left flex flex-col items-start">
             <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate w-full" title={l.name}>
@@ -659,10 +669,9 @@ export default function LeadsRegistryPage() {
                 {industryName}
               </p>
             )}
-            {zoneName && (
-              <p className="text-[10px] font-medium text-zinc-500 truncate mt-0.5 flex items-center gap-1 w-full" title={`Zone: ${zoneName}`}>
-                <MapPin size={10} className="shrink-0 text-zinc-400" />
-                <span className="truncate">{zoneName}</span>
+            {l.requirements && (
+              <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
+                {l.requirements}
               </p>
             )}
           </div>
@@ -671,14 +680,33 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Locality',
-      className: 'w-[140px] min-w-[120px] whitespace-nowrap text-center',
-      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.area || '',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
-        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area;
+        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
+        const fullTooltip = [l.address, l.city, l.state, l.pincode].filter(Boolean).join(', ') || locality;
         return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={locality}>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{locality}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Zone',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
+      accessor: (l) => {
+        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+        return zoneName ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{zoneName}</span>
           </div>
         ) : (
           <div className="text-center">
@@ -887,12 +915,14 @@ export default function LeadsRegistryPage() {
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
     const rowsHtml = dataToPrint.map((l, idx) => {
-      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area || '—';
+      const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
         <td style="font-size: 10px; color: #4a5568;">${locality}</td>
+        <td style="font-size: 10px; color: #4a5568;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -949,6 +979,7 @@ export default function LeadsRegistryPage() {
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
         <th>Locality</th>
+        <th>Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Status</th>
@@ -1071,29 +1102,31 @@ export default function LeadsRegistryPage() {
               />
             )}
 
-            {/* 2. Branch Dropdown Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              allBadge={leads.length}
-              value={selectedBranch}
-              onChange={(val) => {
-                setSelectedBranch(val);
-                setSelectedZone('ALL');
-              }}
-              options={[
-                {
-                  label: 'Headquarters (HQ Central)',
-                  value: 'HQ',
-                  badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
-                },
-                ...branches.map((b) => ({
-                  label: b.name,
-                  value: String(b.id),
-                  badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
-                }))
-              ]}
-            />
+            {/* 2. Branch Dropdown Filter - Only for Global Admins */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                allBadge={leads.length}
+                value={selectedBranch}
+                onChange={(val) => {
+                  setSelectedBranch(val);
+                  setSelectedZone('ALL');
+                }}
+                options={[
+                  {
+                    label: 'Headquarters (HQ Central)',
+                    value: 'HQ',
+                    badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
+                  },
+                  ...branches.map((b) => ({
+                    label: b.name,
+                    value: String(b.id),
+                    badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                  }))
+                ]}
+              />
+            )}
 
             {/* 3. Zone Dropdown Filter */}
             <FilterDropdown
@@ -1367,7 +1400,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [area, setArea] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -1460,7 +1492,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setPhone(editingFeed.phone || '');
         setEmail(editingFeed.email || '');
         setAddress(editingFeed.address || '');
-        setArea(editingFeed.area || '');
         setGoogleMapsLink(editingFeed.google_maps_link || '');
         setCity(editingFeed.city || '');
         setState(editingFeed.state || '');
@@ -1481,7 +1512,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setPhone('');
         setEmail('');
         setAddress('');
-        setArea('');
         setGoogleMapsLink('');
         setCity('');
         setState('');
@@ -1527,7 +1557,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         contact_number: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
         address: address.trim() || null,
-        area: area.trim() || null,
+        area: null,
         city: city.trim() || null,
         state: state.trim() || null,
         pincode: pincode.trim() || null,
@@ -1702,37 +1732,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@institution.com"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-          </div>
-
-          {/* Locality & Google Maps Link */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <MapPin size={13} className="text-[#9E1B1D]" />
-                Locality
-              </label>
-              <input
-                type="text"
-                value={area}
-                onChange={(e) => setArea(capitalizeWords(e.target.value))}
-                autoCapitalize="words"
-                placeholder="e.g. Indiranagar 100ft Road"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Navigation size={13} className="text-[#9E1B1D]" />
-                Google Maps Link
-              </label>
-              <input
-                type="text"
-                value={googleMapsLink}
-                onChange={(e) => setGoogleMapsLink(e.target.value)}
-                placeholder="e.g. https://maps.app.goo.gl/..."
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
@@ -2086,7 +2085,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const [requirements, setRequirements] = useState('');
   const [industryId, setIndustryId] = useState('');
   const [address, setAddress] = useState('');
-  const [area, setArea] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -2115,7 +2113,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setRequirements(data.requirements || '');
       setIndustryId(data.industry_id ? String(data.industry_id) : '');
       setAddress(data.address || '');
-      setArea(data.area || '');
       setGoogleMapsLink(data.google_maps_link || '');
       setCity(data.city || '');
       setState(data.state || '');
@@ -2137,7 +2134,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setRequirements('');
       setIndustryId('');
       setAddress('');
-      setArea('');
       setGoogleMapsLink('');
       setCity('');
       setState('');
@@ -2223,7 +2219,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         requirements: requirements.trim() || null,
         industry_id: industryId || null,
         address: address.trim() || null,
-        area: area.trim() || null,
+        area: null,
         google_maps_link: googleMapsLink.trim() || null,
         city: city.trim() || null,
         state: state.trim() || null,
@@ -2406,37 +2402,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@acme.com"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-          </div>
-
-          {/* Area & Google Maps Link */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <MapPin size={13} className="text-[#9E1B1D]" />
-                Area / Locality
-              </label>
-              <input
-                type="text"
-                value={area}
-                onChange={(e) => setArea(capitalizeWords(e.target.value))}
-                autoCapitalize="words"
-                placeholder="e.g. Whitefield Industrial Area"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Navigation size={13} className="text-[#9E1B1D]" />
-                Google Maps Link
-              </label>
-              <input
-                type="text"
-                value={googleMapsLink}
-                onChange={(e) => setGoogleMapsLink(e.target.value)}
-                placeholder="e.g. https://maps.app.goo.gl/..."
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
@@ -2641,6 +2606,20 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-800"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Navigation size={13} className="text-[#9E1B1D]" />
+                Google Maps Link (Optional)
+              </label>
+              <input
+                type="text"
+                value={googleMapsLink}
+                onChange={(e) => setGoogleMapsLink(e.target.value)}
+                placeholder="e.g. https://maps.app.goo.gl/..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
             </div>
           </div>
 
@@ -2869,21 +2848,64 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         mapped = derived;
       }
 
-      // If Quotations stage is selected and has quotations, include them
+      // If Quotations stage is selected and has quotations, include them (First quote, Revised quotes, follow-ups)
       if (selectedStageTab === 'Quotations' && leadQuotations.length > 0) {
-        const quoteActs = leadQuotations.map((q: any) => ({
-          id: `quote_${q.id}`,
-          lead_id: lead.id,
-          stage: 'Quotations',
-          activity_type: 'Quotation Generated',
-          response_type: q.status || 'Active',
-          remarks: `Quotation #${q.quotation_number} generated for ₹${Number(q.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`,
-          staff_name: q.sales_person?.name || q.created_by_name || 'Commercial Team',
-          staff_employee_id: q.sales_person?.employee_id || 'SALES',
-          staff_designation: 'Sales & Marketing',
-          staff_department: 'Commercial',
-          created_at: q.created_at || lead.updated_at
-        }));
+        // Sort chronologically ascending
+        const sortedQuotes = [...leadQuotations].sort((a, b) => {
+          const tA = new Date(a.created_at || a.quotation_date || 0).getTime();
+          const tB = new Date(b.created_at || b.quotation_date || 0).getTime();
+          if (tA !== tB) return tA - tB;
+          return a.id - b.id;
+        });
+
+        const quoteActs: any[] = [];
+        sortedQuotes.forEach((q: any, qIdx: number) => {
+          const isFirst = qIdx === 0;
+          const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${qIdx})`;
+          const quoteNo = q.quotation_no || q.quotation_number || `QT-${q.id}`;
+          const qVal = Number(q.final_quote_value || q.total_amount || 0);
+
+          quoteActs.push({
+            id: `quote_${q.id}`,
+            quotation_id: q.id,
+            quotation_no: quoteNo,
+            lead_id: lead.id,
+            stage: 'Quotations',
+            activity_type: `${verLabel}: #${quoteNo}`,
+            response_type: q.status || 'Active',
+            is_quotation_version: true,
+            version_label: verLabel,
+            quote_amount: qVal,
+            remarks: `Quotation #${quoteNo} (${verLabel}) generated for ₹${qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}${q.metrics_summary?.bm_rejection_reason ? ` | Revision Notes: ${q.metrics_summary.bm_rejection_reason}` : ''}`,
+            staff_name: q.sales_person?.name || q.created_by_name || 'Commercial Team',
+            staff_employee_id: q.sales_person?.employee_id || 'SALES',
+            staff_designation: 'Sales & Marketing',
+            staff_department: 'Commercial',
+            created_at: q.created_at || lead.updated_at
+          });
+
+          // Also include any quotation follow-up history from metrics_summary
+          if (Array.isArray(q.metrics_summary?.followups)) {
+            q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
+              quoteActs.push({
+                id: f.id || `quote_fu_${q.id}_${fIdx}`,
+                quotation_id: q.id,
+                quotation_no: quoteNo,
+                lead_id: lead.id,
+                stage: 'Quotations',
+                activity_type: `Quotation Follow-up: #${quoteNo}`,
+                response_type: f.outcome || f.response_type || 'Follow-up',
+                remarks: f.remarks || f.text || '',
+                staff_name: f.author?.name || 'Sales Representative',
+                staff_employee_id: 'SALES',
+                staff_designation: 'Sales & Marketing',
+                staff_department: 'Commercial',
+                created_at: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at)
+              });
+            });
+          }
+        });
+
         const existingIds = new Set(mapped.map(m => String(m.id)));
         for (const qa of quoteActs) {
           if (!existingIds.has(String(qa.id))) {
@@ -3081,12 +3103,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 <span className="text-[10px] font-bold uppercase tracking-widest text-red-300">
                   {lead.industries?.name || 'Institutional'}
                 </span>
-                {lead.area && (
+                {([lead.city, lead.state].filter(Boolean).join(', ') || lead.city || lead.state) && (
                   <>
                     <span className="text-white/40">•</span>
                     <span className="text-[10px] font-semibold text-white/80 flex items-center gap-1">
                       <MapPin size={11} className="text-red-300" />
-                      {lead.area}
+                      {[lead.city, lead.state].filter(Boolean).join(', ') || lead.city || lead.state}
                     </span>
                   </>
                 )}
@@ -3455,53 +3477,76 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Vertically Aligned Prospect Detail Cards */}
             <div className="lg:col-span-5 flex flex-col gap-3">
-              {/* Contact Person */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Contact Person</label>
-                <div className="flex items-start gap-2">
-                  <User size={14} className="text-[#9E1B1D] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-bold text-zinc-900">
-                      {lead.contact_person ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}` : 'Not specified'}
+              {/* Combined Contact Card: Contact Person, Designation, Phone & Email */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
+                {/* Contact Person */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
+                    Contact Person
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <User size={14} className="text-[#9E1B1D] shrink-0" />
+                    <p className="text-xs font-black text-zinc-900">
+                      {lead.contact_person
+                        ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}`
+                        : 'Not specified'}
                     </p>
-                    {lead.contact_designation && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#FFF1F1] text-[#9E1B1D] rounded-md inline-block mt-0.5 border border-[#C82A2B]/15">
+                  </div>
+                </div>
+
+                {/* Designation - explicit individual title */}
+                <div className="space-y-1 pt-2.5 border-t border-zinc-200/60">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
+                    Designation
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Briefcase size={14} className="text-[#9E1B1D] shrink-0" />
+                    {lead.contact_designation ? (
+                      <span className="text-xs font-bold text-zinc-800">
                         {lead.contact_designation}
                       </span>
+                    ) : (
+                      <span className="text-xs font-medium text-zinc-400 italic">Not specified</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact Info (Phone & Email) */}
+                <div className="space-y-2 pt-2.5 border-t border-zinc-200/60">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
+                    Contact Info
+                  </label>
+                  {/* Phone */}
+                  <div className="flex items-center gap-2">
+                    <Phone size={13} className="text-[#9E1B1D] shrink-0" />
+                    <div className="text-xs font-bold text-zinc-800">
+                      <ContactPhoneLink phone={lead.phone} name={lead.contact_person || lead.name} />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex items-center gap-2">
+                    <Mail size={13} className="text-[#9E1B1D] shrink-0" />
+                    {lead.email ? (
+                      <a
+                        href={`mailto:${lead.email}`}
+                        className="text-xs font-bold text-zinc-900 hover:text-[#C82A2B] truncate transition-colors"
+                        title={lead.email}
+                      >
+                        {lead.email}
+                      </a>
+                    ) : (
+                      <span className="text-xs font-medium text-zinc-400 italic">—</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Phone Number */}
+              {/* Sales Person / Operator */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Phone Number</label>
-                <div className="flex items-center gap-2">
-                  <Phone size={14} className="text-[#9E1B1D]" />
-                  <div>
-                    <ContactPhoneLink phone={lead.phone} name={lead.contact_person || lead.name} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Email Address */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Email</label>
-                <div className="flex items-center gap-2">
-                  <Mail size={14} className="text-[#9E1B1D]" />
-                  {lead.email ? (
-                    <a href={`mailto:${lead.email}`} className="text-xs font-bold text-zinc-900 hover:text-[#C82A2B] truncate transition-colors">
-                      {lead.email}
-                    </a>
-                  ) : (
-                    <span className="text-xs font-medium text-zinc-400 italic">—</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Sales Operator */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Sales Operator</label>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                  Sales Person
+                </label>
                 {lead.employees ? (
                   <div className="flex items-center gap-2 mt-0.5">
                     <ShieldCheck size={14} className="text-[#9E1B1D]" />
@@ -3515,10 +3560,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 )}
               </div>
 
-              {/* Location & 5-Part Address */}
+              {/* Location & Address */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Location &amp; 5-Part Address</label>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                    Location &amp; Address
+                  </label>
                   {lead.google_maps_link && (
                     <a
                       href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
@@ -3531,13 +3578,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   )}
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin size={14} className="text-[#9E1B1D]" />
-                  <div className="flex-1 space-y-0.5">
+                  <MapPin size={14} className="text-[#9E1B1D] shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-0.5 min-w-0">
                     <p className="text-xs font-bold text-zinc-900">
-                      {[lead.city, lead.state].filter(Boolean).join(', ') || lead.area || 'Location unlisted'}
+                      {[lead.city, lead.state].filter(Boolean).join(', ') || 'Location unlisted'}
                     </p>
                     {lead.address && <p className="text-[11px] text-zinc-600 font-medium">{lead.address}</p>}
-                    {lead.area && <p className="text-[11px] text-[#2d8d9b] font-bold">Area: {lead.area}</p>}
                     {(lead.pincode || lead.country) && (
                       <p className="text-[10px] text-zinc-400 font-medium">
                         {[lead.pincode ? `PIN: ${lead.pincode}` : null, lead.country || 'India'].filter(Boolean).join(' • ')}
@@ -3707,27 +3753,83 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                           </div>
 
                           {/* Right Side: Activity Card */}
-                          <div className="bg-white hover:bg-zinc-50/70 border border-zinc-200/90 rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0">
+                          <div 
+                            onClick={() => {
+                              const qId = (act as any).quotation_id;
+                              const qNo = (act as any).quotation_no;
+                              if (qId || qNo) {
+                                const url = qId
+                                  ? `/marketing/quotations?id=${qId}&action=view`
+                                  : `/marketing/quotations?quote_no=${encodeURIComponent(qNo)}&action=view`;
+                                window.open(url, '_blank', 'noopener,noreferrer');
+                              }
+                            }}
+                            className={`border rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0 ${
+                              (act as any).quotation_id || (act as any).quotation_no
+                                ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 hover:border-[#2d8d9b]/60 cursor-pointer group/qcard'
+                                : 'bg-white hover:bg-zinc-50/70 border-zinc-200/90'
+                            }`}
+                          >
                             <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <span className="text-xs font-bold text-zinc-900 tracking-tight">
-                                {act.activity_type || 'Activity Note'}
-                              </span>
-                              {act.response_type && (
-                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
-                                  respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : respLower === 'cold_lead' || respLower === 'negative'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}>
-                                  {act.response_type}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-bold text-zinc-900 tracking-tight">
+                                  {act.activity_type || 'Activity Note'}
                                 </span>
-                              )}
+                                {(act as any).version_label && (
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                    (act as any).version_label.includes('First')
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {(act as any).version_label}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {act.response_type && (
+                                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                    respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : respLower === 'cold_lead' || respLower === 'negative'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {act.response_type}
+                                  </span>
+                                )}
+
+                                {((act as any).quotation_id || (act as any).quotation_no) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const qId = (act as any).quotation_id;
+                                      const qNo = (act as any).quotation_no;
+                                      const url = qId
+                                        ? `/marketing/quotations?id=${qId}&action=view`
+                                        : `/marketing/quotations?quote_no=${encodeURIComponent(qNo)}&action=view`;
+                                      window.open(url, '_blank', 'noopener,noreferrer');
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all cursor-pointer"
+                                  >
+                                    <span>View Quotation</span>
+                                    <ExternalLink size={10} className="shrink-0" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             <p className="text-xs font-medium text-zinc-700 leading-relaxed whitespace-pre-wrap">
                               {renderRemarksWithQuoteLinks(act.remarks)}
                             </p>
+
+                            {((act as any).quotation_id || (act as any).quotation_no) && (
+                              <div className="pt-1 text-[10px] text-[#2d8d9b] font-bold flex items-center gap-1 group-hover/qcard:underline">
+                                <span>Click card to open quotation in another tab</span>
+                                <ExternalLink size={10} />
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -3805,7 +3907,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
   onSuccess,
   onConvertToLead
 }) => {
-  const [responseType, setResponseType] = useState<'positive' | 'negative'>('negative');
+  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -3813,7 +3915,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
     setIsSubmitting(true);
     const toastId = toast.loading('Recording feed response outcome...');
     try {
-      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : 'Prospect unavailable / hold');
+      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : responseType === 'negative' ? 'Negative response from prospect' : 'Prospect ongoing / hold');
       const res = await api.post(`/leads/${lead.id}/activity`, {
         stage: 'Feeds',
         activity_type: 'Feed Contact Outcome',
@@ -3856,48 +3958,54 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
             Field Contact Response Outcome *
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setResponseType('positive')}
-              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                responseType === 'positive'
-                  ? 'border-emerald-500 bg-emerald-50/60 shadow-sm'
-                  : 'border-zinc-200 hover:border-zinc-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  responseType === 'positive' ? 'border-emerald-600 bg-emerald-600' : 'border-zinc-300'
-                }`}>
-                  {responseType === 'positive' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <span className="text-xs font-black text-emerald-800">Positive Response</span>
-              </div>
-              <p className="text-[10px] text-emerald-700/80 font-medium mt-1">
-                {lead.branch_id || lead.origin === 'BRANCH' ? 'Directly converts to New Leads queue' : 'Converts to Open Leads queue'}
-              </p>
-            </button>
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* 1. Negative (Left) */}
             <button
               type="button"
               onClick={() => setResponseType('negative')}
-              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 responseType === 'negative'
-                  ? 'border-amber-500 bg-amber-50/60 shadow-sm'
-                  : 'border-zinc-200 hover:border-zinc-300'
+                  ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  responseType === 'negative' ? 'border-amber-600 bg-amber-600' : 'border-zinc-300'
-                }`}>
-                  {responseType === 'negative' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <span className="text-xs font-black text-amber-800">Negative / Pending</span>
-              </div>
-              <p className="text-[10px] text-amber-700/80 font-medium mt-1">
-                Retains raw lead at Feeds stage for future retry
+              <span className="text-xs font-black block flex items-center gap-1">
+                <Snowflake size={12} className="text-rose-500" /> Negative
+              </span>
+              <p className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
+                Mark Cold in Feeds
+              </p>
+            </button>
+
+            {/* 2. Hold / Pending (Middle - Default) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('hold')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'hold'
+                  ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Hold / Pending</span>
+              <p className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">
+                Retains at Feeds for retry
+              </p>
+            </button>
+
+            {/* 3. Positive (Right) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('positive')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'positive'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Positive</span>
+              <p className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">
+                {lead.branch_id || lead.origin === 'BRANCH' ? 'Converts to New Leads' : 'Converts to Open Leads'}
               </p>
             </button>
           </div>
@@ -3926,9 +4034,15 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           <Button
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="flex-1 py-3 text-[10px] font-black uppercase bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20"
+            className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
+              responseType === 'positive'
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
+                : responseType === 'negative'
+                ? 'bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'
+                : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
+            }`}
           >
-            {isSubmitting ? 'Saving...' : 'Save'}
+            {isSubmitting ? 'Recording...' : 'Save Outcome'}
           </Button>
         </div>
       </div>
@@ -4162,7 +4276,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const [responseType, setResponseType] = useState<'positive' | 'hold' | 'cold_lead'>(lead.is_cold ? 'hold' : 'positive');
+  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -4221,43 +4335,48 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-zinc-400">Call / Follow-up Outcome *</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* 1. Negative (Left) */}
             <button
               type="button"
-              onClick={() => setResponseType('positive')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                responseType === 'positive'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
-              }`}
-            >
-              <span className="text-xs font-black block">Positive (Meeting)</span>
-              <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">Advances to Meetings</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setResponseType('hold')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                responseType === 'hold'
-                  ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
-              }`}
-            >
-              <span className="text-xs font-black block">Hold / Ongoing</span>
-              <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">Stays in Follow-ups</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setResponseType('cold_lead')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                responseType === 'cold_lead'
+              onClick={() => setResponseType('negative')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'negative'
                   ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
                   : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
               }`}
             >
               <span className="text-xs font-black block flex items-center gap-1">
-                <Snowflake size={12} className="text-rose-500" /> Cold Lead
+                <Snowflake size={12} className="text-rose-500" /> Negative
               </span>
               <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">Mark Cold in Follow-ups</span>
+            </button>
+
+            {/* 2. Hold / Pending (Middle - Default) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('hold')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'hold'
+                  ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Hold / Pending</span>
+              <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">Stays in Follow-ups</span>
+            </button>
+
+            {/* 3. Positive (Right) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('positive')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'positive'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Positive</span>
+              <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">Advances to Meetings</span>
             </button>
           </div>
         </div>
@@ -4284,7 +4403,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
             className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
               responseType === 'positive' 
                 ? 'bg-emerald-600 hover:bg-emerald-700' 
-                : responseType === 'cold_lead'
+                : responseType === 'negative'
                 ? 'bg-rose-600 hover:bg-rose-700'
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}

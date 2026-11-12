@@ -1866,8 +1866,8 @@ export default function WizardStep2({
   };
 
   // Shared select style
-  const selectCls = "w-full px-2.5 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] focus:ring-1 focus:ring-[#2d8d9b]/20 bg-white transition-all";
-  const inputCls = "px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] focus:ring-1 focus:ring-[#2d8d9b]/20 text-center transition-all w-full disabled:opacity-40 disabled:cursor-not-allowed";
+  const selectCls = "w-full px-2.5 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 bg-white transition-all";
+  const inputCls = "px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 text-center transition-all w-full disabled:opacity-40 disabled:cursor-not-allowed";
 
   const renderManualItemCard = (item: ManualItem, index: number) => {
     const {
@@ -1963,7 +1963,7 @@ export default function WizardStep2({
               {/* Quantity Selection Mode (Radio) */}
               <div className="min-w-[270px] bg-zinc-50 p-2.5 rounded-2xl border border-zinc-200 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Qty Selection</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Qty Selection</span>
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
                       <input
@@ -1980,7 +1980,7 @@ export default function WizardStep2({
                             quantity: String(m * s)
                           });
                         }}
-                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                        className="text-[#C82A2B] focus:ring-[#C82A2B]"
                       />
                       <span>Members &amp; Sets</span>
                     </label>
@@ -1996,7 +1996,7 @@ export default function WizardStep2({
                             quantity: item.quantity || '1'
                           });
                         }}
-                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                        className="text-[#C82A2B] focus:ring-[#C82A2B]"
                       />
                       <span>No. of Products</span>
                     </label>
@@ -2046,7 +2046,7 @@ export default function WizardStep2({
                     </div>
                     <span className="text-zinc-400 font-black text-xs pt-3">=</span>
                     <div className="text-right pl-1 pt-3 min-w-[55px]">
-                      <span className="text-xs font-mono font-black text-[#2d8d9b]">{item.quantity || 0} Units</span>
+                      <span className="text-xs font-mono font-black text-[#C82A2B]">{item.quantity || 0} Units</span>
                     </div>
                   </div>
                 ) : (
@@ -2188,7 +2188,7 @@ export default function WizardStep2({
 
               {/* Gender Dropdown */}
               <div className="min-w-[130px]">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900 mb-1.5 font-bold">Gender</p>
                 <Select
                   className={selectCls}
                   value={normalizeGender(item.gender)}
@@ -2414,7 +2414,7 @@ export default function WizardStep2({
               {/* Unit Price (for READYMADE and ACCESSORIES) */}
               {(quotationType === 'READYMADE' || isAccessoryType) && (
                 <div className="w-28">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] mb-1.5 font-bold">Unit Price (₹)</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B] mb-1.5 font-bold">Unit Price (₹)</p>
                   <input
                     type="number" step="0.01" min="0" placeholder="0.00"
                     value={item.price}
@@ -2427,7 +2427,7 @@ export default function WizardStep2({
               {/* Quantity Selection Mode (Radio) */}
               <div className="min-w-[270px] bg-zinc-50 p-2.5 rounded-2xl border border-zinc-200 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Qty Selection</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Qty Selection</span>
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
                       <input
@@ -2444,7 +2444,7 @@ export default function WizardStep2({
                             quantity: String(m * s)
                           });
                         }}
-                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                        className="text-[#C82A2B] focus:ring-[#C82A2B]"
                       />
                       <span>Members &amp; Sets</span>
                     </label>
@@ -2460,7 +2460,7 @@ export default function WizardStep2({
                             quantity: item.quantity || '1'
                           });
                         }}
-                        className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                        className="text-[#C82A2B] focus:ring-[#C82A2B]"
                       />
                       <span>No. of Products</span>
                     </label>
@@ -2510,7 +2510,7 @@ export default function WizardStep2({
                     </div>
                     <span className="text-zinc-400 font-black text-xs pt-3">=</span>
                     <div className="text-right pl-1 pt-3 min-w-[55px]">
-                      <span className="text-xs font-mono font-black text-[#2d8d9b]">{item.quantity || 0} Units</span>
+                      <span className="text-xs font-mono font-black text-[#C82A2B]">{item.quantity || 0} Units</span>
                     </div>
                   </div>
                 ) : (
@@ -2590,8 +2590,8 @@ export default function WizardStep2({
                 <tr className="hover:bg-zinc-50/50">
                   <td className="p-3">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#2d8d9b] flex-shrink-0"></span>
-                      <span className="font-black text-[#3a525d]">Main Fabric</span>
+                      <span className="w-2 h-2 rounded-full bg-[#C82A2B] flex-shrink-0"></span>
+                      <span className="font-black text-zinc-900">Main Fabric</span>
                       <span className="text-red-400 font-black text-[10px]">*</span>
                     </div>
                   </td>
@@ -2620,7 +2620,7 @@ export default function WizardStep2({
                       ))}
                     </Select>
                     {item.fabric_id && (
-                      <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
+                      <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
                         Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id)}%
                       </div>
                     )}
@@ -2663,7 +2663,7 @@ export default function WizardStep2({
                           updateItem(index, { main_fabric_cost: undefined });
                         }
                       }}
-                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
                       title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
                     />
                   </td>
@@ -2702,7 +2702,7 @@ export default function WizardStep2({
                       ))}
                     </Select>
                     {item.attachment_fabric1_id && (
-                      <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
+                      <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
                         Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id)}%
                       </div>
                     )}
@@ -2745,7 +2745,7 @@ export default function WizardStep2({
                           updateItem(index, { attachment_fabric1_cost: undefined });
                         }
                       }}
-                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
                       title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
                     />
                   </td>
@@ -2784,7 +2784,7 @@ export default function WizardStep2({
                       ))}
                     </Select>
                     {item.attachment_fabric2_id && (
-                      <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
+                      <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
                         Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id)}%
                       </div>
                     )}
@@ -2827,7 +2827,7 @@ export default function WizardStep2({
                           updateItem(index, { attachment_fabric2_cost: undefined });
                         }
                       }}
-                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                      className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
                       title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
                     />
                   </td>
@@ -2851,7 +2851,7 @@ export default function WizardStep2({
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
                           <Select
-                            className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#2d8d9b] py-0.5 pr-2 cursor-pointer max-w-[110px]"
+                            className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#C82A2B] py-0.5 pr-2 cursor-pointer max-w-[110px]"
                             value={trimCat}
                             onChange={(e) => {
                               const newCat = e.target.value;
@@ -2946,7 +2946,7 @@ export default function WizardStep2({
                         <span className="text-zinc-300 font-semibold text-[10px]">—</span>
                       </td>
                       <td className="p-3">
-                        <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">
+                        <span className="text-[#C82A2B] font-black uppercase text-[10px] tracking-wider italic">
                           Included
                         </span>
                       </td>
@@ -2976,7 +2976,7 @@ export default function WizardStep2({
                       <button
                         type="button"
                         onClick={() => addItemTrim(index, 'Trim')}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C82A2B] hover:text-[#9E1B1D] uppercase tracking-wider transition-colors"
                       >
                         <Plus size={13} strokeWidth={2.5} /> Add Trim
                       </button>
@@ -2998,11 +2998,11 @@ export default function WizardStep2({
                 </tr>
 
                 {/* ── SAM Cost ── */}
-                {/* <tr className="bg-[#2d8d9b]/3 hover:bg-[#2d8d9b]/5">
+                {/* <tr className="bg-[#FFF1F1] hover:bg-[#FFF1F1]">
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#8b6b5a] flex-shrink-0"></span>
-                      <span className="font-black text-[#3a525d]">SAM Cost</span>
+                      <span className="font-black text-zinc-900">SAM Cost</span>
                     </div>
                   </td>
                   <td className="p-3">
@@ -3037,12 +3037,12 @@ export default function WizardStep2({
               </tbody>
               {/* ── Total Footer ── */}
               <tfoot>
-                <tr className="border-t-2 border-[#2d8d9b]/20 bg-[#2d8d9b]/5">
-                  <td colSpan={5} className="p-4 font-black text-[10px] uppercase tracking-widest text-[#3a525d]">
+                <tr className="border-t-2 border-[#C82A2B]/20 bg-[#FFF1F1]">
+                  <td colSpan={5} className="p-4 font-black text-[10px] uppercase tracking-widest text-zinc-900">
                     Total Unit Cost
                   </td>
                   <td className="p-4 text-right">
-                    <span className="font-black text-lg text-[#2d8d9b] font-mono">
+                    <span className="font-black text-lg text-[#C82A2B] font-mono">
                       ₹{unitTotal.toFixed(2)}
                     </span>
                   </td>
@@ -3061,13 +3061,13 @@ export default function WizardStep2({
         {/* Header */}
         <div className="border-b border-zinc-100 pb-6 flex justify-between items-center flex-wrap gap-4">
           <div>
-            <h3 className="text-2xl font-black italic text-[#3a525d]">Custom Sets Builder</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
+            <h3 className="text-2xl font-black italic text-zinc-900">Custom Sets Builder</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
               Configure custom sets and package-level pricing
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10">
+            <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/15">
               {manualItems.length} Sets
             </span>
           </div>
@@ -3084,13 +3084,13 @@ export default function WizardStep2({
                 {/* Set Header */}
                 <div className="p-6 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-150 flex items-center gap-4 flex-wrap">
                   {/* Set Icon */}
-                  <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b]">
+                  <div className="w-10 h-10 rounded-xl bg-[#FFF1F1] flex items-center justify-center text-[#C82A2B]">
                     <Package size={20} />
                   </div>
 
                   {/* Set Name Input */}
                   <div className="flex-1 min-w-[200px]">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Set Name</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Set Name</label>
                     <input
                       type="text"
                       value={setName}
@@ -3106,14 +3106,14 @@ export default function WizardStep2({
                         };
                         setManualItems(updated);
                       }}
-                      className="w-full px-3 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
+                      className="w-full px-3 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white transition-all"
                       placeholder="e.g. Office Uniform Set, Security Kit"
                     />
                   </div>
 
                   {/* Set Price Input */}
                   <div className="w-32">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Set Price (₹)</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Set Price (₹)</label>
                     <input
                       type="number"
                       step="any"
@@ -3127,14 +3127,14 @@ export default function WizardStep2({
                         };
                         setManualItems(updated);
                       }}
-                      className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#2d8d9b] text-center focus:outline-none focus:border-[#2d8d9b] bg-white transition-all font-mono"
+                      className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#C82A2B] text-center focus:outline-none focus:border-[#C82A2B] bg-white transition-all font-mono"
                       placeholder="0.00"
                     />
                   </div>
 
                   {/* Quantity Input */}
                   <div className="w-24">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">Quantity</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Quantity</label>
                     <input
                       type="number"
                       min="1"
@@ -3147,7 +3147,7 @@ export default function WizardStep2({
                         };
                         setManualItems(updated);
                       }}
-                      className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] text-center focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
+                      className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-zinc-900 text-center focus:outline-none focus:border-[#C82A2B] bg-white transition-all"
                       placeholder="1"
                     />
                   </div>
@@ -3184,7 +3184,7 @@ export default function WizardStep2({
                         };
                         setManualItems(updated);
                       }}
-                      className="px-3 py-1.5 bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white text-[9px] font-black uppercase tracking-widest rounded-lg flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 bg-[#FFF1F1] text-[#C82A2B] hover:bg-[#C82A2B] hover:text-white text-[9px] font-black uppercase tracking-widest rounded-lg flex items-center gap-1.5 transition-all"
                     >
                       <Plus size={12} /> Add Garment to Set
                     </button>
@@ -3224,7 +3224,7 @@ export default function WizardStep2({
                                   };
                                   setManualItems(updated);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] bg-white focus:outline-none"
+                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 bg-white focus:outline-none"
                               >
                                 <option value="">Select Category...</option>
                                 {displayProductTypes.map(pt => (
@@ -3254,7 +3254,7 @@ export default function WizardStep2({
                                   };
                                   setManualItems(updated);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] bg-white focus:outline-none cursor-pointer"
+                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 bg-white focus:outline-none cursor-pointer"
                               >
                                 <option value="">Select Gender...</option>
                                 <option value="male">{isSchool ? 'Boys / Male' : 'Men / Male'}</option>
@@ -3287,7 +3287,7 @@ export default function WizardStep2({
                                   };
                                   setManualItems(updated);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] bg-white focus:outline-none"
+                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 bg-white focus:outline-none"
                               >
                                 <option value="">Select Garment...</option>
                                 {allProducts
@@ -3414,13 +3414,13 @@ export default function WizardStep2({
       {/* Header */}
       <div className="border-b border-zinc-100 pb-6 flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h3 className="text-2xl font-black italic text-[#3a525d]">Sizing & Measurement Audits</h3>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
+          <h3 className="text-2xl font-black italic text-zinc-900">Sizing & Measurement Audits</h3>
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
             Live verification of measurements profiles
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10">
+          <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/15">
             {hasMeasurements
               ? `${orgAnalysis.total_entities} Entities`
               : `${manualItems.reduce((acc, it) => acc + (parseInt(it.quantity) || 0), 0)} Custom Units`}
@@ -3472,9 +3472,9 @@ export default function WizardStep2({
           {auditDepartments.length > 0 ? (
             <div className="space-y-8 pt-2">
               <div className="flex items-center gap-2">
-                <Layers size={14} className="text-[#2d8d9b]" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Department-Wise Sizing &amp; Measurement Audits</h4>
-                <span className="ml-auto text-[9px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-70">
+                <Layers size={14} className="text-[#C82A2B]" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Department-Wise Sizing &amp; Measurement Audits</h4>
+                <span className="ml-auto text-[9px] font-bold text-[#C82A2B] uppercase tracking-widest opacity-70">
                   Live verification profiles by department · Add gender manually
                 </span>
               </div>
@@ -3512,14 +3512,14 @@ export default function WizardStep2({
                 }, 0);
 
                 return (
-                  <div key={deptId} className="border-2 border-zinc-200 hover:border-[#2d8d9b]/30 rounded-[2rem] bg-white p-6 shadow-sm space-y-4">
+                  <div key={deptId} className="border-2 border-zinc-200 hover:border-[#C82A2B]/30 rounded-[2rem] bg-white p-6 shadow-sm space-y-4">
                     {/* Department Header with Live verification of measurements profiles */}
                     <div className="flex items-center justify-between gap-4 flex-wrap border-b border-zinc-100 pb-4">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider bg-zinc-100 px-3 py-1.5 rounded-xl border border-zinc-200">
+                        <span className="text-xs font-black text-zinc-900 uppercase tracking-wider bg-zinc-100 px-3 py-1.5 rounded-xl border border-zinc-200">
                           {dept.division ? `${dept.name} (${dept.division})` : dept.name}
                         </span>
-                        <span className="text-[10px] font-black text-[#2d8d9b] bg-[#2d8d9b]/10 border border-[#2d8d9b]/20 px-2.5 py-1 rounded-lg font-mono">
+                        <span className="text-[10px] font-black text-[#C82A2B] bg-[#FFF1F1] border border-[#C82A2B]/20 px-2.5 py-1 rounded-lg font-mono">
                           {totalDeptMembers} Members
                         </span>
                         <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 font-mono">
@@ -3535,7 +3535,7 @@ export default function WizardStep2({
                       <button
                         type="button"
                         onClick={() => addDeptAuditRow(deptId, dept.name)}
-                        className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        className="px-3 py-1.5 bg-[#FFF1F1] hover:bg-[#C82A2B] text-[#C82A2B] hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
                       >
                         <Plus size={12} />
                         <span>Add Product / Gender Line</span>
@@ -3546,7 +3546,7 @@ export default function WizardStep2({
                     <div className="border border-zinc-150 rounded-2xl overflow-x-auto custom-scrollbar bg-white shadow-2xs">
                       <table className="w-full min-w-[950px] text-left border-collapse text-xs align-middle">
                         <thead>
-                          <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                          <tr className="bg-[#FFF1F1] text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                             <th className="p-3 align-middle text-center">ART Number</th>
                             <th className="p-3 align-middle text-center">Product Name</th>
                             <th className="p-3 align-middle w-40 text-center">Gender</th>
@@ -3563,7 +3563,7 @@ export default function WizardStep2({
                             const rowQty = getDeptAuditRowQty(deptId, dept.name, rowItem.gender, completedDept);
                             return (
                               <tr key={rowItem.id || rIdx} className="hover:bg-zinc-50/50 bg-white">
-                                <td className="p-3 font-black text-[#2d8d9b] align-middle">{rowItem.art_number || '—'}</td>
+                                <td className="p-3 font-black text-[#C82A2B] align-middle">{rowItem.art_number || '—'}</td>
                                 <td className="p-3 text-zinc-800 align-middle">
                                   {uniqueTemplateProducts.length > 1 ? (
                                     <Select
@@ -3579,7 +3579,7 @@ export default function WizardStep2({
                                           sam_value: matched?.sam_value ?? rowItem.sam_value
                                         });
                                       }}
-                                      className="text-xs font-bold text-zinc-800 bg-transparent border border-zinc-200 rounded px-1.5 py-1 focus:outline-none focus:border-[#2d8d9b]"
+                                      className="text-xs font-bold text-zinc-800 bg-transparent border border-zinc-200 rounded px-1.5 py-1 focus:outline-none focus:border-[#C82A2B]"
                                     >
                                       {uniqueTemplateProducts.map((u: any) => (
                                         <option key={u.product_id} value={u.product_id}>{u.product_name}</option>
@@ -3593,7 +3593,7 @@ export default function WizardStep2({
                                   <Select
                                     value={normalizeGender(rowItem.gender || '')}
                                     onChange={(e) => updateDeptAuditRow(deptId, rIdx, { gender: e.target.value })}
-                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer"
+                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-lg px-2.5 py-1.5 text-xs font-bold text-zinc-900 focus:outline-none cursor-pointer"
                                   >
                                     <option value="">Select Gender...</option>
                                     {availableGenders.map((g: any) => (
@@ -3615,10 +3615,10 @@ export default function WizardStep2({
                                     type="number" step="0.0001" min="0" placeholder="₹"
                                     value={rowItem.sam_value ?? ''}
                                     onChange={(e) => updateDeptAuditRow(deptId, rIdx, { sam_value: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-600 focus:outline-none transition-all"
+                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-600 focus:outline-none transition-all"
                                   />
                                 </td>
-                                <td className="p-3 text-right font-black text-[#3a525d] align-middle">
+                                <td className="p-3 text-right font-black text-zinc-900 align-middle">
                                   {rowQty > 0 ? (
                                     <span>{rowQty} <span className="text-zinc-400 font-normal">Units</span></span>
                                   ) : (
@@ -3630,7 +3630,7 @@ export default function WizardStep2({
                                     type="number" step="0.01" min="0" placeholder="Optional"
                                     value={rowItem.price_override || ''}
                                     onChange={(e) => updateDeptAuditRow(deptId, rIdx, { price_override: e.target.value })}
-                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-[#2d8d9b] focus:outline-none transition-all"
+                                    className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-[#C82A2B] focus:outline-none transition-all"
                                   />
                                 </td>
                                 <td className="p-2 text-center align-middle">
@@ -3650,17 +3650,17 @@ export default function WizardStep2({
                           })}
                         </tbody>
                         <tfoot>
-                          <tr className="bg-[#3a525d]/5 border-t-2 border-[#2d8d9b]/20 text-[#3a525d] font-black text-xs">
+                          <tr className="bg-zinc-50 border-t-2 border-[#C82A2B]/20 text-zinc-900 font-black text-xs">
                             <td colSpan={5} className="p-3 text-[10px] uppercase tracking-widest text-zinc-400 align-middle">
                               {dept.name} Totals
                             </td>
-                            <td className="p-3 font-mono font-black text-[#3a525d] align-middle">
+                            <td className="p-3 font-mono font-black text-zinc-900 align-middle">
                               {deptSAMTotal > 0 ? `₹${deptSAMTotal.toFixed(2)}` : '—'}
                             </td>
-                            <td className="p-3 text-right font-black text-[#3a525d] align-middle">
+                            <td className="p-3 text-right font-black text-zinc-900 align-middle">
                               {deptUnits} <span className="text-zinc-400 font-normal text-[10px]">Units</span>
                             </td>
-                            <td colSpan={2} className="p-3 font-mono font-black text-[#2d8d9b] align-middle">
+                            <td colSpan={2} className="p-3 font-mono font-black text-[#C82A2B] align-middle">
                               {deptPriceTotal > 0 ? `₹${deptPriceTotal.toFixed(2)}` : '—'}
                             </td>
                           </tr>
@@ -3682,14 +3682,14 @@ export default function WizardStep2({
           ) : (
             <div className="space-y-2 pt-2">
               <div className="flex items-center gap-2">
-                <Layers size={14} className="text-[#2d8d9b]" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product & Design Sizing Audit</h4>
-                <span className="ml-auto text-[9px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-70">Design numbers & prices are editable</span>
+                <Layers size={14} className="text-[#C82A2B]" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Product & Design Sizing Audit</h4>
+                <span className="ml-auto text-[9px] font-bold text-[#C82A2B] uppercase tracking-widest opacity-70">Design numbers & prices are editable</span>
               </div>
               <div className="border border-zinc-150 rounded-2xl overflow-x-auto custom-scrollbar bg-white shadow-sm min-h-[350px] pb-12">
                 <table className="w-full min-w-[1000px] text-left border-collapse text-xs align-middle">
                   <thead>
-                    <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                    <tr className="bg-[#FFF1F1] text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                       <th className="p-3 align-middle text-center">ART Number</th>
                       <th className="p-3 align-middle text-center">Product Name</th>
                       <th className="p-3 align-middle text-center">Gender</th>
@@ -3706,7 +3706,7 @@ export default function WizardStep2({
                       const firstIdx = item._indices[0];
                       return (
                         <tr key={mi} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#2d8d9b] align-middle">{item.art_number || '—'}</td>
+                          <td className="p-3 font-black text-[#C82A2B] align-middle">{item.art_number || '—'}</td>
                           <td className="p-3 text-zinc-800 align-middle">{item.product_name}</td>
                                                     <td className="p-2 align-middle min-w-[130px]">
                             <Select
@@ -3719,7 +3719,7 @@ export default function WizardStep2({
                                 });
                                 setTemplateLineItems(updated);
                               }}
-                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#3a525d] focus:outline-none cursor-pointer"
+                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-lg px-2.5 py-1.5 text-xs font-bold text-zinc-900 focus:outline-none cursor-pointer"
                             >
                               <option value="">Select Gender...</option>
                               {availableGenders.map((g: any) => (
@@ -3739,7 +3739,7 @@ export default function WizardStep2({
                           <td className="p-2 align-middle">
                             <input
                               type="number" step="0.0001" min="0" placeholder="₹"
-                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#2d8d9b]/30 transition-all"
+                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#C82A2B]/30 transition-all"
                               value={templateLineItems[firstIdx]?.sam_value ?? ''}
                               onChange={(e) => {
                                 const updated = [...templateLineItems];
@@ -3750,13 +3750,13 @@ export default function WizardStep2({
                               }}
                             />
                           </td>
-                          <td className="p-3 text-right font-black text-[#3a525d] align-middle">
+                          <td className="p-3 text-right font-black text-zinc-900 align-middle">
                             {qty > 0 ? <span>{qty} <span className="text-zinc-400 font-normal">Units</span></span> : <span className="text-zinc-300">0</span>}
                           </td>
                           <td className="p-2 align-middle">
                             <input
                               type="number" step="0.01" min="0" placeholder="Optional"
-                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-[#2d8d9b] focus:outline-none focus:ring-1 focus:ring-[#2d8d9b]/30 transition-all"
+                              className="w-full bg-zinc-50 hover:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-[#C82A2B] focus:outline-none focus:ring-1 focus:ring-[#C82A2B]/30 transition-all"
                               value={templateLineItems[firstIdx]?.price_override || ''}
                               onChange={(e) => {
                                 const updated = [...templateLineItems];
@@ -3772,15 +3772,15 @@ export default function WizardStep2({
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-[#3a525d]/5 border-t-2 border-[#2d8d9b]/20 text-[#3a525d] font-black text-xs">
+                    <tr className="bg-zinc-50 border-t-2 border-[#C82A2B]/20 text-zinc-900 font-black text-xs">
                       <td colSpan={5} className="p-3 text-[10px] uppercase tracking-widest text-zinc-400 align-middle">Totals</td>
-                      <td className="p-3 font-mono font-black text-[#3a525d] align-middle">
+                      <td className="p-3 font-mono font-black text-zinc-900 align-middle">
                         {totalSAMMin > 0 ? `₹${totalSAMMin.toFixed(2)}` : '—'}
                       </td>
-                      <td className="p-3 text-right font-black text-[#3a525d] align-middle">
+                      <td className="p-3 text-right font-black text-zinc-900 align-middle">
                         {totalQty} <span className="text-zinc-400 font-normal text-[10px]">Units</span>
                       </td>
-                      <td className="p-3 font-mono font-black text-[#2d8d9b] align-middle">
+                      <td className="p-3 font-mono font-black text-[#C82A2B] align-middle">
                         {totalPrice > 0 ? `₹${totalPrice.toFixed(2)}` : '—'}
                       </td>
                     </tr>
@@ -3793,9 +3793,9 @@ export default function WizardStep2({
           {/* ADDITIONAL CUSTOM GARMENTS (for template mode) */}
           <div className="space-y-4 mt-8 pt-8 border-t border-zinc-100">
             <div className="flex items-center gap-2 mb-2">
-              <Plus size={14} className="text-[#2d8d9b]" />
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Additional Custom Garments</h4>
-              <span className="ml-auto text-[9px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-70">Optional manual additions</span>
+              <Plus size={14} className="text-[#C82A2B]" />
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Additional Custom Garments</h4>
+              <span className="ml-auto text-[9px] font-bold text-[#C82A2B] uppercase tracking-widest opacity-70">Optional manual additions</span>
             </div>
             <div className="space-y-4">
               {manualItems.map((item, idx) => renderManualItemCard(item, idx))}
@@ -3820,19 +3820,19 @@ export default function WizardStep2({
               return (
                 <div className="space-y-6">
                   {/* Department mode banner */}
-                  <div className="flex items-center gap-3 px-4 py-3 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-2xl flex-wrap">
-                    <div className="w-8 h-8 rounded-lg bg-[#2d8d9b]/15 flex items-center justify-center flex-shrink-0">
-                      <Layers size={16} className="text-[#2d8d9b]" />
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[#FFF1F1] border border-[#C82A2B]/15 rounded-2xl flex-wrap">
+                    <div className="w-8 h-8 rounded-lg bg-[#FFF1F1] flex items-center justify-center flex-shrink-0">
+                      <Layers size={16} className="text-[#C82A2B]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Department-Wise Quotation Mode</p>
-                      <p className="text-[9px] font-bold text-[#2d8d9b] mt-0.5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Department-Wise Quotation Mode</p>
+                      <p className="text-[9px] font-bold text-[#C82A2B] mt-0.5">
                         {selectedDepts.length} department division{selectedDepts.length !== 1 ? 's' : ''} active · Consumption &amp; sizing managed per division
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
 
-                      <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest font-mono">
+                      <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 tracking-widest font-mono">
                         {selectedDepts.reduce((sum: number, d: any) => {
                           const isDirect = d.qty_mode === 'direct_products';
                           const units = isDirect
@@ -3855,14 +3855,14 @@ export default function WizardStep2({
                     });
 
                     return Object.entries(grouped).map(([deptName, deptsInGroup]) => (
-                      <div key={deptName} className="rounded-[2rem] overflow-hidden border-2 border-zinc-200 hover:border-[#2d8d9b]/30 transition-all shadow-sm bg-white p-6 space-y-6">
+                      <div key={deptName} className="rounded-[2rem] overflow-hidden border-2 border-zinc-200 hover:border-[#C82A2B]/30 transition-all shadow-sm bg-white p-6 space-y-6">
                         <div className="flex items-center justify-between gap-4 border-b border-zinc-100 pb-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-[#3a525d]/10 flex items-center justify-center flex-shrink-0">
-                              <Layers size={18} className="text-[#3a525d]" />
+                            <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                              <Layers size={18} className="text-zinc-900" />
                             </div>
                             <div>
-                              <p className="text-sm font-black text-[#3a525d]">{deptName}</p>
+                              <p className="text-sm font-black text-zinc-900">{deptName}</p>
                               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
                                 {deptsInGroup.length} Division{deptsInGroup.length !== 1 ? 's' : ''} under this Department
                               </p>
@@ -3887,7 +3887,7 @@ export default function WizardStep2({
                               };
                               setOrgDepartments([...orgDepartments, newDept]);
                             }}
-                            className="px-3 py-1.5 bg-zinc-100 hover:bg-[#2d8d9b] text-zinc-700 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            className="px-3 py-1.5 bg-zinc-100 hover:bg-[#C82A2B] text-zinc-700 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
                           >
                             <Plus size={12} />
                             <span>Add Division</span>
@@ -4142,7 +4142,7 @@ export default function WizardStep2({
                                 {/* Division Header with Sizing & Persons config */}
                                 <div className="flex items-center justify-between gap-4 flex-wrap bg-zinc-50 p-4 rounded-2xl border border-zinc-150">
                                   <div className="flex items-center gap-3 flex-wrap">
-                                    <span className="text-xs font-black text-[#3a525d] uppercase tracking-wider bg-zinc-200/50 px-3 py-1 rounded-lg">
+                                    <span className="text-xs font-black text-zinc-900 uppercase tracking-wider bg-zinc-200/50 px-3 py-1 rounded-lg">
                                       {dept.division ? `Division: ${dept.division}` : 'Main Division'}
                                     </span>
                                     {deptsInGroup.length > 1 && (
@@ -4179,7 +4179,7 @@ export default function WizardStep2({
 
                                     {/* Gender Dropdown */}
                                     <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
-                                      <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Gender:</label>
+                                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Gender:</label>
                                       <Select
                                         value={normalizeGender(dept.gender || '')}
                                         onChange={(e) => {
@@ -4188,7 +4188,7 @@ export default function WizardStep2({
                                             setOrgDepartments(orgDepartments.map((d: any) => d.id === dept.id ? { ...d, gender: val } : d));
                                           }
                                         }}
-                                        className="text-xs font-bold text-[#3a525d] bg-transparent border-none focus:outline-none cursor-pointer"
+                                        className="text-xs font-bold text-zinc-900 bg-transparent border-none focus:outline-none cursor-pointer"
                                       >
                                         <option value="">Select Gender...</option>
                                         {availableGenders.map((g: any) => (
@@ -4203,7 +4203,7 @@ export default function WizardStep2({
                                   <div className="flex items-center gap-4 flex-wrap">
                                     {/* Radio mode: By Members & Sets VS No. of Products */}
                                     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
-                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-[#3a525d]">
+                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-zinc-900">
                                         <input
                                           type="radio"
                                           name={`qty_mode_${dept.id}`}
@@ -4228,14 +4228,14 @@ export default function WizardStep2({
                                               setOrgDepartments(updatedDepts);
                                             }
                                           }}
-                                          className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                                          className="text-[#C82A2B] focus:ring-[#C82A2B]"
                                         />
                                         <span>Members &amp; Sets</span>
                                       </label>
 
                                       <span className="text-zinc-300 font-bold">|</span>
 
-                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-[#3a525d]">
+                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-zinc-900">
                                         <input
                                           type="radio"
                                           name={`qty_mode_${dept.id}`}
@@ -4259,7 +4259,7 @@ export default function WizardStep2({
                                               setOrgDepartments(updatedDepts);
                                             }
                                           }}
-                                          className="text-[#2d8d9b] focus:ring-[#2d8d9b]"
+                                          className="text-[#C82A2B] focus:ring-[#C82A2B]"
                                         />
                                         <span>No. of Products</span>
                                       </label>
@@ -4268,7 +4268,7 @@ export default function WizardStep2({
                                     {dept.qty_mode !== 'direct_products' ? (
                                       <>
                                         <div className="flex items-center gap-2">
-                                          <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">No. of Members</label>
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">No. of Members</label>
                                           <input
                                             type="number"
                                             min="0"
@@ -4297,11 +4297,11 @@ export default function WizardStep2({
                                                 setOrgDepartments(updatedDepts);
                                               }
                                             }}
-                                            className="w-20 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                            className="w-20 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#C82A2B]"
                                           />
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">Sets per Person</label>
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Sets per Person</label>
                                           <input
                                             type="number"
                                             min="1"
@@ -4330,13 +4330,13 @@ export default function WizardStep2({
                                                 setOrgDepartments(updatedDepts);
                                               }
                                             }}
-                                            className="w-16 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                            className="w-16 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#C82A2B]"
                                           />
                                         </div>
                                       </>
                                     ) : (
                                       <div className="flex items-center gap-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]">No. of Products</label>
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">No. of Products</label>
                                         <input
                                           type="number"
                                           min="1"
@@ -4365,7 +4365,7 @@ export default function WizardStep2({
                                               setOrgDepartments(updatedDepts);
                                             }
                                           }}
-                                          className="w-24 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#2d8d9b]"
+                                          className="w-24 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#C82A2B]"
                                         />
                                       </div>
                                     )}
@@ -4380,7 +4380,7 @@ export default function WizardStep2({
                                         <>
                                           <div className="text-right min-w-[90px] border-l border-zinc-200 pl-4">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Units</p>
-                                            <p className="text-xs font-mono font-black text-[#2d8d9b]">{totalUnits} Units</p>
+                                            <p className="text-xs font-mono font-black text-[#C82A2B]">{totalUnits} Units</p>
                                           </div>
                                           <div className="text-right min-w-[130px] border-l border-zinc-200 pl-4 bg-emerald-50/90 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">Total Dept Price</p>
@@ -4567,7 +4567,7 @@ export default function WizardStep2({
                                                 <div className="flex items-start gap-4 flex-wrap">
                                                   {/* Gender Dropdown */}
                                                   <div className="min-w-[130px]">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5 font-bold">Gender</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900 mb-1.5 font-bold">Gender</p>
                                                     <Select
                                                       className={selectCls}
                                                       value={normalizeGender(item.gender || dept.gender || '')}
@@ -4757,7 +4757,7 @@ export default function WizardStep2({
                                                   {/* SAM / Unit Price */}
                                                   {(quotationType === 'READYMADE' || isAccessoryType) ? (
                                                     <div className="w-28">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b] mb-1.5 font-bold">Unit Price (₹)</p>
+                                                      <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B] mb-1.5 font-bold">Unit Price (₹)</p>
                                                       <input
                                                         type="number" step="0.01" min="0" placeholder="0.00"
                                                         value={item.price}
@@ -4873,8 +4873,8 @@ export default function WizardStep2({
                                                           <tr className="hover:bg-zinc-50/50">
                                                             <td className="p-3">
                                                               <div className="flex items-center gap-2">
-                                                                <span className="w-2 h-2 rounded-full bg-[#2d8d9b] flex-shrink-0"></span>
-                                                                <span className="font-black text-[#3a525d]">Main Fabric</span>
+                                                                <span className="w-2 h-2 rounded-full bg-[#C82A2B] flex-shrink-0"></span>
+                                                                <span className="font-black text-zinc-900">Main Fabric</span>
                                                                 <span className="text-red-400 font-black text-[10px]">*</span>
                                                               </div>
                                                             </td>
@@ -4901,7 +4901,7 @@ export default function WizardStep2({
                                                                 ))}
                                                               </Select>
                                                               {item.fabric_id && (
-                                                                <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
+                                                                <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
                                                                   Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id)}%
                                                                 </div>
                                                               )}
@@ -4944,7 +4944,7 @@ export default function WizardStep2({
                                                                     updateDeptItem(idx, { main_fabric_cost: undefined });
                                                                   }
                                                                 }}
-                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
                                                                 title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
                                                               />
                                                             </td>
@@ -4986,7 +4986,7 @@ export default function WizardStep2({
                                                                 ))}
                                                               </Select>
                                                               {item.attachment_fabric1_id && (
-                                                                <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
+                                                                <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
                                                                   Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id)}%
                                                                 </div>
                                                               )}
@@ -5029,7 +5029,7 @@ export default function WizardStep2({
                                                                     updateDeptItem(idx, { attachment_fabric1_cost: undefined });
                                                                   }
                                                                 }}
-                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
                                                                 title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
                                                               />
                                                             </td>
@@ -5071,7 +5071,7 @@ export default function WizardStep2({
                                                                 ))}
                                                               </Select>
                                                               {item.attachment_fabric2_id && (
-                                                                <div className="text-[9px] text-[#2d8d9b] font-bold mt-1">
+                                                                <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
                                                                   Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id)}%
                                                                 </div>
                                                               )}
@@ -5114,7 +5114,7 @@ export default function WizardStep2({
                                                                     updateDeptItem(idx, { attachment_fabric2_cost: undefined });
                                                                   }
                                                                 }}
-                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-[#3a525d] focus:border-[#2d8d9b] focus:outline-none bg-white shadow-2xs"
+                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
                                                                 title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
                                                               />
                                                             </td>
@@ -5140,7 +5140,7 @@ export default function WizardStep2({
                                                               <div className="flex items-center gap-1.5">
                                                                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
                                                                 <Select
-                                                                  className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#2d8d9b] py-0.5 pr-2 cursor-pointer max-w-[110px]"
+                                                                  className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#C82A2B] py-0.5 pr-2 cursor-pointer max-w-[110px]"
                                                                   value={trimCat}
                                                                   onChange={(e) => {
                                                                     const newCat = e.target.value;
@@ -5235,7 +5235,7 @@ export default function WizardStep2({
                                                               <span className="text-zinc-300 font-semibold text-[10px]">—</span>
                                                             </td>
                                                             <td className="p-3">
-                                                              <span className="text-[#2d8d9b] font-black uppercase text-[10px] tracking-wider italic">Included</span>
+                                                              <span className="text-[#C82A2B] font-black uppercase text-[10px] tracking-wider italic">Included</span>
                                                             </td>
                                                             <td className="p-3 text-right">
                                                               <div className="flex items-center justify-end gap-2">
@@ -5261,7 +5261,7 @@ export default function WizardStep2({
                                                             <button
                                                               type="button"
                                                               onClick={() => addDeptItemTrim(idx, 'Trim')}
-                                                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d8d9b] hover:text-[#1b5b64] uppercase tracking-wider transition-colors"
+                                                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C82A2B] hover:text-[#9E1B1D] uppercase tracking-wider transition-colors"
                                                             >
                                                               <Plus size={13} strokeWidth={2.5} /> Add Trim
                                                             </button>
@@ -5285,12 +5285,12 @@ export default function WizardStep2({
                                                     </tbody>
                                                     {/* ── Total Footer ── */}
                                                     <tfoot>
-                                                      <tr className="border-t-2 border-[#2d8d9b]/20 bg-[#2d8d9b]/5">
-                                                        <td colSpan={5} className="p-4 font-black text-[10px] uppercase tracking-widest text-[#3a525d]">
+                                                      <tr className="border-t-2 border-[#C82A2B]/20 bg-[#FFF1F1]">
+                                                        <td colSpan={5} className="p-4 font-black text-[10px] uppercase tracking-widest text-zinc-900">
                                                           Total Unit Cost
                                                         </td>
                                                         <td className="p-4 text-right">
-                                                          <span className="font-black text-lg text-[#2d8d9b] font-mono">
+                                                          <span className="font-black text-lg text-[#C82A2B] font-mono">
                                                             ₹{unitTotal.toFixed(2)}
                                                           </span>
                                                         </td>
@@ -5310,7 +5310,7 @@ export default function WizardStep2({
                                 <div className="flex gap-3 items-center mt-4 flex-wrap">
                                   <Button
                                     onClick={addDeptItem}
-                                    className="h-10 px-5 bg-[#3a525d]/8 hover:bg-[#3a525d] hover:!text-white !text-[#3a525d] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#3a525d]/20 transition-all"
+                                    className="h-10 px-5 bg-zinc-100 hover:bg-[#C82A2B] hover:!text-white !text-zinc-900 rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-zinc-200 transition-all"
                                   >
                                     <Plus size={13} strokeWidth={3} /> Add Product Line for {dept.division ? `${deptName} (${dept.division})` : deptName}
                                   </Button>
@@ -5401,19 +5401,19 @@ export default function WizardStep2({
       {/* This section is for customers who want to PURCHASE FABRICS alongside their garment/product order */}
       {/* Visible for STANDARD (Readymade) and READYMADE (Trade Readymade) quotation types */}
       {quotationType !== 'FABRIC' && quotationType !== 'FABRIC_SET' && !isAccessoryType && (
-        <div className="mt-10 rounded-[2rem] overflow-hidden border-2 border-[#2d8d9b]/20 shadow-lg shadow-[#2d8d9b]/5">
+        <div className="mt-10 rounded-[2rem] overflow-hidden border-2 border-[#C82A2B]/20 shadow-lg shadow-[#C82A2B]/5">
           {/* Section Banner Header */}
-          <div className="bg-gradient-to-r from-[#2d8d9b]/10 via-[#2d8d9b]/5 to-transparent px-6 py-4 border-b border-[#2d8d9b]/15 flex items-center gap-4 flex-wrap">
-            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/15 flex items-center justify-center flex-shrink-0">
-              <Package size={20} className="text-[#2d8d9b]" />
+          <div className="bg-gradient-to-r from-[#FFF1F1] via-[#FFF1F1]/50 to-transparent px-6 py-4 border-b border-[#C82A2B]/15 flex items-center gap-4 flex-wrap">
+            <div className="w-10 h-10 rounded-xl bg-[#FFF1F1] flex items-center justify-center flex-shrink-0">
+              <Package size={20} className="text-[#C82A2B]" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-black text-[#3a525d] tracking-tight">Raw Fabrics — Sold Separately</h4>
-              <p className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-widest opacity-80 mt-0.5">
+              <h4 className="text-sm font-black text-zinc-900 tracking-tight">Raw Fabrics — Sold Separately</h4>
+              <p className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-widest opacity-80 mt-0.5">
                 Optional · Customer purchases fabric rolls in addition to products
               </p>
             </div>
-            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20 tracking-widest">
+            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 tracking-widest">
               {separateFabrics.length} Line{separateFabrics.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -5423,7 +5423,7 @@ export default function WizardStep2({
               <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white shadow-sm">
                 <table className="w-full text-left border-collapse text-xs align-middle">
                   <thead>
-                    <tr className="bg-[#2d8d9b]/5 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                    <tr className="bg-[#FFF1F1] text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                       <th className="p-3 text-center">Fabric Item Selection</th>
                       <th className="p-3 text-center w-32">Meters</th>
                       <th className="p-3 text-center w-36">Rate/Meter (₹)</th>
@@ -5441,7 +5441,7 @@ export default function WizardStep2({
                         <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-2">
                             <Select
-                              className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white"
+                              className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white"
                               value={sf.fabric_id}
                               onChange={(e) => updateSeparateFabric(idx, { fabric_id: e.target.value })}
                             >
@@ -5458,7 +5458,7 @@ export default function WizardStep2({
                               type="number"
                               step="any"
                               min="0"
-                              className="px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] text-center transition-all w-full"
+                              className="px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-zinc-900 text-center transition-all w-full"
                               value={sf.meters}
                               onChange={(e) => updateSeparateFabric(idx, { meters: e.target.value })}
                             />
@@ -5468,12 +5468,12 @@ export default function WizardStep2({
                               type="number"
                               step="any"
                               min="0"
-                              className="px-2.5 py-2 text-xs font-mono font-bold border border-zinc-200 rounded-xl text-[#2d8d9b] text-center transition-all w-full"
+                              className="px-2.5 py-2 text-xs font-mono font-bold border border-zinc-200 rounded-xl text-[#C82A2B] text-center transition-all w-full"
                               value={sf.rate}
                               onChange={(e) => updateSeparateFabric(idx, { rate: e.target.value })}
                             />
                           </td>
-                          <td className="p-2 text-right font-mono font-black text-[#2d8d9b] pr-4">
+                          <td className="p-2 text-right font-mono font-black text-[#C82A2B] pr-4">
                             ₹{totalCost.toFixed(2)}
                           </td>
                           <td className="p-2 text-center">
@@ -5489,9 +5489,9 @@ export default function WizardStep2({
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t border-[#2d8d9b]/15 bg-[#2d8d9b]/3">
+                    <tr className="border-t border-[#C82A2B]/15 bg-[#FFF1F1]">
                       <td colSpan={3} className="p-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Raw Fabric Cost</td>
-                      <td className="p-3 text-right font-black text-lg text-[#2d8d9b] font-mono">
+                      <td className="p-3 text-right font-black text-lg text-[#C82A2B] font-mono">
                         ₹{separateFabrics.reduce((sum, sf) => sum + (parseFloat(sf.meters) || 0) * (parseFloat(sf.rate) || 0), 0).toFixed(2)}
                       </td>
                       <td></td>
@@ -5500,8 +5500,8 @@ export default function WizardStep2({
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 border-2 border-dashed border-[#2d8d9b]/20 rounded-2xl bg-[#2d8d9b]/3">
-                <Package size={28} className="text-[#2d8d9b]/40 mx-auto mb-2" />
+              <div className="text-center py-8 border-2 border-dashed border-[#C82A2B]/20 rounded-2xl bg-[#FFF1F1]">
+                <Package size={28} className="text-[#C82A2B]/40 mx-auto mb-2" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">No fabric lines added yet</p>
                 <p className="text-[10px] font-semibold text-zinc-350 mt-1">Click the button below to add fabric selling lines</p>
               </div>
@@ -5509,7 +5509,7 @@ export default function WizardStep2({
 
             <Button
               onClick={addSeparateFabric}
-              className="h-12 px-6 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] hover:!text-white !text-[#2d8d9b] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#2d8d9b]/25 transition-all"
+              className="h-12 px-6 bg-[#FFF1F1] hover:bg-[#C82A2B] hover:!text-white !text-[#C82A2B] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#C82A2B]/25 transition-all"
             >
               <Plus size={14} strokeWidth={3} /> Add Fabric Selling Line
             </Button>

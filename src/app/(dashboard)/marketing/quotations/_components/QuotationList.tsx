@@ -17,7 +17,11 @@ import {
   Snowflake,
   ChevronDown,
   ChevronUp,
-  MapPin
+  MapPin,
+  History,
+  FileText,
+  Layers,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -177,22 +181,22 @@ export default function QuotationList({
   // 10. FOLLOW-UP
   const columns: Column<Quotation>[] = [
     {
-      header: 'QUOTATION NO.',
-      className: 'w-[140px] whitespace-nowrap',
-      sortValue: (q) => q.quotation_no,
-      accessor: (q) => (
-        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
-          {q.quotation_no}
-        </span>
-      )
-    },
-    {
       header: 'DATE',
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => q.quotation_date || q.created_at || '',
       accessor: (q) => (
         <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap">
           {formatDate(q.quotation_date || q.created_at)}
+        </span>
+      )
+    },
+    {
+      header: 'QUOTATION NO.',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (q) => q.quotation_no,
+      accessor: (q) => (
+        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
+          {q.quotation_no}
         </span>
       )
     },
@@ -326,7 +330,7 @@ export default function QuotationList({
       sortValue: (q) => Number(q.final_quote_value || 0),
       accessor: (q) => (
         <div className="text-right">
-          <p className="text-xs md:text-sm font-black text-[#2d8d9b] font-mono">
+          <p className="text-xs md:text-sm font-black text-[#C82A2B] font-mono">
             ₹{Number(q.final_quote_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           {q.estimated_expenses ? (
@@ -392,9 +396,30 @@ export default function QuotationList({
             className="group/status inline-flex items-center cursor-pointer text-left transition-all active:scale-95 focus:outline-none"
             title="Click to log follow-up"
           >
-            <div className="transition-all group-hover/status:ring-2 group-hover/status:ring-[#2d8d9b]/50 group-hover/status:shadow-sm rounded-lg inline-flex items-center">
+            <div className="transition-all group-hover/status:ring-2 group-hover/status:ring-[#C82A2B]/50 group-hover/status:shadow-sm rounded-lg inline-flex items-center">
               {badge}
             </div>
+          </button>
+        );
+      }
+    },
+    {
+      header: 'LOG',
+      className: 'w-[105px] whitespace-nowrap text-center',
+      accessor: (q) => {
+        const count = Array.isArray(q.metrics_summary?.followups) ? q.metrics_summary.followups.length : 0;
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFollowUpQuotation(q);
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-zinc-100 hover:bg-[#801416] text-zinc-700 hover:text-white border border-zinc-200 hover:border-[#801416] transition-all cursor-pointer shadow-2xs group"
+            title="Click to view quotation history, versions & follow-up log"
+          >
+            <History size={12} className="text-zinc-500 group-hover:text-white transition-colors" />
+            <span>Log{count > 0 ? ` (${count})` : ''}</span>
           </button>
         );
       }
@@ -427,8 +452,8 @@ export default function QuotationList({
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.quotation_date || q.created_at)}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
@@ -462,11 +487,11 @@ export default function QuotationList({
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #1a202c; padding: 24px; font-size: 11px; }
     @page { size: landscape; margin: 8mm; }
-    .report-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3a525d; padding-bottom: 14px; margin-bottom: 14px; }
-    .brand-title { font-size: 22px; font-weight: 900; color: #3a525d; }
-    .brand-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #2d8d9b; font-weight: 800; }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #C82A2B; padding-bottom: 14px; margin-bottom: 14px; }
+    .brand-title { font-size: 22px; font-weight: 900; color: #1a202c; }
+    .brand-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #C82A2B; font-weight: 800; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 9px; text-transform: uppercase; font-weight: 800; color: #3a525d; }
+    th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 9px; text-transform: uppercase; font-weight: 800; color: #1a202c; }
     td { border: 1px solid #e2e8f0; padding: 6px 10px; }
     tr:nth-child(even) { background: #f8fafc; }
   </style>
@@ -476,7 +501,7 @@ export default function QuotationList({
     <div>
       <div class="brand-title">FORMA APPARELS</div>
       <div class="brand-subtitle">Central Manufacturing & Institutional Distribution</div>
-      <div style="font-size: 14px; font-weight: 800; color: #2d8d9b; margin-top: 6px;">Quotations Registry Report</div>
+      <div style="font-size: 14px; font-weight: 800; color: #C82A2B; margin-top: 6px;">Quotations Registry Report</div>
     </div>
     <div style="text-align: right; font-size: 10px; color: #4a5568;">
       <div><strong>Printed:</strong> ${printedAt}</div>
@@ -489,8 +514,8 @@ export default function QuotationList({
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th>QUOTATION NO.</th>
         <th style="text-align: center;">DATE</th>
+        <th>QUOTATION NO.</th>
         <th>CUSTOMER NAME</th>
         <th>ZONE</th>
         <th>CONTACT</th>
@@ -626,6 +651,7 @@ export default function QuotationList({
       {followUpQuotation && (
         <QuotationFollowUpModal
           quotation={followUpQuotation}
+          allQuotations={quotations}
           currentUser={currentUser}
           onClose={() => setFollowUpQuotation(null)}
           onSuccess={() => {
@@ -643,6 +669,7 @@ export default function QuotationList({
 // -------------------------------------------------------------------------------------
 interface QuotationFollowUpModalProps {
   quotation: Quotation;
+  allQuotations?: Quotation[];
   onClose: () => void;
   onSuccess: () => void;
   currentUser?: any;
@@ -650,19 +677,134 @@ interface QuotationFollowUpModalProps {
 
 export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
   quotation,
+  allQuotations = [],
   onClose,
   onSuccess,
   currentUser
 }) => {
-  const [responseType, setResponseType] = useState<'positive' | 'hold' | 'revision' | 'cold_lead'>('hold');
+  const [activeModalTab, setActiveModalTab] = useState<'log' | 'record'>('log');
+  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
-  const pastFollowups: any[] = Array.isArray(quotation.metrics_summary?.followups)
-    ? quotation.metrics_summary.followups
-    : [];
+  // Group and sort all related quotations for this customer / organization
+  const relatedQuotations = useMemo(() => {
+    const orgId = quotation.organization_id;
+    const leadId = (quotation as any).lead_id;
+    if (!allQuotations || allQuotations.length === 0) return [quotation];
+
+    const matches = allQuotations.filter(q => {
+      if (orgId && q.organization_id === orgId) return true;
+      if (leadId && (q as any).lead_id === leadId) return true;
+      if (
+        quotation.organizations?.name &&
+        q.organizations?.name &&
+        quotation.organizations.name.trim().toLowerCase() === q.organizations.name.trim().toLowerCase()
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (matches.length === 0) return [quotation];
+
+    // Chronological ascending: earliest is first quote, subsequent are revisions
+    return [...matches].sort((a, b) => {
+      const timeA = new Date(a.created_at || a.quotation_date || 0).getTime();
+      const timeB = new Date(b.created_at || b.quotation_date || 0).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id - b.id;
+    });
+  }, [quotation, allQuotations]);
+
+  // Combined timeline of all quotation events, BM revision requests, and follow-up activities
+  const allTimelineActivities = useMemo(() => {
+    const activities: any[] = [];
+
+    relatedQuotations.forEach((q, idx) => {
+      const isFirst = idx === 0;
+      const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
+      activities.push({
+        id: `quote_created_${q.id}`,
+        quotation_id: q.id,
+        quotation_no: q.quotation_no,
+        type: 'quotation_version',
+        title: `${verLabel}: #${q.quotation_no}`,
+        badge: verLabel,
+        badgeColor: isFirst ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+        date: q.quotation_date || q.created_at,
+        amount: q.final_quote_value || (q as any).total_amount || 0,
+        status: q.status,
+        author: 'Commercial Team',
+        remarks: `Quotation #${q.quotation_no} generated for ₹${Number(q.final_quote_value || (q as any).total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`
+      });
+
+      // BM Rejection / Revision Request
+      if (q.metrics_summary?.bm_rejection_reason) {
+        activities.push({
+          id: `bm_rejection_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'revision_request',
+          title: `Revision Requested by BM (#${q.quotation_no})`,
+          badge: 'Revision Requested',
+          badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+          date: q.metrics_summary.bm_rejection_at || q.updated_at || q.created_at,
+          author: q.metrics_summary.bm_rejected_by_name || 'Branch Manager',
+          remarks: `Branch Manager revision instructions: "${q.metrics_summary.bm_rejection_reason}"`
+        });
+      }
+
+      // BM Approved
+      if (q.metrics_summary?.bm_approved || q.status === 'Approved') {
+        activities.push({
+          id: `bm_approved_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'approval',
+          title: `Quotation Approved (#${q.quotation_no})`,
+          badge: 'Approved',
+          badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          date: q.metrics_summary?.bm_approved_at || q.metrics_summary?.submitted_to_ops_at || q.updated_at || q.created_at,
+          author: q.metrics_summary?.bm_approved_by_name || 'Branch Manager',
+          remarks: 'Quotation verified and approved by Branch Manager & Operations.'
+        });
+      }
+
+      // Follow-up entries
+      if (Array.isArray(q.metrics_summary?.followups)) {
+        q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
+          activities.push({
+            id: f.id || `f_${q.id}_${fIdx}`,
+            quotation_id: q.id,
+            quotation_no: q.quotation_no,
+            type: 'followup',
+            title: `Follow-up on Quote #${q.quotation_no}`,
+            badge: f.outcome || f.response_type || 'Follow-up',
+            outcome: f.outcome || f.response_type,
+            date: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at),
+            author: f.author?.name || 'Sales Representative',
+            remarks: f.remarks || f.text || '',
+            next_followup_date: f.next_followup_date
+          });
+        });
+      }
+    });
+
+    return activities.sort((a, b) => {
+      const timeA = new Date(a.date || 0).getTime();
+      const timeB = new Date(b.date || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [relatedQuotations]);
+
+  const openQuotationTab = (qId: number | string, qNo?: string) => {
+    const url = qId
+      ? `/marketing/quotations?id=${qId}&action=view`
+      : `/marketing/quotations?quote_no=${encodeURIComponent(qNo || '')}&action=view`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const handleSubmit = async () => {
     if (!remarks.trim()) {
@@ -688,6 +830,10 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
       try {
         const authorName = currentUser?.fullName || currentUser?.full_name || currentUser?.name || 'Sales Representative';
         const now = new Date();
+        const pastFollowups: any[] = Array.isArray(quotation.metrics_summary?.followups)
+          ? quotation.metrics_summary.followups
+          : [];
+
         const newEntry = {
           id: Date.now(),
           created_at: now.toISOString(),
@@ -727,24 +873,37 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
-      <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative p-8 space-y-5 z-10 animate-in zoom-in-95 max-h-[92vh] flex flex-col">
+      <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative p-6 md:p-8 space-y-5 z-10 animate-in zoom-in-95 max-h-[92vh] flex flex-col">
         {/* Top Brand Accent Rail */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
 
-        {/* Header */}
+        {/* Modal Header */}
         <div className="flex justify-between items-start shrink-0 pt-1">
-          <div>
+          <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 text-[10px] font-black uppercase font-mono tracking-wider">
                 {quotation.quotation_no}
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 text-[10px] font-black uppercase">
-                {quotation.status}
+                {quotation.status || 'Draft'}
               </span>
+              <button
+                type="button"
+                onClick={() => openQuotationTab(quotation.id, quotation.quotation_no)}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#C82A2B] bg-[#FFF1F1] hover:bg-[#FFF1F1] border border-[#C82A2B]/20 transition-all cursor-pointer"
+                title="Open this quotation in a new browser tab"
+              >
+                <span>Open Quote in New Tab</span>
+                <ExternalLink size={10} className="shrink-0" />
+              </button>
             </div>
-            <h3 className="text-xl font-black text-zinc-900 tracking-tight mt-1.5">Record Follow-up Communication</h3>
-            <p className="text-xs text-zinc-500 font-medium mt-0.5">
-              Client: <span className="text-zinc-900 font-bold">{quotation.organizations?.name || '—'}</span>
+            <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+              Quotation History & Activity Log
+            </h3>
+            <p className="text-xs text-zinc-500 font-medium">
+              Client: <span className="text-zinc-900 font-bold">{quotation.organizations?.name || 'Commercial Client'}</span>
+              <span className="mx-1.5 text-zinc-300">•</span>
+              <span>{relatedQuotations.length} Quotation{relatedQuotations.length > 1 ? 's' : ''} (First quote & revisions)</span>
             </p>
           </div>
           <button
@@ -757,153 +916,323 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
-        <div className="space-y-4 overflow-y-auto pr-1 flex-1">
-          {/* Outcome Selection */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-              Follow-up Outcome *
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setResponseType('positive')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                  responseType === 'positive'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm'
-                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
-                }`}
-              >
-                <span className="text-xs font-black block flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                  Positive (Moving Ahead)
-                </span>
-                <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">
-                  Accepted / Proceeding to Sales Order
-                </span>
-              </button>
+        {/* Tabs Bar */}
+        <div className="flex items-center gap-2 border-b border-zinc-150 pb-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveModalTab('log')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              activeModalTab === 'log'
+                ? 'bg-zinc-900 text-white shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+            }`}
+          >
+            <Layers size={13} />
+            <span>Quotation Log & Versions ({relatedQuotations.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveModalTab('record')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              activeModalTab === 'record'
+                ? 'bg-[#801416] text-white shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+            }`}
+          >
+            <Plus size={13} />
+            <span>Record Follow-up</span>
+          </button>
+        </div>
 
-              <button
-                type="button"
-                onClick={() => setResponseType('hold')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                  responseType === 'hold'
-                    ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
-                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
-                }`}
-              >
-                <span className="text-xs font-black block flex items-center gap-1.5">
-                  <Clock size={13} className="text-amber-600 shrink-0" />
-                  Under Review / Hold
-                </span>
-                <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">
-                  Comparing quotes / Decision in progress
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setResponseType('revision')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                  responseType === 'revision'
-                    ? 'border-sky-500 bg-sky-50 text-sky-900 shadow-sm'
-                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
-                }`}
-              >
-                <span className="text-xs font-black block flex items-center gap-1.5">
-                  <RotateCcw size={13} className="text-sky-600 shrink-0" />
-                  Revision Requested
-                </span>
-                <span className="text-[10px] text-sky-700/80 font-medium mt-0.5 block">
-                  Client requested pricing or spec adjustment
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setResponseType('cold_lead')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                  responseType === 'cold_lead'
-                    ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-sm'
-                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
-                }`}
-              >
-                <span className="text-xs font-black block flex items-center gap-1.5">
-                  <Snowflake size={13} className="text-rose-500 shrink-0" />
-                  Cold / Dropped
-                </span>
-                <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
-                  Declined or chose another vendor
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Next Follow-up Date */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-              <Calendar size={11} className="text-[#9E1B1D]" />
-              Next Scheduled Follow-up Date (Optional)
-            </label>
-            <DatePicker
-              value={nextFollowUpDate}
-              onChange={(val) => setNextFollowUpDate(val)}
-              placeholder="Select follow-up date"
-              className="w-full"
-            />
-          </div>
-
-          {/* Remarks */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-              <MessageSquare size={11} className="text-[#9E1B1D]" />
-              Follow-up Communication Notes *
-            </label>
-            <textarea
-              rows={3}
-              value={remarks}
-              onChange={(e) => setRemarks(capitalizeFirstLetter(e.target.value))}
-              placeholder="e.g. Spoke to procurement manager; client approved sample fabric swatch and requested revised quantity for operations staff..."
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 resize-none transition-all"
-            />
-          </div>
-
-          {/* Past Follow-up History (if any) */}
-          {pastFollowups.length > 0 && (
-            <div className="border border-zinc-200 rounded-2xl p-3 bg-zinc-50/50 space-y-2">
-              <button
-                type="button"
-                onClick={() => setShowHistory(!showHistory)}
-                className="w-full flex items-center justify-between text-xs font-black text-zinc-800 uppercase tracking-wider cursor-pointer"
-              >
-                <span>Follow-up History ({pastFollowups.length})</span>
-                {showHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-
-              {showHistory && (
-                <div className="space-y-2 pt-2 max-h-40 overflow-y-auto pr-1">
-                  {pastFollowups.map((entry, idx) => (
-                    <div key={entry.id || idx} className="bg-white p-2.5 rounded-xl border border-zinc-100 shadow-2xs text-xs space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold">
-                        <span>{entry.date} {entry.time ? `• ${entry.time}` : ''}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-zinc-100 text-zinc-700">
-                          {entry.outcome || entry.response_type || 'Follow-up'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-semibold text-zinc-700">{entry.remarks || entry.text}</p>
-                      {entry.author?.name && (
-                        <p className="text-[9px] text-zinc-400 font-medium">Logged by: {entry.author.name}</p>
-                      )}
-                    </div>
-                  ))}
+        {/* Modal Body */}
+        <div className="space-y-5 overflow-y-auto pr-1 flex-1">
+          {activeModalTab === 'log' ? (
+            <div className="space-y-6">
+              {/* 1. All Quotation Versions (First quote, Revised quotes) */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+                    All Quotations for this Client ({relatedQuotations.length})
+                  </span>
+                  <span className="text-[10px] font-semibold text-zinc-400">
+                    Click any card or button to view in another tab
+                  </span>
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {relatedQuotations.map((q, idx) => {
+                    const isFirst = idx === 0;
+                    const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
+                    const isCurrent = q.id === quotation.id;
+                    const qAmount = Number(q.final_quote_value || (q as any).total_amount || 0);
+
+                    return (
+                      <div
+                        key={q.id}
+                        onClick={() => openQuotationTab(q.id, q.quotation_no)}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer group relative flex flex-col justify-between ${
+                          isCurrent
+                            ? 'bg-[#FFF1F1] border-[#C82A2B]/40 shadow-xs hover:border-[#C82A2B]'
+                            : 'bg-white border-zinc-200 hover:border-[#C82A2B]/50 hover:shadow-md'
+                        }`}
+                        title="Click to open this quotation in a new tab"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border inline-block ${
+                                isFirst
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {verLabel}
+                              </span>
+                              <p className="font-mono font-bold text-sm text-zinc-900 mt-1 flex items-center gap-1.5">
+                                <span>{q.quotation_no}</span>
+                                {isCurrent && (
+                                  <span className="text-[9px] font-bold text-[#C82A2B] uppercase tracking-wider">
+                                    (Active)
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openQuotationTab(q.id, q.quotation_no);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xs transition-all shrink-0 cursor-pointer"
+                            >
+                              <span>View Quote</span>
+                              <ExternalLink size={10} className="shrink-0" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100">
+                            <span className="text-zinc-500 font-medium">
+                              {formatDate(q.quotation_date || q.created_at)}
+                            </span>
+                            <span className="font-mono font-black text-[#C82A2B]">
+                              ₹{qAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+
+                          {q.metrics_summary?.bm_rejection_reason && (
+                            <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[10px] text-rose-800 font-medium leading-relaxed">
+                              <strong>Revision Reason:</strong> {q.metrics_summary.bm_rejection_reason}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-700 border border-zinc-200">
+                            {q.status || 'Draft'}
+                          </span>
+                          <span className="text-[10px] text-[#C82A2B] font-bold group-hover:underline inline-flex items-center gap-0.5">
+                            Open in tab <ExternalLink size={9} />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Timeline of Activities & Follow-ups */}
+              <div className="space-y-3 pt-2 border-t border-zinc-150">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+                    Follow-up Communication & Activity History ({allTimelineActivities.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModalTab('record')}
+                    className="text-[10px] font-black uppercase tracking-wider text-[#801416] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus size={11} /> Record New Follow-up
+                  </button>
+                </div>
+
+                {allTimelineActivities.length > 0 ? (
+                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {allTimelineActivities.map((entry) => {
+                      const outcomeLower = String(entry.outcome || entry.badge || '').toLowerCase();
+                      const isPositive = outcomeLower.includes('pos') || outcomeLower.includes('won') || outcomeLower.includes('approv');
+                      const isNegative = outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('reject');
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                            <span className="font-bold text-zinc-800">
+                              {entry.title}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {entry.badge && (
+                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                  entry.badgeColor || (
+                                    isPositive
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : isNegative
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  )
+                                }`}>
+                                  {entry.badge}
+                                </span>
+                              )}
+                              {entry.quotation_id && (
+                                <button
+                                  type="button"
+                                  onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
+                                  className="text-[10px] font-bold text-[#C82A2B] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
+                                  title="View this quotation"
+                                >
+                                  Quote <ExternalLink size={9} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <p className="text-xs font-semibold text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                            {entry.remarks}
+                          </p>
+
+                          <div className="flex items-center justify-between text-[10px] text-zinc-400 font-medium pt-1 border-t border-zinc-100">
+                            <span>{entry.date ? formatDate(entry.date) : 'Recent'}</span>
+                            {entry.author && <span>By: {entry.author}</span>}
+                          </div>
+
+                          {entry.next_followup_date && (
+                            <div className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded inline-flex items-center gap-1 mt-1">
+                              <Calendar size={10} /> Next Follow-up: {formatDate(entry.next_followup_date)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 space-y-2">
+                    <History size={24} className="mx-auto text-zinc-400" />
+                    <p className="text-xs font-bold text-zinc-600">No follow-up communications logged yet</p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveModalTab('record')}
+                      className="px-3 py-1.5 bg-[#801416] text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-[#681012] transition-colors"
+                    >
+                      Record First Follow-up
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Follow-up Logging Form */
+            <div className="space-y-4">
+              {/* Outcome Selection: 3 Options (Negative, Hold/Pending default, Positive) */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+                  Follow-up Outcome *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Negative (Left) */}
+                  <button
+                    type="button"
+                    onClick={() => setResponseType('negative')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'negative'
+                        ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-sm'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black block flex items-center gap-1.5">
+                      <Snowflake size={13} className="text-rose-500 shrink-0" />
+                      Negative
+                    </span>
+                    <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
+                      Declined / Chose other vendor
+                    </span>
+                  </button>
+
+                  {/* Hold / Pending (Middle - DEFAULT) */}
+                  <button
+                    type="button"
+                    onClick={() => setResponseType('hold')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'hold'
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black block flex items-center gap-1.5">
+                      <Clock size={13} className="text-amber-600 shrink-0" />
+                      Hold / Pending
+                    </span>
+                    <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">
+                      Under review / Decision pending
+                    </span>
+                  </button>
+
+                  {/* Positive (Right) */}
+                  <button
+                    type="button"
+                    onClick={() => setResponseType('positive')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'positive'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black block flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                      Positive
+                    </span>
+                    <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">
+                      Moving ahead / Order expected
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Next Follow-up Date */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
+                  <Calendar size={11} className="text-[#9E1B1D]" />
+                  Next Scheduled Follow-up Date (Optional)
+                </label>
+                <DatePicker
+                  value={nextFollowUpDate}
+                  onChange={(val) => setNextFollowUpDate(val)}
+                  placeholder="Select follow-up date"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Remarks */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
+                  <MessageSquare size={11} className="text-[#9E1B1D]" />
+                  Follow-up Communication Notes *
+                </label>
+                <textarea
+                  rows={4}
+                  value={remarks}
+                  onChange={(e) => setRemarks(capitalizeFirstLetter(e.target.value))}
+                  placeholder="e.g. Discussed quotation specifications with the client. Reviewing uniform fabrics and comparing budget; follow-up call planned next week..."
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 resize-none transition-all"
+                />
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex gap-3 pt-2 shrink-0">
+        <div className="flex gap-3 pt-2 shrink-0 border-t border-zinc-100">
           <Button
             variant="outline"
             onClick={onClose}
@@ -911,21 +1240,29 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           >
             Cancel
           </Button>
-          <Button
-            disabled={isSubmitting}
-            onClick={handleSubmit}
-            className={`flex-1 py-3 text-[10px] font-black uppercase text-white shadow-lg ${
-              responseType === 'positive'
-                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                : responseType === 'revision'
-                ? 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20'
-                : responseType === 'cold_lead'
-                ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
-                : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
-            }`}
-          >
-            {isSubmitting ? 'Saving...' : 'Save Follow-up'}
-          </Button>
+
+          {activeModalTab === 'record' ? (
+            <Button
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+              className={`flex-1 py-3 text-[10px] font-black uppercase text-white shadow-lg ${
+                responseType === 'positive'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                  : responseType === 'negative'
+                  ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                  : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+              }`}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Follow-up'}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setActiveModalTab('record')}
+              className="flex-1 py-3 text-[10px] font-black uppercase text-white bg-[#801416] hover:bg-[#681012] shadow-lg shadow-[#801416]/20"
+            >
+              <Plus size={12} className="mr-1" /> Add New Follow-up
+            </Button>
+          )}
         </div>
       </div>
     </div>

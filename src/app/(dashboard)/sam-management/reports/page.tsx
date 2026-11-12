@@ -149,6 +149,17 @@ export default function SAMReports() {
   // History columns
   const historyColumns: Column<HistoryEntry>[] = [
     {
+      header: 'Date & Time',
+      accessor: (h) => (
+        <div className="flex items-center gap-1.5 text-zinc-400 whitespace-nowrap">
+          <Clock size={12} />
+          <span className="text-[10px] font-bold tracking-widest">
+            {new Date(h.created_at).toLocaleString()}
+          </span>
+        </div>
+      )
+    },
+    {
       header: 'Calculation Details',
       accessor: (h) => (
         <div className="flex items-center gap-3">
@@ -213,17 +224,6 @@ export default function SAMReports() {
         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
           {h.performer?.full_name || 'System / Admin'}
         </span>
-      )
-    },
-    {
-      header: 'Date & Time',
-      accessor: (h) => (
-        <div className="flex items-center gap-1.5 text-zinc-400">
-          <Clock size={12} />
-          <span className="text-[10px] font-bold tracking-widest">
-            {new Date(h.created_at).toLocaleString()}
-          </span>
-        </div>
       )
     }
   ];

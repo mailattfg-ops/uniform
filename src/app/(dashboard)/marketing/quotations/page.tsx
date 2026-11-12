@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
@@ -108,6 +108,7 @@ export interface Quotation {
       [key: string]: any;
     };
   created_at: string;
+  updated_at?: string;
   pdf_html?: string;
   group_design_number?: { code: string };
 }
@@ -237,6 +238,17 @@ export default function QuotationsPage() {
     }
   }, []);
 
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
+
+  const visibleQuotations = useMemo(() => {
+    if (!isSuperAdmin && currentUser?.branchId) {
+      return quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(currentUser.branchId));
+    }
+    return quotations;
+  }, [quotations, isSuperAdmin, currentUser?.branchId]);
+
   useEffect(() => {
     if (searchParams) {
       const actionParam = searchParams.get('action');
@@ -253,23 +265,49 @@ export default function QuotationsPage() {
         return;
       }
 
-      if (quoteIdParam && quotations.length > 0) {
+      if (quoteIdParam) {
         const id = parseInt(quoteIdParam, 10);
-        const match = quotations.find(q => q.id === id);
-        if (match) {
-          if (actionParam === 'edit') {
-            handleStartEdit(match);
-          } else {
+        if (!isNaN(id)) {
+          if (quotations.length > 0) {
+            const match = quotations.find(q => q.id === id);
+            if (match) {
+              if (actionParam === 'edit') {
+                handleStartEdit(match);
+              } else {
+                handleViewDetails(match);
+              }
+              return;
+            }
+          }
+          // Direct API fetch for opening in a new tab immediately
+          api.get(`/quotations/${id}`).then(res => {
+            if (res.data) {
+              if (actionParam === 'edit') {
+                handleStartEdit(res.data);
+              } else {
+                setSelectedQuotation(res.data);
+                setActiveTab('details');
+              }
+            }
+          }).catch(() => {});
+        }
+      } else if (quoteNoParam) {
+        if (quotations.length > 0) {
+          const match = quotations.find(q => 
+            q.quotation_no?.toLowerCase().trim() === quoteNoParam.toLowerCase().trim()
+          );
+          if (match) {
             handleViewDetails(match);
+            return;
           }
         }
-      } else if (quoteNoParam && quotations.length > 0) {
-        const match = quotations.find(q => 
-          q.quotation_no?.toLowerCase().trim() === quoteNoParam.toLowerCase().trim()
-        );
-        if (match) {
-          handleViewDetails(match);
-        }
+        api.get(`/quotations?quote_no=${encodeURIComponent(quoteNoParam)}`).then(res => {
+          const found = Array.isArray(res.data) ? res.data[0] : res.data;
+          if (found) {
+            setSelectedQuotation(found);
+            setActiveTab('details');
+          }
+        }).catch(() => {});
       }
     }
   }, [searchParams, quotations]);
@@ -556,10 +594,10 @@ export default function QuotationsPage() {
       {/* HEADER CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d] flex items-center gap-3">
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900 flex items-center gap-3">
             Quotations
           </h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C82A2B] mt-1 font-bold">
             {activeTab === 'list' && 'Client Contract proposals & custom sizing estimates'}
             {activeTab === 'create' && (editingQuotationId ? 'Quotation Editor Wizard' : 'Quotation Compiler Wizard')}
             {activeTab === 'details' && 'Detailed Expense Breakdown & Delivery Timelines'}
@@ -604,7 +642,7 @@ export default function QuotationsPage() {
       {/* 1. LIST REGISTRY TAB */}
       {activeTab === 'list' && (
         <QuotationList
-          quotations={quotations}
+          quotations={visibleQuotations}
           organizations={organizations}
           isLoading={isLoading}
           onCompileQuotation={() => setActiveTab('create')}
@@ -651,6 +689,7 @@ export default function QuotationsPage() {
       {activeTab === 'details' && selectedQuotation && (
         <QuotationDetails
           selectedQuotation={selectedQuotation}
+          allQuotations={quotations}
           fabricsList={fabricsList}
           onBack={() => {
             setSelectedQuotation(null);
@@ -663,6 +702,7 @@ export default function QuotationsPage() {
           onBmReject={setBmRejectCandidate}
           onDeleteCandidate={setDeleteCandidate}
           currentUser={currentUser}
+          onRefresh={fetchQuotations}
         />
       )}
 

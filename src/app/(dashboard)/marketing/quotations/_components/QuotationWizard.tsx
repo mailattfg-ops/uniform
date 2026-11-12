@@ -1593,7 +1593,7 @@ Forma Apparels Co.`;
   if (isInitializingEdit) {
     return (
       <div className="flex justify-center items-center py-20">
-        <div className="w-10 h-10 border-4 border-[#2d8d9b] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-[#C82A2B] border-t-transparent rounded-full animate-spin"></div>
         <span className="ml-4 font-black text-sm text-zinc-500">Initializing Quotation Editor...</span>
       </div>
     );
@@ -1602,7 +1602,7 @@ Forma Apparels Co.`;
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* STEPPER PROGRESS */}
-      <div className="bg-[#2d8d9b]/5 p-6 rounded-[2rem] border border-[#2d8d9b]/10 flex justify-between items-center max-w-4xl mx-auto">
+      <div className="bg-[#FFF1F1] p-6 rounded-[2rem] border border-[#C82A2B]/15 flex justify-between items-center max-w-4xl mx-auto">
         {[
           { idx: 1, label: 'Customer' },
           { idx: 2, label: 'Sizing Audit' },
@@ -1612,14 +1612,14 @@ Forma Apparels Co.`;
         ].map(step => (
           <div key={step.idx} className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 ${currentStep === step.idx
-              ? 'bg-[#3a525d] border-[#3a525d] text-white shadow-lg'
+              ? 'bg-[#C82A2B] border-[#C82A2B] text-white shadow-lg shadow-[#C82A2B]/25'
               : currentStep > step.idx
-                ? 'bg-green-500 border-green-500 text-white'
+                ? 'bg-emerald-600 border-emerald-600 text-white'
                 : 'bg-white border-zinc-200 text-zinc-400'
               }`}>
               {currentStep > step.idx ? <Check size={16} strokeWidth={3} /> : step.idx}
             </div>
-            <span className={`text-xs font-black uppercase tracking-wider hidden md:inline ${currentStep === step.idx ? 'text-[#3a525d]' : 'text-zinc-400'
+            <span className={`text-xs font-black uppercase tracking-wider hidden md:inline ${currentStep === step.idx ? 'text-[#C82A2B]' : 'text-zinc-400'
               }`}>
               {step.label}
             </span>

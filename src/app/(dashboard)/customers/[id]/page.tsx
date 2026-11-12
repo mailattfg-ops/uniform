@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
@@ -57,8 +57,11 @@ import {
   MessageSquarePlus,
   AlertTriangle,
   MoreVertical,
-  MoreHorizontal
+  MoreHorizontal,
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -186,7 +189,7 @@ const MultiEntryInput: React.FC<{
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 h-11 bg-white border border-[#fce4d4] rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 text-[#3a525d]"
+          className="flex-1 h-11 bg-white border border-zinc-200 rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] text-zinc-800"
         />
         <button
           type="button"
@@ -202,7 +205,7 @@ const MultiEntryInput: React.FC<{
           {items.map((item, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] shadow-sm animate-in zoom-in-95 duration-200"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 shadow-sm animate-in zoom-in-95 duration-200"
             >
               {item}
               <button
@@ -261,6 +264,8 @@ function OrganizationDetailsPageContent() {
   const [isLoadingChallans, setIsLoadingChallans] = useState(false);
   const [selectedProForma, setSelectedProForma] = useState<any | null>(null);
   const [isProFormaModalOpen, setIsProFormaModalOpen] = useState(false);
+  const [isCreateProformaModalOpen, setIsCreateProformaModalOpen] = useState(false);
+  const [selectedQuoteIdForProforma, setSelectedQuoteIdForProforma] = useState<string>('');
 
   const handleOpenProforma = (pi: any) => {
     setSelectedProForma({
@@ -728,15 +733,27 @@ function OrganizationDetailsPageContent() {
     }
   }, [editingDept, isAddingDept]);
 
-  const [deleteDeptConfirm, setDeleteDeptConfirm] = useState<{ isOpen: boolean; id: string | null }>({
+  const [deptDeleteModal, setDeptDeleteModal] = useState<{
+    isOpen: boolean;
+    step: 1 | 2;
+    dept: any | null;
+    typedName: string;
+    isDeleting?: boolean;
+  }>({
     isOpen: false,
-    id: null
+    step: 1,
+    dept: null,
+    typedName: '',
+    isDeleting: false
   });
+  const [openMenuDeptId, setOpenMenuDeptId] = useState<string | null>(null);
 
   // Entity directory states inside tab
   const [entities, setEntities] = useState<any[]>([]);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('');
   const [entitySearchQuery, setEntitySearchQuery] = useState('');
+  const [entityGenderFilter, setEntityGenderFilter] = useState<string>('ALL');
+  const [entitySectionFilter, setEntitySectionFilter] = useState<string>('ALL');
   const [isLoadingEntities, setIsLoadingEntities] = useState(false);
   const [entityView, setEntityView] = useState<'list' | 'register' | 'bulk'>('list');
   const [editingEntity, setEditingEntity] = useState<any | null>(null);
@@ -752,6 +769,76 @@ function OrganizationDetailsPageContent() {
     isOpen: false,
     member: null
   });
+
+  const getMemberSection = (m: any): string => {
+    if (!m) return '';
+    if (m.section && typeof m.section === 'string' && m.section.trim()) return m.section.trim();
+    if (m.division && typeof m.division === 'string' && m.division.trim()) return m.division.trim();
+    if (m.notes && typeof m.notes === 'string') {
+      const match = m.notes.match(/Section:\s*([^\n,;]+)/i);
+      if (match && match[1]?.trim()) return match[1].trim();
+    }
+    if (m.departments?.section && typeof m.departments.section === 'string' && m.departments.section.trim()) {
+      return m.departments.section.trim();
+    }
+    if (m.departments?.division && typeof m.departments.division === 'string' && m.departments.division.trim()) {
+      return m.departments.division.trim();
+    }
+    return '';
+  };
+
+  const deptMembers = useMemo(() => {
+    if (!selectedDepartmentForMembers) return [];
+    return entities.filter(e => {
+      if (String(e.department_id) === String(selectedDepartmentForMembers.id)) return true;
+      if ((selectedDepartmentForMembers.name || '').trim().toLowerCase() === 'main' && (!e.department_id || !e.departments)) return true;
+      return false;
+    });
+  }, [entities, selectedDepartmentForMembers]);
+
+  const availableSections = useMemo(() => {
+    const set = new Set<string>();
+    
+    // 1. From department's division / section string (e.g. "A, B, C" or "North, South")
+    const rawDeptSec = selectedDepartmentForMembers?.division || selectedDepartmentForMembers?.section || '';
+    if (rawDeptSec) {
+      rawDeptSec.split(',').forEach((s: string) => {
+        const trimmed = s.trim();
+        if (trimmed) set.add(trimmed);
+      });
+    }
+
+    // 2. From individual members in this department
+    deptMembers.forEach((m) => {
+      const s = getMemberSection(m);
+      if (s) {
+        s.split(',').forEach((part: string) => {
+          const trimmed = part.trim();
+          if (trimmed) set.add(trimmed);
+        });
+      }
+    });
+
+    return Array.from(set).sort();
+  }, [selectedDepartmentForMembers, deptMembers]);
+
+  const filteredDepartmentMembers = useMemo(() => {
+    return deptMembers.filter(e => {
+      // Gender filter
+      if (entityGenderFilter !== 'ALL') {
+        const g = (e.gender || 'Male').toLowerCase();
+        if (g !== entityGenderFilter.toLowerCase()) return false;
+      }
+
+      // Section filter
+      if (entitySectionFilter !== 'ALL') {
+        const s = getMemberSection(e).toLowerCase();
+        if (!s.includes(entitySectionFilter.toLowerCase())) return false;
+      }
+
+      return true;
+    });
+  }, [deptMembers, entityGenderFilter, entitySectionFilter]);
 
   // Bulk Upload states
   const [bulkFile, setBulkFile] = useState<File | null>(null);
@@ -1289,22 +1376,30 @@ function OrganizationDetailsPageContent() {
     });
   };
 
-  const handleConfirmedDeleteDept = async () => {
-    if (!deleteDeptConfirm.id) return;
+  const handleExecuteDepartmentDelete = async () => {
+    if (!deptDeleteModal.dept?.id) return;
 
-    const loadingToast = toast.loading('Removing department...');
-    const id = deleteDeptConfirm.id;
-    setDeleteDeptConfirm({ isOpen: false, id: null });
+    setDeptDeleteModal(prev => ({ ...prev, isDeleting: true }));
+    const loadingToast = toast.loading(`Removing department "${deptDeleteModal.dept.name}"...`);
+    const id = deptDeleteModal.dept.id;
 
     try {
       await api.delete(`/departments/${id}`);
-      toast.success('Department removed!', { id: loadingToast });
+      toast.success(`Department "${deptDeleteModal.dept.name}" removed!`, { id: loadingToast });
+
+      if (selectedDepartmentForMembers && String(selectedDepartmentForMembers.id) === String(id)) {
+        setSelectedDepartmentForMembers(null);
+      }
+
+      setDeptDeleteModal({ isOpen: false, step: 1, dept: null, typedName: '', isDeleting: false });
 
       const detailsRes = await api.get(`/organizations/${orgId}/details`);
       setOrgDetails(detailsRes.data);
       setDepartments(detailsRes.data.departments || []);
-    } catch (err) {
-      toast.error('Failed to delete department', { id: loadingToast });
+      await fetchEntities();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to delete department', { id: loadingToast });
+      setDeptDeleteModal(prev => ({ ...prev, isDeleting: false }));
     }
   };
 
@@ -1360,6 +1455,13 @@ function OrganizationDetailsPageContent() {
       defaultValue: editingEntity?.gender || 'Male'
     },
     {
+      name: 'section',
+      label: 'Section / Division (Optional)',
+      type: 'text',
+      placeholder: 'e.g. A, B, Section 1',
+      defaultValue: getMemberSection(editingEntity) || ''
+    },
+    {
       name: 'class_id',
       label: 'Department / Unit',
       type: 'select',
@@ -1392,7 +1494,9 @@ function OrganizationDetailsPageContent() {
     const payload = {
       ...formData,
       class_id: resolvedClassId,
-      school_id: String(orgId)
+      school_id: String(orgId),
+      section: formData.section || '',
+      notes: formData.section ? `Section: ${formData.section}` : (formData.notes || null),
     };
     try {
       if (isEditing) {
@@ -1472,12 +1576,14 @@ function OrganizationDetailsPageContent() {
       return;
     }
 
-    const headers = ['Full Name', 'Reference ID', 'Organization', 'Department / Section', 'Status', 'Measurement Status', 'Onboarded Date'];
+    const headers = ['Full Name', 'Reference ID', 'Organization', 'Department / Unit', 'Section', 'Gender', 'Status', 'Measurement Status', 'Onboarded Date'];
     const rows = listToExport.map(e => [
       `"${e.full_name}"`,
       `"${e.admission_no}"`,
       `"${org?.name || 'Main Registry'}"`,
       `"${e.departments?.name || (selectedDepartmentForMembers?.name || 'Main')}"`,
+      `"${getMemberSection(e) || '—'}"`,
+      `"${e.gender || 'Male'}"`,
       `"${e.status || 'Active'}"`,
       `"${e.measurement_status || 'Missing'}"`,
       `"${formatDate(e.created_at)}"`
@@ -1551,12 +1657,14 @@ function OrganizationDetailsPageContent() {
         };
 
         const deptRaw = findVal(['Department / Class', 'Department/Class', 'Department', 'Class', 'Grade', 'Standard', 'Section', 'Division', 'Department ID', 'Class ID', 'department_id', 'class_id']);
+        const sectionVal = findVal(['Section', 'Division', 'section', 'division']);
 
         return {
           full_name: findVal(['Full Name', 'Name', 'Student Name', 'Member Name', 'full_name', 'Employee Name']),
           admission_no: String(findVal(['Admission / Employee ID (Optional)', 'Admission / Employee ID', 'Admission No / Roll No', 'Admission No', 'Roll No', 'Employee ID', 'Emp ID', 'Reference ID', 'ID', 'admission_no', 'Reg No', 'Registration No', 'Code']) || ''),
           organization_id: String(orgId),
           department_id: deptRaw && String(deptRaw).trim() !== '' ? String(deptRaw).trim() : (selectedDepartmentForMembers?.name || 'Main'),
+          section: sectionVal || '',
           contact_mobile: String(findVal(['Mobile (Optional)', 'Mobile', 'Mobile Number', 'Phone', 'contact_mobile', 'Contact', 'Mobile No', 'Phone Number', 'contact_number']) || ''),
           gender: findVal(['Gender', 'gender', 'Sex']) || 'Male'
         };
@@ -2137,7 +2245,7 @@ function OrganizationDetailsPageContent() {
   if (isLoadingOrg) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
-        <div className="w-12 h-12 border-4 border-[#2d8d9b]/25 border-t-[#2d8d9b] rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-[#C82A2B]/20 border-t-[#C82A2B] rounded-full animate-spin" />
         <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Loading organization details...</p>
       </div>
     );
@@ -2165,11 +2273,11 @@ function OrganizationDetailsPageContent() {
             <Button
               onClick={() => router.push(isClientUser ? '/dashboard' : '/customers')}
               variant="secondary"
-              className="w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-center text-zinc-500 hover:bg-[#2d8d9b] hover:text-white transition-all shadow-2xs !p-0 shrink-0 cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-center text-zinc-500 hover:bg-[#C82A2B] hover:text-white transition-all shadow-2xs !p-0 shrink-0 cursor-pointer"
             >
               <ArrowLeft size={16} />
             </Button>
-            <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-[#3a525d] truncate">
+            <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-zinc-900 truncate">
               {org.name}
             </h1>
           </div>
@@ -2189,12 +2297,12 @@ function OrganizationDetailsPageContent() {
                     setIsAddingDept(false);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === tab
-                    ? 'bg-[#3a525d] text-white shadow-sm'
+                    ? 'bg-[#C82A2B] text-white shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/50'
                     }`}
                 >
-                  {tab === 'transactions' && <CreditCard size={13} className={activeTab === 'transactions' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />}
-                  {tab === 'ledger' && <ReceiptText size={13} className={activeTab === 'ledger' ? 'text-[#2d8d9b]' : 'text-zinc-400'} />}
+                  {tab === 'transactions' && <CreditCard size={13} className={activeTab === 'transactions' ? 'text-white' : 'text-zinc-400'} />}
+                  {tab === 'ledger' && <ReceiptText size={13} className={activeTab === 'ledger' ? 'text-white' : 'text-zinc-400'} />}
                   {tab === 'ledger' ? 'Statement' : tab === 'transactions' ? 'Transactions' : tab}
                 </button>
               ))}
@@ -2220,9 +2328,9 @@ function OrganizationDetailsPageContent() {
                         setIsActionsDropdownOpen(false);
                         setIsEditingCustomer(true);
                       }}
-                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-[#3a525d] hover:bg-[#2d8d9b]/10 hover:text-[#2d8d9b] flex items-center gap-2.5 transition-colors cursor-pointer"
+                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-zinc-800 hover:bg-[#FFF1F1] hover:text-[#C82A2B] flex items-center gap-2.5 transition-colors cursor-pointer"
                     >
-                      <Edit2 size={13} className="text-[#2d8d9b]" />
+                      <Edit2 size={13} className="text-[#C82A2B]" />
                       <span>Edit Profile</span>
                     </button>
 
@@ -2232,7 +2340,7 @@ function OrganizationDetailsPageContent() {
                         setIsActionsDropdownOpen(false);
                         handleResetPassword();
                       }}
-                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-[#3a525d] hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-zinc-800 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors cursor-pointer"
                     >
                       <Key size={13} className="text-amber-600" />
                       <span>Reset Password</span>
@@ -2263,11 +2371,11 @@ function OrganizationDetailsPageContent() {
           <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-lg text-[9px] font-black uppercase tracking-wider shrink-0">
             {org.customer_code ? `Code: ${org.customer_code}` : `ID: #${org.id}`}
           </span>
-          <span className="text-[10px] font-black text-[#2d8d9b] uppercase tracking-widest shrink-0">
+          <span className="text-[10px] font-black text-[#C82A2B] uppercase tracking-widest shrink-0">
             {org.industries?.name || 'School Sector'}
           </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-50 border border-zinc-200/80 text-zinc-600 rounded-lg text-[9px] font-bold shrink-0">
-            <Calendar size={11} className="text-[#2d8d9b]" />
+            <Calendar size={11} className="text-[#C82A2B]" />
             <span>Onboarded: {formatDate(org.created_at)}</span>
           </span>
           {Boolean(org.is_b2b || org.gst_number) && (
@@ -2296,13 +2404,17 @@ function OrganizationDetailsPageContent() {
       {/* Tab 1: Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-in fade-in duration-500">
-          {/* Floating Measurement Quick Action Widget on Right Side (Pops out on hover) */}
+          {/* Floating Measurement Quick Action Widget on Right Side (Shows on click only) */}
+          {isMeasurementDrawerOpen && (
+            <div
+              className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+              onClick={() => setIsMeasurementDrawerOpen(false)}
+            />
+          )}
           <div
             className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
-              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)] hover:translate-x-0'
+              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)]'
             }`}
-            onMouseEnter={() => setIsMeasurementDrawerOpen(true)}
-            onMouseLeave={() => setIsMeasurementDrawerOpen(false)}
           >
             {/* Small Compact Icon Tab on Right Edge */}
             <button
@@ -2327,11 +2439,11 @@ function OrganizationDetailsPageContent() {
             <div className="w-80 bg-white rounded-l-3xl shadow-[-12px_10px_35px_rgba(0,0,0,0.14)] border-y border-l border-zinc-200 p-5 space-y-4 shrink-0 text-left">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 flex items-center justify-center">
                     <Ruler size={16} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-[#3a525d] tracking-tight">Sizing & Measurements</h4>
+                    <h4 className="text-sm font-black text-zinc-900 tracking-tight">Sizing & Measurements</h4>
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Quick Actions</p>
                   </div>
                 </div>
@@ -2356,17 +2468,17 @@ function OrganizationDetailsPageContent() {
                   className="p-3 bg-zinc-50 hover:bg-zinc-100/90 rounded-2xl border border-zinc-150 flex items-center justify-between cursor-pointer transition-all group"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#3a525d]/10 text-[#3a525d] group-hover:bg-[#3a525d] group-hover:text-white flex items-center justify-center transition-colors">
+                    <div className="w-8 h-8 rounded-xl bg-zinc-100 text-zinc-700 group-hover:bg-[#C82A2B] group-hover:text-white flex items-center justify-center transition-colors">
                       <Users size={15} />
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Total Members</p>
-                      <p className="text-base font-black text-[#3a525d] leading-none mt-0.5">
+                      <p className="text-base font-black text-zinc-900 leading-none mt-0.5">
                         {orgDetails?.measurements?.total || 0}
                       </p>
                     </div>
                   </div>
-                  <span className="px-2 py-1 rounded-lg bg-white border border-zinc-200 text-[#3a525d] group-hover:bg-[#3a525d] group-hover:text-white group-hover:border-[#3a525d] text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs">
+                  <span className="px-2 py-1 rounded-lg bg-white border border-zinc-200 text-zinc-700 group-hover:bg-[#C82A2B] group-hover:text-white group-hover:border-[#C82A2B] text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs">
                     <span>View</span>
                     <ArrowRight size={10} />
                   </span>
@@ -2430,10 +2542,10 @@ function OrganizationDetailsPageContent() {
           </div>
 
           {isClientUser && (
-            <div className="p-4 bg-[#2d8d9b]/10 rounded-2xl border border-[#2d8d9b]/20 flex items-center gap-3">
-              <Building2 className="text-[#2d8d9b] shrink-0" size={20} />
+            <div className="p-4 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20 flex items-center gap-3">
+              <Building2 className="text-[#C82A2B] shrink-0" size={20} />
               <div>
-                <p className="text-xs font-bold text-[#3a525d]">Organization Client Portal</p>
+                <p className="text-xs font-bold text-zinc-900">Organization Client Portal</p>
                 <p className="text-[11px] text-zinc-500 font-medium">You are viewing your official organization directory and account records.</p>
               </div>
             </div>
@@ -2442,15 +2554,15 @@ function OrganizationDetailsPageContent() {
           {/* Statement & Account Balance KPI Cards */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <ReceiptText size={18} className="text-[#2d8d9b]" />
-              <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Statement & Account Summary</h3>
+              <ReceiptText size={18} className="text-[#C82A2B]" />
+              <h3 className="text-lg font-black text-zinc-900 tracking-tight">Statement & Account Summary</h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* 1. Total Invoiced */}
               <div
                 onClick={() => setActiveTab('ledger')}
-                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#2d8d9b]/30 cursor-pointer transition-all group"
+                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#C82A2B]/30 cursor-pointer transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Invoiced / Orders</span>
@@ -2471,7 +2583,7 @@ function OrganizationDetailsPageContent() {
               {/* 2. Total Paid */}
               <div
                 onClick={() => setActiveTab('ledger')}
-                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#2d8d9b]/30 cursor-pointer transition-all group"
+                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#C82A2B]/30 cursor-pointer transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Paid (Credits)</span>
@@ -2492,7 +2604,7 @@ function OrganizationDetailsPageContent() {
               {/* 3. Outstanding Balance / Credit Balance */}
               <div
                 onClick={() => setActiveTab('ledger')}
-                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#2d8d9b]/30 cursor-pointer transition-all group"
+                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#C82A2B]/30 cursor-pointer transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
@@ -2521,7 +2633,7 @@ function OrganizationDetailsPageContent() {
               {/* 4. Settlement Status */}
               <div
                 onClick={() => setActiveTab('ledger')}
-                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#2d8d9b]/30 cursor-pointer transition-all group"
+                className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-[#C82A2B]/30 cursor-pointer transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Settlement Status</span>
@@ -2551,7 +2663,7 @@ function OrganizationDetailsPageContent() {
 
           {/* Org details metadata card */}
           <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-zinc-100 space-y-6">
-            <h3 className="text-lg font-black text-[#3a525d] tracking-tight">Organization Profile</h3>
+            <h3 className="text-lg font-black text-zinc-900 tracking-tight">Organization Profile</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
@@ -2559,7 +2671,7 @@ function OrganizationDetailsPageContent() {
                   <MapPin size={12} /> Address Location
                 </span>
                 <div className="space-y-1.5">
-                  <p className="text-sm font-bold text-[#3a525d]">
+                  <p className="text-sm font-bold text-zinc-900">
                     {org.address || (org.city || org.state || org.pincode || org.country ? '' : 'Not registered')}
                   </p>
                   {(org.city || org.state || org.pincode || org.country) && (
@@ -2575,7 +2687,7 @@ function OrganizationDetailsPageContent() {
                         </span>
                       )}
                       {org.pincode && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#2d8d9b]">
+                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#C82A2B]">
                           PIN: {org.pincode}
                         </span>
                       )}
@@ -2595,25 +2707,25 @@ function OrganizationDetailsPageContent() {
                   <User size={12} /> Contact Person & Details
                 </span>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-[#3a525d]">
+                  <p className="text-sm font-bold text-zinc-900">
                     {org.contact_person || 'No Contact Person Listed'}
                   </p>
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
                     {(org.contact_number || org.phone) && (
                       <a
                         href={`tel:${org.contact_number || org.phone}`}
-                        className="inline-flex items-center gap-1.5 font-mono text-[#3a525d] hover:text-[#2d8d9b] transition-colors"
+                        className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
                       >
-                        <Phone size={12} className="text-[#2d8d9b]" />
+                        <Phone size={12} className="text-[#C82A2B]" />
                         <span>{org.contact_number || org.phone}</span>
                       </a>
                     )}
                     {(org.email || org.contact_email) && (
                       <a
                         href={`mailto:${org.email || org.contact_email}`}
-                        className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#2d8d9b] transition-colors"
+                        className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#C82A2B] transition-colors"
                       >
-                        <Mail size={12} className="text-[#2d8d9b]" />
+                        <Mail size={12} className="text-[#C82A2B]" />
                         <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
                       </a>
                     )}
@@ -2625,7 +2737,7 @@ function OrganizationDetailsPageContent() {
                 <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
                   <Users size={12} /> Sales Person
                 </span>
-                <p className="text-sm font-bold text-[#3a525d]">
+                <p className="text-sm font-bold text-zinc-900">
                   {org.relationship_manager?.full_name
                     ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
                     : 'Unassigned'}
@@ -2637,7 +2749,7 @@ function OrganizationDetailsPageContent() {
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
                     <Users size={12} /> Assigned Marketing Executive
                   </span>
-                  <p className="text-sm font-bold text-[#3a525d]">
+                  <p className="text-sm font-bold text-zinc-900">
                     {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
                   </p>
                 </div>
@@ -2650,13 +2762,13 @@ function OrganizationDetailsPageContent() {
                   openGstDeliveryModal();
                 }}
                 className={`p-5 bg-zinc-50 rounded-2xl border border-zinc-100 transition-all group ${
-                  !isClientUser ? 'cursor-pointer hover:border-[#2d8d9b]/40 hover:bg-[#2d8d9b]/5 hover:shadow-sm' : ''
+                  !isClientUser ? 'cursor-pointer hover:border-[#C82A2B]/40 hover:bg-[#FFF1F1] hover:shadow-sm' : ''
                 }`}
                 title={!isClientUser ? "Click to configure GST & Delivery details" : undefined}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-[#2d8d9b] transition-colors">
-                    <ReceiptText size={12} className="text-zinc-400 group-hover:text-[#2d8d9b] transition-colors" /> GST & B2B Tax Profile
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-[#C82A2B] transition-colors">
+                    <ReceiptText size={12} className="text-zinc-400 group-hover:text-[#C82A2B] transition-colors" /> GST & B2B Tax Profile
                   </span>
                   <div className="flex items-center gap-2">
                     {org.gst_number ? (
@@ -2669,7 +2781,7 @@ function OrganizationDetailsPageContent() {
                       </span>
                     )}
                     {!isClientUser && (
-                      <span className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 group-hover:text-[#2d8d9b] transition-all" title="Edit GST Details">
+                      <span className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 group-hover:text-[#C82A2B] transition-all" title="Edit GST Details">
                         <Edit2 size={12} />
                       </span>
                     )}
@@ -2677,13 +2789,13 @@ function OrganizationDetailsPageContent() {
                 </div>
                 {org.gst_number ? (
                   <div className="space-y-1">
-                    <p className="text-sm font-black font-mono text-[#3a525d] tracking-wide group-hover:text-[#2d8d9b] transition-colors">
+                    <p className="text-sm font-black font-mono text-zinc-900 tracking-wide group-hover:text-[#C82A2B] transition-colors">
                       {org.gst_number}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600 pt-0.5">
                       {org.legal_name && (
                         <span className="text-zinc-600 truncate max-w-[220px]" title={org.legal_name}>
-                          Legal: <span className="font-bold text-[#3a525d]">{org.legal_name}</span>
+                          Legal: <span className="font-bold text-zinc-900">{org.legal_name}</span>
                         </span>
                       )}
                       {org.pan_number && (
@@ -2699,7 +2811,7 @@ function OrganizationDetailsPageContent() {
                       No GST number on file. Quotations default to standard retail pricing.
                     </p>
                     {!isClientUser && (
-                      <div className="text-[11px] font-bold text-[#2d8d9b] flex items-center gap-1 group-hover:underline">
+                      <div className="text-[11px] font-bold text-[#C82A2B] flex items-center gap-1 group-hover:underline">
                         <span>+ Add GSTIN for B2B Pricing</span>
                         <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                       </div>
@@ -2715,14 +2827,14 @@ function OrganizationDetailsPageContent() {
                     <Truck size={12} /> Delivery Destination
                   </span>
                   {(org.delivery_address || org.delivery_city) && (
-                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#2d8d9b]/10 text-[#2d8d9b] border border-[#2d8d9b]/20">
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
                       Custom Dispatch
                     </span>
                   )}
                 </div>
                 {(org.delivery_address || org.delivery_city || org.delivery_state || org.delivery_pincode) ? (
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-[#3a525d]">
+                    <p className="text-sm font-bold text-zinc-900">
                       {org.delivery_address || 'Address registered'}
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
@@ -2733,7 +2845,7 @@ function OrganizationDetailsPageContent() {
                         <span className="bg-white px-2 py-0.5 rounded border border-zinc-200">{org.delivery_state}</span>
                       )}
                       {org.delivery_pincode && (
-                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-[#2d8d9b] font-mono">
+                        <span className="bg-white px-2 py-0.5 rounded border border-zinc-200 text-[#C82A2B] font-mono">
                           PIN: {org.delivery_pincode}
                         </span>
                       )}
@@ -2765,7 +2877,7 @@ function OrganizationDetailsPageContent() {
                           });
                           setIsGstDeliveryModalOpen(true);
                         }}
-                        className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] font-bold text-[#C82A2B] hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         + Set Separate Delivery Address
                       </button>
@@ -2775,16 +2887,16 @@ function OrganizationDetailsPageContent() {
               </div>
 
               {/* Credit Period & Commercial Terms Card */}
-              <div className="p-5 bg-teal-50/50 rounded-2xl border border-teal-150/60">
+              <div className="p-5 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-[#2d8d9b] uppercase tracking-widest">
+                  <span className="flex items-center gap-2 text-[9px] font-black text-[#9E1B1D] uppercase tracking-widest">
                     <CreditCard size={12} /> Credit Period Terms
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#2d8d9b] text-white shadow-xs">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#C82A2B] text-white shadow-xs">
                     {org.credit_period_days || 30} Days
                   </span>
                 </div>
-                <p className="text-sm font-black text-[#3a525d]">
+                <p className="text-sm font-black text-zinc-900">
                   {org.credit_period_days || 30} Days Payment Window
                 </p>
                 <p className="text-xs text-zinc-500 font-medium mt-1">
@@ -3066,6 +3178,8 @@ function OrganizationDetailsPageContent() {
                     onClick={() => {
                       setSelectedDepartmentForMembers(null);
                       setEntitySearchQuery('');
+                      setEntityGenderFilter('ALL');
+                      setEntitySectionFilter('ALL');
                     }}
                     variant="secondary"
                     className="h-10 px-3.5 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-800 hover:text-white rounded-xl font-black uppercase tracking-wider text-[10px] gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0"
@@ -3143,6 +3257,37 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title={`Members in ${selectedDepartmentForMembers.name}`}
                 subtitle={`Showing roster for ${selectedDepartmentForMembers.name}`}
+                headerAction={
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* Gender Filter */}
+                    <FilterDropdown
+                      label="Gender"
+                      allLabel="All Genders"
+                      allBadge={deptMembers.length}
+                      value={entityGenderFilter}
+                      onChange={(val) => setEntityGenderFilter(val)}
+                      options={[
+                        { label: 'Male', value: 'Male', badge: deptMembers.filter(e => (e.gender || 'Male').toLowerCase() === 'male').length },
+                        { label: 'Female', value: 'Female', badge: deptMembers.filter(e => (e.gender || '').toLowerCase() === 'female').length },
+                        { label: 'Other', value: 'Other', badge: deptMembers.filter(e => (e.gender || '').toLowerCase() === 'other').length },
+                      ]}
+                    />
+
+                    {/* Section Filter */}
+                    <FilterDropdown
+                      label="Section"
+                      allLabel="All Sections"
+                      allBadge={deptMembers.length}
+                      value={entitySectionFilter}
+                      onChange={(val) => setEntitySectionFilter(val)}
+                      options={availableSections.map(sec => ({
+                        label: `Section ${sec}`,
+                        value: sec,
+                        badge: deptMembers.filter(e => getMemberSection(e).toLowerCase().includes(sec.toLowerCase())).length
+                      }))}
+                    />
+                  </div>
+                }
                 columns={[
                   {
                     header: 'Entity / Member Name',
@@ -3174,6 +3319,19 @@ function OrganizationDetailsPageContent() {
                     accessor: (e) => (
                       <span className="text-xs font-semibold text-zinc-600">{e.gender || 'Male'}</span>
                     )
+                  },
+                  {
+                    header: 'Section',
+                    accessor: (e: any) => {
+                      const sec = getMemberSection(e);
+                      return sec ? (
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
+                          {sec}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs font-medium">—</span>
+                      );
+                    }
                   },
                   {
                     header: 'Mobile',
@@ -3242,11 +3400,7 @@ function OrganizationDetailsPageContent() {
                     )
                   }] : [])
                 ]}
-                data={entities.filter(e => {
-                  if (String(e.department_id) === String(selectedDepartmentForMembers.id)) return true;
-                  if ((selectedDepartmentForMembers.name || '').trim().toLowerCase() === 'main' && (!e.department_id || !e.departments)) return true;
-                  return false;
-                })}
+                data={filteredDepartmentMembers}
                 isLoading={isLoadingEntities}
                 onSearch={setEntitySearchQuery}
                 searchPlaceholder={`Search members in ${selectedDepartmentForMembers.name}...`}
@@ -3258,33 +3412,35 @@ function OrganizationDetailsPageContent() {
               <DataTable
                 title="Departments & Sections"
                 subtitle={`Active segments inside ${org.name}`}
+                onRowClick={(d) => {
+                  setSelectedDepartmentForMembers(d);
+                  setEntityView('list');
+                  setEntityGenderFilter('ALL');
+                  setEntitySectionFilter('ALL');
+                }}
                 columns={[
+                  {
+                    header: 'Created On',
+                    accessor: (d) => (
+                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">
+                        {formatDate(d.created_at)}
+                      </span>
+                    )
+                  },
                   {
                     header: 'Department / Unit',
                     accessor: (d) => (
                       <div className="flex items-center gap-3">
                         <div 
-                          onClick={() => {
-                            setSelectedDepartmentForMembers(d);
-                            setEntityView('list');
-                          }}
-                          className="w-9 h-9 bg-zinc-100 hover:bg-[#FFF1F1] rounded-xl flex items-center justify-center text-zinc-600 hover:text-[#C82A2B] cursor-pointer transition-colors border border-zinc-200/60"
-                          title="Click to view members"
+                          className="w-9 h-9 bg-zinc-100 group-hover:bg-[#FFF1F1] rounded-xl flex items-center justify-center text-zinc-600 group-hover:text-[#C82A2B] transition-colors border border-zinc-200/60 shrink-0"
+                          title="Click row to view members"
                         >
                           <Grid size={17} />
                         </div>
                         <div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedDepartmentForMembers(d);
-                              setEntityView('list');
-                            }}
-                            className="font-black text-sm tracking-tight text-zinc-900 hover:text-[#C82A2B] hover:underline text-left cursor-pointer transition-colors block bg-transparent border-none p-0"
-                            title="Click to view members in this department"
-                          >
+                          <span className="font-black text-sm tracking-tight text-zinc-900 group-hover:text-[#C82A2B] group-hover:underline transition-colors block text-left">
                             {d.name || 'N/A'}
-                          </button>
+                          </span>
                           <div className="flex flex-wrap items-center gap-2 mt-0.5">
                             {d.grade && (
                               <span className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-200 text-zinc-500 rounded text-[9px] font-bold uppercase tracking-wider">
@@ -3311,65 +3467,78 @@ function OrganizationDetailsPageContent() {
                       }).length;
 
                       return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedDepartmentForMembers(d);
-                            setEntityView('list');
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-[#C82A2B] text-zinc-700 hover:text-white font-bold text-xs transition-all cursor-pointer group shadow-2xs border border-zinc-200 hover:border-[#C82A2B]"
-                          title="View members in this department"
-                        >
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 group-hover:bg-[#C82A2B] text-zinc-700 group-hover:text-white font-bold text-xs transition-all shadow-2xs border border-zinc-200 group-hover:border-[#C82A2B]">
                           <Users size={13} />
                           <span>{count} Nos</span>
                           <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                        </button>
+                        </div>
                       );
                     }
-                  },
-                  {
-                    header: 'Created On',
-                    accessor: (d) => (
-                      <span className="text-xs font-semibold text-zinc-500">
-                        {formatDate(d.created_at)}
-                      </span>
-                    )
                   },
                   ...(!isClientUser ? [{
                     header: 'Actions',
                     accessor: (d: any) => (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => {
-                            setSelectedDepartmentForMembers(d);
-                            setEntityView('list');
+                      <div className="relative flex items-center justify-end" data-prevent-row-click="true" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuDeptId(openMenuDeptId === String(d.id) ? null : String(d.id));
                           }}
-                          variant="secondary"
-                          className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200 hover:bg-[#C82A2B] hover:text-white hover:border-[#C82A2B] transition-all shadow-sm text-xs font-bold cursor-pointer"
-                          title="Open Members List"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 text-zinc-600 border border-zinc-200 hover:bg-zinc-800 hover:text-white hover:border-zinc-800 transition-all shadow-sm cursor-pointer"
+                          title="Options"
                         >
-                          <Users size={12} />
-                          <span>View</span>
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEditingDept(d);
-                            setIsAddingDept(true);
-                          }}
-                          variant="secondary"
-                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 text-zinc-600 border border-zinc-200 hover:bg-zinc-800 hover:text-white hover:border-zinc-800 transition-all shadow-sm !p-0 cursor-pointer"
-                          title="Edit Department"
-                        >
-                          <Edit2 size={13} />
-                        </Button>
-                        <Button
-                          onClick={() => setDeleteDeptConfirm({ isOpen: true, id: String(d.id) })}
-                          variant="secondary"
-                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all shadow-sm !p-0 cursor-pointer"
-                          title="Delete Department"
-                        >
-                          <Trash2 size={13} />
-                        </Button>
+                          <MoreVertical size={14} />
+                        </button>
+
+                        {openMenuDeptId === String(d.id) && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-30" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuDeptId(null);
+                              }} 
+                            />
+                            <div 
+                              className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-zinc-200 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-100 text-left"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuDeptId(null);
+                                  setEditingDept(d);
+                                  setIsAddingDept(true);
+                                }}
+                                className="w-full px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 transition-colors cursor-pointer"
+                              >
+                                <Edit2 size={13} className="text-zinc-600" />
+                                <span>Edit Department</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuDeptId(null);
+                                  setDeptDeleteModal({
+                                    isOpen: true,
+                                    step: 1,
+                                    dept: d,
+                                    typedName: '',
+                                    isDeleting: false
+                                  });
+                                }}
+                                className="w-full px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={13} className="text-rose-600" />
+                                <span>Delete Department</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )
                   }] : [])
@@ -4249,6 +4418,20 @@ function OrganizationDetailsPageContent() {
                     onChange={setProformaDateFilter}
                   />
                 }
+                rightAction={
+                  !isClientUser && (
+                    <Button
+                      onClick={() => {
+                        setSelectedQuoteIdForProforma(customerQuotes.length > 0 ? String(customerQuotes[0].id) : '');
+                        setIsCreateProformaModalOpen(true);
+                      }}
+                      className="h-9 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-[#C82A2B]/20 transition-all cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Create Proforma</span>
+                    </Button>
+                  )
+                }
                 columns={[
                   {
                     header: 'Date',
@@ -4375,23 +4558,7 @@ function OrganizationDetailsPageContent() {
                     onChange={setInvoiceDateFilter}
                   />
                 }
-                rightAction={
-                  !isClientUser && (
-                    <Button
-                      onClick={() => {
-                        setInvoiceCreditPeriod(org?.credit_period_days || 30);
-                        setSelectedOrderIdForInvoice(null);
-                        setSelectedQuotationIdForInvoice(null);
-                        setInvoiceType('sales_order');
-                        setIsInvoiceModalOpen(true);
-                      }}
-                      className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                    >
-                      <Plus size={15} />
-                      <span>Create Invoice</span>
-                    </Button>
-                  )
-                }
+
                 columns={[
                   {
                     header: 'Date',
@@ -4570,7 +4737,7 @@ function OrganizationDetailsPageContent() {
                     header: 'SO No.',
                     className: 'w-[125px] whitespace-nowrap',
                     accessor: (exp: any) => (
-                      <span className="font-mono font-bold text-xs text-[#2d8d9b] whitespace-nowrap">
+                      <span className="font-mono font-bold text-xs text-[#C82A2B] whitespace-nowrap">
                         {exp.so_no || exp.order_no || exp.linked_ref || '—'}
                       </span>
                     )
@@ -4644,13 +4811,17 @@ function OrganizationDetailsPageContent() {
 
             return (
               <div className="space-y-5 animate-in fade-in duration-300 relative">
-                {/* Floating Journal Summary Quick Action Widget on Right Side (Pops out on hover) */}
+                {/* Floating Journal Summary Quick Action Widget on Right Side (Shows on click only) */}
+                {isJournalDrawerOpen && (
+                  <div
+                    className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+                    onClick={() => setIsJournalDrawerOpen(false)}
+                  />
+                )}
                 <div
                   className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
-                    isJournalDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-46px)] hover:translate-x-0'
+                    isJournalDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-46px)]'
                   }`}
-                  onMouseEnter={() => setIsJournalDrawerOpen(true)}
-                  onMouseLeave={() => setIsJournalDrawerOpen(false)}
                 >
                   {/* Protruding Handle on Right Edge */}
                   <button
@@ -4659,11 +4830,11 @@ function OrganizationDetailsPageContent() {
                     className="w-[46px] bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-2xl py-4 px-2 flex flex-col items-center justify-center gap-2.5 shadow-[-6px_4px_25px_rgba(200,42,43,0.25)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0"
                     title="Financial Journal Summary & Balances"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[#2d8d9b]">
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-white">
                       <BookOpen size={16} />
                     </div>
 
-                    <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-black uppercase tracking-[0.2em] text-[#fce4d4] py-1">
+                    <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-black uppercase tracking-[0.2em] text-white/90 py-1">
                       Totals
                     </span>
 
@@ -4683,11 +4854,11 @@ function OrganizationDetailsPageContent() {
                   <div className="w-80 bg-white rounded-l-3xl shadow-[-12px_10px_35px_rgba(0,0,0,0.14)] border-y border-l border-zinc-200 p-5 space-y-4 shrink-0 text-left">
                     <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-[#2d8d9b]/10 text-[#2d8d9b] flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-xl bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 flex items-center justify-center">
                           <BookOpen size={16} />
                         </div>
                         <div>
-                          <h4 className="text-sm font-black text-[#3a525d] tracking-tight">Financial Summary</h4>
+                          <h4 className="text-sm font-black text-zinc-900 tracking-tight">Financial Summary</h4>
                           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Journal Balances</p>
                         </div>
                       </div>
@@ -4829,7 +5000,7 @@ function OrganizationDetailsPageContent() {
                       sortValue: (j: any) => j.account,
                       accessor: (j: any) => (
                         <div>
-                          <span className="font-bold text-xs text-[#3a525d] block">
+                          <span className="font-bold text-xs text-zinc-900 block">
                             {j.account}
                           </span>
                           {j.offset_account && (
@@ -4906,10 +5077,10 @@ function OrganizationDetailsPageContent() {
                   <ReceiptText size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-[#3a525d]">
+                  <h3 className="text-xl md:text-2xl font-black italic tracking-tight text-zinc-900">
                     Customer Account Statement & Ledger
                   </h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] opacity-80">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C82A2B] opacity-80">
                     Running Debit & Credit Balance Ledger · {org.name} ({org.customer_code || `#${org.id}`})
                   </p>
                 </div>
@@ -4917,21 +5088,7 @@ function OrganizationDetailsPageContent() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              {!isClientUser && (
-                <Button
-                  onClick={() => {
-                    setInvoiceCreditPeriod(org.credit_period_days || 30);
-                    setSelectedOrderIdForInvoice(null);
-                    setSelectedQuotationIdForInvoice(null);
-                    setInvoiceType('sales_order');
-                    setIsInvoiceModalOpen(true);
-                  }}
-                  className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all"
-                >
-                  <Plus size={16} />
-                  Create Invoice
-                </Button>
-              )}
+
               <Button
                 onClick={fetchLedgerData}
                 variant="secondary"
@@ -4943,7 +5100,7 @@ function OrganizationDetailsPageContent() {
               <Button
                 onClick={exportLedgerCSV}
                 variant="secondary"
-                className="h-11 px-4 rounded-xl border border-zinc-200 text-xs font-black uppercase tracking-wider text-[#3a525d] hover:bg-zinc-50 flex items-center gap-2 shadow-sm"
+                className="h-11 px-4 rounded-xl border border-zinc-200 text-xs font-black uppercase tracking-wider text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 shadow-sm"
               >
                 <FileSpreadsheet size={15} />
                 Export CSV
@@ -5053,7 +5210,7 @@ function OrganizationDetailsPageContent() {
           <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
               <div>
-                <h4 className="text-base font-black text-[#3a525d] tracking-tight">Chronological Ledger Entries</h4>
+                <h4 className="text-base font-black text-zinc-900 tracking-tight">Chronological Ledger Entries</h4>
                 <p className="text-xs text-zinc-400 font-medium mt-0.5">Audit breakdown of all billings, advance receipts, and balances</p>
               </div>
 
@@ -5071,7 +5228,7 @@ function OrganizationDetailsPageContent() {
                       onClick={() => setLedgerFilter(f)}
                       className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                         ledgerFilter === f
-                          ? 'bg-white text-[#3a525d] shadow-sm'
+                          ? 'bg-white text-zinc-900 shadow-sm'
                           : 'text-zinc-500 hover:text-zinc-800'
                       }`}
                     >
@@ -5136,7 +5293,7 @@ function OrganizationDetailsPageContent() {
                       <span className="text-xs font-semibold text-zinc-700 truncate" title={tx.description}>{tx.description}</span>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         {tx.order_ref && (
-                          <span className="text-[10px] font-bold text-[#2d8d9b] uppercase tracking-wider">{tx.order_ref}</span>
+                          <span className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-wider">{tx.order_ref}</span>
                         )}
                         {tx.type === 'INVOICE' && (
                           <span className="text-[10px] text-zinc-500 font-medium">
@@ -5203,7 +5360,7 @@ function OrganizationDetailsPageContent() {
           <div className="relative w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl p-6 md:p-10 my-8">
             <div className="flex items-center justify-between pb-6 mb-6 border-b border-zinc-200">
               <div className="flex items-center gap-3">
-                <ReceiptText className="text-[#2d8d9b]" size={24} />
+                <ReceiptText className="text-[#C82A2B]" size={24} />
                 <div>
                   <h3 className="text-xl font-black text-zinc-900">Print Customer Account Statement</h3>
                   <p className="text-xs text-zinc-500 font-medium">Official statement for {org.name}</p>
@@ -5348,16 +5505,150 @@ function OrganizationDetailsPageContent() {
       )}
 
 
+      {/* Double Confirmation Delete Department Modal */}
+      {deptDeleteModal.isOpen && deptDeleteModal.dept && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => {
+            if (!deptDeleteModal.isDeleting) {
+              setDeptDeleteModal({ isOpen: false, step: 1, dept: null, typedName: '', isDeleting: false });
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-3xl border border-zinc-200 shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {deptDeleteModal.step === 1 ? (
+              /* STEP 1: Initial Warning Confirmation */
+              <div className="p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-zinc-900 tracking-tight">
+                      Delete Department? (Step 1 of 2)
+                    </h3>
+                    <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                      First confirmation required
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-2">
+                  <p className="text-xs font-semibold text-amber-900 leading-relaxed">
+                    Are you sure you want to delete department <span className="font-black text-zinc-900">&quot;{deptDeleteModal.dept.name}&quot;</span>?
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    This will permanently remove this department group. Linked member assignments will be cleared or unassigned. This action cannot be undone.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setDeptDeleteModal({ isOpen: false, step: 1, dept: null, typedName: '', isDeleting: false })}
+                    className="h-10 px-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setDeptDeleteModal(prev => ({ ...prev, step: 2 }))}
+                    className="h-10 px-5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+                  >
+                    Proceed to Verification &rarr;
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* STEP 2: Name Verification */
+              <div className="p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-[#C82A2B] flex items-center justify-center shrink-0">
+                    <ShieldAlert size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-zinc-900 tracking-tight">
+                      Confirm Deletion (Step 2 of 2)
+                    </h3>
+                    <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                      Type the department name to permanently delete
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs text-zinc-600 font-medium leading-relaxed">
+                    Please type{' '}
+                    <span className="font-black text-zinc-900 bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200 select-all">
+                      {deptDeleteModal.dept.name}
+                    </span>{' '}
+                    to verify:
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder={`Type "${deptDeleteModal.dept.name}"`}
+                      value={deptDeleteModal.typedName}
+                      onChange={(e) => setDeptDeleteModal(prev => ({ ...prev, typedName: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && deptDeleteModal.typedName.trim() === deptDeleteModal.dept.name.trim() && !deptDeleteModal.isDeleting) {
+                          handleExecuteDepartmentDelete();
+                        }
+                      }}
+                      className="w-full h-11 px-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10 outline-none transition-all"
+                    />
+                    {deptDeleteModal.typedName && deptDeleteModal.typedName.trim() !== deptDeleteModal.dept.name.trim() && (
+                      <p className="text-[10px] text-rose-500 font-semibold">
+                        Name does not match yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setDeptDeleteModal(prev => ({ ...prev, step: 1 }))}
+                    className="h-10 px-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100"
+                  >
+                    &larr; Back
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={
+                      deptDeleteModal.typedName.trim() !== deptDeleteModal.dept.name.trim() ||
+                      deptDeleteModal.isDeleting
+                    }
+                    onClick={handleExecuteDepartmentDelete}
+                    className="h-10 px-5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    {deptDeleteModal.isDeleting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={14} />
+                        <span>Permanently Delete</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Shared Modals */}
-      <ConfirmModal
-        isOpen={deleteDeptConfirm.isOpen}
-        title="Delete Department?"
-        message="This will permanently remove this department group. This action cannot be undone."
-        onConfirm={handleConfirmedDeleteDept}
-        onCancel={() => setDeleteDeptConfirm({ isOpen: false, id: null })}
-        confirmLabel="Yes, Delete Department"
-        variant="danger"
-      />
 
       <ConfirmModal
         isOpen={deleteEntityConfirm.isOpen}
@@ -5449,14 +5740,14 @@ function OrganizationDetailsPageContent() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
                   <ReceiptText size={16} className="text-[#9E1B1D]" />
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">
                     1. GST & Commercial Tax Identification
                   </h4>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                       GSTIN (15 Digits)
                     </label>
                     <input
@@ -5476,7 +5767,7 @@ function OrganizationDetailsPageContent() {
                         }));
                       }}
                       placeholder="e.g. 27AAPFU0939F1ZV"
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
                     />
                     <p className="text-[10px] text-zinc-400 font-medium">
                       Entering GSTIN automatically sets this client to B2B and extracts the PAN.
@@ -5484,7 +5775,7 @@ function OrganizationDetailsPageContent() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                       Legal Business / Trade Name
                     </label>
                     <input
@@ -5492,12 +5783,12 @@ function OrganizationDetailsPageContent() {
                       value={gstDeliveryForm.legal_name}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, legal_name: e.target.value }))}
                       placeholder={org?.name || 'Legal Company Name'}
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                       PAN Number (10 Digits)
                     </label>
                     <input
@@ -5506,7 +5797,7 @@ function OrganizationDetailsPageContent() {
                       value={gstDeliveryForm.pan_number}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, pan_number: e.target.value.toUpperCase().trim() }))}
                       placeholder="e.g. AAPFU0939F"
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 uppercase"
                     />
                   </div>
                 </div>
@@ -5517,7 +5808,7 @@ function OrganizationDetailsPageContent() {
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <Truck size={16} className="text-[#9E1B1D]" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">
                       2. Delivery / Dispatch Destination
                     </h4>
                   </div>
@@ -5534,7 +5825,7 @@ function OrganizationDetailsPageContent() {
                       }));
                       toast.success('Billing address copied to delivery fields');
                     }}
-                    className="text-[10px] font-black uppercase text-[#2d8d9b] hover:underline bg-[#2d8d9b]/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    className="text-[10px] font-black uppercase text-[#C82A2B] hover:underline bg-[#FFF1F1] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                   >
                     Copy Billing Address
                   </button>
@@ -5542,7 +5833,7 @@ function OrganizationDetailsPageContent() {
 
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                       Street / Campus / Warehouse Delivery Address
                     </label>
                     <input
@@ -5550,13 +5841,13 @@ function OrganizationDetailsPageContent() {
                       value={gstDeliveryForm.delivery_address}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_address: e.target.value }))}
                       placeholder="e.g. Building 4B, Goods Delivery Gate 2"
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                         Delivery City
                       </label>
                       <input
@@ -5564,11 +5855,11 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_city}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_city: e.target.value }))}
                         placeholder="e.g. Mumbai, Bengaluru"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                         Delivery State
                       </label>
                       <input
@@ -5576,14 +5867,14 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_state}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_state: e.target.value }))}
                         placeholder="e.g. Maharashtra, Karnataka"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                         Delivery PIN Code
                       </label>
                       <input
@@ -5591,11 +5882,11 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_pincode}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_pincode: e.target.value }))}
                         placeholder="e.g. 400001"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                         Delivery Country
                       </label>
                       <input
@@ -5603,7 +5894,7 @@ function OrganizationDetailsPageContent() {
                         value={gstDeliveryForm.delivery_country}
                         onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, delivery_country: e.target.value }))}
                         placeholder="India"
-                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                       />
                     </div>
                   </div>
@@ -5679,7 +5970,7 @@ function OrganizationDetailsPageContent() {
                 onClick={() => setInvoiceType('sales_order')}
                 className={`py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
                   invoiceType === 'sales_order'
-                    ? 'bg-white text-[#3a525d] shadow-sm'
+                    ? 'bg-white text-zinc-900 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
@@ -5691,7 +5982,7 @@ function OrganizationDetailsPageContent() {
                 onClick={() => setInvoiceType('quotation')}
                 className={`py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
                   invoiceType === 'quotation'
-                    ? 'bg-white text-[#3a525d] shadow-sm'
+                    ? 'bg-white text-zinc-900 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
@@ -5703,7 +5994,7 @@ function OrganizationDetailsPageContent() {
                 onClick={() => setInvoiceType('retail')}
                 className={`py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
                   invoiceType === 'retail'
-                    ? 'bg-white text-[#3a525d] shadow-sm'
+                    ? 'bg-white text-zinc-900 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-800 bg-transparent'
                 }`}
               >
@@ -5728,7 +6019,7 @@ function OrganizationDetailsPageContent() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-[#2d8d9b] block mb-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-1">
                     Credit Period (Days)
                   </label>
                   <input
@@ -5738,14 +6029,14 @@ function OrganizationDetailsPageContent() {
                     required
                     value={invoiceCreditPeriod}
                     onChange={(e) => setInvoiceCreditPeriod(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-teal-300 bg-white text-xs font-black text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-black text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-1">
                     Calculated Due Date
                   </label>
-                  <div className="px-3 py-2.5 rounded-xl bg-white border border-zinc-200 text-xs font-mono font-black text-[#2d8d9b] flex items-center gap-1.5">
+                  <div className="px-3 py-2.5 rounded-xl bg-white border border-zinc-200 text-xs font-mono font-black text-zinc-900 flex items-center gap-1.5">
                     <Clock size={13} />
                     {formatDate(getCalculatedDueDate(invoiceDate, invoiceCreditPeriod))}
                   </div>
@@ -5792,20 +6083,20 @@ function OrganizationDetailsPageContent() {
                               onClick={() => setSelectedOrderIdForInvoice(order.id)}
                               className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                                 isSelected
-                                  ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] shadow-sm'
+                                  ? 'bg-[#FFF1F1] border-[#C82A2B] shadow-sm'
                                   : 'bg-white border-zinc-200 hover:border-zinc-300'
                               }`}
                             >
                               <div className="flex items-center gap-3">
                                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                                  isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'
+                                  isSelected ? 'bg-[#C82A2B] border-[#C82A2B] text-white' : 'border-zinc-300'
                                 }`}>
                                   {isSelected && <Check size={12} strokeWidth={4} />}
                                 </div>
                                 <div>
                                   <p className="text-xs font-black text-zinc-900 font-mono">{order.order_no}</p>
                                   <p className="text-[11px] font-semibold text-zinc-500">
-                                    {quote?.title || quote?.quotation_no || 'Standard Order'} · Status: <span className="text-[#2d8d9b] font-bold">{order.status}</span>
+                                    {quote?.title || quote?.quotation_no || 'Standard Order'} · Status: <span className="text-[#C82A2B] font-bold">{order.status}</span>
                                   </p>
                                 </div>
                               </div>
@@ -5870,7 +6161,7 @@ function OrganizationDetailsPageContent() {
                           )}
                           <div className="pt-2 border-t border-zinc-200 flex items-center justify-between">
                             <div>
-                              <span className="text-xs font-black uppercase tracking-wider text-[#3a525d] block">
+                              <span className="text-xs font-black uppercase tracking-wider text-zinc-900 block">
                                 Remaining Payment Due:
                               </span>
                               {pickedCredits > 0 && (
@@ -5929,13 +6220,13 @@ function OrganizationDetailsPageContent() {
                               onClick={() => setSelectedQuotationIdForInvoice(q.id)}
                               className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                                 isSelected
-                                  ? 'bg-[#2d8d9b]/10 border-[#2d8d9b] shadow-sm'
+                                  ? 'bg-[#FFF1F1] border-[#C82A2B] shadow-sm'
                                   : 'bg-white border-zinc-200 hover:border-zinc-300'
                               }`}
                             >
                               <div className="flex items-center gap-3">
                                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                                  isSelected ? 'bg-[#2d8d9b] border-[#2d8d9b] text-white' : 'border-zinc-300'
+                                  isSelected ? 'bg-[#C82A2B] border-[#C82A2B] text-white' : 'border-zinc-300'
                                 }`}>
                                   {isSelected && <Check size={12} strokeWidth={4} />}
                                 </div>
@@ -5943,13 +6234,13 @@ function OrganizationDetailsPageContent() {
                                   <div className="flex items-center gap-2">
                                     <p className="text-xs font-black text-zinc-900 font-mono">{q.quotation_no || `QT-${q.id}`}</p>
                                     {linkedOrd && (
-                                      <span className="text-[10px] font-mono font-bold text-[#2d8d9b] bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                                      <span className="text-[10px] font-mono font-bold text-[#C82A2B] bg-[#FFF1F1] px-1.5 py-0.5 rounded border border-[#C82A2B]/20">
                                         Order: {linkedOrd.order_no}
                                       </span>
                                     )}
                                   </div>
                                   <p className="text-[11px] font-semibold text-zinc-500 truncate max-w-sm">
-                                    {q.title || 'Apparel Quotation'} · Status: <span className="text-[#2d8d9b] font-bold">{q.status}</span>
+                                    {q.title || 'Apparel Quotation'} · Status: <span className="text-[#C82A2B] font-bold">{q.status}</span>
                                   </p>
                                 </div>
                               </div>
@@ -6013,7 +6304,7 @@ function OrganizationDetailsPageContent() {
                           )}
                           <div className="pt-2 border-t border-zinc-200 flex items-center justify-between">
                             <div>
-                              <span className="text-xs font-black uppercase tracking-wider text-[#3a525d] block">
+                              <span className="text-xs font-black uppercase tracking-wider text-zinc-900 block">
                                 Remaining Payment Due:
                               </span>
                               {pickedCredits > 0 && (
@@ -6043,7 +6334,7 @@ function OrganizationDetailsPageContent() {
                     <button
                       type="button"
                       onClick={() => setRetailItems([...retailItems, { description: '', quantity: 1, unit_price: 500, total: 500 }])}
-                      className="text-[11px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent"
+                      className="text-[11px] font-bold text-[#C82A2B] hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent"
                     >
                       <Plus size={13} /> Add Item
                     </button>
@@ -6188,14 +6479,14 @@ function OrganizationDetailsPageContent() {
 
             <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative z-10 animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-[#2d8d9b] to-[#3a525d] p-6 sm:p-8 text-white shrink-0">
+              <div className="bg-gradient-to-r from-[#C82A2B] to-[#9E1B1D] p-6 sm:p-8 text-white shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white">
                       <ShoppingBag size={24} />
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#fce4d4] opacity-90">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">
                         Sales Order Details
                       </span>
                       <h3 className="text-2xl sm:text-3xl font-black italic tracking-tight">
@@ -6237,7 +6528,7 @@ function OrganizationDetailsPageContent() {
                     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
                       Order No
                     </label>
-                    <p className="text-sm font-black font-mono text-[#3a525d] truncate">
+                    <p className="text-sm font-black font-mono text-zinc-900 truncate">
                       {selectedOrder.order_no}
                     </p>
                   </div>
@@ -6255,7 +6546,7 @@ function OrganizationDetailsPageContent() {
                     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
                       Total Products
                     </label>
-                    <p className="text-sm font-black text-[#2d8d9b]">
+                    <p className="text-sm font-black text-[#C82A2B]">
                       {items.length} {items.length === 1 ? 'Item' : 'Items'}
                     </p>
                   </div>
@@ -6272,17 +6563,17 @@ function OrganizationDetailsPageContent() {
 
                 {/* Linked Quotation Proposal Info */}
                 {selectedOrder.quotations && (
-                  <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 flex items-center justify-between gap-4">
+                  <div className="p-4 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20 flex items-center justify-between gap-4">
                     <div className="space-y-0.5">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-[#2d8d9b]">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B]">
                         Linked Quotation
                       </span>
-                      <p className="text-sm font-bold text-[#3a525d]">
+                      <p className="text-sm font-bold text-zinc-900">
                         {selectedOrder.quotations.title || 'Quotation Proposal'}
                       </p>
                     </div>
                     {selectedOrder.quotations.quotation_no && (
-                      <span className="font-mono font-black text-xs text-[#2d8d9b] bg-white px-2.5 py-1 rounded-xl border border-teal-200">
+                      <span className="font-mono font-black text-xs text-[#C82A2B] bg-white px-2.5 py-1 rounded-xl border border-[#C82A2B]/20">
                         {selectedOrder.quotations.quotation_no}
                       </span>
                     )}
@@ -6385,7 +6676,7 @@ function OrganizationDetailsPageContent() {
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-base font-black text-[#3a525d] tracking-tight">
+                                <h4 className="text-base font-black text-zinc-900 tracking-tight">
                                   {itemName}
                                 </h4>
                                 <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider bg-zinc-200/60 px-2 py-0.5 rounded-md">
@@ -6451,7 +6742,7 @@ function OrganizationDetailsPageContent() {
                               <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-0.5">
                                 Unit Cost
                               </span>
-                              <span className="font-mono font-black text-[#2d8d9b] text-sm">
+                              <span className="font-mono font-black text-zinc-900 text-sm">
                                 ₹{unitCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
@@ -6547,7 +6838,7 @@ function OrganizationDetailsPageContent() {
 
           <div className="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl border border-zinc-150 overflow-hidden relative z-10 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#2d8d9b] to-[#3a525d] px-8 py-5 text-white flex items-center justify-between shrink-0">
+            <div className="bg-gradient-to-r from-[#C82A2B] to-[#9E1B1D] px-8 py-5 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
                   <FileText size={22} className="text-white" />
@@ -6867,12 +7158,129 @@ function OrganizationDetailsPageContent() {
         customerId={org?.id}
       />
 
+            {/* Create Proforma Invoice Modal */}
+      {isCreateProformaModalOpen && org && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl p-6 md:p-8 my-8 border border-zinc-200/80 max-h-[92vh] overflow-y-auto">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
+
+            <div className="flex items-start justify-between pb-4 border-b border-zinc-150">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 flex items-center justify-center">
+                  <FileSpreadsheet size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-zinc-900 italic tracking-tight">Create Proforma Invoice</h3>
+                  <p className="text-xs text-zinc-500 font-medium">
+                    {org.name} ({org.customer_code || `#${org.id}`})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateProformaModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 flex items-center justify-center transition-all cursor-pointer border-none"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-6">
+              {/* Option 1: Generate from Existing Quotation */}
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                    Option 1: From Existing Quotation
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-bold">
+                    {customerQuotes.length} Available
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Select an approved or pending proposal to generate its official Proforma Invoice with document numbering and payment terms.
+                </p>
+
+                {customerQuotes.length > 0 ? (
+                  <div className="space-y-3 pt-1">
+                    <Select
+                      placeholder="Select Quotation..."
+                      value={selectedQuoteIdForProforma}
+                      onChange={(val) => setSelectedQuoteIdForProforma(val)}
+                      options={customerQuotes.map((q: any) => ({
+                        value: String(q.id),
+                        label: `${q.quotation_no || 'QT'} — ${q.title || 'Proposal'} (₹${parseFloat(q.final_quote_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})`
+                      }))}
+                    />
+
+                    <Button
+                      disabled={!selectedQuoteIdForProforma}
+                      onClick={() => {
+                        const quote = customerQuotes.find((q: any) => String(q.id) === selectedQuoteIdForProforma);
+                        if (!quote) return;
+                        const matchingPI = customerProFormaInvoices.find((pi: any) => String(pi.id) === String(quote.id)) || {
+                          id: quote.id,
+                          pi_no: quote.quotation_no ? quote.quotation_no.replace(/^QT-/, 'PR-') : `PR-${quote.id}`,
+                          order_no: '—',
+                          customer_name: org.name,
+                          date: quote.quotation_date || quote.created_at || new Date().toISOString(),
+                          validity_days: org.credit_period_days || 30,
+                          title: quote.title,
+                          type: quote.quotation_type || 'Commercial Bulk',
+                          amount: parseFloat(quote.final_quote_value || '0'),
+                          status: 'Active PI',
+                          raw: quote
+                        };
+                        setIsCreateProformaModalOpen(false);
+                        handleOpenProforma(matchingPI);
+                      }}
+                      className="w-full h-10 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-[#C82A2B]/20 cursor-pointer transition-all"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>Generate &amp; View Proforma Invoice</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-xl font-medium">
+                    No quotations found for this customer. Create a quotation first to generate a proforma invoice.
+                  </p>
+                )}
+              </div>
+
+              {/* Option 2: Create Brand New Quotation / Proforma Proposal */}
+              <div className="p-4 rounded-2xl bg-[#FFF1F1]/50 border border-[#C82A2B]/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                    Option 2: Create New Proposal
+                  </span>
+                  <span className="px-2 py-0.5 bg-[#C82A2B] text-white rounded-md text-[9px] font-black uppercase tracking-wider">
+                    Full Wizard
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Compile a brand new apparel proposal with sizing audit, SAM cost calculations, fabrics, and margin analysis.
+                </p>
+                <Button
+                  onClick={() => {
+                    setIsCreateProformaModalOpen(false);
+                    router.push(`/marketing/quotations?action=create&orgId=${org.id}`);
+                  }}
+                  className="w-full h-10 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                >
+                  <Plus size={14} />
+                  <span>Launch Quotation &amp; Proforma Wizard</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* First Custom Department Migration / Confirmation Modal */}
       {firstDeptMigrationModal.isOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#2d8d9b] to-[#3a525d] p-6 text-white flex items-center justify-between">
+            <div className="bg-gradient-to-r from-[#C82A2B] to-[#9E1B1D] p-6 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
                   <AlertTriangle size={22} className="text-amber-300" />
@@ -6915,10 +7323,10 @@ function OrganizationDetailsPageContent() {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-start gap-3.5">
-                  <CheckCircle2 size={22} className="text-[#2d8d9b] shrink-0 mt-0.5" />
+                <div className="p-4 rounded-2xl bg-[#FFF1F1] border border-[#C82A2B]/20 flex items-start gap-3.5">
+                  <CheckCircle2 size={22} className="text-[#C82A2B] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                    <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
                       Default &quot;Main&quot; Department is Empty
                     </span>
                     <p className="text-xs text-zinc-600 font-medium mt-1 leading-relaxed">
@@ -6939,7 +7347,7 @@ function OrganizationDetailsPageContent() {
                   onClick={() => setFirstDeptMigrationModal(prev => ({ ...prev, selectedAction: 'migrate_and_delete' }))}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative ${
                     firstDeptMigrationModal.selectedAction === 'migrate_and_delete'
-                      ? 'border-[#2d8d9b] bg-[#2d8d9b]/5 shadow-sm'
+                      ? 'border-[#C82A2B] bg-[#FFF1F1] shadow-sm'
                       : 'border-zinc-200 hover:border-zinc-300 bg-white'
                   }`}
                 >
@@ -6949,11 +7357,11 @@ function OrganizationDetailsPageContent() {
                       name="migrationAction"
                       checked={firstDeptMigrationModal.selectedAction === 'migrate_and_delete'}
                       onChange={() => setFirstDeptMigrationModal(prev => ({ ...prev, selectedAction: 'migrate_and_delete' }))}
-                      className="mt-1 accent-[#2d8d9b] cursor-pointer"
+                      className="mt-1 accent-[#C82A2B] cursor-pointer"
                     />
                     <div className="flex-1 pr-16">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-[#3a525d]">
+                        <span className="text-sm font-black text-zinc-900">
                           {firstDeptMigrationModal.memberCount > 0
                             ? `Move all ${firstDeptMigrationModal.memberCount} members to "${firstDeptMigrationModal.newDeptPayload?.name || 'New'}" & delete "Main"`
                             : `Delete placeholder "Main" and use "${firstDeptMigrationModal.newDeptPayload?.name || 'New'}"`}
@@ -6966,7 +7374,7 @@ function OrganizationDetailsPageContent() {
                       </p>
                     </div>
                   </div>
-                  <span className="absolute top-3.5 right-3.5 px-2 py-0.5 bg-[#2d8d9b] text-white rounded-md text-[9px] font-black uppercase tracking-wider">
+                  <span className="absolute top-3.5 right-3.5 px-2 py-0.5 bg-[#C82A2B] text-white rounded-md text-[9px] font-black uppercase tracking-wider">
                     Recommended
                   </span>
                 </div>
@@ -6976,7 +7384,7 @@ function OrganizationDetailsPageContent() {
                   onClick={() => setFirstDeptMigrationModal(prev => ({ ...prev, selectedAction: 'keep_both' }))}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                     firstDeptMigrationModal.selectedAction === 'keep_both'
-                      ? 'border-[#2d8d9b] bg-[#2d8d9b]/5 shadow-sm'
+                      ? 'border-[#C82A2B] bg-[#FFF1F1] shadow-sm'
                       : 'border-zinc-200 hover:border-zinc-300 bg-white'
                   }`}
                 >
@@ -6986,10 +7394,10 @@ function OrganizationDetailsPageContent() {
                       name="migrationAction"
                       checked={firstDeptMigrationModal.selectedAction === 'keep_both'}
                       onChange={() => setFirstDeptMigrationModal(prev => ({ ...prev, selectedAction: 'keep_both' }))}
-                      className="mt-1 accent-[#2d8d9b] cursor-pointer"
+                      className="mt-1 accent-[#C82A2B] cursor-pointer"
                     />
                     <div className="flex-1">
-                      <span className="text-sm font-black text-[#3a525d]">
+                      <span className="text-sm font-black text-zinc-900">
                         Keep &quot;Main&quot; alongside &quot;{firstDeptMigrationModal.newDeptPayload?.name || 'New'}&quot;
                       </span>
                       <p className="text-xs text-zinc-500 font-medium mt-1 leading-relaxed">
@@ -7007,7 +7415,7 @@ function OrganizationDetailsPageContent() {
                     onClick={() => setFirstDeptMigrationModal(prev => ({ ...prev, selectedAction: 'migrate_and_keep' }))}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                       firstDeptMigrationModal.selectedAction === 'migrate_and_keep'
-                        ? 'border-[#2d8d9b] bg-[#2d8d9b]/5 shadow-sm'
+                        ? 'border-[#C82A2B] bg-[#FFF1F1] shadow-sm'
                         : 'border-zinc-200 hover:border-zinc-300 bg-white'
                     }`}
                   >
@@ -7017,10 +7425,10 @@ function OrganizationDetailsPageContent() {
                         name="migrationAction"
                         checked={firstDeptMigrationModal.selectedAction === 'migrate_and_keep'}
                         onChange={() => setFirstDeptMigrationModal(prev => ({ ...prev, selectedAction: 'migrate_and_keep' }))}
-                        className="mt-1 accent-[#2d8d9b] cursor-pointer"
+                        className="mt-1 accent-[#C82A2B] cursor-pointer"
                       />
                       <div className="flex-1">
-                        <span className="text-sm font-black text-[#3a525d]">
+                        <span className="text-sm font-black text-zinc-900">
                           Move members to &quot;{firstDeptMigrationModal.newDeptPayload?.name || 'New'}&quot; but keep empty &quot;Main&quot;
                         </span>
                         <p className="text-xs text-zinc-500 font-medium mt-1 leading-relaxed">

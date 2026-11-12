@@ -507,10 +507,10 @@ export default function DeliveryChallansPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr>
+                <th className="p-3 text-center">Dispatch Date</th>
                 <th className="p-3 text-center">Challan No</th>
                 <th className="p-3 text-center">Sales Order Ref</th>
                 <th className="p-3 text-center">Client Destination</th>
-                <th className="p-3 text-center">Dispatch Date</th>
                 <th className="p-3 text-center">Vehicle / Transporter</th>
                 <th className="p-3 text-center">Boxes</th>
                 <th className="p-3 text-center">Actions</th>
@@ -520,10 +520,10 @@ export default function DeliveryChallansPage() {
               {challans.length > 0 ? (
                 challans.map(dc => (
                   <tr key={dc.id} className="hover:bg-slate-50/80 transition">
+                    <td className="p-3 text-slate-600 font-semibold text-center whitespace-nowrap">{dc.dispatch_date}</td>
                     <td className="p-3 font-mono font-bold text-indigo-600">{dc.dc_no}</td>
                     <td className="p-3 font-mono text-slate-700">{dc.orders?.order_no || `ORD-#${dc.order_id}`}</td>
                     <td className="p-3 font-semibold text-slate-800">{dc.orders?.quotations?.organizations?.name || 'Customer'}</td>
-                    <td className="p-3 text-slate-500">{dc.dispatch_date}</td>
                     <td className="p-3 text-slate-600">{dc.vehicle_no || 'Manual Delivery'} {dc.transporter_name ? `(${dc.transporter_name})` : ''}</td>
                     <td className="p-3 text-center font-bold text-slate-800">{dc.total_packages}</td>
                     <td className="p-3 text-right space-x-2">

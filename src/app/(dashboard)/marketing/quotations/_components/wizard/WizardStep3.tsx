@@ -73,8 +73,8 @@ export default function WizardStep3({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
-        <h3 className="text-2xl font-black italic text-[#3a525d]">Cost & Sizing Calculation</h3>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
+        <h3 className="text-2xl font-black italic text-zinc-900">Cost & Sizing Calculation</h3>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
           Sizing multipliers scale fabric expenses automatically based on metrics
         </p>
       </div>
@@ -82,7 +82,7 @@ export default function WizardStep3({
       {hasMeasurements && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product Type</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Product Type</label>
             <Select
               options={productTypes.filter(pt => !/accessor/i.test(pt.name || '')).map((pt) => ({ label: pt.name, value: String(pt.id) }))}
               value={selectedProductTypeId}
@@ -102,13 +102,13 @@ export default function WizardStep3({
           {/* Garments Table */}
           {!hasMeasurements && (
             <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
                 {isSetType ? 'Department Sets Expenses Summary' : 'Manual Items Expenses Summary'}
               </h4>
               <div className="border border-zinc-150 rounded-3xl overflow-hidden bg-white shadow-sm text-xs">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                       <th className="p-3 text-center">{isAccessory ? 'Category / Department' : 'Product Type / Set'}</th>
                       <th className="p-3 text-center">{isAccessory ? 'Accessory (Art #)' : 'Product & Fabric Details'}</th>
                       {isAccessory ? (
@@ -173,21 +173,21 @@ export default function WizardStep3({
 
                           return (
                             <tr key={`${dept.id}-${item.id || index}`} className="hover:bg-zinc-50/50 bg-white">
-                              <td className="p-3 font-black text-[#3a525d]">
+                              <td className="p-3 font-black text-zinc-900">
                                 {displayName} <span className="text-[10px] text-zinc-400 font-bold">({dept.name})</span>
                               </td>
                               <td className="p-3 text-zinc-450">
                                 {isAccessory ? (
                                   <div>
-                                    <span className="font-bold text-[#3a525d]">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
+                                    <span className="font-bold text-zinc-900">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
                                     {artNum && <span className="block text-[9px] font-mono text-zinc-400">ART: {artNum}</span>}
                                   </div>
                                 ) : (
                                   <div>
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="font-bold text-[#3a525d] text-xs">{resolvedProdName}</span>
+                                      <span className="font-bold text-zinc-900 text-xs">{resolvedProdName}</span>
                                       {artNum && (
-                                        <span className="text-[9px] font-mono font-bold text-[#2d8d9b] bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded">
+                                        <span className="text-[9px] font-mono font-bold text-[#C82A2B] bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded">
                                           {artNum}
                                         </span>
                                       )}
@@ -212,7 +212,7 @@ export default function WizardStep3({
                               {isAccessory ? (
                                 <>
                                   <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
-                                  <td className="p-3 text-right font-mono font-bold text-[#2d8d9b]">₹{unitPrice.toFixed(2)}</td>
+                                  <td className="p-3 text-right font-mono font-bold text-[#C82A2B]">₹{unitPrice.toFixed(2)}</td>
                                 </>
                               ) : (
                                 <>
@@ -230,7 +230,7 @@ export default function WizardStep3({
                                 </>
                               )}
                               <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
-                              <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                              <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
                                 ₹{(unitExpense * qty).toFixed(2)}
                               </td>
                             </tr>
@@ -283,21 +283,21 @@ export default function WizardStep3({
 
                           return (
                             <tr key={item.id || index} className="hover:bg-zinc-50/50 bg-white">
-                              <td className="p-3 font-black text-[#3a525d]">
+                              <td className="p-3 font-black text-zinc-900">
                                 {classPrefix}{displayName}
                               </td>
                               <td className="p-3 text-zinc-450">
                                 {isAccessory ? (
                                   <div>
-                                    <span className="font-bold text-[#3a525d]">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
+                                    <span className="font-bold text-zinc-900">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
                                     {artNum && <span className="block text-[9px] font-mono text-zinc-400">ART: {artNum}</span>}
                                   </div>
                                 ) : (
                                   <div>
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="font-bold text-[#3a525d] text-xs">{resolvedProdName}</span>
+                                      <span className="font-bold text-zinc-900 text-xs">{resolvedProdName}</span>
                                       {artNum && (
-                                        <span className="text-[9px] font-mono font-bold text-[#2d8d9b] bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded">
+                                        <span className="text-[9px] font-mono font-bold text-[#C82A2B] bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded">
                                           {artNum}
                                         </span>
                                       )}
@@ -322,7 +322,7 @@ export default function WizardStep3({
                               {isAccessory ? (
                                 <>
                                   <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
-                                  <td className="p-3 text-right font-mono font-bold text-[#2d8d9b]">₹{unitPrice.toFixed(2)}</td>
+                                  <td className="p-3 text-right font-mono font-bold text-[#C82A2B]">₹{unitPrice.toFixed(2)}</td>
                                 </>
                               ) : (
                                 <>
@@ -340,7 +340,7 @@ export default function WizardStep3({
                                 </>
                               )}
                               <td className="p-3 text-right font-black text-zinc-800">{qty}</td>
-                              <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                              <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
                                 ₹{(unitExpense * qty).toFixed(2)}
                               </td>
                             </tr>
@@ -356,13 +356,13 @@ export default function WizardStep3({
           {/* Separate Fabrics Table */}
           {separateFabrics && separateFabrics.length > 0 && !isAccessory && (
             <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
                 Separate Fabric Materials Supplied
               </h4>
               <div className="border border-zinc-150 rounded-3xl overflow-hidden bg-white shadow-sm text-xs">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                       <th className="p-3 text-center">Fabric Details</th>
                       <th className="p-3 text-center">Quantity</th>
                       <th className="p-3 text-center">Unit Price</th>
@@ -379,10 +379,10 @@ export default function WizardStep3({
 
                       return (
                         <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#3a525d]">{fabricName}</td>
+                          <td className="p-3 font-black text-zinc-900">{fabricName}</td>
                           <td className="p-3 text-right text-zinc-800">{meters} m</td>
                           <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
-                          <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{total.toFixed(2)}</td>
+                          <td className="p-3 text-right font-black text-[#C82A2B] font-mono">₹{total.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -451,9 +451,9 @@ export default function WizardStep3({
           };
 
           return (
-            <Card className="h-fit p-8 border-2 border-dashed border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2rem] flex flex-col justify-between lg:col-start-3">
+            <Card className="h-fit p-8 border-2 border-dashed border-[#C82A2B]/20 bg-[#FFF1F1] rounded-[2rem] flex flex-col justify-between lg:col-start-3">
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-[#2d8d9b]">
+                <div className="flex items-center gap-2 text-[#C82A2B]">
                   <Scale size={20} />
                   <h4 className="text-xs font-black uppercase tracking-widest">Compiler Outputs</h4>
                 </div>
@@ -462,7 +462,7 @@ export default function WizardStep3({
                   <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
                     <div className="flex justify-between py-2 text-zinc-500">
                       <span>Total Accessories Cost:</span>
-                      <span className="font-mono text-[#2d8d9b] font-black">₹{tableTotals.readymade.toFixed(2)}</span>
+                      <span className="font-mono text-[#C82A2B] font-black">₹{tableTotals.readymade.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between py-2 text-zinc-500">
                       <span>Total Items Quantity:</span>
@@ -473,7 +473,7 @@ export default function WizardStep3({
                   <div className="space-y-3 divide-y divide-zinc-100 font-semibold text-sm">
                     <div className="flex justify-between py-2 text-zinc-500">
                       <span>Total Items Price:</span>
-                      <span className="font-mono text-[#2d8d9b] font-black">₹{tableTotals.readymade.toFixed(2)}</span>
+                      <span className="font-mono text-[#C82A2B] font-black">₹{tableTotals.readymade.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between py-2 text-zinc-500">
                       <span>Total Items Quantity:</span>
@@ -501,10 +501,10 @@ export default function WizardStep3({
               </div>
 
               <div className="border-t border-zinc-200/50 pt-4 mt-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] opacity-60">
                   Total Table Expenses
                 </p>
-                <p className="text-4xl font-black italic tracking-tighter text-[#3a525d] font-mono mt-1">
+                <p className="text-4xl font-black italic tracking-tighter text-zinc-900 font-mono mt-1">
                   ₹{tableTotals.total.toFixed(2)}
                 </p>
               </div>

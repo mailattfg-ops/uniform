@@ -107,28 +107,8 @@ export default function WizardStep4({
   const [selectedQuoteDetail, setSelectedQuoteDetail] = useState<any | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState<boolean>(false);
-  const [isHovered, setIsHovered] = useState<boolean>(false);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseEnter = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovered(false);
-    }, 300);
-  };
-
-  const isScheduleVisible = isScheduleOpen || isHovered || !!selectedQuoteDetail;
-
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    };
-  }, []);
+  const isScheduleVisible = isScheduleOpen || !!selectedQuoteDetail;
 
   useEffect(() => {
     if (!gstPercent) {
@@ -234,7 +214,7 @@ export default function WizardStep4({
     return (
       <div className="bg-white border border-zinc-200 rounded-[2rem] p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+          <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
             {monthNames[month]} {year}
           </span>
           <div className="flex items-center gap-1.5">
@@ -284,8 +264,8 @@ export default function WizardStep4({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
-        <h3 className="text-2xl font-black italic text-[#3a525d]">Timeline & Profitability Compiler</h3>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
+        <h3 className="text-2xl font-black italic text-zinc-900">Timeline & Profitability Compiler</h3>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
           Define delivery timelines and add custom extra charges
         </p>
       </div>
@@ -293,7 +273,7 @@ export default function WizardStep4({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* TIMELINE SETTINGS */}
         <div className="lg:col-span-2 space-y-6">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Project Milestones</h4>
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Project Milestones</h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {hasMeasurements && (
@@ -333,7 +313,7 @@ export default function WizardStep4({
                 <button
                   type="button"
                   onClick={() => setIsScheduleOpen((prev) => !prev)}
-                  className="text-[9px] font-bold text-[#2d8d9b] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[9px] font-bold text-[#C82A2B] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Calendar size={11} /> Check Schedule Registry
                 </button>
@@ -351,8 +331,8 @@ export default function WizardStep4({
             <div className="bg-zinc-50/80 border border-zinc-200/80 p-4 rounded-2xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] flex items-center gap-1.5">
-                    <Scale size={13} className="text-[#2d8d9b]" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 flex items-center gap-1.5">
+                    <Scale size={13} className="text-[#C82A2B]" />
                     Pricing Tax Treatment Mode
                   </label>
                   <p className="text-[9px] text-zinc-400 font-semibold mt-0.5">
@@ -366,7 +346,7 @@ export default function WizardStep4({
                     type="button"
                     onClick={() => setIsTaxInclusive(false)}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      !isTaxInclusive ? 'bg-white text-[#3a525d] shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
+                      !isTaxInclusive ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
                     }`}
                   >
                     Tax Exclusive
@@ -375,7 +355,7 @@ export default function WizardStep4({
                     type="button"
                     onClick={() => setIsTaxInclusive(true)}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      isTaxInclusive ? 'bg-[#2d8d9b] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
+                      isTaxInclusive ? 'bg-[#C82A2B] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
                     }`}
                   >
                     Tax Inclusive
@@ -387,7 +367,7 @@ export default function WizardStep4({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">GST Tax Slab (%)</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">GST Tax Slab (%)</label>
               <Select
                 value={gstPercent || '5'}
                 onChange={setGstPercent}
@@ -398,7 +378,7 @@ export default function WizardStep4({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Status</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Quotation Status</label>
               <Select
                 value={status}
                 onChange={setStatus}
@@ -412,11 +392,11 @@ export default function WizardStep4({
           {/* EXTRA CHARGES SECTION */}
           <div className="space-y-4 pt-6 border-t border-zinc-100">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Extra Charges</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Extra Charges</h4>
               <button
                 type="button"
                 onClick={() => setExtraCharges([...extraCharges, { label: '', quantity: '1', rate: '0', type: 'product' }])}
-                className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/20 text-[#2d8d9b] rounded-lg font-black uppercase tracking-widest text-[9px] transition-all"
+                className="px-3 py-1.5 bg-[#FFF1F1] hover:bg-[#FFF1F1] text-[#C82A2B] rounded-lg font-black uppercase tracking-widest text-[9px] transition-all"
               >
                 + Add Extra Charge
               </button>
@@ -438,7 +418,7 @@ export default function WizardStep4({
                           updated[idx].label = e.target.value;
                           setExtraCharges(updated);
                         }}
-                        className="w-full px-3 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-[#3a525d] focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
+                        className="w-full px-3 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white transition-all"
                       />
                     </div>
                     
@@ -472,10 +452,10 @@ export default function WizardStep4({
                           updated[idx].quantity = e.target.value;
                           setExtraCharges(updated);
                         }}
-                        className={`w-full px-3 py-2 text-xs font-bold border rounded-xl text-[#3a525d] text-center focus:outline-none focus:border-[#2d8d9b] transition-all ${
+                        className={`w-full px-3 py-2 text-xs font-bold border rounded-xl text-zinc-900 text-center focus:outline-none focus:border-[#C82A2B] transition-all ${
                           ec.type === 'service' 
                             ? 'bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed' 
-                            : 'bg-white border-zinc-200 text-[#3a525d]'
+                            : 'bg-white border-zinc-200 text-zinc-900'
                         }`}
                       />
                     </div>
@@ -489,7 +469,7 @@ export default function WizardStep4({
                           updated[idx].rate = e.target.value;
                           setExtraCharges(updated);
                         }}
-                        className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#3a525d] text-center focus:outline-none focus:border-[#2d8d9b] bg-white transition-all"
+                        className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-zinc-900 text-center focus:outline-none focus:border-[#C82A2B] bg-white transition-all"
                       />
                     </div>
                     <button
@@ -510,7 +490,7 @@ export default function WizardStep4({
         {/* LIVE TIMELINE REPORT CARD */}
         <Card className="h-fit p-8 border border-zinc-100 bg-zinc-50/50 rounded-[2.5rem] flex flex-col justify-between">
           <div className="space-y-6">
-            <div className="flex items-center gap-2 text-[#3a525d] border-b border-zinc-200 pb-4">
+            <div className="flex items-center gap-2 text-zinc-900 border-b border-zinc-200 pb-4">
               <Clock size={20} />
               <h4 className="text-xs font-black uppercase tracking-widest">Time & Yield Estimates</h4>
             </div>
@@ -542,11 +522,11 @@ export default function WizardStep4({
 
               {durationDays !== null && (
                 <div className="flex items-start gap-4 pt-1">
-                  <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] mt-0.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#FFF1F1] flex items-center justify-center text-[#C82A2B] mt-0.5">
                     <Clock size={18} />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-[#2d8d9b]">
+                    <p className="text-sm font-black text-[#C82A2B]">
                       {durationDays} Days {durationDays > 0 ? `(${Math.floor(durationDays / 7)} Weeks, ${durationDays % 7} Days)` : ''}
                     </p>
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Total Project Duration</p>
@@ -558,12 +538,12 @@ export default function WizardStep4({
             <div className="border-t border-zinc-200/60 pt-4 space-y-2 text-xs font-bold text-zinc-500">
               <div className="flex justify-between">
                 <span>Production Expenses:</span>
-                <span className="font-mono text-[#3a525d]">₹{quoteTotals.expenses.toFixed(2)}</span>
+                <span className="font-mono text-zinc-900">₹{quoteTotals.expenses.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Tax Treatment:</span>
                 <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                  quoteTotals.isTaxInclusive ? 'bg-teal-50 text-[#2d8d9b] border border-teal-200' : 'bg-zinc-100 text-zinc-600'
+                  quoteTotals.isTaxInclusive ? 'bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20' : 'bg-zinc-100 text-zinc-600'
                 }`}>
                   {quoteTotals.isTaxInclusive ? 'Tax Inclusive (MRP)' : 'Tax Exclusive (+GST)'}
                 </span>
@@ -572,11 +552,11 @@ export default function WizardStep4({
                 <span>Taxable Base Subtotal:</span>
                 <span className="font-mono text-zinc-700">₹{quoteTotals.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-[#2d8d9b] text-[11px]">
+              <div className="flex justify-between text-[#C82A2B] text-[11px]">
                 <span>CGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
                 <span className="font-mono">₹{((quoteTotals.cgst !== undefined ? quoteTotals.cgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-[#2d8d9b] text-[11px]">
+              <div className="flex justify-between text-[#C82A2B] text-[11px]">
                 <span>SGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
                 <span className="font-mono">₹{((quoteTotals.sgst !== undefined ? quoteTotals.sgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
               </div>
@@ -584,7 +564,7 @@ export default function WizardStep4({
                 <span>Total GST ({gstPercent}%):</span>
                 <span className="font-mono">{quoteTotals.isTaxInclusive ? '(Included) ' : '+'}₹{quoteTotals.gstValue.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-[#2d8d9b] font-black border-t border-dashed border-zinc-200 pt-1.5 mt-1">
+              <div className="flex justify-between text-[#C82A2B] font-black border-t border-dashed border-zinc-200 pt-1.5 mt-1">
                 <span>Suggested Retail / Item:</span>
                 <span className="font-mono">₹{quoteTotals.avgSellingPrice.toFixed(2)}</span>
               </div>
@@ -595,7 +575,7 @@ export default function WizardStep4({
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
               {quoteTotals.isTaxInclusive ? 'Total Contract Value (GST Inclusive)' : 'Total Contract Value (With GST)'}
             </p>
-            <p className="text-4xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-1">
+            <p className="text-4xl font-black italic tracking-tighter text-[#C82A2B] font-mono mt-1">
               ₹{quoteTotals.finalValue.toFixed(2)}
             </p>
           </div>
@@ -874,15 +854,13 @@ export default function WizardStep4({
         </div>
       )}
 
-      {/* ── FLOATING RIGHT-SIDE HOVER TRIGGER TAB ── */}
+      {/* ── FLOATING RIGHT-SIDE CLICK TRIGGER TAB ── */}
       <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         onClick={() => setIsScheduleOpen((prev) => !prev)}
         className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 cursor-pointer ${
           isScheduleVisible ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'
         }`}
-        title="Hover to view Delivery Schedule Registry"
+        title="Click to view Delivery Schedule Registry"
       >
         <div className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xl shadow-[#C82A2B]/30 rounded-l-2xl py-4 px-2.5 flex flex-col items-center gap-2.5 border-y border-l border-white/20 transition-all select-none group">
           <div className="relative">
@@ -897,10 +875,17 @@ export default function WizardStep4({
         </div>
       </div>
 
-      {/* ── SLIDE-OUT DELIVERY SCHEDULE REGISTRY PANEL (APPEARS ON HOVER FROM RIGHT) ── */}
+      {/* ── SLIDE-OUT DELIVERY SCHEDULE REGISTRY PANEL (APPEARS ON CLICK ONLY) ── */}
+      {isScheduleVisible && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+          onClick={() => {
+            setIsScheduleOpen(false);
+            setSelectedQuoteDetail(null);
+          }}
+        />
+      )}
       <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         className={`fixed top-0 right-0 h-full z-40 transition-transform duration-300 ease-out ${
           isScheduleVisible ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
@@ -913,7 +898,7 @@ export default function WizardStep4({
                 <Calendar size={18} />
               </div>
               <div>
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#3a525d]">
+                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">
                   Delivery Schedule Registry
                 </h4>
                 <p className="text-[10px] text-zinc-400 font-semibold">
@@ -926,7 +911,6 @@ export default function WizardStep4({
                 type="button"
                 onClick={() => {
                   setIsScheduleOpen(false);
-                  setIsHovered(false);
                 }}
                 className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-all cursor-pointer"
                 title="Close Schedule Panel"
@@ -962,10 +946,10 @@ export default function WizardStep4({
                         <div
                           key={q.id || idx}
                           onClick={() => q.id && handleOpenDetailModal(q.id)}
-                          className="bg-white border border-zinc-150 rounded-2xl p-3.5 flex justify-between items-center text-xs shadow-sm transition-all hover:border-[#2d8d9b] hover:shadow-md cursor-pointer active:scale-[0.99] select-none"
+                          className="bg-white border border-zinc-150 rounded-2xl p-3.5 flex justify-between items-center text-xs shadow-sm transition-all hover:border-[#C82A2B] hover:shadow-md cursor-pointer active:scale-[0.99] select-none"
                         >
                           <div className="pr-2">
-                            <p className="font-black text-[#3a525d] text-xs truncate max-w-[180px]">{q.title}</p>
+                            <p className="font-black text-zinc-900 text-xs truncate max-w-[180px]">{q.title}</p>
                             <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
                               Client: {q.organizations?.name || q.organization?.name || 'Unknown'}
                             </p>
