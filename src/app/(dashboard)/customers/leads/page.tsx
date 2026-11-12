@@ -3466,36 +3466,43 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             <div className="lg:col-span-5 flex flex-col gap-3">
               {/* Combined Contact Card: Contact Person, Designation, Phone & Email */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
+                {/* Contact Person */}
+                <div className="space-y-1">
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
-                    Contact Details
+                    Contact Person
                   </label>
-                  {lead.contact_designation && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#FFF1F1] text-[#9E1B1D] rounded-md border border-[#C82A2B]/15">
-                      {lead.contact_designation}
-                    </span>
-                  )}
-                </div>
-
-                {/* Contact Person Name & Title */}
-                <div className="flex items-start gap-2">
-                  <User size={14} className="text-[#9E1B1D] shrink-0 mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-zinc-900 leading-tight">
+                  <div className="flex items-center gap-2">
+                    <User size={14} className="text-[#9E1B1D] shrink-0" />
+                    <p className="text-xs font-black text-zinc-900">
                       {lead.contact_person
                         ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}`
                         : 'Not specified'}
                     </p>
-                    {lead.contact_designation && (
-                      <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                  </div>
+                </div>
+
+                {/* Designation - explicit individual title */}
+                <div className="space-y-1 pt-2.5 border-t border-zinc-200/60">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
+                    Designation
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Briefcase size={14} className="text-[#9E1B1D] shrink-0" />
+                    {lead.contact_designation ? (
+                      <span className="text-xs font-bold text-zinc-800">
                         {lead.contact_designation}
-                      </p>
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium text-zinc-400 italic">Not specified</span>
                     )}
                   </div>
                 </div>
 
-                {/* Contact: Phone & Email */}
-                <div className="space-y-2 pt-2 border-t border-zinc-200/60">
+                {/* Contact Info (Phone & Email) */}
+                <div className="space-y-2 pt-2.5 border-t border-zinc-200/60">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
+                    Contact Info
+                  </label>
                   {/* Phone */}
                   <div className="flex items-center gap-2">
                     <Phone size={13} className="text-[#9E1B1D] shrink-0" />
