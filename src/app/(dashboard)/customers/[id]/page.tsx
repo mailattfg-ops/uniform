@@ -264,6 +264,8 @@ function OrganizationDetailsPageContent() {
   const [isLoadingChallans, setIsLoadingChallans] = useState(false);
   const [selectedProForma, setSelectedProForma] = useState<any | null>(null);
   const [isProFormaModalOpen, setIsProFormaModalOpen] = useState(false);
+  const [isCreateProformaModalOpen, setIsCreateProformaModalOpen] = useState(false);
+  const [selectedQuoteIdForProforma, setSelectedQuoteIdForProforma] = useState<string>('');
 
   const handleOpenProforma = (pi: any) => {
     setSelectedProForma({
@@ -2402,13 +2404,17 @@ function OrganizationDetailsPageContent() {
       {/* Tab 1: Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-in fade-in duration-500">
-          {/* Floating Measurement Quick Action Widget on Right Side (Pops out on hover) */}
+          {/* Floating Measurement Quick Action Widget on Right Side (Shows on click only) */}
+          {isMeasurementDrawerOpen && (
+            <div
+              className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+              onClick={() => setIsMeasurementDrawerOpen(false)}
+            />
+          )}
           <div
             className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
-              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)] hover:translate-x-0'
+              isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)]'
             }`}
-            onMouseEnter={() => setIsMeasurementDrawerOpen(true)}
-            onMouseLeave={() => setIsMeasurementDrawerOpen(false)}
           >
             {/* Small Compact Icon Tab on Right Edge */}
             <button
@@ -4412,6 +4418,20 @@ function OrganizationDetailsPageContent() {
                     onChange={setProformaDateFilter}
                   />
                 }
+                rightAction={
+                  !isClientUser && (
+                    <Button
+                      onClick={() => {
+                        setSelectedQuoteIdForProforma(customerQuotes.length > 0 ? String(customerQuotes[0].id) : '');
+                        setIsCreateProformaModalOpen(true);
+                      }}
+                      className="h-9 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-[#C82A2B]/20 transition-all cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Create Proforma</span>
+                    </Button>
+                  )
+                }
                 columns={[
                   {
                     header: 'Date',
@@ -4538,23 +4558,7 @@ function OrganizationDetailsPageContent() {
                     onChange={setInvoiceDateFilter}
                   />
                 }
-                rightAction={
-                  !isClientUser && (
-                    <Button
-                      onClick={() => {
-                        setInvoiceCreditPeriod(org?.credit_period_days || 30);
-                        setSelectedOrderIdForInvoice(null);
-                        setSelectedQuotationIdForInvoice(null);
-                        setInvoiceType('sales_order');
-                        setIsInvoiceModalOpen(true);
-                      }}
-                      className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                    >
-                      <Plus size={15} />
-                      <span>Create Invoice</span>
-                    </Button>
-                  )
-                }
+
                 columns={[
                   {
                     header: 'Date',
@@ -4807,13 +4811,17 @@ function OrganizationDetailsPageContent() {
 
             return (
               <div className="space-y-5 animate-in fade-in duration-300 relative">
-                {/* Floating Journal Summary Quick Action Widget on Right Side (Pops out on hover) */}
+                {/* Floating Journal Summary Quick Action Widget on Right Side (Shows on click only) */}
+                {isJournalDrawerOpen && (
+                  <div
+                    className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+                    onClick={() => setIsJournalDrawerOpen(false)}
+                  />
+                )}
                 <div
                   className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
-                    isJournalDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-46px)] hover:translate-x-0'
+                    isJournalDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-46px)]'
                   }`}
-                  onMouseEnter={() => setIsJournalDrawerOpen(true)}
-                  onMouseLeave={() => setIsJournalDrawerOpen(false)}
                 >
                   {/* Protruding Handle on Right Edge */}
                   <button
@@ -5080,21 +5088,7 @@ function OrganizationDetailsPageContent() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              {!isClientUser && (
-                <Button
-                  onClick={() => {
-                    setInvoiceCreditPeriod(org.credit_period_days || 30);
-                    setSelectedOrderIdForInvoice(null);
-                    setSelectedQuotationIdForInvoice(null);
-                    setInvoiceType('sales_order');
-                    setIsInvoiceModalOpen(true);
-                  }}
-                  className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all"
-                >
-                  <Plus size={16} />
-                  Create Invoice
-                </Button>
-              )}
+
               <Button
                 onClick={fetchLedgerData}
                 variant="secondary"
@@ -7163,6 +7157,123 @@ function OrganizationDetailsPageContent() {
         customerName={org?.name}
         customerId={org?.id}
       />
+
+            {/* Create Proforma Invoice Modal */}
+      {isCreateProformaModalOpen && org && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl p-6 md:p-8 my-8 border border-zinc-200/80 max-h-[92vh] overflow-y-auto">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
+
+            <div className="flex items-start justify-between pb-4 border-b border-zinc-150">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 flex items-center justify-center">
+                  <FileSpreadsheet size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-zinc-900 italic tracking-tight">Create Proforma Invoice</h3>
+                  <p className="text-xs text-zinc-500 font-medium">
+                    {org.name} ({org.customer_code || `#${org.id}`})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateProformaModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 flex items-center justify-center transition-all cursor-pointer border-none"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-6">
+              {/* Option 1: Generate from Existing Quotation */}
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                    Option 1: From Existing Quotation
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-bold">
+                    {customerQuotes.length} Available
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Select an approved or pending proposal to generate its official Proforma Invoice with document numbering and payment terms.
+                </p>
+
+                {customerQuotes.length > 0 ? (
+                  <div className="space-y-3 pt-1">
+                    <Select
+                      placeholder="Select Quotation..."
+                      value={selectedQuoteIdForProforma}
+                      onChange={(val) => setSelectedQuoteIdForProforma(val)}
+                      options={customerQuotes.map((q: any) => ({
+                        value: String(q.id),
+                        label: `${q.quotation_no || 'QT'} — ${q.title || 'Proposal'} (₹${parseFloat(q.final_quote_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})`
+                      }))}
+                    />
+
+                    <Button
+                      disabled={!selectedQuoteIdForProforma}
+                      onClick={() => {
+                        const quote = customerQuotes.find((q: any) => String(q.id) === selectedQuoteIdForProforma);
+                        if (!quote) return;
+                        const matchingPI = customerProFormaInvoices.find((pi: any) => String(pi.id) === String(quote.id)) || {
+                          id: quote.id,
+                          pi_no: quote.quotation_no ? quote.quotation_no.replace(/^QT-/, 'PR-') : `PR-${quote.id}`,
+                          order_no: '—',
+                          customer_name: org.name,
+                          date: quote.quotation_date || quote.created_at || new Date().toISOString(),
+                          validity_days: org.credit_period_days || 30,
+                          title: quote.title,
+                          type: quote.quotation_type || 'Commercial Bulk',
+                          amount: parseFloat(quote.final_quote_value || '0'),
+                          status: 'Active PI',
+                          raw: quote
+                        };
+                        setIsCreateProformaModalOpen(false);
+                        handleOpenProforma(matchingPI);
+                      }}
+                      className="w-full h-10 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-[#C82A2B]/20 cursor-pointer transition-all"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>Generate &amp; View Proforma Invoice</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-xl font-medium">
+                    No quotations found for this customer. Create a quotation first to generate a proforma invoice.
+                  </p>
+                )}
+              </div>
+
+              {/* Option 2: Create Brand New Quotation / Proforma Proposal */}
+              <div className="p-4 rounded-2xl bg-[#FFF1F1]/50 border border-[#C82A2B]/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                    Option 2: Create New Proposal
+                  </span>
+                  <span className="px-2 py-0.5 bg-[#C82A2B] text-white rounded-md text-[9px] font-black uppercase tracking-wider">
+                    Full Wizard
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Compile a brand new apparel proposal with sizing audit, SAM cost calculations, fabrics, and margin analysis.
+                </p>
+                <Button
+                  onClick={() => {
+                    setIsCreateProformaModalOpen(false);
+                    router.push(`/marketing/quotations?action=create&orgId=${org.id}`);
+                  }}
+                  className="w-full h-10 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                >
+                  <Plus size={14} />
+                  <span>Launch Quotation &amp; Proforma Wizard</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* First Custom Department Migration / Confirmation Modal */}
       {firstDeptMigrationModal.isOpen && (

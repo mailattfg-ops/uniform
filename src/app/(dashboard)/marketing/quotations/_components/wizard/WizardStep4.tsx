@@ -107,28 +107,8 @@ export default function WizardStep4({
   const [selectedQuoteDetail, setSelectedQuoteDetail] = useState<any | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState<boolean>(false);
-  const [isHovered, setIsHovered] = useState<boolean>(false);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseEnter = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovered(false);
-    }, 300);
-  };
-
-  const isScheduleVisible = isScheduleOpen || isHovered || !!selectedQuoteDetail;
-
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    };
-  }, []);
+  const isScheduleVisible = isScheduleOpen || !!selectedQuoteDetail;
 
   useEffect(() => {
     if (!gstPercent) {
@@ -874,15 +854,13 @@ export default function WizardStep4({
         </div>
       )}
 
-      {/* ── FLOATING RIGHT-SIDE HOVER TRIGGER TAB ── */}
+      {/* ── FLOATING RIGHT-SIDE CLICK TRIGGER TAB ── */}
       <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         onClick={() => setIsScheduleOpen((prev) => !prev)}
         className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 cursor-pointer ${
           isScheduleVisible ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'
         }`}
-        title="Hover to view Delivery Schedule Registry"
+        title="Click to view Delivery Schedule Registry"
       >
         <div className="bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xl shadow-[#C82A2B]/30 rounded-l-2xl py-4 px-2.5 flex flex-col items-center gap-2.5 border-y border-l border-white/20 transition-all select-none group">
           <div className="relative">
@@ -897,10 +875,17 @@ export default function WizardStep4({
         </div>
       </div>
 
-      {/* ── SLIDE-OUT DELIVERY SCHEDULE REGISTRY PANEL (APPEARS ON HOVER FROM RIGHT) ── */}
+      {/* ── SLIDE-OUT DELIVERY SCHEDULE REGISTRY PANEL (APPEARS ON CLICK ONLY) ── */}
+      {isScheduleVisible && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+          onClick={() => {
+            setIsScheduleOpen(false);
+            setSelectedQuoteDetail(null);
+          }}
+        />
+      )}
       <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         className={`fixed top-0 right-0 h-full z-40 transition-transform duration-300 ease-out ${
           isScheduleVisible ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
@@ -926,7 +911,6 @@ export default function WizardStep4({
                 type="button"
                 onClick={() => {
                   setIsScheduleOpen(false);
-                  setIsHovered(false);
                 }}
                 className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-all cursor-pointer"
                 title="Close Schedule Panel"
