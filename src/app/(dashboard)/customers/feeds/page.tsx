@@ -318,7 +318,9 @@ export default function FeedsRegistryPage() {
 
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area || '—';
+      const locality = l.area 
+        ? (l.city && !l.area.toLowerCase().includes(l.city.toLowerCase()) ? `${l.area}, ${l.city}` : l.area)
+        : [l.city, l.state].filter(Boolean).join(', ') || l.city || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -368,7 +370,7 @@ export default function FeedsRegistryPage() {
       <tr>
         <th style="width: 25px; text-align: center;">#</th>
         <th>Prospect / Organization</th>
-        <th>Locality</th>
+        <th>Area / Locality</th>
         <th>Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Scouted By</th>
@@ -424,15 +426,18 @@ export default function FeedsRegistryPage() {
       )
     },
     {
-      header: 'Locality',
-      className: 'w-[140px] min-w-[120px] whitespace-nowrap text-center',
-      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.area || '',
+      header: 'Area / Locality',
+      className: 'w-[150px] min-w-[130px] whitespace-nowrap text-center',
+      sortValue: (l) => l.area || [l.city, l.state].filter(Boolean).join(', ') || l.city || '',
       accessor: (l) => {
-        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area;
-        return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={locality}>
+        const areaLocality = l.area 
+          ? (l.city && !l.area.toLowerCase().includes(l.city.toLowerCase()) ? `${l.area}, ${l.city}` : l.area)
+          : [l.city, l.state].filter(Boolean).join(', ') || l.city;
+        const fullTooltip = [l.area, l.city, l.state].filter(Boolean).join(', ');
+        return areaLocality ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-            <span className="truncate">{locality}</span>
+            <span className="truncate">{areaLocality}</span>
           </div>
         ) : (
           <div className="text-center">

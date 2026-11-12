@@ -670,15 +670,18 @@ export default function LeadsRegistryPage() {
       }
     },
     {
-      header: 'Locality',
-      className: 'w-[140px] min-w-[120px] whitespace-nowrap text-center',
-      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.area || '',
+      header: 'Area / Locality',
+      className: 'w-[150px] min-w-[130px] whitespace-nowrap text-center',
+      sortValue: (l) => l.area || [l.city, l.state].filter(Boolean).join(', ') || l.city || '',
       accessor: (l) => {
-        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area;
-        return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={locality}>
+        const areaLocality = l.area 
+          ? (l.city && !l.area.toLowerCase().includes(l.city.toLowerCase()) ? `${l.area}, ${l.city}` : l.area)
+          : [l.city, l.state].filter(Boolean).join(', ') || l.city;
+        const fullTooltip = [l.area, l.city, l.state].filter(Boolean).join(', ');
+        return areaLocality ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-            <span className="truncate">{locality}</span>
+            <span className="truncate">{areaLocality}</span>
           </div>
         ) : (
           <div className="text-center">
@@ -887,7 +890,9 @@ export default function LeadsRegistryPage() {
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
     const rowsHtml = dataToPrint.map((l, idx) => {
-      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.area || '—';
+      const locality = l.area 
+        ? (l.city && !l.area.toLowerCase().includes(l.city.toLowerCase()) ? `${l.area}, ${l.city}` : l.area)
+        : [l.city, l.state].filter(Boolean).join(', ') || l.city || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -948,7 +953,7 @@ export default function LeadsRegistryPage() {
       <tr>
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
-        <th>Locality</th>
+        <th>Area / Locality</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Status</th>
@@ -1707,12 +1712,12 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Locality & Google Maps Link */}
+          {/* Area / Locality & Google Maps Link */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <MapPin size={13} className="text-[#9E1B1D]" />
-                Locality
+                Area / Locality
               </label>
               <input
                 type="text"
