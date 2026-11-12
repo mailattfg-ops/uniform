@@ -648,7 +648,6 @@ export default function LeadsRegistryPage() {
       sortValue: (l) => l.name,
       accessor: (l) => {
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
-        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return (
           <div className="min-w-0 text-left flex flex-col items-start">
             <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate w-full" title={l.name}>
@@ -659,10 +658,9 @@ export default function LeadsRegistryPage() {
                 {industryName}
               </p>
             )}
-            {zoneName && (
-              <p className="text-[10px] font-medium text-zinc-500 truncate mt-0.5 flex items-center gap-1 w-full" title={`Zone: ${zoneName}`}>
-                <MapPin size={10} className="shrink-0 text-zinc-400" />
-                <span className="truncate">{zoneName}</span>
+            {l.requirements && (
+              <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
+                {l.requirements}
               </p>
             )}
           </div>
@@ -682,6 +680,25 @@ export default function LeadsRegistryPage() {
           <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{areaLocality}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">—</span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Zone',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || l.city || '',
+      accessor: (l) => {
+        const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
+        const displayVal = zoneName || l.city;
+        return displayVal ? (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={displayVal}>
+            <MapPin size={12} className="text-zinc-400 shrink-0" />
+            <span className="truncate">{displayVal}</span>
           </div>
         ) : (
           <div className="text-center">
@@ -890,6 +907,7 @@ export default function LeadsRegistryPage() {
       : branches.find(b => String(b.id) === selectedBranch)?.name || `Branch #${selectedBranch}`;
 
     const rowsHtml = dataToPrint.map((l, idx) => {
+      const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
       const locality = l.area 
         ? (l.city && !l.area.toLowerCase().includes(l.city.toLowerCase()) ? `${l.area}, ${l.city}` : l.area)
         : [l.city, l.state].filter(Boolean).join(', ') || l.city || '—';
@@ -898,6 +916,7 @@ export default function LeadsRegistryPage() {
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
         <td style="font-size: 10px; color: #4a5568;">${locality}</td>
+        <td style="font-size: 10px; color: #4a5568;">${zoneName || l.city || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -954,6 +973,7 @@ export default function LeadsRegistryPage() {
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
         <th>Area / Locality</th>
+        <th>Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Status</th>
