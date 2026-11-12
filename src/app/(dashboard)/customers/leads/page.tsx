@@ -1724,21 +1724,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Google Maps Link */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Navigation size={13} className="text-[#9E1B1D]" />
-              Google Maps Link
-            </label>
-            <input
-              type="text"
-              value={googleMapsLink}
-              onChange={(e) => setGoogleMapsLink(e.target.value)}
-              placeholder="e.g. https://maps.app.goo.gl/..."
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-            />
-          </div>
-
           {/* Address Details: Street, City, State, Pincode, Country */}
           <div className="space-y-3 pt-1 border-t border-zinc-100">
             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
@@ -2409,21 +2394,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
-          {/* Google Maps Link */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Navigation size={13} className="text-[#9E1B1D]" />
-              Google Maps Link
-            </label>
-            <input
-              type="text"
-              value={googleMapsLink}
-              onChange={(e) => setGoogleMapsLink(e.target.value)}
-              placeholder="e.g. https://maps.app.goo.gl/..."
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-            />
-          </div>
-
           {/* Sector, Source, Branch, Salesperson, and Stage Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -2623,6 +2593,20 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-800"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Navigation size={13} className="text-[#9E1B1D]" />
+                Google Maps Link (Optional)
+              </label>
+              <input
+                type="text"
+                value={googleMapsLink}
+                onChange={(e) => setGoogleMapsLink(e.target.value)}
+                placeholder="e.g. https://maps.app.goo.gl/..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
             </div>
           </div>
 
