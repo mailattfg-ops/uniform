@@ -3480,53 +3480,69 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Vertically Aligned Prospect Detail Cards */}
             <div className="lg:col-span-5 flex flex-col gap-3">
-              {/* Contact Person */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Contact Person</label>
+              {/* Combined Contact Card: Contact Person, Designation, Phone & Email */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">
+                    Contact Details
+                  </label>
+                  {lead.contact_designation && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#FFF1F1] text-[#9E1B1D] rounded-md border border-[#C82A2B]/15">
+                      {lead.contact_designation}
+                    </span>
+                  )}
+                </div>
+
+                {/* Contact Person Name & Title */}
                 <div className="flex items-start gap-2">
                   <User size={14} className="text-[#9E1B1D] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-bold text-zinc-900">
-                      {lead.contact_person ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}` : 'Not specified'}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black text-zinc-900 leading-tight">
+                      {lead.contact_person
+                        ? `${lead.contact_title ? lead.contact_title + ' ' : ''}${lead.contact_person}`
+                        : 'Not specified'}
                     </p>
                     {lead.contact_designation && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#FFF1F1] text-[#9E1B1D] rounded-md inline-block mt-0.5 border border-[#C82A2B]/15">
+                      <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
                         {lead.contact_designation}
-                      </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact: Phone & Email */}
+                <div className="space-y-2 pt-2 border-t border-zinc-200/60">
+                  {/* Phone */}
+                  <div className="flex items-center gap-2">
+                    <Phone size={13} className="text-[#9E1B1D] shrink-0" />
+                    <div className="text-xs font-bold text-zinc-800">
+                      <ContactPhoneLink phone={lead.phone} name={lead.contact_person || lead.name} />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex items-center gap-2">
+                    <Mail size={13} className="text-[#9E1B1D] shrink-0" />
+                    {lead.email ? (
+                      <a
+                        href={`mailto:${lead.email}`}
+                        className="text-xs font-bold text-zinc-900 hover:text-[#C82A2B] truncate transition-colors"
+                        title={lead.email}
+                      >
+                        {lead.email}
+                      </a>
+                    ) : (
+                      <span className="text-xs font-medium text-zinc-400 italic">—</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Phone Number */}
+              {/* Sales Person / Operator */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Phone Number</label>
-                <div className="flex items-center gap-2">
-                  <Phone size={14} className="text-[#9E1B1D]" />
-                  <div>
-                    <ContactPhoneLink phone={lead.phone} name={lead.contact_person || lead.name} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Email Address */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Email</label>
-                <div className="flex items-center gap-2">
-                  <Mail size={14} className="text-[#9E1B1D]" />
-                  {lead.email ? (
-                    <a href={`mailto:${lead.email}`} className="text-xs font-bold text-zinc-900 hover:text-[#C82A2B] truncate transition-colors">
-                      {lead.email}
-                    </a>
-                  ) : (
-                    <span className="text-xs font-medium text-zinc-400 italic">—</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Sales Operator */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Sales Operator</label>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                  Sales Person
+                </label>
                 {lead.employees ? (
                   <div className="flex items-center gap-2 mt-0.5">
                     <ShieldCheck size={14} className="text-[#9E1B1D]" />
@@ -3540,10 +3556,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 )}
               </div>
 
-              {/* Location & 5-Part Address */}
+              {/* Location & Address */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Location &amp; 5-Part Address</label>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                    Location &amp; Address
+                  </label>
                   {lead.google_maps_link && (
                     <a
                       href={lead.google_maps_link.startsWith('http') ? lead.google_maps_link : `https://${lead.google_maps_link}`}
@@ -3556,8 +3574,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   )}
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin size={14} className="text-[#9E1B1D]" />
-                  <div className="flex-1 space-y-0.5">
+                  <MapPin size={14} className="text-[#9E1B1D] shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-0.5 min-w-0">
                     <p className="text-xs font-bold text-zinc-900">
                       {[lead.city, lead.state].filter(Boolean).join(', ') || 'Location unlisted'}
                     </p>
