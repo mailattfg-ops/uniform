@@ -101,8 +101,8 @@ export default function WizardStep5({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
-        <h3 className="text-2xl font-black italic text-[#3a525d]">Quotation Contract Proposal Review</h3>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
+        <h3 className="text-2xl font-black italic text-zinc-900">Quotation Contract Proposal Review</h3>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
           Verify compliance, delivery, and pricing values before submission
         </p>
       </div>
@@ -111,26 +111,26 @@ export default function WizardStep5({
         {/* QUOTE SUMMARY SUMMARY */}
         <div className="md:col-span-2 space-y-6">
           <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100 pb-2">
               Contract Details
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold text-zinc-500">
               <div>
                 <p className="text-[9px] uppercase text-zinc-400">Proposal Title</p>
-                <p className="text-sm font-black text-[#3a525d] mt-1">{quoteTitle}</p>
+                <p className="text-sm font-black text-zinc-900 mt-1">{quoteTitle}</p>
               </div>
               <div>
                 <p className="text-[9px] uppercase text-zinc-400">Customer Organization</p>
-                <p className="text-sm font-black text-[#3a525d] mt-1">{customerName}</p>
+                <p className="text-sm font-black text-zinc-900 mt-1">{customerName}</p>
               </div>
               <div>
                 <p className="text-[9px] uppercase text-zinc-400">Contract Number</p>
-                <p className="text-sm font-black text-[#3a525d] mt-1">{quoteNo || 'Auto Generated'}</p>
+                <p className="text-sm font-black text-zinc-900 mt-1">{quoteNo || 'Auto Generated'}</p>
               </div>
               <div>
                 <p className="text-[9px] uppercase text-zinc-400">Product Model</p>
-                <p className="text-sm font-black text-[#3a525d] mt-1">
+                <p className="text-sm font-black text-zinc-900 mt-1">
                   {hasMeasurements
                     ? (() => {
                         const pt = productTypes.find((p) => String(p.id) === String(selectedProductTypeId));
@@ -147,14 +147,14 @@ export default function WizardStep5({
 
           {hasMeasurements ? (
             <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100 pb-2">
                 Sizing Breakdown summary
               </h4>
               <div className="flex gap-2 flex-wrap">
                 {Object.keys(orgAnalysis.size_distribution).map((size) => (
                   <div
                     key={size}
-                    className="bg-zinc-50 border border-zinc-150 px-3.5 py-2 rounded-xl text-xs font-bold text-[#3a525d]"
+                    className="bg-zinc-50 border border-zinc-150 px-3.5 py-2 rounded-xl text-xs font-bold text-zinc-900"
                   >
                     <strong>{size}</strong>: {orgAnalysis.size_distribution[size]} Units
                   </div>
@@ -180,7 +180,7 @@ export default function WizardStep5({
                   return (
                     <Card key={deptName} className="p-8 border border-zinc-100 rounded-[2rem] space-y-6 bg-white shadow-sm">
                       <div className="flex items-center gap-3 border-b border-zinc-100 pb-3">
-                        <h4 className="text-sm font-black text-[#3a525d]">
+                        <h4 className="text-sm font-black text-zinc-900">
                           Department: {deptName}
                         </h4>
                       </div>
@@ -191,7 +191,7 @@ export default function WizardStep5({
                           return (
                             <div key={dept.id} className="space-y-3 pt-6 first:pt-0">
                               <div className="flex justify-between items-center bg-zinc-50/60 p-3.5 rounded-2xl border border-zinc-150/60">
-                                <span className="text-[10px] font-black text-[#3a525d] uppercase tracking-widest bg-zinc-200/50 px-2.5 py-1 rounded-lg">
+                                <span className="text-[10px] font-black text-zinc-900 uppercase tracking-widest bg-zinc-200/50 px-2.5 py-1 rounded-lg">
                                   {dept.division ? `Division: ${dept.division}` : 'Main Division'}
                                 </span>
                                 <span className="text-[10px] font-bold text-zinc-400">
@@ -201,7 +201,7 @@ export default function WizardStep5({
                               <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
                                 <table className="w-full text-left border-collapse">
                                   <thead>
-                                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                                       <th className="p-3 text-center">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
                                       <th className="p-3 text-center">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
                                       {isAccessory ? (
@@ -237,7 +237,7 @@ export default function WizardStep5({
 
                                       return (
                                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                                          <td className="p-3 font-black text-[#3a525d]">{unifiedProductDisplay}</td>
+                                          <td className="p-3 font-black text-zinc-900">{unifiedProductDisplay}</td>
                                           <td className="p-3 text-zinc-600 text-xs font-semibold">
                                             {isAccessory ? (
                                               item.size_breakdown?.selected_size || 'Free Size'
@@ -262,7 +262,7 @@ export default function WizardStep5({
                                           )}
                                           <td className="p-3 text-right font-black">{item.quantity}</td>
                                           <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
-                                          <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                                          <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
                                             ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
                                           </td>
                                         </tr>
@@ -282,13 +282,13 @@ export default function WizardStep5({
             </div>
           ) : (
             <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100 pb-2">
                 Product Items Details
               </h4>
               <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-150">
+                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
                       <th className="p-3 text-center">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
                       <th className="p-3 text-center">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
                       {isAccessory ? (
@@ -318,7 +318,7 @@ export default function WizardStep5({
                           <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
                             <td className="p-3">
                               <div className="space-y-1">
-                                <div className="font-black text-[#2d8d9b] uppercase text-[11px]">🎁 SET: {setName}</div>
+                                <div className="font-black text-[#C82A2B] uppercase text-[11px]">🎁 SET: {setName}</div>
                                 <ul className="list-disc list-inside pl-2 text-zinc-500 text-[10px] space-y-0.5 font-bold">
                                   {products.map((p: any, pIdx: number) => (
                                     <li key={pIdx}>
@@ -333,7 +333,7 @@ export default function WizardStep5({
                             <td className="p-3 text-zinc-500">{item.design_number || 'N/A'}</td>
                             <td className="p-3 text-right font-black">{item.quantity}</td>
                             <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
-                            <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                            <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
                               ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
                             </td>
                           </tr>
@@ -355,7 +355,7 @@ export default function WizardStep5({
 
                       return (
                         <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-[#3a525d]">{unifiedProductDisplay}</td>
+                          <td className="p-3 font-black text-zinc-900">{unifiedProductDisplay}</td>
                           <td className="p-3 text-zinc-600 text-xs font-semibold">
                             {isAccessory ? (
                               item.size_breakdown?.selected_size || 'Free Size'
@@ -382,7 +382,7 @@ export default function WizardStep5({
                           )}
                           <td className="p-3 text-right font-black">{item.quantity}</td>
                           <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
-                          <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">
+                          <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
                             ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
                           </td>
                         </tr>
@@ -396,20 +396,20 @@ export default function WizardStep5({
 
           {separateFabrics.length > 0 && !isAccessory && (
             <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4 mt-6">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100 pb-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100 pb-2">
                 Separate Fabric Materials Supplied
               </h4>
               <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100">
                       <th className="p-3 pl-4 text-center">Fabric Details</th>
                       <th className="p-3 text-center">Meters</th>
                       <th className="p-3 text-center">Rate/Meter</th>
                       <th className="p-3 text-center pr-4">Total Price</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-100 font-semibold text-[#3a525d]">
+                  <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-900">
                     {separateFabrics.map((sf: any, idx: number) => {
                       const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
                       const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
@@ -419,10 +419,10 @@ export default function WizardStep5({
 
                       return (
                         <tr key={idx} className="hover:bg-zinc-50/50 bg-white transition-colors">
-                          <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}</td>
+                          <td className="p-3 pl-4 font-black text-zinc-900">{fabricName}</td>
                           <td className="p-3 text-right">{meters} m</td>
                           <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
-                          <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
+                          <td className="p-3 text-right font-black text-[#C82A2B] pr-4 font-mono">₹{total.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -434,15 +434,15 @@ export default function WizardStep5({
         </div>
 
         {/* REVENUE MATRIX */}
-        <Card className="h-fit p-8 border border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2.5rem] space-y-6">
-          <h4 className="text-xs font-black uppercase tracking-widest text-[#2d8d9b] border-b border-[#2d8d9b]/10 pb-4">
+        <Card className="h-fit p-8 border border-[#C82A2B]/20 bg-[#FFF1F1] rounded-[2.5rem] space-y-6">
+          <h4 className="text-xs font-black uppercase tracking-widest text-[#C82A2B] border-b border-[#C82A2B]/15 pb-4">
             Financial Summary
           </h4>
 
           <div className="space-y-4 text-sm font-semibold text-zinc-600">
             <div className="flex justify-between">
               <span>Total Items count:</span>
-              <span className="font-black text-[#3a525d]">
+              <span className="font-black text-zinc-900">
                 {hasMeasurements
                   ? orgAnalysis.total_entities
                   : hasDepartments
@@ -461,7 +461,7 @@ export default function WizardStep5({
             <div className="flex justify-between items-center">
               <span>Tax Treatment:</span>
               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                quoteTotals.isTaxInclusive ? 'bg-teal-50 text-[#2d8d9b] border border-teal-200' : 'bg-zinc-100 text-zinc-600'
+                quoteTotals.isTaxInclusive ? 'bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20' : 'bg-zinc-100 text-zinc-600'
               }`}>
                 {quoteTotals.isTaxInclusive ? 'Tax Inclusive (MRP)' : 'Tax Exclusive (+GST)'}
               </span>
@@ -470,11 +470,11 @@ export default function WizardStep5({
               <span>Taxable Base Subtotal:</span>
               <span className="font-mono text-zinc-800 font-black">₹{quoteTotals.subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-[#2d8d9b] text-xs">
+            <div className="flex justify-between text-[#C82A2B] text-xs">
               <span>CGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
               <span className="font-mono font-black">₹{((quoteTotals.cgst !== undefined ? quoteTotals.cgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-[#2d8d9b] text-xs">
+            <div className="flex justify-between text-[#C82A2B] text-xs">
               <span>SGST ({(parseFloat(gstPercent) || 0) / 2}%):</span>
               <span className="font-mono font-black">₹{((quoteTotals.sgst !== undefined ? quoteTotals.sgst : (quoteTotals.gstValue / 2)) || 0).toFixed(2)}</span>
             </div>
@@ -492,7 +492,7 @@ export default function WizardStep5({
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
                   {quoteTotals.isTaxInclusive ? 'Total Contract Value (GST Inclusive)' : 'Total Contract Value (With GST)'}
                 </p>
-                <p className="text-3xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-0.5">
+                <p className="text-3xl font-black italic tracking-tighter text-[#C82A2B] font-mono mt-0.5">
                   ₹{quoteTotals.finalValue.toFixed(2)}
                 </p>
               </div>

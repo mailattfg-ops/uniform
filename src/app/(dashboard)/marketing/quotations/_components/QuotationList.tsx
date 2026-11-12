@@ -330,7 +330,7 @@ export default function QuotationList({
       sortValue: (q) => Number(q.final_quote_value || 0),
       accessor: (q) => (
         <div className="text-right">
-          <p className="text-xs md:text-sm font-black text-[#2d8d9b] font-mono">
+          <p className="text-xs md:text-sm font-black text-[#C82A2B] font-mono">
             ₹{Number(q.final_quote_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           {q.estimated_expenses ? (
@@ -396,7 +396,7 @@ export default function QuotationList({
             className="group/status inline-flex items-center cursor-pointer text-left transition-all active:scale-95 focus:outline-none"
             title="Click to log follow-up"
           >
-            <div className="transition-all group-hover/status:ring-2 group-hover/status:ring-[#2d8d9b]/50 group-hover/status:shadow-sm rounded-lg inline-flex items-center">
+            <div className="transition-all group-hover/status:ring-2 group-hover/status:ring-[#C82A2B]/50 group-hover/status:shadow-sm rounded-lg inline-flex items-center">
               {badge}
             </div>
           </button>
@@ -453,7 +453,7 @@ export default function QuotationList({
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.quotation_date || q.created_at)}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
@@ -487,11 +487,11 @@ export default function QuotationList({
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #1a202c; padding: 24px; font-size: 11px; }
     @page { size: landscape; margin: 8mm; }
-    .report-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3a525d; padding-bottom: 14px; margin-bottom: 14px; }
-    .brand-title { font-size: 22px; font-weight: 900; color: #3a525d; }
-    .brand-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #2d8d9b; font-weight: 800; }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #C82A2B; padding-bottom: 14px; margin-bottom: 14px; }
+    .brand-title { font-size: 22px; font-weight: 900; color: #1a202c; }
+    .brand-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #C82A2B; font-weight: 800; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 9px; text-transform: uppercase; font-weight: 800; color: #3a525d; }
+    th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 9px; text-transform: uppercase; font-weight: 800; color: #1a202c; }
     td { border: 1px solid #e2e8f0; padding: 6px 10px; }
     tr:nth-child(even) { background: #f8fafc; }
   </style>
@@ -501,7 +501,7 @@ export default function QuotationList({
     <div>
       <div class="brand-title">FORMA APPARELS</div>
       <div class="brand-subtitle">Central Manufacturing & Institutional Distribution</div>
-      <div style="font-size: 14px; font-weight: 800; color: #2d8d9b; margin-top: 6px;">Quotations Registry Report</div>
+      <div style="font-size: 14px; font-weight: 800; color: #C82A2B; margin-top: 6px;">Quotations Registry Report</div>
     </div>
     <div style="text-align: right; font-size: 10px; color: #4a5568;">
       <div><strong>Printed:</strong> ${printedAt}</div>
@@ -890,7 +890,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               <button
                 type="button"
                 onClick={() => openQuotationTab(quotation.id, quotation.quotation_no)}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/20 border border-[#2d8d9b]/20 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#C82A2B] bg-[#FFF1F1] hover:bg-[#FFF1F1] border border-[#C82A2B]/20 transition-all cursor-pointer"
                 title="Open this quotation in a new browser tab"
               >
                 <span>Open Quote in New Tab</span>
@@ -972,8 +972,8 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                         onClick={() => openQuotationTab(q.id, q.quotation_no)}
                         className={`p-4 rounded-2xl border transition-all cursor-pointer group relative flex flex-col justify-between ${
                           isCurrent
-                            ? 'bg-[#2d8d9b]/5 border-[#2d8d9b]/40 shadow-xs hover:border-[#2d8d9b]'
-                            : 'bg-white border-zinc-200 hover:border-[#2d8d9b]/50 hover:shadow-md'
+                            ? 'bg-[#FFF1F1] border-[#C82A2B]/40 shadow-xs hover:border-[#C82A2B]'
+                            : 'bg-white border-zinc-200 hover:border-[#C82A2B]/50 hover:shadow-md'
                         }`}
                         title="Click to open this quotation in a new tab"
                       >
@@ -990,7 +990,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                               <p className="font-mono font-bold text-sm text-zinc-900 mt-1 flex items-center gap-1.5">
                                 <span>{q.quotation_no}</span>
                                 {isCurrent && (
-                                  <span className="text-[9px] font-bold text-[#2d8d9b] uppercase tracking-wider">
+                                  <span className="text-[9px] font-bold text-[#C82A2B] uppercase tracking-wider">
                                     (Active)
                                   </span>
                                 )}
@@ -1003,7 +1003,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                                 e.stopPropagation();
                                 openQuotationTab(q.id, q.quotation_no);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all shrink-0 cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xs transition-all shrink-0 cursor-pointer"
                             >
                               <span>View Quote</span>
                               <ExternalLink size={10} className="shrink-0" />
@@ -1014,7 +1014,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                             <span className="text-zinc-500 font-medium">
                               {formatDate(q.quotation_date || q.created_at)}
                             </span>
-                            <span className="font-mono font-black text-[#2d8d9b]">
+                            <span className="font-mono font-black text-[#C82A2B]">
                               ₹{qAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -1030,7 +1030,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                           <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-700 border border-zinc-200">
                             {q.status || 'Draft'}
                           </span>
-                          <span className="text-[10px] text-[#2d8d9b] font-bold group-hover:underline inline-flex items-center gap-0.5">
+                          <span className="text-[10px] text-[#C82A2B] font-bold group-hover:underline inline-flex items-center gap-0.5">
                             Open in tab <ExternalLink size={9} />
                           </span>
                         </div>
@@ -1089,7 +1089,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
-                                  className="text-[10px] font-bold text-[#2d8d9b] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
+                                  className="text-[10px] font-bold text-[#C82A2B] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
                                   title="View this quotation"
                                 >
                                   Quote <ExternalLink size={9} />

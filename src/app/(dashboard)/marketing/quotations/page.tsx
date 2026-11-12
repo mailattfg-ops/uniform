@@ -594,10 +594,10 @@ export default function QuotationsPage() {
       {/* HEADER CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d] flex items-center gap-3">
+          <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900 flex items-center gap-3">
             Quotations
           </h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-1 opacity-70">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C82A2B] mt-1 font-bold">
             {activeTab === 'list' && 'Client Contract proposals & custom sizing estimates'}
             {activeTab === 'create' && (editingQuotationId ? 'Quotation Editor Wizard' : 'Quotation Compiler Wizard')}
             {activeTab === 'details' && 'Detailed Expense Breakdown & Delivery Timelines'}

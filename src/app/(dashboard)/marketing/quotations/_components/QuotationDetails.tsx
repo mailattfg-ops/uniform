@@ -287,7 +287,7 @@ export default function QuotationDetails({
 
         Object.entries(groups).forEach(([cleanDeptName, groupItems]) => {
           itemsHtml += `
-            <tr class="bg-gray-50/80 border-t border-b border-gray-150 text-[10px] font-black uppercase text-[#3a525d] tracking-wider">
+            <tr class="bg-gray-50/80 border-t border-b border-gray-150 text-[10px] font-black uppercase text-zinc-900 tracking-wider">
               <td colspan="4" class="py-2.5 px-4 font-black">DEPARTMENT: ${cleanDeptName}</td>
             </tr>
           `;
@@ -354,7 +354,7 @@ export default function QuotationDetails({
                 <td class="py-3.5 px-4">${firstCellHtml}</td>
                 <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
                 <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
-                <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+                <td class="py-3.5 px-4 text-[#C82A2B] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
               </tr>
             `;
           });
@@ -378,7 +378,7 @@ export default function QuotationDetails({
               <td class="py-3.5 px-4">${firstCellHtml}</td>
               <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
               <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
-              <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+              <td class="py-3.5 px-4 text-[#C82A2B] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
             </tr>
           `;
         });
@@ -401,7 +401,7 @@ export default function QuotationDetails({
             <td class="py-3.5 px-4">${fabricName}</td>
             <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${meters} m</td>
             <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${rate.toFixed(2)}</td>
-            <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+            <td class="py-3.5 px-4 text-[#C82A2B] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -522,19 +522,19 @@ export default function QuotationDetails({
             <div>
               <div class="flex items-center gap-2.5">
                 <!-- SVG Gradient Logo -->
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#3a525d] to-[#2d8d9b] flex items-center justify-center text-white shadow-md">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#9E1B1D] to-[#C82A2B] flex items-center justify-center text-white shadow-md">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-5 h-5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.61 3.51a6 6 0 0 1 5.98 10.86Z" />
                   </svg>
                 </div>
-                 <span class="text-xl font-black italic tracking-tighter text-[#3a525d] font-outfit">${companySettings.company_name.toUpperCase()}</span>
+                 <span class="text-xl font-black italic tracking-tighter text-zinc-900 font-outfit">${companySettings.company_name.toUpperCase()}</span>
               </div>
-              <p class="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1.5 pl-0.5">Corporate Apparel & Sizing Specialists</p>
+              <p class="text-[9px] font-black uppercase tracking-[0.2em] text-[#C82A2B] mt-1.5 pl-0.5">Corporate Apparel & Sizing Specialists</p>
               <p class="text-[10px] text-gray-400 mt-2 font-medium">${companySettings.address}<br/>${companySettings.phone} | ${companySettings.email}</p>
             </div>
 
             <div class="text-right">
-              <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
+              <span class="px-3 py-1 bg-[#FFF1F1] text-[#C82A2B] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#C82A2B]/15 inline-block">
                 ${quote.status} ${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
               </span>
               <h1 class="text-xl font-black text-gray-800 mt-2 font-outfit">${quote.quotation_no}</h1>
@@ -577,13 +577,13 @@ export default function QuotationDetails({
             </div>
             <div class="md:text-center">
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Group Design Number</p>
-              <p class="text-sm font-black text-[#2d8d9b] mt-1">${quote.group_design_number?.code || '—'}</p>
+              <p class="text-sm font-black text-[#C82A2B] mt-1">${quote.group_design_number?.code || '—'}</p>
               <p class="text-gray-500 mt-0.5 font-medium">Auto-generated Design Collection</p>
             </div>
             <div class="md:text-right space-y-2">
               <div>
                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
-                <p class="text-sm font-black text-[#2d8d9b] mt-0.5">${deliveryDateStr}</p>
+                <p class="text-sm font-black text-[#C82A2B] mt-0.5">${deliveryDateStr}</p>
                 <p class="text-gray-500 text-[10px] font-medium">Est. Days: ${quote.production_days_estimate} Production Days</p>
               </div>
               ${fullDeliveryAddress ? `
@@ -653,7 +653,7 @@ export default function QuotationDetails({
                           <td class="py-3 px-4 text-gray-400">${dept.division || '—'}</td>
                           <td class="py-3 px-4 text-right">${dept.persons}</td>
                           <td class="py-3 px-4 text-right">${dept.sets}</td>
-                          <td class="py-3 px-4 text-right font-black text-[#2d8d9b]">${dept.persons * dept.sets}</td>
+                          <td class="py-3 px-4 text-right font-black text-[#C82A2B]">${dept.persons * dept.sets}</td>
                         </tr>
                       `).join('')}
                       <!-- Total Row -->
@@ -663,7 +663,7 @@ export default function QuotationDetails({
                           ${depts.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
                         </td>
                         <td class="py-3 px-4"></td>
-                        <td class="py-3 px-4 text-right text-[#2d8d9b]">
+                        <td class="py-3 px-4 text-right text-[#C82A2B]">
                           ${depts.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
                         </td>
                       </tr>
@@ -722,7 +722,7 @@ export default function QuotationDetails({
                   <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
                 </div>
               `}
-              <div class="flex justify-between items-end pt-2 text-[#2d8d9b]">
+              <div class="flex justify-between items-end pt-2 text-[#C82A2B]">
                 <div>
                   <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
                     ${isB2B ? 'Total Commercial Contract Value' : 'Total Contract Value'}
@@ -744,7 +744,7 @@ export default function QuotationDetails({
             <div>
               <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Alternative/UPI Payment</p>
               <p><span class="text-gray-400">IFSC Code:</span> <span class="font-mono text-gray-800 font-black">${companySettings.ifsc_code}</span></p>
-              <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#2d8d9b] font-black">${companySettings.upi_id}</span></p>
+              <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#C82A2B] font-black">${companySettings.upi_id}</span></p>
             </div>
           </div>
 
@@ -806,10 +806,10 @@ export default function QuotationDetails({
         {/* OVERVIEW PANEL HEADER */}
         <div className="flex justify-between items-center border-b border-zinc-100 pb-6 flex-wrap gap-4">
           <div>
-            <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#2d8d9b]/5 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest">
+            <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/10 tracking-widest">
               {selectedQuotation.quotation_no}
             </span>
-            <h3 className="text-3xl font-black italic tracking-tighter text-[#3a525d] mt-2">{selectedQuotation.title}</h3>
+            <h3 className="text-3xl font-black italic tracking-tighter text-zinc-900 mt-2">{selectedQuotation.title}</h3>
             <p className="text-xs font-bold text-zinc-400 mt-1">
               Registered: {formatDate(selectedQuotation.created_at)}
             </p>
@@ -963,7 +963,7 @@ export default function QuotationDetails({
                 <CheckCircle2 size={16} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">1. Draft Created</p>
+                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">1. Draft Created</p>
                 <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
                   {formatDate(selectedQuotation.created_at)}
                 </p>
@@ -1000,7 +1000,7 @@ export default function QuotationDetails({
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">2. Branch Review</p>
+                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">2. Branch Review</p>
                 <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
                   {isBmApproved
                     ? `Endorsed ${selectedQuotation.metrics_summary?.bm_approved_by_name ? `(${selectedQuotation.metrics_summary.bm_approved_by_name})` : ''}`
@@ -1037,7 +1037,7 @@ export default function QuotationDetails({
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">3. Operations Desk</p>
+                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">3. Operations Desk</p>
                 <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
                   {isOpsApproved
                     ? 'Technical Sign-off'
@@ -1066,7 +1066,7 @@ export default function QuotationDetails({
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-black text-[#3a525d] uppercase tracking-wide">4. Client Proposal</p>
+                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">4. Client Proposal</p>
                 <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
                   {isOpsApproved ? 'PDF Ready for Dispatch' : 'Locked Until Approval'}
                 </p>
@@ -1097,14 +1097,14 @@ export default function QuotationDetails({
                       const orgId = selectedQuotation.organization_id || (selectedQuotation.organizations as any)?.id;
                       window.open(`/customers/${orgId}`, '_blank');
                     }}
-                    className="text-base font-black text-[#2d8d9b] hover:text-[#C82A2B] hover:underline flex items-center gap-1.5 cursor-pointer text-left group transition-colors"
+                    className="text-base font-black text-[#C82A2B] hover:text-[#C82A2B] hover:underline flex items-center gap-1.5 cursor-pointer text-left group transition-colors"
                     title="Open Customer Profile in new tab"
                   >
                     <span>{selectedQuotation.organizations?.name || 'Customer'}</span>
                     <ExternalLink size={14} className="opacity-70 group-hover:opacity-100" />
                   </button>
                 ) : (
-                  <p className="text-base font-black text-[#3a525d]">
+                  <p className="text-base font-black text-zinc-900">
                     {selectedQuotation.organizations?.name || 'Customer'}
                   </p>
                 )}
@@ -1124,7 +1124,7 @@ export default function QuotationDetails({
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Delivery Destination</p>
-                <p className="text-sm font-black text-[#3a525d] mt-1">
+                <p className="text-sm font-black text-zinc-900 mt-1">
                   {selectedQuotation.metrics_summary?.delivery_city
                     ? `${selectedQuotation.metrics_summary.delivery_city}${selectedQuotation.metrics_summary.delivery_state ? `, ${selectedQuotation.metrics_summary.delivery_state}` : ''} ${selectedQuotation.metrics_summary.delivery_pincode ? `(${selectedQuotation.metrics_summary.delivery_pincode})` : ''}`
                     : ((selectedQuotation.organizations as any)?.delivery_city
@@ -1138,14 +1138,14 @@ export default function QuotationDetails({
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Group Design Number</p>
-                <p className="text-base font-black text-[#2d8d9b] mt-1">
+                <p className="text-base font-black text-[#C82A2B] mt-1">
                   {selectedQuotation.group_design_number?.code || '—'}
                 </p>
               </Card>
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Target Product</p>
-                <p className="text-base font-black text-[#3a525d] mt-1">
+                <p className="text-base font-black text-zinc-900 mt-1">
                   {selectedQuotation.items && selectedQuotation.items.some((item: any) => item.size_breakdown?.is_manual)
                     ? 'Multiple Manual Garment Lines'
                     : (selectedQuotation.items?.[0]?.product_types?.name || 'Uniform item')}
@@ -1154,22 +1154,22 @@ export default function QuotationDetails({
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Production Time</p>
-                <p className="text-base font-black text-[#3a525d] mt-1">{selectedQuotation.total_estimated_time || 'N/A'}</p>
+                <p className="text-base font-black text-zinc-900 mt-1">{selectedQuotation.total_estimated_time || 'N/A'}</p>
                 <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">
                   ({selectedQuotation.production_days_estimate} Production Days)
                 </p>
               </Card>
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b]">Expected Delivery Schedule</p>
-                <p className="text-base font-black text-[#2d8d9b] mt-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B]">Expected Delivery Schedule</p>
+                <p className="text-base font-black text-[#C82A2B] mt-1">
                   {formatDate(selectedQuotation.expected_delivery_date)}
                 </p>
               </Card>
 
               <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
-                <p className="text-base font-black text-[#3a525d] mt-1">
+                <p className="text-base font-black text-zinc-900 mt-1">
                   {(selectedQuotation.metrics_summary?.quotation_type === 'READYMADE' || selectedQuotation.metrics_summary?.quotation_type === 'STANDARD' || !selectedQuotation.metrics_summary?.quotation_type) && 'Readymades'}
                   {selectedQuotation.metrics_summary?.quotation_type === 'FABRIC' && 'fabrics'}
                   {selectedQuotation.metrics_summary?.quotation_type === 'ACCESSORIES' && 'accessories'}
@@ -1184,10 +1184,10 @@ export default function QuotationDetails({
 
             {/* COVER LETTER BANNER CALLOUT */}
             {selectedQuotation.metrics_summary?.cover_letter && (
-              <div className="p-8 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-[2rem] space-y-4 mb-6">
-                <div className="flex items-center gap-2 border-b border-[#2d8d9b]/10 pb-2">
-                  <Building2 size={16} className="text-[#2d8d9b]" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Proposal Cover Letter</span>
+              <div className="p-8 bg-[#FFF1F1] border border-[#C82A2B]/15 rounded-[2rem] space-y-4 mb-6">
+                <div className="flex items-center gap-2 border-b border-[#C82A2B]/10 pb-2">
+                  <Building2 size={16} className="text-[#C82A2B]" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Proposal Cover Letter</span>
                 </div>
                 <p className="text-xs font-semibold text-zinc-600 whitespace-pre-wrap leading-relaxed italic">
                   {selectedQuotation.metrics_summary.cover_letter}
@@ -1198,11 +1198,11 @@ export default function QuotationDetails({
             {/* PRODUCT ITEMS TABLE (FOR MANUAL MODE) OR SIZING MAP */}
             {selectedQuotation.items && selectedQuotation.items.some((item: any) => item.size_breakdown?.is_manual) ? (
               <div className="space-y-3">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Product Lines Breakdown</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Product Lines Breakdown</h4>
                 <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100">
                         <th className="p-3 text-center">Product Type</th>
                         <th className="p-3 text-center">Fabric Options</th>
                         <th className="p-3 text-center">SAM Cost</th>
@@ -1229,7 +1229,7 @@ export default function QuotationDetails({
                           });
 
                           return Object.entries(groups).flatMap(([cleanDeptName, groupItems]) => [
-                            <tr key={`header-${cleanDeptName}`} className="bg-zinc-50/80 border-t border-b border-zinc-150 text-[10px] font-black uppercase text-[#3a525d] tracking-wider">
+                            <tr key={`header-${cleanDeptName}`} className="bg-zinc-50/80 border-t border-b border-zinc-150 text-[10px] font-black uppercase text-zinc-900 tracking-wider">
                               <td colSpan={7} className="p-3 font-black">DEPARTMENT: {cleanDeptName}</td>
                             </tr>,
                             ...groupItems.map((item: any, idx: number) => {
@@ -1284,7 +1284,7 @@ export default function QuotationDetails({
                               const firstCellJSX = (
                                 <div className="space-y-0.5 py-1 text-left">
                                   <div className="font-bold text-zinc-400 uppercase text-[9px] tracking-wider">{deptHeader}</div>
-                                  <div className="font-bold text-[#3a525d] text-xs">{productLine}</div>
+                                  <div className="font-bold text-zinc-900 text-xs">{productLine}</div>
                                   {specLine && <div className="text-zinc-500 text-[10px] font-medium italic">{specLine}</div>}
                                 </div>
                               );
@@ -1336,7 +1336,7 @@ export default function QuotationDetails({
                                   </td>
                                   <td className="p-3 text-right font-black">{qty}</td>
                                   <td className="p-3 text-right font-mono">₹{price.toFixed(2)}</td>
-                                  <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{total.toFixed(2)}</td>
+                                  <td className="p-3 text-right font-black text-[#C82A2B] font-mono">₹{total.toFixed(2)}</td>
                                 </tr>
                               );
                             })
@@ -1361,7 +1361,7 @@ export default function QuotationDetails({
 
                             const firstCellJSX = (
                               <div>
-                                <span className="font-black text-[#3a525d]">{classPrefix}{pTypeName}{sizeLabel}</span>
+                                <span className="font-black text-zinc-900">{classPrefix}{pTypeName}{sizeLabel}</span>
                                 {specLine && <div className="text-zinc-500 text-[10px] font-medium italic mt-0.5">{specLine}</div>}
                               </div>
                             );
@@ -1385,7 +1385,7 @@ export default function QuotationDetails({
                                 </td>
                                 <td className="p-3">
                                   {item.size_breakdown?.product_design_number ? (
-                                    <span className="font-bold text-[#2d8d9b] block">{item.size_breakdown.product_design_number}</span>
+                                    <span className="font-bold text-[#C82A2B] block">{item.size_breakdown.product_design_number}</span>
                                   ) : null}
                                   {item.size_breakdown?.design_number ? (
                                     <span className="text-zinc-500 text-[10px] font-semibold">{item.size_breakdown.design_number}</span>
@@ -1393,7 +1393,7 @@ export default function QuotationDetails({
                                 </td>
                                 <td className="p-3 text-right font-black">{item.quantity}</td>
                                 <td className="p-3 text-right font-mono">₹{price.toFixed(2)}</td>
-                                <td className="p-3 text-right font-black text-[#2d8d9b] font-mono">₹{total.toFixed(2)}</td>
+                                <td className="p-3 text-right font-black text-[#C82A2B] font-mono">₹{total.toFixed(2)}</td>
                               </tr>
                             );
                           });
@@ -1405,11 +1405,11 @@ export default function QuotationDetails({
               </div>
             ) : (
               <div className="space-y-3">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Sizing Aggregation Details</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Sizing Aggregation Details</h4>
                 <div className="flex gap-2 flex-wrap">
                   {selectedQuotation.metrics_summary?.sizes &&
                     Object.keys(selectedQuotation.metrics_summary.sizes).map((sz) => (
-                      <div key={sz} className="bg-zinc-50 border border-zinc-150 px-4 py-2.5 rounded-xl text-xs font-bold text-[#3a525d]">
+                      <div key={sz} className="bg-zinc-50 border border-zinc-150 px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-900">
                         <strong>{sz}</strong>: {selectedQuotation.metrics_summary.sizes?.[sz] || 0} Units
                       </div>
                     ))}
@@ -1420,11 +1420,11 @@ export default function QuotationDetails({
             {/* SEPARATE FABRICS TABLE */}
             {selectedQuotation.metrics_summary?.separate_fabrics && selectedQuotation.metrics_summary.separate_fabrics.length > 0 && (
               <div className="space-y-3 pt-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Separate Fabric Materials Supplied</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Separate Fabric Materials Supplied</h4>
                 <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100">
                         <th className="p-3 pl-4 text-center">Fabric Details</th>
                         <th className="p-3 text-center">Meters</th>
                         <th className="p-3 text-center">Rate/Meter</th>
@@ -1441,10 +1441,10 @@ export default function QuotationDetails({
 
                         return (
                           <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
-                            <td className="p-3 pl-4 font-black text-[#3a525d]">{fabricName}</td>
+                            <td className="p-3 pl-4 font-black text-zinc-900">{fabricName}</td>
                             <td className="p-3 text-right">{meters} m</td>
                             <td className="p-3 text-right font-mono">₹{rate.toFixed(2)}</td>
-                            <td className="p-3 text-right font-black text-[#2d8d9b] pr-4 font-mono">₹{total.toFixed(2)}</td>
+                            <td className="p-3 text-right font-black text-[#C82A2B] pr-4 font-mono">₹{total.toFixed(2)}</td>
                           </tr>
                         );
                       })}
@@ -1457,11 +1457,11 @@ export default function QuotationDetails({
             {/* DEPARTMENTS BREAKDOWN TABLE */}
             {selectedQuotation.metrics_summary?.departments && selectedQuotation.metrics_summary.departments.length > 0 && (
               <div className="space-y-3 pt-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Departments Included</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Departments Included</h4>
                 <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm max-w-2xl">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-[#3a525d] border-b border-zinc-100">
+                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100">
                         <th className="p-3 pl-4 text-center">Department Name</th>
                         <th className="p-3 text-center">Division</th>
                         <th className="p-3 text-center">No. of Persons</th>
@@ -1472,21 +1472,21 @@ export default function QuotationDetails({
                     <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
                       {selectedQuotation.metrics_summary.departments.map((dept: any, idx: number) => (
                         <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
-                          <td className="p-3 pl-4 font-black text-[#3a525d]">{dept.name}</td>
+                          <td className="p-3 pl-4 font-black text-zinc-900">{dept.name}</td>
                           <td className="p-3 text-zinc-400">{dept.division || '—'}</td>
                           <td className="p-3 text-right">{dept.persons}</td>
                           <td className="p-3 text-right">{dept.sets}</td>
-                          <td className="p-3 text-right font-black text-[#2d8d9b] pr-4">{dept.persons * dept.sets}</td>
+                          <td className="p-3 text-right font-black text-[#C82A2B] pr-4">{dept.persons * dept.sets}</td>
                         </tr>
                       ))}
                       {/* Total Row */}
-                      <tr className="bg-zinc-50/50 border-t border-zinc-250/60 text-[10px] font-black uppercase text-[#3a525d]">
+                      <tr className="bg-zinc-50/50 border-t border-zinc-250/60 text-[10px] font-black uppercase text-zinc-900">
                         <td className="p-3 pl-4" colSpan={2}>Total</td>
                         <td className="p-3 text-right">
                           {selectedQuotation.metrics_summary.departments.reduce((sum: number, d: any) => sum + (d.persons || 0), 0)}
                         </td>
                         <td className="p-3"></td>
-                        <td className="p-3 text-right text-[#2d8d9b] pr-4">
+                        <td className="p-3 text-right text-[#C82A2B] pr-4">
                           {selectedQuotation.metrics_summary.departments.reduce((sum: number, d: any) => sum + ((d.persons || 0) * (d.sets || 0)), 0)}
                         </td>
                       </tr>
@@ -1498,9 +1498,9 @@ export default function QuotationDetails({
           </div>
 
           {/* REVENUE STATISTICS CARD */}
-          <Card className="p-8 border border-[#2d8d9b]/20 bg-[#2d8d9b]/5 rounded-[2.5rem] flex flex-col justify-between">
+          <Card className="p-8 border border-[#C82A2B]/20 bg-[#FFF1F1] rounded-[2.5rem] flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-[#3a525d]">
+              <div className="flex items-center gap-2 text-zinc-900">
                 <Scale size={18} />
                 <h4 className="text-xs font-black uppercase tracking-widest">Financial Audit</h4>
               </div>
@@ -1508,11 +1508,11 @@ export default function QuotationDetails({
               <div className="space-y-3 divide-y divide-zinc-200/50 text-sm font-semibold">
                 <div className="flex justify-between py-2 text-zinc-500">
                   <span>Total Entities Quantity:</span>
-                  <span className="text-[#3a525d] font-black">{selectedQuotation.metrics_summary?.total_entities || 0} Items</span>
+                  <span className="text-zinc-900 font-black">{selectedQuotation.metrics_summary?.total_entities || 0} Items</span>
                 </div>
                 <div className="flex justify-between py-2 text-zinc-500">
                   <span>Accumulated Expenses:</span>
-                  <span className="font-mono text-[#3a525d]">₹{Number(selectedQuotation.estimated_expenses).toFixed(2)}</span>
+                  <span className="font-mono text-zinc-900">₹{Number(selectedQuotation.estimated_expenses).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-2 text-zinc-500">
                   <span>Profit Markup Margin:</span>
@@ -1520,7 +1520,7 @@ export default function QuotationDetails({
                 </div>
                 <div className="flex justify-between py-2 text-zinc-500">
                   <span>Subtotal (Pre-Tax):</span>
-                  <span className="font-mono text-[#3a525d] font-black">₹{pricing.subtotal.toFixed(2)}</span>
+                  <span className="font-mono text-zinc-900 font-black">₹{pricing.subtotal.toFixed(2)}</span>
                 </div>
                 {pricing.gstRate > 0 && (selectedQuotation.metrics_summary?.is_b2b || (selectedQuotation.organizations as any)?.is_b2b || selectedQuotation.metrics_summary?.customer_gstin) ? (
                   <>
@@ -1545,7 +1545,7 @@ export default function QuotationDetails({
                 )}
                 <div className="flex justify-between py-2 text-zinc-500">
                   <span>Suggested Retail/Item (Pre-Tax):</span>
-                  <span className="font-mono text-[#2d8d9b] font-black">
+                  <span className="font-mono text-[#C82A2B] font-black">
                     ₹{(Number(pricing.subtotal) / (selectedQuotation.metrics_summary?.total_entities || 1)).toFixed(2)}
                   </span>
                 </div>
@@ -1553,10 +1553,10 @@ export default function QuotationDetails({
             </div>
 
             <div className="border-t border-zinc-200 pt-4 mt-6">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] opacity-60 font-black">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] opacity-60 font-black">
                 Total Contract Value (With GST)
               </p>
-              <p className="text-4xl font-black italic tracking-tighter text-[#2d8d9b] font-mono mt-1">
+              <p className="text-4xl font-black italic tracking-tighter text-[#C82A2B] font-mono mt-1">
                 ₹{Number(pricing.finalValue).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -1620,8 +1620,8 @@ export default function QuotationDetails({
                     onClick={() => openQuotationTab(q.id, q.quotation_no)}
                     className={`p-4 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between ${
                       isCurrent
-                        ? 'bg-[#2d8d9b]/5 border-[#2d8d9b]/50 shadow-xs ring-1 ring-[#2d8d9b]/30'
-                        : 'bg-zinc-50/50 border-zinc-200 hover:border-[#2d8d9b]/60 hover:bg-white hover:shadow-md'
+                        ? 'bg-[#FFF1F1] border-[#C82A2B]/50 shadow-xs ring-1 ring-[#C82A2B]/30'
+                        : 'bg-zinc-50/50 border-zinc-200 hover:border-[#C82A2B]/60 hover:bg-white hover:shadow-md'
                     }`}
                     title="Click to open this quotation proposal in another tab"
                   >
@@ -1638,7 +1638,7 @@ export default function QuotationDetails({
                           <p className="font-mono font-bold text-sm text-zinc-900 mt-1 flex items-center gap-1.5">
                             <span>{q.quotation_no}</span>
                             {isCurrent && (
-                              <span className="text-[9px] font-bold text-[#2d8d9b] uppercase tracking-wider">
+                              <span className="text-[9px] font-bold text-[#C82A2B] uppercase tracking-wider">
                                 (Current)
                               </span>
                             )}
@@ -1651,7 +1651,7 @@ export default function QuotationDetails({
                             e.stopPropagation();
                             openQuotationTab(q.id, q.quotation_no);
                           }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all shrink-0 cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xs transition-all shrink-0 cursor-pointer"
                         >
                           <span>View Quotation</span>
                           <ExternalLink size={10} className="shrink-0" />
@@ -1662,7 +1662,7 @@ export default function QuotationDetails({
                         <span className="text-zinc-500 font-medium">
                           {formatDate(q.quotation_date || q.created_at)}
                         </span>
-                        <span className="font-mono font-black text-[#2d8d9b]">
+                        <span className="font-mono font-black text-[#C82A2B]">
                           ₹{qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -1678,7 +1678,7 @@ export default function QuotationDetails({
                       <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-white text-zinc-700 border border-zinc-200">
                         {q.status || 'Draft'}
                       </span>
-                      <span className="text-[10px] text-[#2d8d9b] font-bold group-hover:underline inline-flex items-center gap-0.5">
+                      <span className="text-[10px] text-[#C82A2B] font-bold group-hover:underline inline-flex items-center gap-0.5">
                         Open in new tab <ExternalLink size={9} />
                       </span>
                     </div>
@@ -1739,7 +1739,7 @@ export default function QuotationDetails({
                             <button
                               type="button"
                               onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
-                              className="text-[10px] font-bold text-[#2d8d9b] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
+                              className="text-[10px] font-bold text-[#C82A2B] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
                               title="Open quotation in new tab"
                             >
                               Quote <ExternalLink size={9} />

@@ -63,15 +63,15 @@ export default function WizardStep1({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="border-b border-zinc-100 pb-6">
-        <h3 className="text-2xl font-black italic text-[#3a525d]">Select Customer & Proposal Title</h3>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] mt-1 opacity-70">
+        <h3 className="text-2xl font-black italic text-zinc-900">Select Customer & Proposal Title</h3>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 font-bold">
           Define customer association context
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Customer Name</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Customer Name</label>
           <Select
             options={organizations.map(o => ({
               label: `${o.name}${o.gst_number ? ' [B2B / GST]' : ''}`,
@@ -84,7 +84,7 @@ export default function WizardStep1({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Title</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Quotation Title</label>
           <Input
             placeholder="e.g. Formal Uniform Proposal"
             value={quoteTitle}
@@ -130,7 +130,7 @@ export default function WizardStep1({
         )}
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Sales Channel Type</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Sales Channel Type</label>
           <Select
             options={[
               { label: 'Wholesale', value: 'WHOLESALE' },
@@ -143,7 +143,7 @@ export default function WizardStep1({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Customer Category</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Customer Category</label>
           <Select
             options={[
               { label: 'Direct', value: 'DIRECT' },
@@ -157,7 +157,7 @@ export default function WizardStep1({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Quotation Type</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Quotation Type</label>
           <Select
             options={[
               { label: 'Readymades', value: 'STANDARD' },
@@ -182,8 +182,8 @@ export default function WizardStep1({
             <div className="space-y-4 border-t border-zinc-100 pt-6">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Select Departments / Classes for Quotation</h4>
-                  <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Select departments to include — each department can be auto-split by gender divisions with manual quantity and sets</p>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Select Departments / Classes for Quotation</h4>
+                  <p className="text-[9px] text-[#C82A2B] font-bold mt-0.5">Select departments to include — each department can be auto-split by gender divisions with manual quantity and sets</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -193,7 +193,7 @@ export default function WizardStep1({
                         setOrgDepartments(orgDepartments.map(d => ({ ...d, selected: true })));
                       }
                     }}
-                    className="px-3 py-1 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                    className="px-3 py-1 bg-[#FFF1F1] hover:bg-[#C82A2B] text-[#C82A2B] hover:text-white border border-[#C82A2B]/20 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                   >
                     Select All Classes
                   </button>
@@ -221,7 +221,7 @@ export default function WizardStep1({
                   </thead>
                   <tbody className="divide-y divide-zinc-150/70">
                     {orgDepartments.map((dept) => (
-                      <tr key={dept.id} className={`hover:bg-zinc-50/50 transition-colors ${dept.selected ? 'bg-[#2d8d9b]/5' : ''}`}>
+                      <tr key={dept.id} className={`hover:bg-zinc-50/50 transition-colors ${dept.selected ? 'bg-[#FFF1F1]' : ''}`}>
                         <td className="p-4 text-center">
                           <input
                             type="checkbox"
@@ -232,11 +232,11 @@ export default function WizardStep1({
                                 setOrgDepartments(updated);
                               }
                             }}
-                            className="w-4 h-4 rounded text-[#2d8d9b] border-zinc-300 focus:ring-[#2d8d9b]/25"
+                            className="w-4 h-4 rounded text-[#C82A2B] accent-[#C82A2B] border-zinc-300 focus:ring-[#C82A2B]/25"
                           />
                         </td>
                         <td className="p-4">
-                          <span className="text-xs font-black text-[#3a525d]">{dept.name}</span>
+                          <span className="text-xs font-black text-zinc-900">{dept.name}</span>
                         </td>
                         <td className="p-4">
                           <span className="text-xs font-bold text-zinc-400">{dept.division || '—'}</span>
@@ -254,8 +254,8 @@ export default function WizardStep1({
       {/* PREVIOUS ORDERS - always visible, all orders */}
       <div className="space-y-4 border-t border-zinc-100 pt-6">
         <div className="relative">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">Previous Orders / Quotations Registry</h4>
-          <p className="text-[9px] text-[#2d8d9b] font-bold mt-0.5">Click any order card to copy its product details and edit them</p>
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Previous Orders / Quotations Registry</h4>
+          <p className="text-[9px] text-[#C82A2B] font-bold mt-0.5">Click any order card to copy its product details and edit them</p>
         </div>
         {previousOrders.length === 0 ? (
           <p className="text-[10px] text-zinc-400 font-bold italic bg-zinc-50 border border-zinc-200 p-4 rounded-xl">No previous orders in registry yet.</p>
@@ -265,13 +265,13 @@ export default function WizardStep1({
               <div
                 key={q.id || idx}
                 onClick={() => onSelectPreviousOrder(q)}
-                className="bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-[#2d8d9b] rounded-2xl p-4 cursor-pointer transition-all flex flex-col gap-2 group relative"
+                className="bg-white hover:bg-[#FFF1F1]/40 border border-zinc-200 hover:border-[#C82A2B] rounded-2xl p-4 cursor-pointer transition-all flex flex-col gap-2 group relative"
               >
                 <div>
-                  <p className="text-xs font-black text-[#3a525d] group-hover:text-[#2d8d9b] truncate">{q.title}</p>
+                  <p className="text-xs font-black text-zinc-900 group-hover:text-[#C82A2B] truncate">{q.title}</p>
                   <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
                     {q.organizations?.name && (
-                      <span className="text-[#2d8d9b] font-black">{q.organizations.name} · </span>
+                      <span className="text-[#C82A2B] font-black">{q.organizations.name} · </span>
                     )}
                     {q.quotation_no || 'Auto'} · {formatDate(q.created_at)}
                   </p>
@@ -282,7 +282,7 @@ export default function WizardStep1({
                     {q.status}
                   </span>
                 </div>
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-[8px] font-black uppercase bg-[#2d8d9b] text-white px-2 py-0.5 rounded-[4px]">
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-[8px] font-black uppercase bg-[#C82A2B] text-white px-2 py-0.5 rounded-[4px]">
                   Use Order Details
                 </div>
               </div>
@@ -293,14 +293,14 @@ export default function WizardStep1({
 
       <div className="space-y-4 border-t border-zinc-100 pt-6">
         <div className="flex justify-between items-center flex-wrap gap-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
             Proposal Cover Letter (100% Customizable)
           </label>
           <button
             type="button"
             disabled={!selectedOrgId}
             onClick={generateAutoCoverLetter}
-            className="px-3.5 py-1.5 bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-40"
+            className="px-3.5 py-1.5 bg-[#FFF1F1] text-[#C82A2B] hover:bg-[#C82A2B] hover:text-white border border-[#C82A2B]/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-40"
           >
             ✨ Auto-Generate Cover Letter Template
           </button>
@@ -308,7 +308,7 @@ export default function WizardStep1({
         <textarea
           rows={6}
           placeholder="Enter custom cover letter introduction for the client proposal..."
-          className="w-full bg-zinc-50 hover:bg-zinc-100 focus:bg-white border border-zinc-200 focus:border-[#2d8d9b] rounded-2xl p-4 text-xs font-semibold text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2d8d9b]/20 transition-all leading-relaxed"
+          className="w-full bg-zinc-50 hover:bg-zinc-100 focus:bg-white border border-zinc-200 focus:border-[#C82A2B] rounded-2xl p-4 text-xs font-semibold text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 transition-all leading-relaxed"
           value={coverLetter}
           onChange={(e) => setCoverLetter(e.target.value)}
         />
