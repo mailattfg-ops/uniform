@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
@@ -237,6 +237,17 @@ export default function QuotationsPage() {
       } catch (e) {}
     }
   }, []);
+
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
+
+  const visibleQuotations = useMemo(() => {
+    if (!isSuperAdmin && currentUser?.branchId) {
+      return quotations.filter(q => String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(currentUser.branchId));
+    }
+    return quotations;
+  }, [quotations, isSuperAdmin, currentUser?.branchId]);
 
   useEffect(() => {
     if (searchParams) {
@@ -631,7 +642,7 @@ export default function QuotationsPage() {
       {/* 1. LIST REGISTRY TAB */}
       {activeTab === 'list' && (
         <QuotationList
-          quotations={quotations}
+          quotations={visibleQuotations}
           organizations={organizations}
           isLoading={isLoading}
           onCompileQuotation={() => setActiveTab('create')}

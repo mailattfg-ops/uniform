@@ -547,12 +547,23 @@ export default function CustomersRegistry() {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       // ignore
     }
   }, []);
+
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
 
   const isClientUser = Boolean(
     currentUser?.organizationId || 
@@ -561,9 +572,10 @@ export default function CustomersRegistry() {
   );
 
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -963,8 +975,10 @@ export default function CustomersRegistry() {
   // Filtered customer list
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
-      // Branch filter
-      if (selectedBranch !== 'ALL' && String(c.branch_id || '') !== selectedBranch) {
+      // Branch filter & branch staff isolation
+      if (!isSuperAdmin && currentUser?.branchId) {
+        if (String(c.branch_id || '') !== String(currentUser.branchId)) return false;
+      } else if (selectedBranch !== 'ALL' && String(c.branch_id || '') !== selectedBranch) {
         return false;
       }
 
@@ -986,7 +1000,7 @@ export default function CustomersRegistry() {
 
       return true;
     });
-  }, [customers, selectedBranch, selectedZone, selectedIndustry, statusFilter]);
+  }, [customers, selectedBranch, selectedZone, selectedIndustry, statusFilter, isSuperAdmin, currentUser?.branchId]);
 
   // Exact 6 Standardized Columns:
   // 1. CUST. ID
@@ -1242,15 +1256,17 @@ export default function CustomersRegistry() {
               maxWidth="max-w-[220px]"
             />
 
-            {/* 2. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              value={selectedBranch}
-              onChange={setSelectedBranch}
-              options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
-              maxWidth="max-w-[200px]"
-            />
+            {/* 2. Branch Filter - Only for Global Admins */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                value={selectedBranch}
+                onChange={setSelectedBranch}
+                options={branches.map(b => ({ label: b.name, value: String(b.id) }))}
+                maxWidth="max-w-[200px]"
+              />
+            )}
 
             {/* 3. Zone Filter */}
             <FilterDropdown

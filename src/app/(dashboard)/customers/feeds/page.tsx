@@ -58,7 +58,14 @@ export default function FeedsRegistryPage() {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       console.error('Failed to parse current user from localStorage:', e);
@@ -121,8 +128,12 @@ export default function FeedsRegistryPage() {
 
   // Feeds list: raw field prospect scouting feeds
   const feedsList = useMemo(() => {
-    return leads.filter(l => l.status === 'Feeds' || l.status === 'Open Feeds' || l.status === 'Contacted Leads');
-  }, [leads]);
+    let list = leads.filter(l => l.status === 'Feeds' || l.status === 'Open Feeds' || l.status === 'Contacted Leads');
+    if (!isSuperAdmin && currentUser?.branchId) {
+      list = list.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(currentUser.branchId));
+    }
+    return list;
+  }, [leads, isSuperAdmin, currentUser?.branchId]);
 
   // Helper to determine if an activity is initial feed creation / intake note
   const isFeedIntakeActivity = (act: any) => {
@@ -180,13 +191,14 @@ export default function FeedsRegistryPage() {
 
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    if (selectedBranch === 'HQ') {
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    if (effectiveBranch === 'HQ') {
       const hqZones = zones.filter(z => !z.branch_id);
       return hqZones.length > 0 ? hqZones : zones;
     }
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   // Filtered Feeds
   const filteredFeeds = useMemo(() => {
@@ -195,8 +207,11 @@ export default function FeedsRegistryPage() {
       if (selectedFeedStatus === 'OPEN' && isFeedContacted(l)) return false;
       if (selectedFeedStatus === 'CONTACTED' && !isFeedContacted(l)) return false;
 
-      // 2. Branch filter
-      if (selectedBranch !== 'ALL') {
+      // 2. Branch filter & branch staff isolation
+      if (!isSuperAdmin && currentUser?.branchId) {
+        const bId = String(l.branch_id || l.employees?.branch_id || '');
+        if (bId !== String(currentUser.branchId)) return false;
+      } else if (selectedBranch !== 'ALL') {
         if (selectedBranch === 'HQ') {
           const isHq = !l.branch_id || l.origin === 'HQ';
           if (!isHq) return false;
@@ -576,29 +591,31 @@ export default function FeedsRegistryPage() {
               ]}
             />
 
-            {/* 2. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              allBadge={feedsList.length}
-              value={selectedBranch}
-              onChange={(val) => {
-                setSelectedBranch(val);
-                setSelectedZone('ALL');
-              }}
-              options={[
-                {
-                  label: 'Headquarters (HQ Central)',
-                  value: 'HQ',
-                  badge: feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length
-                },
-                ...branches.map((b) => ({
-                  label: b.name,
-                  value: String(b.id),
-                  badge: feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
-                }))
-              ]}
-            />
+            {/* 2. Branch Filter - Only for Global Admins */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                allBadge={feedsList.length}
+                value={selectedBranch}
+                onChange={(val) => {
+                  setSelectedBranch(val);
+                  setSelectedZone('ALL');
+                }}
+                options={[
+                  {
+                    label: 'Headquarters (HQ Central)',
+                    value: 'HQ',
+                    badge: feedsList.filter(l => !l.branch_id || l.origin === 'HQ').length
+                  },
+                  ...branches.map((b) => ({
+                    label: b.name,
+                    value: String(b.id),
+                    badge: feedsList.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                  }))
+                ]}
+              />
+            )}
 
             {/* 3. Zone Filter */}
             <FilterDropdown

@@ -655,8 +655,8 @@ export function DataTable<T extends { id: string | number }>({
                     }}
                     className={`transition-colors group ${
                       isClickable 
-                        ? 'cursor-pointer hover:bg-red-50/45 hover:shadow-2xs' 
-                        : 'hover:bg-zinc-50/70'
+                        ? 'cursor-pointer hover:bg-[#FFE5E5] hover:shadow-2xs' 
+                        : 'hover:bg-zinc-100/90 hover:shadow-2xs'
                     } ${customRowClass}`}
                   >
                     {columns.map((col, idx) => {
@@ -676,10 +676,10 @@ export function DataTable<T extends { id: string | number }>({
                             isSticky 
                               ? `sticky right-0 ${
                                   hasRedShade 
-                                    ? 'bg-rose-50/95 group-hover:bg-rose-100/90' 
+                                    ? 'bg-rose-50/95 group-hover:bg-rose-100' 
                                     : isClickable 
-                                      ? 'bg-white group-hover:bg-[#FFF8F8]' 
-                                      : 'bg-white group-hover:bg-zinc-50/80'
+                                      ? 'bg-white group-hover:bg-[#FFE5E5]' 
+                                      : 'bg-white group-hover:bg-zinc-100/90'
                                 } z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] transition-colors` 
                               : ''
                           } ${

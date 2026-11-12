@@ -175,15 +175,22 @@ export default function LeadsRegistryPage() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(true);
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
+
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    if (selectedBranch === 'HQ') {
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    if (effectiveBranch === 'HQ') {
       const hqZones = zones.filter(z => !z.branch_id);
       return hqZones.length > 0 ? hqZones : zones;
     }
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   // Modals
   const [isAddingLead, setIsAddingLead] = useState(false);
@@ -209,13 +216,18 @@ export default function LeadsRegistryPage() {
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
   const [meetingOutcomeLead, setMeetingOutcomeLead] = useState<Lead | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       console.error('Failed to parse current user from localStorage:', e);
@@ -234,10 +246,6 @@ export default function LeadsRegistryPage() {
       }
     }
   }, [searchParams, leads]);
-
-  const userRole = (currentUser?.role || '').toLowerCase();
-  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-  const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userRole === 'corporate' || userPermissions.includes('all');
 
   const canViewAllLeads = isSuperAdmin || userPermissions.includes('view_all_leads');
   const canManageLeads = isSuperAdmin || userPermissions.includes('manage_leads');
@@ -552,8 +560,11 @@ export default function LeadsRegistryPage() {
       if (!ACTIVE_LEAD_STAGE_KEYS.includes(l.status)) {
         return false;
       }
-      // 1. Branch filter
-      if (selectedBranch !== 'ALL') {
+      // 1. Branch filter & branch staff isolation
+      if (!isSuperAdmin && currentUser?.branchId) {
+        const bId = String(l.branch_id || l.employees?.branch_id || '');
+        if (bId !== String(currentUser.branchId)) return false;
+      } else if (selectedBranch !== 'ALL') {
         if (selectedBranch === 'HQ') {
           const isHq = !l.branch_id || l.origin === 'HQ';
           if (!isHq) return false;
@@ -1091,29 +1102,31 @@ export default function LeadsRegistryPage() {
               />
             )}
 
-            {/* 2. Branch Dropdown Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              allBadge={leads.length}
-              value={selectedBranch}
-              onChange={(val) => {
-                setSelectedBranch(val);
-                setSelectedZone('ALL');
-              }}
-              options={[
-                {
-                  label: 'Headquarters (HQ Central)',
-                  value: 'HQ',
-                  badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
-                },
-                ...branches.map((b) => ({
-                  label: b.name,
-                  value: String(b.id),
-                  badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
-                }))
-              ]}
-            />
+            {/* 2. Branch Dropdown Filter - Only for Global Admins */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                allBadge={leads.length}
+                value={selectedBranch}
+                onChange={(val) => {
+                  setSelectedBranch(val);
+                  setSelectedZone('ALL');
+                }}
+                options={[
+                  {
+                    label: 'Headquarters (HQ Central)',
+                    value: 'HQ',
+                    badge: leads.filter(l => !l.branch_id || l.origin === 'HQ').length
+                  },
+                  ...branches.map((b) => ({
+                    label: b.name,
+                    value: String(b.id),
+                    badge: leads.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                  }))
+                ]}
+              />
+            )}
 
             {/* 3. Zone Dropdown Filter */}
             <FilterDropdown

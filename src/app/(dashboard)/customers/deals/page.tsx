@@ -65,7 +65,14 @@ export default function DealsRegistryPage() {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setCurrentUser(JSON.parse(stored));
+        const u = JSON.parse(stored);
+        setCurrentUser(u);
+        const r = (u.role || '').toLowerCase();
+        const perms = Array.isArray(u.permissions) ? u.permissions : [];
+        const isAdmin = r === 'admin' || r === 'super admin' || r === 'superadmin' || r === 'corporate' || perms.includes('all');
+        if (!isAdmin && u.branchId) {
+          setSelectedBranch(String(u.branchId));
+        }
       }
     } catch (e) {
       console.error('Failed to parse current user from localStorage:', e);
@@ -135,9 +142,10 @@ export default function DealsRegistryPage() {
 
   // Available zones filtered by selected branch
   const availableFilterZones = useMemo(() => {
-    if (selectedBranch === 'ALL') return zones;
-    return zones.filter(z => String(z.branch_id) === selectedBranch);
-  }, [zones, selectedBranch]);
+    const effectiveBranch = (!isSuperAdmin && currentUser?.branchId) ? String(currentUser.branchId) : selectedBranch;
+    if (effectiveBranch === 'ALL') return zones;
+    return zones.filter(z => String(z.branch_id) === effectiveBranch);
+  }, [zones, selectedBranch, isSuperAdmin, currentUser?.branchId]);
 
   // Helper to calculate financials and the exact Sales Order deal lifecycle stage
   const getDealFinancials = useCallback((l: Lead) => {
@@ -239,11 +247,21 @@ export default function DealsRegistryPage() {
     const rawList = [...dealsFromLeads, ...synthesizedDeals];
 
     // Filter out deals that have already been Corporate Approved (they disappear from Deals table)
-    return rawList.filter(d => {
+    let activeList = rawList.filter(d => {
       const fin = getDealFinancials(d);
       return !fin.isCorporateApproved;
     });
-  }, [leads, quotations, getDealFinancials]);
+
+    // Each branch staff should see only their branch deals
+    if (!isSuperAdmin && currentUser?.branchId) {
+      activeList = activeList.filter(d => {
+        const bId = String(d.branch_id || d.employees?.branch_id || '');
+        return bId === String(currentUser.branchId);
+      });
+    }
+
+    return activeList;
+  }, [leads, quotations, getDealFinancials, isSuperAdmin, currentUser?.branchId]);
 
   // Stage counts for filter options
   const stageCounts = useMemo(() => {
@@ -853,19 +871,21 @@ export default function DealsRegistryPage() {
               ]}
             />
 
-            {/* 1. Branch Filter */}
-            <FilterDropdown
-              label="Branch"
-              allLabel="All Branches"
-              allBadge={allDeals.length}
-              value={selectedBranch}
-              onChange={(val) => setSelectedBranch(val)}
-              options={branches.map((b) => ({
-                label: b.name,
-                value: String(b.id),
-                badge: allDeals.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
-              }))}
-            />
+            {/* 1. Branch Filter - only available to Global Admin / Corporate */}
+            {isSuperAdmin && (
+              <FilterDropdown
+                label="Branch"
+                allLabel="All Branches"
+                allBadge={allDeals.length}
+                value={selectedBranch}
+                onChange={(val) => setSelectedBranch(val)}
+                options={branches.map((b) => ({
+                  label: b.name,
+                  value: String(b.id),
+                  badge: allDeals.filter(l => String(l.branch_id || l.employees?.branch_id || '') === String(b.id)).length
+                }))}
+              />
+            )}
 
             {/* 2. Zone Filter */}
             <FilterDropdown
