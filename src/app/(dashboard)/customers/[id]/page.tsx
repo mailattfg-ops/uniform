@@ -3260,6 +3260,14 @@ function OrganizationDetailsPageContent() {
                 subtitle={`Active segments inside ${org.name}`}
                 columns={[
                   {
+                    header: 'Created On',
+                    accessor: (d) => (
+                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">
+                        {formatDate(d.created_at)}
+                      </span>
+                    )
+                  },
+                  {
                     header: 'Department / Unit',
                     accessor: (d) => (
                       <div className="flex items-center gap-3">
@@ -3326,14 +3334,6 @@ function OrganizationDetailsPageContent() {
                         </button>
                       );
                     }
-                  },
-                  {
-                    header: 'Created On',
-                    accessor: (d) => (
-                      <span className="text-xs font-semibold text-zinc-500">
-                        {formatDate(d.created_at)}
-                      </span>
-                    )
                   },
                   ...(!isClientUser ? [{
                     header: 'Actions',

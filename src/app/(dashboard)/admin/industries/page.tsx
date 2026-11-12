@@ -109,6 +109,14 @@ export default function IndustryManagementPage() {
 
   const columns: Column<Industry>[] = [
     {
+      header: 'Registration Date',
+      accessor: (ind) => (
+        <p className="text-xs font-bold text-zinc-500">
+           {formatDate(ind.created_at)}
+        </p>
+      )
+    },
+    {
       header: 'Industry Sector',
       accessor: (ind) => (
         <div className="flex items-center gap-4">
@@ -130,14 +138,6 @@ export default function IndustryManagementPage() {
             <span className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D]">{ind.type || 'General'}</span>
           </div>
         </div>
-      )
-    },
-    {
-      header: 'Registration Date',
-      accessor: (ind) => (
-        <p className="text-xs font-bold text-zinc-500">
-           {formatDate(ind.created_at)}
-        </p>
       )
     },
     {

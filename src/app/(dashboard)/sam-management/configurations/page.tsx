@@ -207,6 +207,17 @@ export default function SAMConfigurations() {
   // Audit columns
   const auditColumns: Column<AuditEntry>[] = [
     {
+      header: 'Timestamp',
+      accessor: (l) => (
+        <div className="flex items-center gap-1.5 text-zinc-400 whitespace-nowrap">
+          <Clock size={12} className="text-[#2d8d9b]" />
+          <span className="text-[10px] font-bold tracking-wider">
+            {formatDate(l.created_at || l.time, true, true)}
+          </span>
+        </div>
+      )
+    },
+    {
       header: 'Audit Activity',
       accessor: (l) => (
         <div className="flex items-center gap-3">
@@ -267,17 +278,6 @@ export default function SAMConfigurations() {
           return <p className="text-xs text-zinc-400 italic">Details parse error</p>;
         }
       }
-    },
-    {
-      header: 'Timestamp',
-      accessor: (l) => (
-        <div className="flex items-center gap-1.5 text-zinc-400 whitespace-nowrap">
-          <Clock size={12} className="text-[#2d8d9b]" />
-          <span className="text-[10px] font-bold tracking-wider">
-            {formatDate(l.created_at || l.time, true, true)}
-          </span>
-        </div>
-      )
     }
   ];
 

@@ -114,6 +114,14 @@ export default function DressPrefixManagementPage() {
 
   const columns: Column<DressPrefix>[] = [
     {
+      header: 'Registration Date',
+      accessor: (dp) => (
+        <p className="text-xs font-bold text-zinc-500">
+          {formatDate(dp.created_at)}
+        </p>
+      )
+    },
+    {
       header: 'Dress Prefix Code',
       accessor: (dp) => (
         <div className="flex items-center gap-4">
@@ -134,14 +142,6 @@ export default function DressPrefixManagementPage() {
     {
       header: 'Description',
       accessor: (dp) => <span className="text-xs text-zinc-500 font-medium">{dp.description || '—'}</span>
-    },
-    {
-      header: 'Registration Date',
-      accessor: (dp) => (
-        <p className="text-xs font-bold text-zinc-500">
-          {formatDate(dp.created_at)}
-        </p>
-      )
     },
     {
       header: 'Actions',

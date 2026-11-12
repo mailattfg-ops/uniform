@@ -300,11 +300,11 @@ export default function DealsRegistryPage() {
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
           ${l.industries?.name ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${l.industries.name}</div>` : ''}
         </td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
         <td style="font-size: 10px; color: #4a5568;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
@@ -365,8 +365,8 @@ export default function DealsRegistryPage() {
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th>Customer Name</th>
         <th style="text-align: center;">Date</th>
+        <th>Customer Name</th>
         <th>Zone</th>
         <th>Contact</th>
         <th>Sales Person</th>
@@ -407,6 +407,16 @@ export default function DealsRegistryPage() {
   // 8. Follow-up
   const columns: Column<Lead>[] = useMemo(() => [
     {
+      header: 'Date',
+      className: 'w-[110px] whitespace-nowrap text-center',
+      sortValue: (l) => l.created_at || '',
+      accessor: (l) => (
+        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+          {formatDate(l.created_at)}
+        </span>
+      )
+    },
+    {
       header: 'Customer Name',
       className: 'min-w-[170px] max-w-[260px] text-center',
       sortValue: (l) => l.name,
@@ -426,16 +436,6 @@ export default function DealsRegistryPage() {
             </p>
           )}
         </div>
-      )
-    },
-    {
-      header: 'Date',
-      className: 'w-[110px] whitespace-nowrap text-center',
-      sortValue: (l) => l.created_at || '',
-      accessor: (l) => (
-        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
-          {formatDate(l.created_at)}
-        </span>
       )
     },
     {

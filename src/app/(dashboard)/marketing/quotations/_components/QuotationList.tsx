@@ -181,22 +181,22 @@ export default function QuotationList({
   // 10. FOLLOW-UP
   const columns: Column<Quotation>[] = [
     {
-      header: 'QUOTATION NO.',
-      className: 'w-[140px] whitespace-nowrap',
-      sortValue: (q) => q.quotation_no,
-      accessor: (q) => (
-        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
-          {q.quotation_no}
-        </span>
-      )
-    },
-    {
       header: 'DATE',
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => q.quotation_date || q.created_at || '',
       accessor: (q) => (
         <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap">
           {formatDate(q.quotation_date || q.created_at)}
+        </span>
+      )
+    },
+    {
+      header: 'QUOTATION NO.',
+      className: 'w-[140px] whitespace-nowrap',
+      sortValue: (q) => q.quotation_no,
+      accessor: (q) => (
+        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
+          {q.quotation_no}
         </span>
       )
     },
@@ -452,8 +452,8 @@ export default function QuotationList({
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.quotation_date || q.created_at)}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #2d8d9b; white-space: nowrap;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
@@ -514,8 +514,8 @@ export default function QuotationList({
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th>QUOTATION NO.</th>
         <th style="text-align: center;">DATE</th>
+        <th>QUOTATION NO.</th>
         <th>CUSTOMER NAME</th>
         <th>ZONE</th>
         <th>CONTACT</th>

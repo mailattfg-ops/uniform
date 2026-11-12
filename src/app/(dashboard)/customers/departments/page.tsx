@@ -224,6 +224,16 @@ export default function DepartmentManagement() {
 
   const columns: Column<DepartmentRecord>[] = [
     {
+      header: 'Setup Date',
+      accessor: (d) => (
+        <div className="flex flex-col">
+          <span className="text-xs font-black text-zinc-500 whitespace-nowrap">
+            {formatDate(d.created_at)}
+          </span>
+        </div>
+      )
+    },
+    {
       header: 'Department / Unit',
       accessor: (d) => (
         <div className="flex items-center gap-3">
@@ -248,16 +258,6 @@ export default function DepartmentManagement() {
             <span className="text-xs font-bold text-[#3a525d]">{d.organizations?.name || 'Main Office'}</span>
         </div>
       )
-    },
-    {
-        header: 'Setup Date',
-        accessor: (d) => (
-            <div className="flex flex-col">
-                <span className="text-xs font-black text-zinc-500">
-                    {formatDate(d.created_at)}
-                </span>
-            </div>
-        )
     },
     {
       header: 'Actions',

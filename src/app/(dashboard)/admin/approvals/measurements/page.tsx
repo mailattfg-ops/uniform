@@ -243,6 +243,15 @@ export default function MeasurementApprovals() {
       className: "w-12"
     },
     {
+      header: 'Recorded On',
+      accessor: (m) => (
+        <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
+          <Calendar size={14} strokeWidth={2.5} />
+          <span className="text-[10px] font-bold">{formatDate(m.recorded_at)}</span>
+        </div>
+      )
+    },
+    {
       header: 'Staff Member',
       accessor: (m) => (
         <div className="flex items-center gap-3">
@@ -287,15 +296,6 @@ export default function MeasurementApprovals() {
           <p className="text-[9px] text-muted-foreground font-medium truncate max-w-[150px]">
             {Object.keys(m.dynamic_data || {}).length} modules captured
           </p>
-        </div>
-      )
-    },
-    {
-      header: 'Recorded On',
-      accessor: (m) => (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar size={14} strokeWidth={2.5} />
-          <span className="text-[10px] font-bold">{formatDate(m.recorded_at)}</span>
         </div>
       )
     },
