@@ -3805,7 +3805,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
   onSuccess,
   onConvertToLead
 }) => {
-  const [responseType, setResponseType] = useState<'positive' | 'negative'>('negative');
+  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -3813,7 +3813,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
     setIsSubmitting(true);
     const toastId = toast.loading('Recording feed response outcome...');
     try {
-      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : 'Prospect unavailable / hold');
+      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : responseType === 'negative' ? 'Negative response from prospect' : 'Prospect ongoing / hold');
       const res = await api.post(`/leads/${lead.id}/activity`, {
         stage: 'Feeds',
         activity_type: 'Feed Contact Outcome',
@@ -3856,48 +3856,54 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
             Field Contact Response Outcome *
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setResponseType('positive')}
-              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                responseType === 'positive'
-                  ? 'border-emerald-500 bg-emerald-50/60 shadow-sm'
-                  : 'border-zinc-200 hover:border-zinc-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  responseType === 'positive' ? 'border-emerald-600 bg-emerald-600' : 'border-zinc-300'
-                }`}>
-                  {responseType === 'positive' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <span className="text-xs font-black text-emerald-800">Positive Response</span>
-              </div>
-              <p className="text-[10px] text-emerald-700/80 font-medium mt-1">
-                {lead.branch_id || lead.origin === 'BRANCH' ? 'Directly converts to New Leads queue' : 'Converts to Open Leads queue'}
-              </p>
-            </button>
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* 1. Negative (Left) */}
             <button
               type="button"
               onClick={() => setResponseType('negative')}
-              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                 responseType === 'negative'
-                  ? 'border-amber-500 bg-amber-50/60 shadow-sm'
-                  : 'border-zinc-200 hover:border-zinc-300'
+                  ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  responseType === 'negative' ? 'border-amber-600 bg-amber-600' : 'border-zinc-300'
-                }`}>
-                  {responseType === 'negative' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <span className="text-xs font-black text-amber-800">Negative / Pending</span>
-              </div>
-              <p className="text-[10px] text-amber-700/80 font-medium mt-1">
-                Retains raw lead at Feeds stage for future retry
+              <span className="text-xs font-black block flex items-center gap-1">
+                <Snowflake size={12} className="text-rose-500" /> Negative
+              </span>
+              <p className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
+                Mark Cold in Feeds
+              </p>
+            </button>
+
+            {/* 2. Hold / Pending (Middle - Default) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('hold')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'hold'
+                  ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Hold / Pending</span>
+              <p className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">
+                Retains at Feeds for retry
+              </p>
+            </button>
+
+            {/* 3. Positive (Right) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('positive')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'positive'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Positive</span>
+              <p className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">
+                {lead.branch_id || lead.origin === 'BRANCH' ? 'Converts to New Leads' : 'Converts to Open Leads'}
               </p>
             </button>
           </div>
@@ -3926,9 +3932,15 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           <Button
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="flex-1 py-3 text-[10px] font-black uppercase bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md shadow-[#C82A2B]/20"
+            className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
+              responseType === 'positive'
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
+                : responseType === 'negative'
+                ? 'bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'
+                : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
+            }`}
           >
-            {isSubmitting ? 'Saving...' : 'Save'}
+            {isSubmitting ? 'Recording...' : 'Save Outcome'}
           </Button>
         </div>
       </div>
@@ -4162,7 +4174,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const [responseType, setResponseType] = useState<'positive' | 'hold' | 'cold_lead'>(lead.is_cold ? 'hold' : 'positive');
+  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -4221,43 +4233,48 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-zinc-400">Call / Follow-up Outcome *</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* 1. Negative (Left) */}
             <button
               type="button"
-              onClick={() => setResponseType('positive')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                responseType === 'positive'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
-              }`}
-            >
-              <span className="text-xs font-black block">Positive (Meeting)</span>
-              <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">Advances to Meetings</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setResponseType('hold')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                responseType === 'hold'
-                  ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
-              }`}
-            >
-              <span className="text-xs font-black block">Hold / Ongoing</span>
-              <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">Stays in Follow-ups</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setResponseType('cold_lead')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                responseType === 'cold_lead'
+              onClick={() => setResponseType('negative')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'negative'
                   ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
                   : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
               }`}
             >
               <span className="text-xs font-black block flex items-center gap-1">
-                <Snowflake size={12} className="text-rose-500" /> Cold Lead
+                <Snowflake size={12} className="text-rose-500" /> Negative
               </span>
               <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">Mark Cold in Follow-ups</span>
+            </button>
+
+            {/* 2. Hold / Pending (Middle - Default) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('hold')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'hold'
+                  ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Hold / Pending</span>
+              <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">Stays in Follow-ups</span>
+            </button>
+
+            {/* 3. Positive (Right) */}
+            <button
+              type="button"
+              onClick={() => setResponseType('positive')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'positive'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block">Positive</span>
+              <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">Advances to Meetings</span>
             </button>
           </div>
         </div>
@@ -4284,7 +4301,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
             className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
               responseType === 'positive' 
                 ? 'bg-emerald-600 hover:bg-emerald-700' 
-                : responseType === 'cold_lead'
+                : responseType === 'negative'
                 ? 'bg-rose-600 hover:bg-rose-700'
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}
