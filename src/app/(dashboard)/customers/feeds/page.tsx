@@ -318,7 +318,7 @@ export default function FeedsRegistryPage() {
 
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-      const locality = (l.area && l.area.trim()) ? l.area.trim() : (l.city && l.city.trim() ? l.city.trim() : '—');
+      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -368,7 +368,7 @@ export default function FeedsRegistryPage() {
       <tr>
         <th style="width: 25px; text-align: center;">#</th>
         <th>Prospect / Organization</th>
-        <th>Area / Locality</th>
+        <th>Locality</th>
         <th>Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Scouted By</th>
@@ -424,16 +424,16 @@ export default function FeedsRegistryPage() {
       )
     },
     {
-      header: 'Area / Locality',
-      className: 'w-[150px] min-w-[130px] whitespace-nowrap text-center',
-      sortValue: (l) => (l.area && l.area.trim()) ? l.area.trim() : (l.city && l.city.trim() ? l.city.trim() : ''),
+      header: 'Locality',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
-        const areaLocality = (l.area && l.area.trim()) ? l.area.trim() : (l.city && l.city.trim() ? l.city.trim() : '');
-        const fullTooltip = [l.area, l.city, l.state].filter(Boolean).join(', ') || areaLocality;
-        return areaLocality ? (
+        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
+        const fullTooltip = [l.address, l.city, l.state, l.pincode].filter(Boolean).join(', ') || locality;
+        return locality ? (
           <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-            <span className="truncate">{areaLocality}</span>
+            <span className="truncate">{locality}</span>
           </div>
         ) : (
           <div className="text-center">

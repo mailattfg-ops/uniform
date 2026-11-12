@@ -668,16 +668,16 @@ export default function LeadsRegistryPage() {
       }
     },
     {
-      header: 'Area / Locality',
-      className: 'w-[150px] min-w-[130px] whitespace-nowrap text-center',
-      sortValue: (l) => (l.area && l.area.trim()) ? l.area.trim() : (l.city && l.city.trim() ? l.city.trim() : ''),
+      header: 'Locality',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
-        const areaLocality = (l.area && l.area.trim()) ? l.area.trim() : (l.city && l.city.trim() ? l.city.trim() : '');
-        const fullTooltip = [l.area, l.city, l.state].filter(Boolean).join(', ') || areaLocality;
-        return areaLocality ? (
+        const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
+        const fullTooltip = [l.address, l.city, l.state, l.pincode].filter(Boolean).join(', ') || locality;
+        return locality ? (
           <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
-            <span className="truncate">{areaLocality}</span>
+            <span className="truncate">{locality}</span>
           </div>
         ) : (
           <div className="text-center">
@@ -905,7 +905,7 @@ export default function LeadsRegistryPage() {
 
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
-      const locality = (l.area && l.area.trim()) ? l.area.trim() : (l.city && l.city.trim() ? l.city.trim() : '—');
+      const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -967,7 +967,7 @@ export default function LeadsRegistryPage() {
       <tr>
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
-        <th>Area / Locality</th>
+        <th>Locality</th>
         <th>Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
@@ -1387,7 +1387,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [area, setArea] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -1480,7 +1479,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setPhone(editingFeed.phone || '');
         setEmail(editingFeed.email || '');
         setAddress(editingFeed.address || '');
-        setArea(editingFeed.area || '');
         setGoogleMapsLink(editingFeed.google_maps_link || '');
         setCity(editingFeed.city || '');
         setState(editingFeed.state || '');
@@ -1501,7 +1499,6 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setPhone('');
         setEmail('');
         setAddress('');
-        setArea('');
         setGoogleMapsLink('');
         setCity('');
         setState('');
@@ -1547,7 +1544,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         contact_number: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
         address: address.trim() || null,
-        area: area.trim() || null,
+        area: null,
         city: city.trim() || null,
         state: state.trim() || null,
         pincode: pincode.trim() || null,
@@ -1727,35 +1724,19 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Area / Locality & Google Maps Link */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <MapPin size={13} className="text-[#9E1B1D]" />
-                Area / Locality
-              </label>
-              <input
-                type="text"
-                value={area}
-                onChange={(e) => setArea(capitalizeWords(e.target.value))}
-                autoCapitalize="words"
-                placeholder="e.g. Indiranagar 100ft Road"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Navigation size={13} className="text-[#9E1B1D]" />
-                Google Maps Link
-              </label>
-              <input
-                type="text"
-                value={googleMapsLink}
-                onChange={(e) => setGoogleMapsLink(e.target.value)}
-                placeholder="e.g. https://maps.app.goo.gl/..."
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+          {/* Google Maps Link */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <Navigation size={13} className="text-[#9E1B1D]" />
+              Google Maps Link
+            </label>
+            <input
+              type="text"
+              value={googleMapsLink}
+              onChange={(e) => setGoogleMapsLink(e.target.value)}
+              placeholder="e.g. https://maps.app.goo.gl/..."
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+            />
           </div>
 
           {/* Address Details: Street, City, State, Pincode, Country */}
@@ -2106,7 +2087,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const [requirements, setRequirements] = useState('');
   const [industryId, setIndustryId] = useState('');
   const [address, setAddress] = useState('');
-  const [area, setArea] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -2135,7 +2115,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setRequirements(data.requirements || '');
       setIndustryId(data.industry_id ? String(data.industry_id) : '');
       setAddress(data.address || '');
-      setArea(data.area || '');
       setGoogleMapsLink(data.google_maps_link || '');
       setCity(data.city || '');
       setState(data.state || '');
@@ -2157,7 +2136,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setRequirements('');
       setIndustryId('');
       setAddress('');
-      setArea('');
       setGoogleMapsLink('');
       setCity('');
       setState('');
@@ -2243,7 +2221,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         requirements: requirements.trim() || null,
         industry_id: industryId || null,
         address: address.trim() || null,
-        area: area.trim() || null,
+        area: null,
         google_maps_link: googleMapsLink.trim() || null,
         city: city.trim() || null,
         state: state.trim() || null,
@@ -2431,35 +2409,19 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
-          {/* Area & Google Maps Link */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <MapPin size={13} className="text-[#9E1B1D]" />
-                Area / Locality
-              </label>
-              <input
-                type="text"
-                value={area}
-                onChange={(e) => setArea(capitalizeWords(e.target.value))}
-                autoCapitalize="words"
-                placeholder="e.g. Whitefield Industrial Area"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Navigation size={13} className="text-[#9E1B1D]" />
-                Google Maps Link
-              </label>
-              <input
-                type="text"
-                value={googleMapsLink}
-                onChange={(e) => setGoogleMapsLink(e.target.value)}
-                placeholder="e.g. https://maps.app.goo.gl/..."
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+          {/* Google Maps Link */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <Navigation size={13} className="text-[#9E1B1D]" />
+              Google Maps Link
+            </label>
+            <input
+              type="text"
+              value={googleMapsLink}
+              onChange={(e) => setGoogleMapsLink(e.target.value)}
+              placeholder="e.g. https://maps.app.goo.gl/..."
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+            />
           </div>
 
           {/* Sector, Source, Branch, Salesperson, and Stage Grid */}
@@ -3144,12 +3106,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 <span className="text-[10px] font-bold uppercase tracking-widest text-red-300">
                   {lead.industries?.name || 'Institutional'}
                 </span>
-                {lead.area && (
+                {([lead.city, lead.state].filter(Boolean).join(', ') || lead.city || lead.state) && (
                   <>
                     <span className="text-white/40">•</span>
                     <span className="text-[10px] font-semibold text-white/80 flex items-center gap-1">
                       <MapPin size={11} className="text-red-300" />
-                      {lead.area}
+                      {[lead.city, lead.state].filter(Boolean).join(', ') || lead.city || lead.state}
                     </span>
                   </>
                 )}
@@ -3597,10 +3559,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   <MapPin size={14} className="text-[#9E1B1D]" />
                   <div className="flex-1 space-y-0.5">
                     <p className="text-xs font-bold text-zinc-900">
-                      {[lead.city, lead.state].filter(Boolean).join(', ') || lead.area || 'Location unlisted'}
+                      {[lead.city, lead.state].filter(Boolean).join(', ') || 'Location unlisted'}
                     </p>
                     {lead.address && <p className="text-[11px] text-zinc-600 font-medium">{lead.address}</p>}
-                    {lead.area && <p className="text-[11px] text-[#2d8d9b] font-bold">Area: {lead.area}</p>}
                     {(lead.pincode || lead.country) && (
                       <p className="text-[10px] text-zinc-400 font-medium">
                         {[lead.pincode ? `PIN: ${lead.pincode}` : null, lead.country || 'India'].filter(Boolean).join(' • ')}
