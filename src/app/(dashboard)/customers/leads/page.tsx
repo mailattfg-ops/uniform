@@ -2869,21 +2869,64 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         mapped = derived;
       }
 
-      // If Quotations stage is selected and has quotations, include them
+      // If Quotations stage is selected and has quotations, include them (First quote, Revised quotes, follow-ups)
       if (selectedStageTab === 'Quotations' && leadQuotations.length > 0) {
-        const quoteActs = leadQuotations.map((q: any) => ({
-          id: `quote_${q.id}`,
-          lead_id: lead.id,
-          stage: 'Quotations',
-          activity_type: 'Quotation Generated',
-          response_type: q.status || 'Active',
-          remarks: `Quotation #${q.quotation_number} generated for ₹${Number(q.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`,
-          staff_name: q.sales_person?.name || q.created_by_name || 'Commercial Team',
-          staff_employee_id: q.sales_person?.employee_id || 'SALES',
-          staff_designation: 'Sales & Marketing',
-          staff_department: 'Commercial',
-          created_at: q.created_at || lead.updated_at
-        }));
+        // Sort chronologically ascending
+        const sortedQuotes = [...leadQuotations].sort((a, b) => {
+          const tA = new Date(a.created_at || a.quotation_date || 0).getTime();
+          const tB = new Date(b.created_at || b.quotation_date || 0).getTime();
+          if (tA !== tB) return tA - tB;
+          return a.id - b.id;
+        });
+
+        const quoteActs: any[] = [];
+        sortedQuotes.forEach((q: any, qIdx: number) => {
+          const isFirst = qIdx === 0;
+          const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${qIdx})`;
+          const quoteNo = q.quotation_no || q.quotation_number || `QT-${q.id}`;
+          const qVal = Number(q.final_quote_value || q.total_amount || 0);
+
+          quoteActs.push({
+            id: `quote_${q.id}`,
+            quotation_id: q.id,
+            quotation_no: quoteNo,
+            lead_id: lead.id,
+            stage: 'Quotations',
+            activity_type: `${verLabel}: #${quoteNo}`,
+            response_type: q.status || 'Active',
+            is_quotation_version: true,
+            version_label: verLabel,
+            quote_amount: qVal,
+            remarks: `Quotation #${quoteNo} (${verLabel}) generated for ₹${qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}${q.metrics_summary?.bm_rejection_reason ? ` | Revision Notes: ${q.metrics_summary.bm_rejection_reason}` : ''}`,
+            staff_name: q.sales_person?.name || q.created_by_name || 'Commercial Team',
+            staff_employee_id: q.sales_person?.employee_id || 'SALES',
+            staff_designation: 'Sales & Marketing',
+            staff_department: 'Commercial',
+            created_at: q.created_at || lead.updated_at
+          });
+
+          // Also include any quotation follow-up history from metrics_summary
+          if (Array.isArray(q.metrics_summary?.followups)) {
+            q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
+              quoteActs.push({
+                id: f.id || `quote_fu_${q.id}_${fIdx}`,
+                quotation_id: q.id,
+                quotation_no: quoteNo,
+                lead_id: lead.id,
+                stage: 'Quotations',
+                activity_type: `Quotation Follow-up: #${quoteNo}`,
+                response_type: f.outcome || f.response_type || 'Follow-up',
+                remarks: f.remarks || f.text || '',
+                staff_name: f.author?.name || 'Sales Representative',
+                staff_employee_id: 'SALES',
+                staff_designation: 'Sales & Marketing',
+                staff_department: 'Commercial',
+                created_at: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at)
+              });
+            });
+          }
+        });
+
         const existingIds = new Set(mapped.map(m => String(m.id)));
         for (const qa of quoteActs) {
           if (!existingIds.has(String(qa.id))) {
@@ -3707,27 +3750,83 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                           </div>
 
                           {/* Right Side: Activity Card */}
-                          <div className="bg-white hover:bg-zinc-50/70 border border-zinc-200/90 rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0">
+                          <div 
+                            onClick={() => {
+                              const qId = (act as any).quotation_id;
+                              const qNo = (act as any).quotation_no;
+                              if (qId || qNo) {
+                                const url = qId
+                                  ? `/marketing/quotations?id=${qId}&action=view`
+                                  : `/marketing/quotations?quote_no=${encodeURIComponent(qNo)}&action=view`;
+                                window.open(url, '_blank', 'noopener,noreferrer');
+                              }
+                            }}
+                            className={`border rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0 ${
+                              (act as any).quotation_id || (act as any).quotation_no
+                                ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 hover:border-[#2d8d9b]/60 cursor-pointer group/qcard'
+                                : 'bg-white hover:bg-zinc-50/70 border-zinc-200/90'
+                            }`}
+                          >
                             <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <span className="text-xs font-bold text-zinc-900 tracking-tight">
-                                {act.activity_type || 'Activity Note'}
-                              </span>
-                              {act.response_type && (
-                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
-                                  respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : respLower === 'cold_lead' || respLower === 'negative'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}>
-                                  {act.response_type}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-bold text-zinc-900 tracking-tight">
+                                  {act.activity_type || 'Activity Note'}
                                 </span>
-                              )}
+                                {(act as any).version_label && (
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                    (act as any).version_label.includes('First')
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {(act as any).version_label}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {act.response_type && (
+                                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                    respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : respLower === 'cold_lead' || respLower === 'negative'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {act.response_type}
+                                  </span>
+                                )}
+
+                                {((act as any).quotation_id || (act as any).quotation_no) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const qId = (act as any).quotation_id;
+                                      const qNo = (act as any).quotation_no;
+                                      const url = qId
+                                        ? `/marketing/quotations?id=${qId}&action=view`
+                                        : `/marketing/quotations?quote_no=${encodeURIComponent(qNo)}&action=view`;
+                                      window.open(url, '_blank', 'noopener,noreferrer');
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all cursor-pointer"
+                                  >
+                                    <span>View Quotation</span>
+                                    <ExternalLink size={10} className="shrink-0" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             <p className="text-xs font-medium text-zinc-700 leading-relaxed whitespace-pre-wrap">
                               {renderRemarksWithQuoteLinks(act.remarks)}
                             </p>
+
+                            {((act as any).quotation_id || (act as any).quotation_no) && (
+                              <div className="pt-1 text-[10px] text-[#2d8d9b] font-bold flex items-center gap-1 group-hover/qcard:underline">
+                                <span>Click card to open quotation in another tab</span>
+                                <ExternalLink size={10} />
+                              </div>
+                            )}
                           </div>
                         </div>
                       );

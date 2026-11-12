@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -17,16 +17,23 @@ import {
   ShieldCheck,
   Building2,
   FileCheck,
-  ExternalLink
+  ExternalLink,
+  History,
+  MessageSquare,
+  Plus,
+  Layers,
+  Calendar
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
 import { formatDate, formatSpecificationDisplay } from '@/lib/formatters';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
+import { QuotationFollowUpModal } from './QuotationList';
 
 interface QuotationDetailsProps {
   selectedQuotation: Quotation;
+  allQuotations?: Quotation[];
   fabricsList: any[];
   onBack: () => void;
   onStartEdit?: (q: Quotation) => void;
@@ -37,6 +44,7 @@ interface QuotationDetailsProps {
   onDeleteCandidate?: (q: Quotation) => void;
   currentUser?: any;
   readOnly?: boolean;
+  onRefresh?: () => void;
 }
 
 // Helpers for department and division cleanup
@@ -54,6 +62,7 @@ const getCleanDivision = (name: string, fallbackDiv?: string) => {
 
 export default function QuotationDetails({
   selectedQuotation,
+  allQuotations = [],
   fabricsList,
   onBack,
   onStartEdit,
@@ -63,8 +72,124 @@ export default function QuotationDetails({
   onBmReject,
   onDeleteCandidate,
   currentUser,
-  readOnly = false
+  readOnly = false,
+  onRefresh
 }: QuotationDetailsProps) {
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+
+  // Group and sort all related quotations for this client (earliest = First Quote, subsequent = Revised)
+  const relatedQuotations = useMemo(() => {
+    const orgId = selectedQuotation.organization_id;
+    const leadId = (selectedQuotation as any).lead_id;
+    if (!allQuotations || allQuotations.length === 0) return [selectedQuotation];
+
+    const matches = allQuotations.filter(q => {
+      if (orgId && q.organization_id === orgId) return true;
+      if (leadId && (q as any).lead_id === leadId) return true;
+      if (
+        selectedQuotation.organizations?.name &&
+        q.organizations?.name &&
+        selectedQuotation.organizations.name.trim().toLowerCase() === q.organizations.name.trim().toLowerCase()
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (matches.length === 0) return [selectedQuotation];
+
+    return [...matches].sort((a, b) => {
+      const timeA = new Date(a.created_at || a.quotation_date || 0).getTime();
+      const timeB = new Date(b.created_at || b.quotation_date || 0).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id - b.id;
+    });
+  }, [selectedQuotation, allQuotations]);
+
+  // Unified timeline of all quotation events and follow-ups
+  const timelineActivities = useMemo(() => {
+    const activities: any[] = [];
+
+    relatedQuotations.forEach((q, idx) => {
+      const isFirst = idx === 0;
+      const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
+      activities.push({
+        id: `qd_quote_${q.id}`,
+        quotation_id: q.id,
+        quotation_no: q.quotation_no,
+        type: 'quotation_version',
+        title: `${verLabel}: #${q.quotation_no}`,
+        badge: verLabel,
+        badgeColor: isFirst ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+        date: q.quotation_date || q.created_at,
+        amount: q.final_quote_value || (q as any).total_amount || 0,
+        status: q.status,
+        author: 'Commercial Team',
+        remarks: `Quotation #${q.quotation_no} compiled with value of ₹${Number(q.final_quote_value || (q as any).total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`
+      });
+
+      if (q.metrics_summary?.bm_rejection_reason) {
+        activities.push({
+          id: `qd_bm_rej_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'revision_request',
+          title: `Revision Requested by BM (#${q.quotation_no})`,
+          badge: 'Revision Requested',
+          badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+          date: q.metrics_summary.bm_rejection_at || q.updated_at || q.created_at,
+          author: q.metrics_summary.bm_rejected_by_name || 'Branch Manager',
+          remarks: `Branch Manager revision instructions: "${q.metrics_summary.bm_rejection_reason}"`
+        });
+      }
+
+      if (q.metrics_summary?.bm_approved || q.status === 'Approved') {
+        activities.push({
+          id: `qd_bm_app_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'approval',
+          title: `Quotation Approved (#${q.quotation_no})`,
+          badge: 'Approved',
+          badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          date: q.metrics_summary?.bm_approved_at || q.metrics_summary?.submitted_to_ops_at || q.updated_at || q.created_at,
+          author: q.metrics_summary?.bm_approved_by_name || 'Branch Manager',
+          remarks: 'Quotation verified and approved by Branch Manager & Operations.'
+        });
+      }
+
+      if (Array.isArray(q.metrics_summary?.followups)) {
+        q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
+          activities.push({
+            id: f.id || `qd_f_${q.id}_${fIdx}`,
+            quotation_id: q.id,
+            quotation_no: q.quotation_no,
+            type: 'followup',
+            title: `Follow-up on Quote #${q.quotation_no}`,
+            badge: f.outcome || f.response_type || 'Follow-up',
+            outcome: f.outcome || f.response_type,
+            date: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at),
+            author: f.author?.name || 'Sales Representative',
+            remarks: f.remarks || f.text || '',
+            next_followup_date: f.next_followup_date
+          });
+        });
+      }
+    });
+
+    return activities.sort((a, b) => {
+      const timeA = new Date(a.date || 0).getTime();
+      const timeB = new Date(b.date || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [relatedQuotations]);
+
+  const openQuotationTab = (qId: number | string, qNo?: string) => {
+    const url = qId
+      ? `/marketing/quotations?id=${qId}&action=view`
+      : `/marketing/quotations?quote_no=${encodeURIComponent(qNo || '')}&action=view`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const [companySettings, setCompanySettings] = useState<any>({
     company_name: 'Forma Apparels',
@@ -1440,6 +1565,236 @@ export default function QuotationDetails({
             </div>
           </Card>
         </div>
+
+        {/* QUOTATION HISTORY & REVISIONS LOG */}
+        <Card className="p-6 md:p-8 border border-zinc-200/80 rounded-[2.5rem] bg-white shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-150 pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#801416]/10 text-[#801416] flex items-center justify-center">
+                  <History size={16} />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  Commercial History & Versions
+                </span>
+              </div>
+              <h3 className="text-xl font-black text-zinc-900 mt-1">
+                Quotation Versions & Follow-up Log
+              </h3>
+              <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                Client: <strong className="text-zinc-800">{selectedQuotation.organizations?.name || 'Commercial Client'}</strong> • {relatedQuotations.length} total quotation proposal{relatedQuotations.length > 1 ? 's' : ''} (First quote & revisions)
+              </p>
+            </div>
+
+            {!readOnly && (
+              <Button
+                onClick={() => setShowFollowUpModal(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] text-white shadow-lg shadow-[#801416]/20 border-none cursor-pointer self-start sm:self-auto"
+              >
+                <Plus size={14} /> Record Follow-up
+              </Button>
+            )}
+          </div>
+
+          {/* Quotation Versions Grid */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                Quotation Proposals ({relatedQuotations.length})
+              </span>
+              <span className="text-[10px] text-zinc-400 font-medium">
+                Click any card or &quot;View Quotation&quot; to open in a new tab
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {relatedQuotations.map((q, idx) => {
+                const isFirst = idx === 0;
+                const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
+                const isCurrent = q.id === selectedQuotation.id;
+                const qVal = Number(q.final_quote_value || (q as any).total_amount || 0);
+
+                return (
+                  <div
+                    key={q.id}
+                    onClick={() => openQuotationTab(q.id, q.quotation_no)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between ${
+                      isCurrent
+                        ? 'bg-[#2d8d9b]/5 border-[#2d8d9b]/50 shadow-xs ring-1 ring-[#2d8d9b]/30'
+                        : 'bg-zinc-50/50 border-zinc-200 hover:border-[#2d8d9b]/60 hover:bg-white hover:shadow-md'
+                    }`}
+                    title="Click to open this quotation proposal in another tab"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border inline-block ${
+                            isFirst
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {verLabel}
+                          </span>
+                          <p className="font-mono font-bold text-sm text-zinc-900 mt-1 flex items-center gap-1.5">
+                            <span>{q.quotation_no}</span>
+                            {isCurrent && (
+                              <span className="text-[9px] font-bold text-[#2d8d9b] uppercase tracking-wider">
+                                (Current)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openQuotationTab(q.id, q.quotation_no);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all shrink-0 cursor-pointer"
+                        >
+                          <span>View Quotation</span>
+                          <ExternalLink size={10} className="shrink-0" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-150/70">
+                        <span className="text-zinc-500 font-medium">
+                          {formatDate(q.quotation_date || q.created_at)}
+                        </span>
+                        <span className="font-mono font-black text-[#2d8d9b]">
+                          ₹{qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {q.metrics_summary?.bm_rejection_reason && (
+                        <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[10px] text-rose-800 font-medium leading-relaxed">
+                          <strong>BM Feedback:</strong> {q.metrics_summary.bm_rejection_reason}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-zinc-150/50 mt-2">
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-white text-zinc-700 border border-zinc-200">
+                        {q.status || 'Draft'}
+                      </span>
+                      <span className="text-[10px] text-[#2d8d9b] font-bold group-hover:underline inline-flex items-center gap-0.5">
+                        Open in new tab <ExternalLink size={9} />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Activity Timeline */}
+          <div className="space-y-3 pt-3 border-t border-zinc-150">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                Timeline & Follow-up Communications ({timelineActivities.length})
+              </span>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setShowFollowUpModal(true)}
+                  className="text-[10px] font-black uppercase tracking-wider text-[#801416] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus size={11} /> Log Follow-up Note
+                </button>
+              )}
+            </div>
+
+            {timelineActivities.length > 0 ? (
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                {timelineActivities.map((entry) => {
+                  const outcomeLower = String(entry.outcome || entry.badge || '').toLowerCase();
+                  const isPositive = outcomeLower.includes('pos') || outcomeLower.includes('won') || outcomeLower.includes('approv');
+                  const isNegative = outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('reject');
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className="bg-zinc-50/60 hover:bg-zinc-50 p-4 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1.5 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                        <span className="font-bold text-zinc-900">
+                          {entry.title}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {entry.badge && (
+                            <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                              entry.badgeColor || (
+                                isPositive
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : isNegative
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              )
+                            }`}>
+                              {entry.badge}
+                            </span>
+                          )}
+                          {entry.quotation_id && (
+                            <button
+                              type="button"
+                              onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
+                              className="text-[10px] font-bold text-[#2d8d9b] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
+                              title="Open quotation in new tab"
+                            >
+                              Quote <ExternalLink size={9} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-xs font-semibold text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                        {entry.remarks}
+                      </p>
+
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400 font-medium pt-1 border-t border-zinc-150/70">
+                        <span>{entry.date ? formatDate(entry.date) : 'Recent'}</span>
+                        {entry.author && <span>By: {entry.author}</span>}
+                      </div>
+
+                      {entry.next_followup_date && (
+                        <div className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded inline-flex items-center gap-1 mt-1">
+                          <Calendar size={10} /> Next Follow-up: {formatDate(entry.next_followup_date)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 space-y-2">
+                <History size={24} className="mx-auto text-zinc-400" />
+                <p className="text-xs font-bold text-zinc-600">No activity or follow-up notes logged yet</p>
+                {!readOnly && (
+                  <Button
+                    onClick={() => setShowFollowUpModal(true)}
+                    className="px-3 py-1.5 bg-[#801416] text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-[#681012] transition-colors"
+                  >
+                    Log First Follow-up
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {showFollowUpModal && (
+          <QuotationFollowUpModal
+            quotation={selectedQuotation}
+            allQuotations={allQuotations}
+            currentUser={currentUser}
+            onClose={() => setShowFollowUpModal(false)}
+            onSuccess={() => {
+              setShowFollowUpModal(false);
+              if (onRefresh) onRefresh();
+            }}
+          />
+        )}
       </Card>
     </div>
   );

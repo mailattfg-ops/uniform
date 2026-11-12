@@ -108,6 +108,7 @@ export interface Quotation {
       [key: string]: any;
     };
   created_at: string;
+  updated_at?: string;
   pdf_html?: string;
   group_design_number?: { code: string };
 }
@@ -253,23 +254,49 @@ export default function QuotationsPage() {
         return;
       }
 
-      if (quoteIdParam && quotations.length > 0) {
+      if (quoteIdParam) {
         const id = parseInt(quoteIdParam, 10);
-        const match = quotations.find(q => q.id === id);
-        if (match) {
-          if (actionParam === 'edit') {
-            handleStartEdit(match);
-          } else {
+        if (!isNaN(id)) {
+          if (quotations.length > 0) {
+            const match = quotations.find(q => q.id === id);
+            if (match) {
+              if (actionParam === 'edit') {
+                handleStartEdit(match);
+              } else {
+                handleViewDetails(match);
+              }
+              return;
+            }
+          }
+          // Direct API fetch for opening in a new tab immediately
+          api.get(`/quotations/${id}`).then(res => {
+            if (res.data) {
+              if (actionParam === 'edit') {
+                handleStartEdit(res.data);
+              } else {
+                setSelectedQuotation(res.data);
+                setActiveTab('details');
+              }
+            }
+          }).catch(() => {});
+        }
+      } else if (quoteNoParam) {
+        if (quotations.length > 0) {
+          const match = quotations.find(q => 
+            q.quotation_no?.toLowerCase().trim() === quoteNoParam.toLowerCase().trim()
+          );
+          if (match) {
             handleViewDetails(match);
+            return;
           }
         }
-      } else if (quoteNoParam && quotations.length > 0) {
-        const match = quotations.find(q => 
-          q.quotation_no?.toLowerCase().trim() === quoteNoParam.toLowerCase().trim()
-        );
-        if (match) {
-          handleViewDetails(match);
-        }
+        api.get(`/quotations?quote_no=${encodeURIComponent(quoteNoParam)}`).then(res => {
+          const found = Array.isArray(res.data) ? res.data[0] : res.data;
+          if (found) {
+            setSelectedQuotation(found);
+            setActiveTab('details');
+          }
+        }).catch(() => {});
       }
     }
   }, [searchParams, quotations]);
@@ -651,6 +678,7 @@ export default function QuotationsPage() {
       {activeTab === 'details' && selectedQuotation && (
         <QuotationDetails
           selectedQuotation={selectedQuotation}
+          allQuotations={quotations}
           fabricsList={fabricsList}
           onBack={() => {
             setSelectedQuotation(null);
@@ -663,6 +691,7 @@ export default function QuotationsPage() {
           onBmReject={setBmRejectCandidate}
           onDeleteCandidate={setDeleteCandidate}
           currentUser={currentUser}
+          onRefresh={fetchQuotations}
         />
       )}
 
