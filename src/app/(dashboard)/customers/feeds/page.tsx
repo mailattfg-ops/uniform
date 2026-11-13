@@ -334,6 +334,8 @@ export default function FeedsRegistryPage() {
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
       const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
+      const contacted = isFeedContacted(l);
+      const statusLabel = contacted ? 'Contacted' : 'Open';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -346,6 +348,11 @@ export default function FeedsRegistryPage() {
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
           ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
+        </td>
+        <td style="text-align: center; font-size: 10px;">
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 9px; font-weight: bold; text-transform: uppercase; background: ${contacted ? '#ecfdf5' : '#fff1f1'}; color: ${contacted ? '#047857' : '#9e1b1d'}; border: 1px solid ${contacted ? '#a7f3d0' : '#fecaca'};">
+            ${statusLabel}
+          </span>
         </td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Scouting Agent'}</td>
       </tr>
@@ -386,6 +393,7 @@ export default function FeedsRegistryPage() {
         <th style="text-align: left;">Area/Locality</th>
         <th>Zone</th>
         <th style="text-align: left;">Contact</th>
+        <th style="text-align: center;">Feed Status</th>
         <th>Scouted By</th>
       </tr>
     </thead>
@@ -503,6 +511,25 @@ export default function FeedsRegistryPage() {
       )
     },
     {
+      header: 'Feed Status',
+      className: 'w-[130px] min-w-[120px] whitespace-nowrap text-center',
+      sortValue: (l) => isFeedContacted(l) ? 'Contacted' : 'Open',
+      accessor: (l) => {
+        const contacted = isFeedContacted(l);
+        return contacted ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            Contacted
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] shrink-0 animate-pulse" />
+            Open
+          </span>
+        );
+      }
+    },
+    {
       header: 'Follow-up',
       className: 'w-[110px] min-w-[105px] whitespace-nowrap text-center',
       accessor: (l) => (
@@ -520,7 +547,7 @@ export default function FeedsRegistryPage() {
         </div>
       )
     }
-  ], [zones, industries]);
+  ], [zones, industries, isFeedContacted]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
