@@ -609,14 +609,22 @@ export default function OrderPlacementPage() {
     {
       header: 'Fulfillment Client',
       className: 'min-w-[160px] max-w-[220px]',
-      accessor: (item) => (
-        <div className="flex flex-col min-w-0">
-          <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
-          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
-            {item.organizations?.name || 'Unknown Client'}
-          </span>
-        </div>
-      )
+      accessor: (item) => {
+        const sector = (item.organizations as any)?.industries?.name || (item.organizations as any)?.industry || '';
+        return (
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
+              {item.organizations?.name || 'Unknown Client'}
+            </span>
+            {sector && (
+              <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                {sector}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Ledger Value',

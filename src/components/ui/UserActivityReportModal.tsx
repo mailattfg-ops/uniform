@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   Calendar, 
@@ -122,10 +123,15 @@ export function UserActivityReportModal<T = any>({
   isFilterApplied = false
 }: UserActivityReportModalProps<T>) {
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
   const [datePreset, setDatePreset] = useState<DatePreset>('today');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Activity Category Toggles (all activities included by default)
   const includeAdded = true;
@@ -685,13 +691,16 @@ export function UserActivityReportModal<T = any>({
     toast.success('Report exported to CSV');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const userName = currentUser?.fullName || currentUser?.name || currentUser?.email || 'Logged-in User';
   const userRole = currentUser?.role || 'Staff Member';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      style={{ zIndex: 99999 }}
+    >
       <div 
         className="w-full max-w-6xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-zinc-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
@@ -1011,6 +1020,7 @@ export function UserActivityReportModal<T = any>({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

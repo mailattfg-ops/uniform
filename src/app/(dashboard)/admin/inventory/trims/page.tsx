@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { formatCurrency, formatQuantity } from '@/lib/formatters';
+import { formatCurrency, formatQuantity, formatDate } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Plus, 
@@ -544,7 +544,7 @@ export default function TrimsCatalogPage() {
 </head>
 <body>
   <h1>Trim Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
+  <p>Generated on ${formatDate(new Date())} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>

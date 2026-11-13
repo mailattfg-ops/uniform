@@ -1,5 +1,6 @@
 'use client';
 import { Select } from '@/components/ui/Select';
+import { formatDate } from '@/lib/formatters';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import api from '@/lib/api';
@@ -871,7 +872,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 </head>
 <body>
   <h1>Accessories Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
+  <p>Generated on ${formatDate(new Date())} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>

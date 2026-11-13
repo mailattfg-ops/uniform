@@ -143,10 +143,10 @@ function compileCustomerDirectoryHTML({
         <td style="font-family: monospace; font-weight: bold; color: #C82A2B; font-size: 10px;">${custId}</td>
         <td>
           <div style="font-weight: 800; color: #1a202c; font-size: 11px;">${name}</div>
-          ${sector ? `<div style="font-size: 8px; color: #C82A2B; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
+          ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568;">${zoneName}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
           ${designation ? `<div style="color: #a0aec0; font-size: 8px;">${designation}</div>` : ''}
@@ -425,8 +425,8 @@ function compileCustomerDirectoryHTML({
         <th style="width: 25px;">#</th>
         <th style="width: 80px;">CUST. ID</th>
         <th>CUSTOMER NAME</th>
-        <th>LOCALITY</th>
-        <th>ZONE</th>
+        <th style="text-align: left;">AREA/LOCALITY</th>
+        <th style="text-align: left;">ZONE</th>
         <th>CONTACT</th>
         <th style="text-align: right; width: 85px;">RECEIVABLES</th>
         <th style="text-align: right; width: 80px;">CREDITS</th>
@@ -532,7 +532,7 @@ export default function CustomersRegistry() {
     const activeBranch = branches.find(b => String(b.id) === selectedBranch);
     const selectedBranchName = selectedBranch === 'ALL' ? 'All Branches' : (activeBranch?.name || `Branch #${selectedBranch}`);
     const now = new Date();
-    const printedAt = `${now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    const printedAt = formatDate(now, true);
     return compileCustomerDirectoryHTML({
       customers: printModal.data,
       sortInfo: printModal.sortInfo,
@@ -1061,29 +1061,33 @@ export default function CustomersRegistry() {
                 </span>
               )}
             </div>
-            {c.industries?.name && (
-              <p className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-wider truncate mt-0.5 ml-4">
-                {c.industries.name}
-              </p>
-            )}
+            {(() => {
+              const industryName = c.industries?.name || industries.find(ind => ind.id === c.industry_id)?.name;
+              if (!industryName) return null;
+              return (
+                <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 ml-4">
+                  {industryName}
+                </p>
+              );
+            })()}
           </div>
         );
       }
     },
     {
-      header: 'LOCALITY',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      header: 'AREA/LOCALITY',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-left',
       sortValue: (c) => [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '',
       accessor: (c) => {
         const locality = [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '';
         const fullTooltip = [c.address, c.city, c.state, c.pincode].filter(Boolean).join(', ') || locality;
         return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
+          <div className="flex items-center justify-start gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{locality}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -1091,17 +1095,16 @@ export default function CustomersRegistry() {
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (c) => c.zones?.name || (zones.find(z => z.id === c.zone_id)?.name) || '',
       accessor: (c) => {
         const zoneName = c.zones?.name || zones.find(z => z.id === c.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
-            <MapPin size={12} className="text-zinc-400 shrink-0" />
+          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );

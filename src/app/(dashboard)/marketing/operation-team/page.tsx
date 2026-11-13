@@ -238,15 +238,26 @@ export default function OperationTeamPage() {
     },
     {
       header: 'Customer',
-      className: 'max-w-[130px]',
-      accessor: (q) => (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Building2 size={12} className="text-[#2d8d9b] opacity-60 shrink-0" />
-          <span className="font-bold text-xs text-zinc-700 truncate" title={q.organizations?.name || 'Customer'}>
-            {q.organizations?.name || 'Customer'}
-          </span>
-        </div>
-      )
+      className: 'max-w-[160px]',
+      accessor: (q) => {
+        const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+        const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
+        return (
+          <div className="flex flex-col items-start min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+              <Building2 size={12} className="text-[#2d8d9b] opacity-60 shrink-0" />
+              <span className="font-bold text-xs text-zinc-700 truncate" title={q.organizations?.name || 'Customer'}>
+                {q.organizations?.name || 'Customer'}
+              </span>
+            </div>
+            {sector && (
+              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                {sector}
+              </p>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Margin',

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { formatDate } from '@/lib/formatters';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { 
@@ -320,10 +321,7 @@ export default function FeedsRegistryPage() {
   const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintFeeds = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredFeeds;
-    const printedAt = new Date().toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
+    const printedAt = formatDate(new Date(), true);
 
     const activeBranchName = selectedBranch === 'ALL'
       ? 'All Branches'
@@ -334,18 +332,25 @@ export default function FeedsRegistryPage() {
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
       const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
+      const contacted = isFeedContacted(l);
+      const statusLabel = contacted ? 'Contacted' : 'Open';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568;">${zoneName || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
           ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
+        </td>
+        <td style="text-align: center; font-size: 10px;">
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 9px; font-weight: bold; text-transform: uppercase; background: ${contacted ? '#ecfdf5' : '#fff1f1'}; color: ${contacted ? '#047857' : '#9e1b1d'}; border: 1px solid ${contacted ? '#a7f3d0' : '#fecaca'};">
+            ${statusLabel}
+          </span>
         </td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Scouting Agent'}</td>
       </tr>
@@ -383,9 +388,10 @@ export default function FeedsRegistryPage() {
       <tr>
         <th style="width: 25px; text-align: center;">#</th>
         <th>Prospect / Organization</th>
-        <th>Locality</th>
-        <th>Zone</th>
+        <th style="text-align: left;">Area/Locality</th>
+        <th style="text-align: left;">Zone</th>
         <th style="text-align: left;">Contact</th>
+        <th style="text-align: center;">Feed Status</th>
         <th>Scouted By</th>
       </tr>
     </thead>
@@ -439,19 +445,19 @@ export default function FeedsRegistryPage() {
       )
     },
     {
-      header: 'Locality',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      header: 'Area/Locality',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-left',
       sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
         const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
         const fullTooltip = [l.address, l.city, l.state, l.pincode].filter(Boolean).join(', ') || locality;
         return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
+          <div className="flex items-center justify-start gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{locality}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -459,17 +465,16 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
-            <MapPin size={12} className="text-zinc-400 shrink-0" />
+          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -504,6 +509,25 @@ export default function FeedsRegistryPage() {
       )
     },
     {
+      header: 'Feed Status',
+      className: 'w-[130px] min-w-[120px] whitespace-nowrap text-center',
+      sortValue: (l) => isFeedContacted(l) ? 'Contacted' : 'Open',
+      accessor: (l) => {
+        const contacted = isFeedContacted(l);
+        return contacted ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            Contacted
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] shrink-0 animate-pulse" />
+            Open
+          </span>
+        );
+      }
+    },
+    {
       header: 'Follow-up',
       className: 'w-[110px] min-w-[105px] whitespace-nowrap text-center',
       accessor: (l) => (
@@ -521,7 +545,7 @@ export default function FeedsRegistryPage() {
         </div>
       )
     }
-  ], [zones, industries]);
+  ], [zones, industries, isFeedContacted]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

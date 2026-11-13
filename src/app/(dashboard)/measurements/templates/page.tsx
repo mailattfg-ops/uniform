@@ -434,12 +434,22 @@ export default function IndustryTemplatesPage() {
     },
     {
       header: 'Organization',
-      accessor: (t) => (
-        <div className="flex items-center gap-2 text-zinc-500">
-          <Building2 size={14} className="text-[#2d8d9b]" />
-          <span className="text-xs font-bold">{t.organizations?.name}</span>
-        </div>
-      )
+      accessor: (t) => {
+        const sector = (t.organizations as any)?.industries?.name || (t.organizations as any)?.industry;
+        return (
+          <div className="flex flex-col items-start min-w-0">
+            <div className="flex items-center gap-2 text-zinc-500">
+              <Building2 size={14} className="text-[#2d8d9b] shrink-0" />
+              <span className="text-xs font-bold text-zinc-800">{t.organizations?.name}</span>
+            </div>
+            {sector && (
+              <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 ml-5">
+                {sector}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Male Config',

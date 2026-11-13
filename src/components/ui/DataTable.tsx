@@ -576,6 +576,7 @@ export function DataTable<T extends { id: string | number }>({
                 const isSortable = col.sortable !== false && !isAction && !isCollapsed;
                 const isSorted = sortColumnIndex === idx;
                 const isRightAligned = col.className?.includes('text-right');
+                const isLeftAligned = col.className?.includes('text-left');
 
                 return (
                   <th 
@@ -583,7 +584,9 @@ export function DataTable<T extends { id: string | number }>({
                     onClick={() => isSortable && handleSort(idx)}
                     aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                     title={isSortable ? `Click to sort by ${typeof col.header === 'string' ? col.header : 'column'} (${isSorted && sortDirection === 'asc' ? 'Descending' : 'Ascending'})` : undefined}
-                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-zinc-200/60 last:border-r-0 text-center ${
+                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-zinc-200/60 last:border-r-0 ${
+                      isLeftAligned ? 'text-left' : isRightAligned ? 'text-right' : 'text-center'
+                    } ${
                       isSortable 
                         ? 'cursor-pointer hover:bg-zinc-200/50 hover:text-zinc-900 group/th' 
                         : ''
@@ -595,8 +598,8 @@ export function DataTable<T extends { id: string | number }>({
                       isSticky ? 'sticky right-0 bg-zinc-50 z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
                     } ${col.className || ''}`}
                   >
-                    <div className="flex items-center justify-center gap-1.5 w-full text-center">
-                      <span className="truncate text-center">{col.header}</span>
+                    <div className={`flex items-center ${isRightAligned ? 'justify-end' : isLeftAligned ? 'justify-start' : 'justify-center'} gap-1.5 w-full ${isRightAligned ? 'text-right' : isLeftAligned ? 'text-left' : 'text-center'}`}>
+                      <span className={`truncate ${isRightAligned ? 'text-right' : isLeftAligned ? 'text-left' : 'text-center'}`}>{col.header}</span>
                       {isSortable && (
                         <span className="inline-flex items-center shrink-0 ml-1">
                           {isSorted ? (

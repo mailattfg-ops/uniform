@@ -8,7 +8,7 @@ import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 import { formatDate } from '@/lib/formatters';
 import { 
-  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, MapPin, Calendar,
+  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, Calendar,
   MoreVertical, Send, Check, ShieldCheck, Lock, Edit3, MessageSquare, AlertCircle, X, ChevronRight, Loader2
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -234,7 +234,7 @@ export default function DealsRegistryPage() {
         created_at: q.created_at,
         updated_at: q.updated_at || q.created_at,
         remarks: [{
-          date: new Date(q.created_at).toLocaleDateString(),
+          date: formatDate(q.created_at),
           time: '',
           text: `Quotation #${q.quotation_no} approved.`,
           stage: 'Deals',
@@ -357,10 +357,7 @@ export default function DealsRegistryPage() {
   const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintDeals = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredDeals;
-    const printedAt = new Date().toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
+    const printedAt = formatDate(new Date(), true);
 
     const activeBranchName = selectedBranch === 'ALL'
       ? 'All Branches'
@@ -396,9 +393,12 @@ export default function DealsRegistryPage() {
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
-          ${l.industries?.name ? `<div style="font-size: 8px; color: #2d8d9b; font-weight: bold; text-transform: uppercase;">${l.industries.name}</div>` : ''}
+          ${(() => {
+            const indName = l.industries?.name || (zones && industries.find(ind => ind.id === l.industry_id)?.name);
+            return indName ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${indName}</div>` : '';
+          })()}
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -453,9 +453,9 @@ export default function DealsRegistryPage() {
       <tr>
         <th style="width: 30px;">#</th>
         <th style="text-align: center;">Date</th>
-        <th>Customer Name</th>
-        <th>Zone</th>
-        <th>Contact</th>
+        <th style="text-align: left;">Customer Name</th>
+        <th style="text-align: left;">Zone</th>
+        <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th style="text-align: center;">Status</th>
         <th style="text-align: right;">Amount</th>
@@ -497,39 +497,36 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Customer Name',
-      className: 'min-w-[170px] max-w-[260px] text-center',
+      className: 'min-w-[170px] max-w-[260px] text-left',
       sortValue: (l) => l.name,
-      accessor: (l) => (
-        <div className="min-w-0 text-center flex flex-col items-center">
-          <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
-            {l.name}
-          </p>
-          {l.industries?.name && (
-            <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-              {l.industries.name}
+      accessor: (l) => {
+        const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
+        return (
+          <div className="min-w-0 text-left flex flex-col items-start">
+            <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate w-full" title={l.name}>
+              {l.name}
             </p>
-          )}
-          {l.requirements && (
-            <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]" title={l.requirements}>
-              Feed: {l.requirements}
-            </p>
-          )}
-        </div>
-      )
+            {industryName && (
+              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
+                {industryName}
+              </p>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
-            <MapPin size={12} className="text-zinc-400 shrink-0" />
+          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );

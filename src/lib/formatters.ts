@@ -36,7 +36,21 @@ export function formatDate(
 ): string {
   if (!dateStr) return '—';
   try {
-    const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    let d: Date;
+    if (typeof dateStr === 'string') {
+      const trimmed = dateStr.trim();
+      const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (ymdMatch && !includeTime) {
+        return `${ymdMatch[3]}-${ymdMatch[2]}-${ymdMatch[1]}`;
+      }
+      const dmyMatch = trimmed.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+      if (dmyMatch && !includeTime) {
+        return `${dmyMatch[1]}-${dmyMatch[2]}-${dmyMatch[3]}`;
+      }
+      d = new Date(trimmed);
+    } else {
+      d = dateStr;
+    }
     if (isNaN(d.getTime())) return String(dateStr);
 
     // Format strictly as DD-MM-YYYY in Indian Standard Time (Asia/Kolkata)
@@ -281,13 +295,7 @@ export function capitalizeWords(str: string | null | undefined): string {
 export function formatDateDoc(dateStr: string | Date | null | undefined): string {
   if (!dateStr) return '—';
   try {
-    const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    if (isNaN(d.getTime())) return String(dateStr);
-    const day = String(d.getDate()).padStart(2, '0');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = months[d.getMonth()];
-    const year = d.getFullYear();
-    return `${day} ${month} ${year}`;
+    return formatDate(dateStr, false);
   } catch {
     return String(dateStr);
   }

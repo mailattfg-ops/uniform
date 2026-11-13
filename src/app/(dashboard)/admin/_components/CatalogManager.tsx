@@ -11,6 +11,7 @@ import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { formatDate } from '@/lib/formatters';
 
 interface Item {
   id: string;
@@ -506,7 +507,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
 </head>
 <body>
   <h1>Fabric Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
+  <p>Generated on ${formatDate(new Date())} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>
