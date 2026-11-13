@@ -4156,22 +4156,6 @@ function OrganizationDetailsPageContent() {
                     }
                   },
                   {
-                    header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap text-center',
-                    accessor: (o: any) => (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={o.organizations?.name || org?.name}>
-                          {o.organizations?.name || org?.name || '—'}
-                        </span>
-                        {customerSector && (
-                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {customerSector}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  },
-                  {
                     header: 'Sales Person',
                     className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
@@ -4527,22 +4511,6 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap text-center',
-                    accessor: (pkg: any) => (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pkg.customer_name || org?.name}>
-                          {pkg.customer_name || org?.name || '—'}
-                        </span>
-                        {customerSector && (
-                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {customerSector}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  },
-                  {
                     header: 'Description',
                     className: 'min-w-[170px] max-w-[250px]',
                     accessor: (pkg: any) => (
@@ -4659,22 +4627,6 @@ function OrganizationDetailsPageContent() {
                       <span className="font-mono font-bold text-xs text-[#9E1B1D] whitespace-nowrap">
                         {dc.order_no}
                       </span>
-                    )
-                  },
-                  {
-                    header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap text-center',
-                    accessor: (dc: any) => (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={dc.customer_name || org?.name}>
-                          {dc.customer_name || org?.name || '—'}
-                        </span>
-                        {customerSector && (
-                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {customerSector}
-                          </span>
-                        )}
-                      </div>
                     )
                   },
                   {
@@ -4829,22 +4781,6 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap text-center',
-                    accessor: (pi: any) => (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pi.customer_name || org?.name}>
-                          {pi.customer_name || org?.name || '—'}
-                        </span>
-                        {customerSector && (
-                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {customerSector}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  },
-                  {
                     header: 'Sales Person',
                     className: 'min-w-[130px] whitespace-nowrap text-center',
                     accessor: (pi: any) => (
@@ -4962,22 +4898,6 @@ function OrganizationDetailsPageContent() {
                       <span className="font-mono font-bold text-xs text-zinc-800 whitespace-nowrap">
                         {inv.order_no || '—'}
                       </span>
-                    )
-                  },
-                  {
-                    header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap text-center',
-                    accessor: (inv: any) => (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={inv.customer_name || org?.name}>
-                          {inv.customer_name || org?.name || '—'}
-                        </span>
-                        {customerSector && (
-                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {customerSector}
-                          </span>
-                        )}
-                      </div>
                     )
                   },
                   {
@@ -5146,22 +5066,6 @@ function OrganizationDetailsPageContent() {
                       <span className="font-mono font-bold text-xs text-[#C82A2B] whitespace-nowrap">
                         {exp.so_no || exp.order_no || exp.linked_ref || '—'}
                       </span>
-                    )
-                  },
-                  {
-                    header: 'Customer Name',
-                    className: 'min-w-[150px] whitespace-nowrap text-center',
-                    accessor: (exp: any) => (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={exp.customer_name || org?.name}>
-                          {exp.customer_name || org?.name || '—'}
-                        </span>
-                        {customerSector && (
-                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {customerSector}
-                          </span>
-                        )}
-                      </div>
                     )
                   },
                   {
@@ -5406,22 +5310,6 @@ function OrganizationDetailsPageContent() {
                           </div>
                         );
                       }
-                    },
-                    {
-                      header: 'Customer Name',
-                      className: 'min-w-[150px] whitespace-nowrap text-center',
-                      accessor: (j: any) => (
-                        <div className="flex flex-col items-center justify-center text-center">
-                          <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={j.customer_name || org?.name}>
-                            {j.customer_name || org?.name || '—'}
-                          </span>
-                          {customerSector && (
-                            <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                              {customerSector}
-                            </span>
-                          )}
-                        </div>
-                      )
                     },
                     {
                       header: 'Account',
