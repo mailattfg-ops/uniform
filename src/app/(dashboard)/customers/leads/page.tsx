@@ -158,6 +158,7 @@ export interface LeadActivity {
   staff_employee_id?: string | null;
   staff_designation?: string | null;
   staff_department?: string | null;
+  staff_branch?: string | null;
   created_at: string;
 }
 
@@ -2793,6 +2794,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         staff_employee_id: act.staff_employee_id || act.performed_by_emp_id || act.author?.employee_id || 'STAFF',
         staff_designation: act.staff_designation || act.performed_by_designation || act.author?.designation || 'Staff',
         staff_department: act.staff_department || act.performed_by_dept || act.author?.department || 'Operations',
+        staff_branch: act.staff_branch || act.performed_by_branch || act.author?.branch || act.author?.branch_name || act.metadata?.branch_name || (act.branches?.name) || (lead as any).branches?.name || (lead as any).branch_name || null,
         created_at: act.created_at || (act.date ? `${act.date} ${act.time || ''}` : lead.updated_at)
       }));
 
@@ -2840,6 +2842,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_employee_id: r.author?.employee_id || 'STAFF',
             staff_designation: r.author?.designation || 'Staff',
             staff_department: r.author?.department || 'Operations',
+            staff_branch: r.author?.branch || r.author?.branch_name || r.metadata?.branch_name || (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
@@ -2880,6 +2883,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_employee_id: q.sales_person?.employee_id || 'SALES',
             staff_designation: 'Sales & Marketing',
             staff_department: 'Commercial',
+            staff_branch: q.branches?.name || (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: q.created_at || lead.updated_at
           });
 
@@ -2899,6 +2903,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 staff_employee_id: 'SALES',
                 staff_designation: 'Sales & Marketing',
                 staff_department: 'Commercial',
+                staff_branch: f.author?.branch || f.author?.branch_name || (lead as any).branches?.name || (lead as any).branch_name || null,
                 created_at: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at)
               });
             });
@@ -2927,6 +2932,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_employee_id: 'FIELD',
             staff_designation: 'Field Agent',
             staff_department: 'Field Scouting',
+            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.created_at
           }];
         } else if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
@@ -2941,6 +2947,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_employee_id: lead.employees?.employee_id || 'SALES',
             staff_designation: 'Commercial Manager',
             staff_department: 'Sales & Marketing',
+            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.updated_at || lead.created_at
           }];
         } else if (selectedStageTab === 'SO Converted' && lead.status === 'SO Converted Deals') {
@@ -2955,6 +2962,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_employee_id: lead.employees?.employee_id || 'OPS',
             staff_designation: 'Production Executive',
             staff_department: 'Operations',
+            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.updated_at || lead.created_at
           }];
         }
@@ -3008,6 +3016,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_employee_id: r.author?.employee_id || 'STAFF',
             staff_designation: r.author?.designation || 'Staff',
             staff_department: r.author?.department || 'Operations',
+            staff_branch: r.author?.branch || r.author?.branch_name || r.metadata?.branch_name || (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
@@ -3703,39 +3712,18 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       } catch {}
 
                       return (
-                        <div key={act.id} className="grid grid-cols-[120px_28px_1fr] sm:grid-cols-[150px_28px_1fr] items-start gap-3 group relative">
-                          {/* Left Side: Date, Time & Updating Staff */}
-                          <div className="text-right flex flex-col items-end pt-0.5 min-w-0 pr-1">
+                        <div key={act.id} className="grid grid-cols-[90px_28px_1fr] sm:grid-cols-[105px_28px_1fr] items-start gap-3 group relative">
+                          {/* Left Side: ONLY Date and Time of Logging */}
+                          <div className="text-right flex flex-col items-end pt-1 min-w-0 pr-1 select-none">
                             <span className="text-xs font-black text-zinc-900 tracking-tight whitespace-nowrap">
                               {formatDate(act.created_at, false)}
                             </span>
                             {timeString && (
-                              <span className="text-[10px] font-mono font-bold text-zinc-400 flex items-center gap-1 justify-end whitespace-nowrap mt-0.5">
+                              <span className="text-[10px] font-mono font-bold text-zinc-500 flex items-center gap-1 justify-end whitespace-nowrap mt-0.5">
                                 <Clock size={10} className="text-zinc-400 shrink-0" />
                                 {timeString}
                               </span>
                             )}
-
-                            <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-zinc-150 w-full mt-1.5">
-                              <div className="min-w-0 text-right">
-                                <p className="text-[11px] font-bold text-zinc-800 truncate" title={staffName}>
-                                  {staffName}
-                                </p>
-                                {act.staff_designation && (
-                                  <p className="text-[9px] font-semibold text-zinc-400 truncate" title={act.staff_designation}>
-                                    {act.staff_designation}
-                                  </p>
-                                )}
-                                {act.staff_employee_id && (
-                                  <p className="text-[8px] font-mono font-medium text-zinc-400 truncate">
-                                    {act.staff_employee_id}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="w-6 h-6 rounded-full bg-zinc-100 border border-zinc-200/80 text-zinc-700 flex items-center justify-center text-[9px] font-black shrink-0">
-                                {initials}
-                              </div>
-                            </div>
                           </div>
 
                           {/* Center Column: Vertical Rail & Icon Node */}
@@ -3829,6 +3817,35 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                                 <ExternalLink size={10} />
                               </div>
                             )}
+
+                            {/* Staff Attribution Footer: Staff Name, Employee ID, Designation, Branch */}
+                            <div className="pt-2.5 mt-2 border-t border-zinc-100 flex items-center justify-between gap-2 flex-wrap text-[11px]">
+                              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                <div className="flex items-center gap-1.5 font-bold text-zinc-900">
+                                  <div className="w-5 h-5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 flex items-center justify-center text-[9px] font-black shrink-0">
+                                    {initials}
+                                  </div>
+                                  <span className="truncate" title={staffName}>{staffName}</span>
+                                </div>
+
+                                {act.staff_employee_id && (
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 font-mono font-bold text-[9px] border border-zinc-200 shrink-0">
+                                    {act.staff_employee_id}
+                                  </span>
+                                )}
+
+                                {act.staff_designation && (
+                                  <span className="text-zinc-500 font-medium text-[10px] truncate" title={act.staff_designation}>
+                                    • {act.staff_designation}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200/80 text-[10px] font-semibold text-zinc-700 shrink-0">
+                                <Building2 size={11} className="text-[#9E1B1D] shrink-0" />
+                                <span>{act.staff_branch || (lead as any).branches?.name || (lead as any).branch_name || 'Main Branch'}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
