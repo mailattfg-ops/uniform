@@ -2479,6 +2479,36 @@ function OrganizationDetailsPageContent() {
     );
   }
 
+  const renderStatusCapsule = (state: 'none' | 'partial' | 'full', tooltip: string) => {
+    if (state === 'none') {
+      return (
+        <span className="text-zinc-400 font-bold text-xs" title={`${tooltip}: Not Done`}>
+          —
+        </span>
+      );
+    }
+
+    const isFull = state === 'full';
+
+    return (
+      <div 
+        className="inline-flex items-center justify-center cursor-default select-none" 
+        title={`${tooltip}: ${isFull ? 'Completed Fully' : 'Partially Done'}`}
+      >
+        <div 
+          className="w-7 h-3 rounded-full border border-[#C82A2B] bg-white overflow-hidden flex items-stretch shadow-2xs"
+          style={{ borderColor: '#C82A2B', backgroundColor: '#ffffff' }}
+        >
+          <div 
+            className={`h-full bg-[#C82A2B] ${isFull ? 'w-full' : 'w-1/2'}`} 
+            style={{ backgroundColor: '#C82A2B', width: isFull ? '100%' : '50%' }}
+          />
+          {!isFull && <div className="w-1/2 h-full bg-white" style={{ width: '50%', backgroundColor: '#ffffff' }} />}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header section with Details & Action Toolbar */}
@@ -4231,15 +4261,51 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Packed',
                     className: 'w-[85px] whitespace-nowrap text-center',
-                    accessor: (o: any) => {
-                      const isPacked = o.status === 'Packed' || o.status === 'Shipped' || o.status === 'Delivered' || deliveryChallans.some((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
-                      return (
-                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border whitespace-nowrap ${
-                          isPacked ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'
-                        }`}>
-                          {isPacked ? 'Packed' : 'Pending'}
-                        </span>
+                    sortable: true,
+                    sortValue: (o: any) => {
+                      const linkedDCs = deliveryChallans.filter((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
+                      const isPartial = 
+                        o.packing_status?.toLowerCase().includes('part') ||
+                        o.status?.toLowerCase().includes('partially pack') ||
+                        o.stage_status?.toLowerCase().includes('partially pack') ||
+                        o.stage_status?.toLowerCase() === 'packing' ||
+                        linkedDCs.some((dc: any) => (dc.status || '').toLowerCase().includes('part'));
+                      const isFull = !isPartial && (
+                        o.packing_status?.toLowerCase() === 'packed' ||
+                        o.packing_status?.toLowerCase() === 'completed' ||
+                        o.status === 'Packed' ||
+                        o.status === 'Shipped' ||
+                        o.status === 'Delivered' ||
+                        o.stage_status?.toLowerCase() === 'packed' ||
+                        linkedDCs.some((dc: any) => {
+                          const st = (dc.status || '').toLowerCase();
+                          return st === 'packed' || st === 'dispatched' || st === 'shipped' || st === 'delivered' || (!st.includes('awaiting') && !st.includes('pending') && st.length > 0);
+                        })
                       );
+                      return isFull ? 2 : isPartial ? 1 : 0;
+                    },
+                    accessor: (o: any) => {
+                      const linkedDCs = deliveryChallans.filter((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
+                      const isPartial = 
+                        o.packing_status?.toLowerCase().includes('part') ||
+                        o.status?.toLowerCase().includes('partially pack') ||
+                        o.stage_status?.toLowerCase().includes('partially pack') ||
+                        o.stage_status?.toLowerCase() === 'packing' ||
+                        linkedDCs.some((dc: any) => (dc.status || '').toLowerCase().includes('part'));
+                      const isFull = !isPartial && (
+                        o.packing_status?.toLowerCase() === 'packed' ||
+                        o.packing_status?.toLowerCase() === 'completed' ||
+                        o.status === 'Packed' ||
+                        o.status === 'Shipped' ||
+                        o.status === 'Delivered' ||
+                        o.stage_status?.toLowerCase() === 'packed' ||
+                        linkedDCs.some((dc: any) => {
+                          const st = (dc.status || '').toLowerCase();
+                          return st === 'packed' || st === 'dispatched' || st === 'shipped' || st === 'delivered' || (!st.includes('awaiting') && !st.includes('pending') && st.length > 0);
+                        })
+                      );
+                      const state: 'none' | 'partial' | 'full' = isFull ? 'full' : isPartial ? 'partial' : 'none';
+                      return renderStatusCapsule(state, 'Packing');
                     }
                   },
                   {
@@ -4259,20 +4325,82 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Shipped',
                     className: 'w-[85px] whitespace-nowrap text-center',
-                    accessor: (o: any) => {
-                      const isShipped = o.status === 'Shipped' || o.status === 'Delivered' || deliveryChallans.some((dc: any) => (dc.order_id === o.id || dc.orders?.order_no === o.order_no) && (dc.status?.toLowerCase().includes('dispatch') || dc.status?.toLowerCase().includes('shipped') || dc.status?.toLowerCase().includes('deliver')));
-                      return (
-                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border whitespace-nowrap ${
-                          isShipped ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'
-                        }`}>
-                          {isShipped ? 'Shipped' : 'Pending'}
-                        </span>
+                    sortable: true,
+                    sortValue: (o: any) => {
+                      const linkedDCs = deliveryChallans.filter((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
+                      const isPartial = 
+                        o.shipping_status?.toLowerCase().includes('part') ||
+                        o.dispatch_status?.toLowerCase().includes('part') ||
+                        o.status?.toLowerCase().includes('partially ship') ||
+                        o.status?.toLowerCase().includes('partially dispatch') ||
+                        o.stage_status?.toLowerCase().includes('partially ship') ||
+                        linkedDCs.some((dc: any) => (dc.status || '').toLowerCase().includes('part'));
+                      const isFull = !isPartial && (
+                        o.shipping_status?.toLowerCase() === 'shipped' ||
+                        o.shipping_status?.toLowerCase() === 'delivered' ||
+                        o.dispatch_status?.toLowerCase() === 'shipped' ||
+                        o.dispatch_status?.toLowerCase() === 'dispatched' ||
+                        o.status === 'Shipped' ||
+                        o.status === 'Delivered' ||
+                        o.stage_status?.toLowerCase() === 'shipped' ||
+                        o.stage_status?.toLowerCase() === 'delivered' ||
+                        linkedDCs.some((dc: any) => {
+                          const st = (dc.status || '').toLowerCase();
+                          return st.includes('dispatch') || st.includes('shipped') || st.includes('deliver');
+                        })
                       );
+                      return isFull ? 2 : isPartial ? 1 : 0;
+                    },
+                    accessor: (o: any) => {
+                      const linkedDCs = deliveryChallans.filter((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
+                      const isPartial = 
+                        o.shipping_status?.toLowerCase().includes('part') ||
+                        o.dispatch_status?.toLowerCase().includes('part') ||
+                        o.status?.toLowerCase().includes('partially ship') ||
+                        o.status?.toLowerCase().includes('partially dispatch') ||
+                        o.stage_status?.toLowerCase().includes('partially ship') ||
+                        linkedDCs.some((dc: any) => (dc.status || '').toLowerCase().includes('part'));
+                      const isFull = !isPartial && (
+                        o.shipping_status?.toLowerCase() === 'shipped' ||
+                        o.shipping_status?.toLowerCase() === 'delivered' ||
+                        o.dispatch_status?.toLowerCase() === 'shipped' ||
+                        o.dispatch_status?.toLowerCase() === 'dispatched' ||
+                        o.status === 'Shipped' ||
+                        o.status === 'Delivered' ||
+                        o.stage_status?.toLowerCase() === 'shipped' ||
+                        o.stage_status?.toLowerCase() === 'delivered' ||
+                        linkedDCs.some((dc: any) => {
+                          const st = (dc.status || '').toLowerCase();
+                          return st.includes('dispatch') || st.includes('shipped') || st.includes('deliver');
+                        })
+                      );
+                      const state: 'none' | 'partial' | 'full' = isFull ? 'full' : isPartial ? 'partial' : 'none';
+                      return renderStatusCapsule(state, 'Shipping');
                     }
                   },
                   {
                     header: 'Payment',
                     className: 'w-[95px] whitespace-nowrap text-center',
+                    sortable: true,
+                    sortValue: (o: any) => {
+                      const quote = o.quotations || quotations.find((q: any) => 
+                        (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
+                        (o.quotation_no && q.quotation_no === o.quotation_no)
+                      );
+                      const soVal = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
+                      const matchedPayments = customerPayments.filter((p: any) => p.order_id === o.id || p.order_ref === o.order_no);
+                      const paidTotal = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
+                      const isPaid = (soVal > 0 && paidTotal >= soVal) || o.payment_status === 'Paid' || o.status === 'Paid';
+                      const isPartial = !isPaid && (
+                        (paidTotal > 0 && (soVal === 0 || paidTotal < soVal)) ||
+                        o.payment_status === 'Partial' || 
+                        o.payment_status === 'Partially Paid' ||
+                        o.payment_status?.toLowerCase().includes('part') || 
+                        o.payment_status?.toLowerCase().includes('advance') ||
+                        (o.status && o.status.toLowerCase().includes('partial'))
+                      );
+                      return isPaid ? 2 : isPartial ? 1 : 0;
+                    },
                     accessor: (o: any) => {
                       const quote = o.quotations || quotations.find((q: any) => 
                         (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
@@ -4282,16 +4410,21 @@ function OrganizationDetailsPageContent() {
                       const matchedPayments = customerPayments.filter((p: any) => p.order_id === o.id || p.order_ref === o.order_no);
                       const paidTotal = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
                       const isPaid = (soVal > 0 && paidTotal >= soVal) || o.payment_status === 'Paid' || o.status === 'Paid';
-                      const isPartial = paidTotal > 0 && paidTotal < soVal;
-                      return (
-                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border whitespace-nowrap ${
-                          isPaid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          isPartial ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
-                        </span>
+                      const isPartial = !isPaid && (
+                        (paidTotal > 0 && (soVal === 0 || paidTotal < soVal)) ||
+                        o.payment_status === 'Partial' || 
+                        o.payment_status === 'Partially Paid' ||
+                        o.payment_status?.toLowerCase().includes('part') || 
+                        o.payment_status?.toLowerCase().includes('advance') ||
+                        (o.status && o.status.toLowerCase().includes('partial'))
                       );
+                      const state: 'none' | 'partial' | 'full' = isPaid ? 'full' : isPartial ? 'partial' : 'none';
+                      const label = state === 'full' 
+                        ? `Payment: Fully Paid${soVal > 0 ? ` (₹${(paidTotal || soVal).toLocaleString('en-IN')})` : ''}`
+                        : state === 'partial' 
+                          ? `Payment: Partially Paid${soVal > 0 ? ` (₹${paidTotal.toLocaleString('en-IN')} of ₹${soVal.toLocaleString('en-IN')})` : ''}`
+                          : 'Payment: Unpaid';
+                      return renderStatusCapsule(state, label);
                     }
                   },
                   {
