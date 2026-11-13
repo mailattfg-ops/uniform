@@ -114,7 +114,7 @@ function compileCustomerDirectoryHTML({
   const rowsHtml = customers.map((c, idx) => {
     const custId = c.customer_code || `#${c.id}`;
     const name = c.name || 'Unnamed Customer';
-    const sector = c.industries?.name || industries?.find((ind: any) => ind.id === c.industry_id)?.name || '';
+    const sector = c.industries?.name || '';
     const locality = [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '—';
     const zoneName = c.zones?.name || (zones?.find((z: any) => String(z.id) === String(c.zone_id))?.name) || '—';
     const branchName = branches?.find((b: any) => String(b.id) === String(c.branch_id))?.name || (c as any).branches?.name || '—';

@@ -762,7 +762,7 @@ export default function LeadsRegistryPage() {
       )
     },
     {
-      header: 'Status',
+      header: 'Lead Status',
       className: 'w-[140px] whitespace-nowrap',
       sortValue: (l) => `${l.status}_${l.is_cold ? '1' : '0'}`,
       accessor: (l) => renderStatusBadge(l)
@@ -906,10 +906,14 @@ export default function LeadsRegistryPage() {
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
       const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
+      const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
+        <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
+          <div>${l.name}</div>
+          ${industryName ? `<div style="font-size: 9px; font-weight: 800; color: #9e1b1d; text-transform: uppercase; margin-top: 2px;">${industryName}</div>` : ''}
+        </td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
@@ -971,7 +975,7 @@ export default function LeadsRegistryPage() {
         <th style="text-align: left;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
-        <th>Status</th>
+        <th>Lead Status</th>
       </tr>
     </thead>
     <tbody>

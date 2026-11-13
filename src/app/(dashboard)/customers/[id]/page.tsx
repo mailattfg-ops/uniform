@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
@@ -618,6 +618,9 @@ function OrganizationDetailsPageContent() {
     status: 'Paid'
   });
   const [industries, setIndustries] = useState<any[]>([]);
+  const customerSector = useMemo(() => {
+    return org?.industries?.name || industries.find((ind: any) => ind.id === org?.industry_id)?.name || (org as any)?.industry || '';
+  }, [org, industries]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
   const [isGstDeliveryModalOpen, setIsGstDeliveryModalOpen] = useState(false);
@@ -4126,10 +4129,15 @@ function OrganizationDetailsPageContent() {
                     header: 'Customer Name',
                     className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (o: any) => (
-                      <div className="flex justify-center text-center">
+                      <div className="flex flex-col items-center justify-center text-center">
                         <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={o.organizations?.name || org?.name}>
                           {o.organizations?.name || org?.name || '—'}
                         </span>
+                        {customerSector && (
+                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {customerSector}
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -4389,10 +4397,15 @@ function OrganizationDetailsPageContent() {
                     header: 'Customer Name',
                     className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <div className="flex justify-center text-center">
+                      <div className="flex flex-col items-center justify-center text-center">
                         <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pkg.customer_name || org?.name}>
                           {pkg.customer_name || org?.name || '—'}
                         </span>
+                        {customerSector && (
+                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {customerSector}
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -4519,10 +4532,15 @@ function OrganizationDetailsPageContent() {
                     header: 'Customer Name',
                     className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <div className="flex justify-center text-center">
+                      <div className="flex flex-col items-center justify-center text-center">
                         <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={dc.customer_name || org?.name}>
                           {dc.customer_name || org?.name || '—'}
                         </span>
+                        {customerSector && (
+                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {customerSector}
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -4681,10 +4699,15 @@ function OrganizationDetailsPageContent() {
                     header: 'Customer Name',
                     className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (pi: any) => (
-                      <div className="flex justify-center text-center">
+                      <div className="flex flex-col items-center justify-center text-center">
                         <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={pi.customer_name || org?.name}>
                           {pi.customer_name || org?.name || '—'}
                         </span>
+                        {customerSector && (
+                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {customerSector}
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -4812,10 +4835,15 @@ function OrganizationDetailsPageContent() {
                     header: 'Customer Name',
                     className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <div className="flex justify-center text-center">
+                      <div className="flex flex-col items-center justify-center text-center">
                         <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={inv.customer_name || org?.name}>
                           {inv.customer_name || org?.name || '—'}
                         </span>
+                        {customerSector && (
+                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {customerSector}
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -4991,10 +5019,15 @@ function OrganizationDetailsPageContent() {
                     header: 'Customer Name',
                     className: 'min-w-[150px] whitespace-nowrap text-center',
                     accessor: (exp: any) => (
-                      <div className="flex justify-center text-center">
+                      <div className="flex flex-col items-center justify-center text-center">
                         <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={exp.customer_name || org?.name}>
                           {exp.customer_name || org?.name || '—'}
                         </span>
+                        {customerSector && (
+                          <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {customerSector}
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -5245,10 +5278,15 @@ function OrganizationDetailsPageContent() {
                       header: 'Customer Name',
                       className: 'min-w-[150px] whitespace-nowrap text-center',
                       accessor: (j: any) => (
-                        <div className="flex justify-center text-center">
+                        <div className="flex flex-col items-center justify-center text-center">
                           <span className="text-xs font-bold text-zinc-800 whitespace-nowrap truncate block max-w-[200px]" title={j.customer_name || org?.name}>
                             {j.customer_name || org?.name || '—'}
                           </span>
+                          {customerSector && (
+                            <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                              {customerSector}
+                            </span>
+                          )}
                         </div>
                       )
                     },
@@ -6050,26 +6088,6 @@ function OrganizationDetailsPageContent() {
           </div>
         </div>
       )}
-
-              {/* Remittance Information & Signatory */}
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-zinc-200 text-xs">
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Bank Remittance Details</h4>
-                  <p className="font-semibold text-zinc-800">Account: Forma Apparels Pvt Ltd</p>
-                  <p className="text-zinc-600">Bank: HDFC Bank | A/C: 50200084920192</p>
-                  <p className="text-zinc-600">IFSC: HDFC0001248 | UPI: forma@hdfcbank</p>
-                </div>
-                <div className="text-right flex flex-col justify-end items-end">
-                  <div className="w-48 border-b border-zinc-400 pb-1 mb-1" />
-                  <p className="text-[10px] font-bold uppercase text-zinc-500">Authorized Signatory / Accounts Desk</p>
-                  <p className="text-[9px] text-zinc-400">Computer generated statement</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
 
       {/* Double Confirmation Delete Department Modal */}
       {deptDeleteModal.isOpen && deptDeleteModal.dept && (

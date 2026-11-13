@@ -644,6 +644,14 @@ export default function InvoicesPage() {
                     {/* Customer */}
                     <td className="px-5 py-4">
                       <p className="font-bold text-zinc-900 text-xs">{inv.customer_name}</p>
+                      {(() => {
+                        const sector = inv.organizations?.industries?.name || inv.organizations?.industry;
+                        return sector ? (
+                          <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                            {sector}
+                          </p>
+                        ) : null;
+                      })()}
                       {inv.organizations?.gst_number && (
                         <p className="text-[10px] font-mono text-zinc-400 mt-0.5">
                           GST: {inv.organizations.gst_number}

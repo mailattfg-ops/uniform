@@ -253,11 +253,20 @@ export default function DepartmentManagement() {
     },
     {
       header: 'Parent Organization',
-      accessor: (d) => (
-        <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#3a525d]">{d.organizations?.name || 'Main Office'}</span>
-        </div>
-      )
+      accessor: (d) => {
+        const fullOrg = organizations.find((o: any) => o.id === d.organization_id);
+        const sector = fullOrg?.industries?.name || fullOrg?.industry;
+        return (
+          <div className="flex flex-col items-start min-w-0">
+            <span className="text-xs font-bold text-[#3a525d] truncate">{d.organizations?.name || fullOrg?.name || 'Main Office'}</span>
+            {sector && (
+              <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                {sector}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Actions',
