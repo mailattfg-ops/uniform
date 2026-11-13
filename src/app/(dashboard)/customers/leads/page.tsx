@@ -3484,7 +3484,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           {/* 2-Column Split: Prospect Details Cards (Left) & Scrollable Stage Activity Logs (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Vertically Aligned Prospect Detail Cards */}
-            <div className="lg:col-span-5 flex flex-col gap-3">
+            <div className="lg:col-span-4 flex flex-col gap-3">
               {/* Combined Contact Card: Contact Person, Designation, Phone & Email */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
                 {/* Contact Person */}
@@ -3620,7 +3620,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             </div>
 
             {/* Right Column: Stage-Specific Activity Log Section (Zoho Style Timeline) */}
-            <div className="lg:col-span-7 p-6 bg-white rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col h-full">
+            <div className="lg:col-span-8 p-6 bg-white rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col h-full">
               <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100">
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-lg bg-red-50 border border-red-200/60 flex items-center justify-center text-[#9E1B1D]">
