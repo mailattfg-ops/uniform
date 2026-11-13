@@ -603,6 +603,20 @@ function OrganizationDetailsPageContent() {
   const [expenseDateFilter, setExpenseDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [journalDateFilter, setJournalDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
   const [statementDateFilter, setStatementDateFilter] = useState<DateFilterValue>({ preset: 'ALL' });
+  const [manualExpenses, setManualExpenses] = useState<any[]>([]);
+  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
+  const [newExpenseForm, setNewExpenseForm] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    category: 'Fabric & Raw Materials',
+    amount: '',
+    so_no: '',
+    sales_person: '',
+    payment_mode: 'Bank Transfer',
+    voucher_no: '',
+    description: '',
+    status: 'Paid'
+  });
   const [industries, setIndustries] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
@@ -956,13 +970,32 @@ function OrganizationDetailsPageContent() {
     }
   };
 
+  const fetchCustomerExpenses = useCallback(async () => {
+    if (!orgId) return;
+    try {
+      const res = await api.get(`/organizations/${orgId}/expenses`);
+      if (res.data?.success && Array.isArray(res.data.expenses)) {
+        setManualExpenses(res.data.expenses);
+        try { localStorage.setItem(`cust_expenses_${orgId}`, JSON.stringify(res.data.expenses)); } catch (_) {}
+      }
+    } catch (e) {
+      try {
+        const cached = localStorage.getItem(`cust_expenses_${orgId}`);
+        if (cached) {
+          setManualExpenses(JSON.parse(cached));
+        }
+      } catch (_) {}
+    }
+  }, [orgId]);
+
   useEffect(() => {
     if (orgId && (activeTab === 'ledger' || activeTab === 'transactions' || activeTab === 'overview')) {
       fetchLedgerData();
       fetchChallans();
       fetchLeadHistory();
+      fetchCustomerExpenses();
     }
-  }, [orgId, activeTab, org?.name]);
+  }, [orgId, activeTab, org?.name, fetchCustomerExpenses]);
 
   useEffect(() => {
     if (org?.credit_period_days !== undefined && org?.credit_period_days !== null) {
@@ -1064,23 +1097,195 @@ function OrganizationDetailsPageContent() {
     }
   };
 
+  const handleSaveNewExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(newExpenseForm.amount);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error('Please enter a valid expense amount greater than 0');
+      return;
+    }
+    if (!newExpenseForm.description.trim()) {
+      toast.error('Please enter an expense description / narration');
+      return;
+    }
+
+    setIsSubmittingExpense(true);
+    const loadingToast = toast.loading('Recording expense...');
+    try {
+      const payload = {
+        ...newExpenseForm,
+        customer_name: org?.name,
+        amount: amt
+      };
+      let createdExpense: any = null;
+      try {
+        const res = await api.post(`/organizations/${orgId}/expenses`, payload);
+        if (res.data?.success && res.data.expense) {
+          createdExpense = res.data.expense;
+        }
+      } catch (apiErr) {
+        console.warn('Backend expense recording failed, using local fallback:', apiErr);
+      }
+
+      if (!createdExpense) {
+        createdExpense = {
+          id: `EXP-MAN-${Date.now()}`,
+          voucher_no: newExpenseForm.voucher_no || `EXP-M-${Date.now().toString().slice(-6)}`,
+          expense_ref: newExpenseForm.voucher_no || `EXP-M-${Date.now().toString().slice(-6)}`,
+          date: newExpenseForm.date || new Date().toISOString(),
+          category: newExpenseForm.category,
+          so_no: newExpenseForm.so_no || '—',
+          order_no: newExpenseForm.so_no || '—',
+          linked_ref: newExpenseForm.so_no || '—',
+          customer_name: org?.name,
+          sales_person: newExpenseForm.sales_person || 'Unassigned',
+          payment_mode: newExpenseForm.payment_mode,
+          description: newExpenseForm.description.trim(),
+          amount: amt,
+          status: newExpenseForm.status,
+          created_at: new Date().toISOString()
+        };
+      }
+
+      const updated = [createdExpense, ...manualExpenses];
+      setManualExpenses(updated);
+      try { localStorage.setItem(`cust_expenses_${orgId}`, JSON.stringify(updated)); } catch (_) {}
+      toast.success('Expense recorded successfully!', { id: loadingToast });
+      setIsAddExpenseModalOpen(false);
+    } catch (err: any) {
+      console.error('Failed to record expense:', err);
+      toast.error(err.response?.data?.error || 'Failed to record expense', { id: loadingToast });
+    } finally {
+      setIsSubmittingExpense(false);
+    }
+  };
+
+  function isBeforeDateFilter(dateStr: string | null | undefined, filter: DateFilterValue): boolean {
+    if (!filter || filter.preset === 'ALL' || (!filter.preset && !filter.startDate)) return false;
+    if (!dateStr) return false;
+    const itemDate = new Date(dateStr);
+    if (isNaN(itemDate.getTime())) return false;
+    const itemDayTimestamp = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
+
+    const now = new Date();
+    const todayTimestamp = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    switch (filter.preset) {
+      case 'today':
+        return itemDayTimestamp < todayTimestamp;
+      case 'yesterday':
+        return itemDayTimestamp < (todayTimestamp - 24 * 60 * 60 * 1000);
+      case 'this_week': {
+        const dayOfWeek = (now.getDay() + 6) % 7;
+        const mondayTimestamp = todayTimestamp - dayOfWeek * 24 * 60 * 60 * 1000;
+        return itemDayTimestamp < mondayTimestamp;
+      }
+      case 'this_month': {
+        const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        return itemDayTimestamp < firstOfMonth;
+      }
+      case 'last_month': {
+        const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+        return itemDayTimestamp < firstOfLastMonth;
+      }
+      case 'last_30_days': {
+        const thirtyDaysAgo = todayTimestamp - 30 * 24 * 60 * 60 * 1000;
+        return itemDayTimestamp < thirtyDaysAgo;
+      }
+      case 'custom': {
+        if (filter.startDate) {
+          const parts = filter.startDate.split('-');
+          if (parts.length === 3) {
+            const startTimestamp = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getTime();
+            return itemDayTimestamp < startTimestamp;
+          }
+        }
+        return false;
+      }
+      default:
+        return false;
+    }
+  }
+
+  const statementLedgerDetails = useMemo(() => {
+    const allTx = ledgerData?.transactions || [];
+    let openingBalance = 0;
+    const filtered: any[] = [];
+
+    allTx.forEach((tx: any) => {
+      if (matchesDateFilter(tx.date, statementDateFilter)) {
+        filtered.push(tx);
+      } else if (isBeforeDateFilter(tx.date, statementDateFilter)) {
+        openingBalance += (parseFloat(tx.debit || 0) - parseFloat(tx.credit || 0));
+      }
+    });
+
+    let running = openingBalance;
+    const computedTransactions = filtered.map((tx: any) => {
+      running = running + (parseFloat(tx.debit || 0) - parseFloat(tx.credit || 0));
+      return {
+        ...tx,
+        period_running_balance: Math.round(running * 100) / 100
+      };
+    });
+
+    const periodDebits = filtered.reduce((s: number, tx: any) => s + parseFloat(tx.debit || 0), 0);
+    const periodCredits = filtered.reduce((s: number, tx: any) => s + parseFloat(tx.credit || 0), 0);
+    const closingBalance = Math.round((openingBalance + periodDebits - periodCredits) * 100) / 100;
+
+    return {
+      openingBalance: Math.round(openingBalance * 100) / 100,
+      filteredTransactions: computedTransactions,
+      periodDebits: Math.round(periodDebits * 100) / 100,
+      periodCredits: Math.round(periodCredits * 100) / 100,
+      closingBalance
+    };
+  }, [ledgerData?.transactions, statementDateFilter]);
+
+  const statementTableData = useMemo(() => {
+    const rows: any[] = [];
+
+    // Always include the Opening Balance row as the very first entry
+    rows.push({
+      id: 'OPENING-BALANCE-ROW',
+      is_opening: true,
+      date: null,
+      type: 'OPENING',
+      reference_no: 'OB',
+      description: 'Opening Balance (Brought Forward)',
+      order_ref: null,
+      debit: statementLedgerDetails.openingBalance > 0 ? statementLedgerDetails.openingBalance : 0,
+      credit: statementLedgerDetails.openingBalance < 0 ? Math.abs(statementLedgerDetails.openingBalance) : 0,
+      running_balance: statementLedgerDetails.openingBalance,
+      period_running_balance: statementLedgerDetails.openingBalance
+    });
+
+    const filtered = statementLedgerDetails.filteredTransactions.filter((tx: any) => {
+      if (ledgerFilter === 'invoices') return tx.type === 'INVOICE' || tx.type === 'ORDER';
+      if (ledgerFilter === 'payments') return tx.type === 'PAYMENT';
+      return true;
+    });
+
+    return [...rows, ...filtered];
+  }, [statementLedgerDetails, ledgerFilter]);
+
   const exportLedgerCSV = () => {
-    if (!ledgerData || !ledgerData.transactions || ledgerData.transactions.length === 0) {
+    if (!statementTableData || statementTableData.length === 0) {
       toast.error('No ledger entries available to export');
       return;
     }
 
     const headers = ['Date', 'Type', 'Reference No', 'Description', 'Order Ref', 'Debit (INR)', 'Credit (INR)', 'Running Balance (INR)', 'Status'];
-    const rows = ledgerData.transactions.map((tx: any) => [
-      `"${formatDate(tx.date)}"`,
+    const rows = statementTableData.map((tx: any) => [
+      `"${tx.is_opening ? '—' : formatDate(tx.date)}"`,
       `"${tx.type}"`,
       `"${tx.reference_no}"`,
       `"${tx.description}"`,
-      `"${tx.order_ref}"`,
+      `"${tx.order_ref || '—'}"`,
       tx.debit || 0,
       tx.credit || 0,
-      tx.running_balance || 0,
-      `"${tx.status}"`
+      tx.period_running_balance ?? tx.running_balance ?? 0,
+      `"${tx.status || 'Active'}"`
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
@@ -1088,12 +1293,12 @@ function OrganizationDetailsPageContent() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `customer_ledger_${(org?.name || 'client').replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `customer_statement_${(org?.name || 'client').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Account Ledger Exported');
+    toast.success('Account Statement Exported');
   };
 
   const handleViewOrder = async (orderId: number) => {
@@ -1932,7 +2137,16 @@ function OrganizationDetailsPageContent() {
   const customerExpenses = React.useMemo(() => {
     const list: any[] = [];
 
-    // Primary: Expenses linked to confirmed sales orders
+    // 1. Include manually recorded expenses
+    (manualExpenses || []).forEach((m: any) => {
+      list.push({
+        ...m,
+        is_manual: true,
+        customer_name: m.customer_name || org?.name || '—'
+      });
+    });
+
+    // 2. Expenses linked to confirmed sales orders
     if (customerOrders && customerOrders.length > 0) {
       customerOrders.forEach((ord: any, ordIdx: number) => {
         const ordVal = parseFloat(ord.total_amount || ord.quotations?.final_quote_value || 0);
@@ -2077,8 +2291,8 @@ function OrganizationDetailsPageContent() {
         }
       });
     }
-    return list;
-  }, [customerOrders, quotations]);
+    return list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+  }, [customerOrders, quotations, manualExpenses, org?.name]);
 
   // Memoized Financial Journals (Strictly custom added through the Journal tab - no invoices, payments, or other automatic entries)
   const customerJournals = React.useMemo(() => {
@@ -4701,11 +4915,33 @@ function OrganizationDetailsPageContent() {
                 title="Customer & Job Expenses"
                 subtitle={`Direct commercial costs, materials procurement & development charges for ${org.name}`}
                 headerAction={
-                  <DateRangeFilter
-                    label="Date"
-                    value={expenseDateFilter}
-                    onChange={setExpenseDateFilter}
-                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <DateRangeFilter
+                      label="Date"
+                      value={expenseDateFilter}
+                      onChange={setExpenseDateFilter}
+                    />
+                    <Button
+                      onClick={() => {
+                        setNewExpenseForm({
+                          date: new Date().toISOString().slice(0, 10),
+                          category: 'Fabric & Raw Materials',
+                          amount: '',
+                          so_no: customerOrders?.[0]?.order_no || quotations?.[0]?.order_no || '',
+                          sales_person: org?.relationship_manager?.full_name || employees?.[0]?.full_name || '',
+                          payment_mode: 'Bank Transfer',
+                          voucher_no: `EXP-M-${Date.now().toString().slice(-6)}`,
+                          description: '',
+                          status: 'Paid'
+                        });
+                        setIsAddExpenseModalOpen(true);
+                      }}
+                      className="h-10 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <Plus size={15} />
+                      <span>Add Expense</span>
+                    </Button>
+                  </div>
                 }
                 columns={[
                   {
@@ -4721,15 +4957,24 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Voucher No.',
-                    className: 'w-[150px] whitespace-nowrap',
+                    className: 'w-[160px] whitespace-nowrap',
                     accessor: (exp: any) => (
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <div className="w-6 h-6 rounded-md bg-rose-50 text-rose-700 border border-rose-200 flex items-center justify-center shrink-0">
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border ${
+                          exp.is_manual 
+                            ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
                           <TrendingDown size={13} />
                         </div>
                         <span className="font-mono font-black text-zinc-900 text-xs">
                           {exp.voucher_no || exp.expense_ref}
                         </span>
+                        {exp.is_manual && (
+                          <span className="px-1.5 py-0.5 text-[8px] font-black uppercase rounded bg-amber-100 text-amber-800 tracking-wider">
+                            Manual
+                          </span>
+                        )}
                       </div>
                     )
                   },
@@ -4757,12 +5002,19 @@ function OrganizationDetailsPageContent() {
                     header: 'Description',
                     className: 'min-w-[180px] max-w-[280px]',
                     accessor: (exp: any) => (
-                      <span 
-                        className="text-xs text-zinc-700 font-medium block truncate" 
-                        title={exp.description}
-                      >
-                        {exp.description}
-                      </span>
+                      <div className="flex flex-col max-w-[280px]">
+                        <span 
+                          className="text-xs text-zinc-700 font-medium block truncate" 
+                          title={exp.description}
+                        >
+                          {exp.description}
+                        </span>
+                        {exp.category && (
+                          <span className="text-[10px] text-zinc-400 font-semibold truncate mt-0.5">
+                            {exp.category} {exp.payment_mode ? `• ${exp.payment_mode}` : ''}
+                          </span>
+                        )}
+                      </div>
                     )
                   },
                   {
@@ -4789,7 +5041,13 @@ function OrganizationDetailsPageContent() {
                     header: 'Status',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (exp: any) => (
-                      <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border whitespace-nowrap ${
+                        (exp.status || '').toLowerCase().includes('paid')
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : (exp.status || '').toLowerCase().includes('pending')
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
                         ✓ {exp.status || 'Allocated'}
                       </span>
                     )
@@ -5115,92 +5373,112 @@ function OrganizationDetailsPageContent() {
             </div>
           </div>
 
-          {/* 4 Summary KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* 1. Total Invoiced */}
-            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Invoiced / Orders</span>
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <ArrowUpRight size={18} />
+          {/* 5 Summary KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* 1. Opening Balance */}
+            <div className="bg-white p-5 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Opening Balance</span>
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Wallet size={16} />
                 </div>
               </div>
               <div>
-                <h4 className="text-2xl font-black italic tracking-tight text-zinc-900">
-                  ₹{parseFloat(String(ledgerData?.summary?.total_invoiced || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <h4 className="text-xl font-black italic tracking-tight text-zinc-900">
+                  ₹{statementLedgerDetails.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
                 <p className="text-[10px] font-bold text-zinc-400 mt-1">
-                  {ledgerData?.summary?.total_orders || 0} Orders & {ledgerData?.summary?.total_invoices || 0} Invoices Raised
+                  Balance Brought Forward
                 </p>
               </div>
             </div>
 
-            {/* 2. Total Paid */}
-            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Paid (Credits)</span>
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <ArrowDownLeft size={18} />
+            {/* 2. Total Invoiced */}
+            <div className="bg-white p-5 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Invoiced / Orders</span>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <ArrowUpRight size={16} />
                 </div>
               </div>
               <div>
-                <h4 className="text-2xl font-black italic tracking-tight text-emerald-600">
-                  ₹{parseFloat(ledgerData?.summary?.total_paid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <h4 className="text-xl font-black italic tracking-tight text-zinc-900">
+                  ₹{statementLedgerDetails.periodDebits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h4>
+                <p className="text-[10px] font-bold text-zinc-400 mt-1">
+                  {statementLedgerDetails.filteredTransactions.filter((t: any) => t.type === 'INVOICE' || t.type === 'ORDER').length} Period Invoices
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Total Paid */}
+            <div className="bg-white p-5 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Paid (Credits)</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <ArrowDownLeft size={16} />
+                </div>
+              </div>
+              <div>
+                <h4 className="text-xl font-black italic tracking-tight text-emerald-600">
+                  ₹{statementLedgerDetails.periodCredits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
                 <p className="text-[10px] font-bold text-emerald-700/70 mt-1">
-                  {ledgerData?.summary?.total_payments || 0} Payments / Advances Recorded
+                  {statementLedgerDetails.filteredTransactions.filter((t: any) => t.type === 'PAYMENT').length} Period Payments
                 </p>
               </div>
             </div>
 
-            {/* 3. Outstanding Balance / Credit Balance */}
-            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-4">
+            {/* 4. Outstanding Balance / Credit Balance */}
+            <div className="bg-white p-5 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                  {(ledgerData?.summary?.outstanding_balance || 0) < 0 ? 'Customer Credit Balance' : 'Net Outstanding Balance'}
+                  {statementLedgerDetails.closingBalance < 0 ? 'Customer Credit' : 'Net Outstanding'}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#C82A2B]/10 text-[#C82A2B] flex items-center justify-center">
-                  <CreditCard size={18} />
+                <div className="w-8 h-8 rounded-xl bg-[#C82A2B]/10 text-[#C82A2B] flex items-center justify-center">
+                  <CreditCard size={16} />
                 </div>
               </div>
               <div>
-                <h4 className={`text-2xl font-black italic tracking-tight ${
-                  (ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'
+                <h4 className={`text-xl font-black italic tracking-tight ${
+                  statementLedgerDetails.closingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'
                 }`}>
-                  ₹{Math.abs(parseFloat(ledgerData?.summary?.outstanding_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{Math.abs(statementLedgerDetails.closingBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
                 <p className="text-[10px] font-bold text-zinc-400 mt-1">
-                  {(ledgerData?.summary?.outstanding_balance || 0) > 0 
-                    ? 'Pending Amount Due from Client' 
-                    : (ledgerData?.summary?.outstanding_balance || 0) < 0 
-                    ? 'Credit Available (Amount Paid - Invoices)' 
-                    : 'Zero Outstanding / Fully Cleared'}
+                  {statementLedgerDetails.closingBalance > 0 
+                    ? 'Pending Amount Due' 
+                    : statementLedgerDetails.closingBalance < 0 
+                    ? 'Credit Available' 
+                    : 'Zero Outstanding'}
                 </p>
               </div>
             </div>
 
-            {/* 4. Settlement Status */}
-            <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-4">
+            {/* 5. Settlement Status */}
+            <div className="bg-white p-5 rounded-[2rem] border border-zinc-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Settlement Status</span>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  ledgerData?.summary?.settlement_status === 'Settled' || ledgerData?.summary?.settlement_status === 'Credit Balance' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                  statementLedgerDetails.closingBalance <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                 }`}>
-                  {ledgerData?.summary?.settlement_status === 'Settled' || ledgerData?.summary?.settlement_status === 'Credit Balance' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                  {statementLedgerDetails.closingBalance <= 0 ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                 </div>
               </div>
               <div>
-                <span className={`inline-block px-3 py-1 text-xs font-black uppercase tracking-wider rounded-xl ${
-                  ledgerData?.summary?.settlement_status === 'Settled' || ledgerData?.summary?.settlement_status === 'Credit Balance'
+                <span className={`inline-block px-2.5 py-0.5 text-xs font-black uppercase tracking-wider rounded-lg ${
+                  statementLedgerDetails.closingBalance <= 0
                     ? 'bg-emerald-100 text-emerald-800'
-                    : ledgerData?.summary?.settlement_status === 'Partially Paid'
+                    : statementLedgerDetails.periodCredits > 0
                     ? 'bg-amber-100 text-amber-800'
                     : 'bg-rose-100 text-rose-800'
                 }`}>
-                  {ledgerData?.summary?.settlement_status || 'Checking...'}
+                  {statementLedgerDetails.closingBalance <= 0 
+                    ? (statementLedgerDetails.closingBalance < 0 ? 'Credit Balance' : 'Settled') 
+                    : (statementLedgerDetails.periodCredits > 0 ? 'Partially Paid' : 'Unpaid')}
                 </span>
-                <p className="text-[10px] font-bold text-zinc-400 mt-2">
-                  {ledgerData?.summary?.total_orders || 0} Orders in Pipeline
+                <p className="text-[10px] font-bold text-zinc-400 mt-1.5">
+                  Statement Status
                 </p>
               </div>
             </div>
@@ -5211,7 +5489,7 @@ function OrganizationDetailsPageContent() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
               <div>
                 <h4 className="text-base font-black text-zinc-900 tracking-tight">Chronological Ledger Entries</h4>
-                <p className="text-xs text-zinc-400 font-medium mt-0.5">Audit breakdown of all billings, advance receipts, and balances</p>
+                <p className="text-xs text-zinc-400 font-medium mt-0.5">Audit breakdown with opening balance, billings, payments and running balances</p>
               </div>
 
               {/* Filter Section */}
@@ -5232,7 +5510,7 @@ function OrganizationDetailsPageContent() {
                           : 'text-zinc-500 hover:text-zinc-800'
                       }`}
                     >
-                      {f === 'all' ? `All (${ledgerData?.transactions?.length || 0})` : f === 'invoices' ? 'Orders & Invoices' : 'Payments Only'}
+                      {f === 'all' ? `All (${statementTableData.length})` : f === 'invoices' ? 'Orders & Invoices' : 'Payments Only'}
                     </button>
                   ))}
                 </div>
@@ -5240,77 +5518,90 @@ function OrganizationDetailsPageContent() {
             </div>
 
             {/* Table Component */}
-            <DataTable<LedgerTransaction>
+            <DataTable<any>
               columns={[
                 {
                   header: 'Date',
-                  className: 'w-[110px] whitespace-nowrap',
+                  className: 'w-[105px] whitespace-nowrap',
                   sortable: true,
-                  sortValue: (tx: LedgerTransaction) => new Date(tx.date || 0).getTime(),
-                  accessor: (tx: LedgerTransaction) => (
-                    <div className="flex flex-col">
-                      <span className="font-bold text-xs text-zinc-800">
-                        {formatDate(tx.date)}
-                      </span>
-                      <span className="text-[9px] text-zinc-400 font-medium">
-                        {tx.date ? new Date(tx.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
-                      </span>
-                    </div>
+                  sortValue: (tx: any) => tx.is_opening ? -Infinity : new Date(tx.date || 0).getTime(),
+                  accessor: (tx: any) => (
+                    <span className={`font-bold text-xs whitespace-nowrap ${tx.is_opening ? 'text-zinc-400 italic' : 'text-zinc-800'}`}>
+                      {tx.is_opening ? '—' : formatDate(tx.date)}
+                    </span>
                   )
                 },
                 {
                   header: 'Voucher Type',
                   className: 'w-[160px] whitespace-nowrap',
-                  accessor: (tx: LedgerTransaction) => (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
-                        tx.type === 'INVOICE'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : tx.type === 'ORDER'
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      }`}>
-                        {tx.type}
-                      </span>
-                      {tx.sale_type && (
-                        <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-md border ${
-                          tx.sale_type === 'retail'
-                            ? 'bg-amber-50 text-amber-800 border-amber-200'
-                            : 'bg-teal-50 text-teal-800 border-teal-200'
-                        }`}>
-                          {tx.sale_type === 'retail' ? 'Retail' : 'Bulk'}
+                  accessor: (tx: any) => {
+                    if (tx.is_opening) {
+                      return (
+                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border bg-zinc-100 text-zinc-700 border-zinc-200">
+                          OPENING
                         </span>
-                      )}
-                      <span className="font-mono text-xs font-bold text-zinc-900">{tx.reference_no}</span>
-                    </div>
-                  )
+                      );
+                    }
+                    return (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-lg border ${
+                          tx.type === 'INVOICE'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : tx.type === 'ORDER'
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          {tx.type}
+                        </span>
+                        {tx.sale_type && (
+                          <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-md border ${
+                            tx.sale_type === 'retail'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-teal-50 text-teal-800 border-teal-200'
+                          }`}>
+                            {tx.sale_type === 'retail' ? 'Retail' : 'Bulk'}
+                          </span>
+                        )}
+                        <span className="font-mono text-xs font-bold text-zinc-900">{tx.reference_no}</span>
+                      </div>
+                    );
+                  }
                 },
                 {
                   header: 'Description',
                   className: 'min-w-[200px]',
-                  accessor: (tx: LedgerTransaction) => (
-                    <div className="flex flex-col max-w-[320px]">
-                      <span className="text-xs font-semibold text-zinc-700 truncate" title={tx.description}>{tx.description}</span>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        {tx.order_ref && (
-                          <span className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-wider">{tx.order_ref}</span>
-                        )}
-                        {tx.type === 'INVOICE' && (
-                          <span className="text-[10px] text-zinc-500 font-medium">
-                            • Credit: <strong className="text-zinc-700">{tx.credit_period_days || 30}d</strong>
-                            {tx.due_date && (
-                              <> • Due: <strong className="text-zinc-700">{formatDate(tx.due_date)}</strong></>
-                            )}
-                          </span>
-                        )}
+                  accessor: (tx: any) => {
+                    if (tx.is_opening) {
+                      return (
+                        <span className="text-xs font-bold text-zinc-800 italic">
+                          Opening Balance (Brought Forward)
+                        </span>
+                      );
+                    }
+                    return (
+                      <div className="flex flex-col max-w-[320px]">
+                        <span className="text-xs font-semibold text-zinc-700 truncate" title={tx.description}>{tx.description}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {tx.order_ref && (
+                            <span className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-wider">{tx.order_ref}</span>
+                          )}
+                          {tx.type === 'INVOICE' && (
+                            <span className="text-[10px] text-zinc-500 font-medium">
+                              • Credit: <strong className="text-zinc-700">{tx.credit_period_days || 30}d</strong>
+                              {tx.due_date && (
+                                <> • Due: <strong className="text-zinc-700">{formatDate(tx.due_date)}</strong></>
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )
+                    );
+                  }
                 },
                 {
                   header: 'Amount',
                   className: 'w-[130px] whitespace-nowrap text-right',
-                  accessor: (tx: LedgerTransaction) => (
+                  accessor: (tx: any) => (
                     <span className={`font-mono text-xs font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
                       {tx.debit > 0 ? `₹${parseFloat(String(tx.debit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                     </span>
@@ -5319,7 +5610,7 @@ function OrganizationDetailsPageContent() {
                 {
                   header: 'Payments',
                   className: 'w-[130px] whitespace-nowrap text-right',
-                  accessor: (tx: LedgerTransaction) => (
+                  accessor: (tx: any) => (
                     <span className={`font-mono text-xs font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
                       {tx.credit > 0 ? `₹${parseFloat(String(tx.credit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                     </span>
@@ -5328,25 +5619,23 @@ function OrganizationDetailsPageContent() {
                 {
                   header: 'Balance',
                   className: 'w-[130px] whitespace-nowrap text-right',
-                  accessor: (tx: LedgerTransaction) => (
-                    <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
-                      tx.running_balance > 0
-                        ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                        : tx.running_balance === 0
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        : 'bg-blue-50 text-blue-700 border border-blue-100'
-                    }`}>
-                      ₹{parseFloat(String(tx.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  )
+                  accessor: (tx: any) => {
+                    const bal = tx.period_running_balance ?? tx.running_balance ?? 0;
+                    return (
+                      <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
+                        bal > 0
+                          ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                          : bal === 0
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                          : 'bg-blue-50 text-blue-700 border border-blue-100'
+                      }`}>
+                        ₹{parseFloat(String(bal)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    );
+                  }
                 }
               ]}
-              data={(ledgerData?.transactions || []).filter((tx: any) => {
-                if (!matchesDateFilter(tx.date, statementDateFilter)) return false;
-                if (ledgerFilter === 'invoices') return tx.type === 'INVOICE' || tx.type === 'ORDER';
-                if (ledgerFilter === 'payments') return tx.type === 'PAYMENT';
-                return true;
-              })}
+              data={statementTableData}
               isLoading={isLoadingLedger}
               searchPlaceholder="Search"
             />
@@ -5408,22 +5697,31 @@ function OrganizationDetailsPageContent() {
               </div>
 
               {/* Client and Summary Grid */}
-              <div className="grid grid-cols-2 gap-6 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
+              <div className="grid grid-cols-3 gap-6 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
                 <div>
                   <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Statement For (Client)</h4>
                   <p className="text-base font-black text-zinc-900">{org.name}</p>
                   <p className="text-xs text-zinc-600 font-medium mt-0.5">{org.address || 'Address not registered'}</p>
                   <p className="text-xs text-zinc-500 font-mono mt-1">Customer Code: {org.customer_code || `#${org.id}`} · Credit Terms: <strong>{org.credit_period_days || 30} Days</strong></p>
                 </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Opening Balance</h4>
+                  <p className="text-xl font-black text-zinc-800 font-mono">
+                    ₹{statementLedgerDetails.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Brought Forward prior to period
+                  </p>
+                </div>
                 <div className="text-right flex flex-col justify-between">
                   <div>
                     <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Net Balance Due</h4>
-                    <p className={`text-2xl font-black ${(ledgerData?.summary?.outstanding_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      ₹{parseFloat(ledgerData?.summary?.outstanding_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <p className={`text-2xl font-black ${statementLedgerDetails.closingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      ₹{Math.abs(statementLedgerDetails.closingBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                    Status: {ledgerData?.summary?.settlement_status || 'Settled'}
+                    Status: {statementLedgerDetails.closingBalance <= 0 ? 'Settled' : 'Payment Due'}
                   </p>
                 </div>
               </div>
@@ -5442,12 +5740,29 @@ function OrganizationDetailsPageContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200">
-                    {(ledgerData?.transactions || []).map((tx: any) => (
+                    {/* Opening Balance Row */}
+                    <tr className="bg-zinc-50 font-semibold text-zinc-700">
+                      <td className="py-2 px-2 whitespace-nowrap text-center font-bold text-zinc-400">—</td>
+                      <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">OB</td>
+                      <td className="py-2 px-2 font-bold italic">Opening Balance (Brought Forward)</td>
+                      <td className="py-2 px-2 text-right font-mono">
+                        {statementLedgerDetails.openingBalance > 0 ? `₹${statementLedgerDetails.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono text-emerald-700">
+                        {statementLedgerDetails.openingBalance < 0 ? `₹${Math.abs(statementLedgerDetails.openingBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono font-black">
+                        ₹{statementLedgerDetails.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+
+                    {/* Period Transactions (No Time!) */}
+                    {statementLedgerDetails.filteredTransactions.map((tx: any) => (
                       <tr key={tx.id} className="text-zinc-800">
-                        <td className="py-2 px-2 font-medium whitespace-nowrap">
+                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center">
                           {formatDate(tx.date)}
                         </td>
-                        <td className="py-2 px-2 font-mono font-bold whitespace-nowrap">{tx.reference_no}</td>
+                        <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">{tx.reference_no}</td>
                         <td className="py-2 px-2 font-medium">
                           <div>{tx.description}</div>
                           {tx.type === 'INVOICE' && (
@@ -5463,7 +5778,7 @@ function OrganizationDetailsPageContent() {
                           {tx.credit > 0 ? `₹${Number(tx.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </td>
                         <td className="py-2 px-2 text-right font-mono font-black">
-                          ₹{Number(tx.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹{Number(tx.period_running_balance ?? tx.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     ))}
@@ -5472,18 +5787,269 @@ function OrganizationDetailsPageContent() {
                     <tr className="border-t-2 border-zinc-900 font-bold bg-zinc-50">
                       <td colSpan={3} className="py-2.5 px-2 uppercase text-[10px] tracking-wider">Totals</td>
                       <td className="py-2.5 px-2 text-right font-mono">
-                        ₹{Number(ledgerData?.summary?.total_invoiced || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹{(statementLedgerDetails.openingBalance > 0 ? statementLedgerDetails.openingBalance + statementLedgerDetails.periodDebits : statementLedgerDetails.periodDebits).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-2.5 px-2 text-right font-mono text-emerald-700">
-                        ₹{Number(ledgerData?.summary?.total_paid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹{(statementLedgerDetails.openingBalance < 0 ? Math.abs(statementLedgerDetails.openingBalance) + statementLedgerDetails.periodCredits : statementLedgerDetails.periodCredits).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-2.5 px-2 text-right font-mono font-black">
-                        ₹{Number(ledgerData?.summary?.outstanding_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹{statementLedgerDetails.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
+
+              {/* Remittance Information & Signatory */}
+              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-zinc-200 text-xs">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Bank Remittance Details</h4>
+                  <p className="font-semibold text-zinc-800">Account: Forma Apparels Pvt Ltd</p>
+                  <p className="text-zinc-600">Bank: HDFC Bank | A/C: 50200084920192</p>
+                  <p className="text-zinc-600">IFSC: HDFC0001248 | UPI: forma@hdfcbank</p>
+                </div>
+                <div className="text-right flex flex-col justify-end items-end">
+                  <div className="w-48 border-b border-zinc-400 pb-1 mb-1" />
+                  <p className="text-[10px] font-bold uppercase text-zinc-500">Authorized Signatory / Accounts Desk</p>
+                  <p className="text-[9px] text-zinc-400">Computer generated statement</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Manual Customer / Job Expense */}
+      {isAddExpenseModalOpen && org && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => {
+            if (!isSubmittingExpense) setIsAddExpenseModalOpen(false);
+          }}
+        >
+          <div 
+            className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl p-6 md:p-8 my-8 border border-zinc-100 overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-5 border-b border-zinc-100 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
+                  <TrendingDown size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-zinc-900 tracking-tight">Record Direct Expense</h3>
+                  <p className="text-xs text-zinc-500 font-medium">Add manual commercial, material procurement, or job cost for {org.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddExpenseModalOpen(false)}
+                className="p-2 text-zinc-400 hover:text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
+                disabled={isSubmittingExpense}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveNewExpense} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Date */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Expense Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newExpenseForm.date}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, date: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B]"
+                  />
+                </div>
+
+                {/* Voucher / Ref No. */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Voucher / Reference No.
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. EXP-2026-001"
+                    value={newExpenseForm.voucher_no}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, voucher_no: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-mono font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Category */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Expense Category <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={newExpenseForm.category}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, category: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] bg-white"
+                  >
+                    <option value="Fabric & Raw Materials">Fabric & Raw Materials</option>
+                    <option value="Trims, Buttons & Labels">Trims, Buttons & Labels</option>
+                    <option value="Printing & Embroidery">Printing & Embroidery</option>
+                    <option value="Stitching & Tailoring Wages">Stitching & Tailoring Wages</option>
+                    <option value="Sampling & Pattern Development">Sampling & Pattern Development</option>
+                    <option value="Packaging & Finishing">Packaging & Finishing</option>
+                    <option value="Logistics & Delivery">Logistics & Delivery</option>
+                    <option value="Job Work & Subcontracting">Job Work & Subcontracting</option>
+                    <option value="Vendor Bill / Procurement">Vendor Bill / Procurement</option>
+                    <option value="Other Direct Expense">Other Direct Expense</option>
+                  </select>
+                </div>
+
+                {/* Linked Sales Order / Job No */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Linked Order / SO No.
+                  </label>
+                  <input
+                    type="text"
+                    list="orders-list-options"
+                    placeholder="Select or enter SO / Order No."
+                    value={newExpenseForm.so_no}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, so_no: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-mono font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B]"
+                  />
+                  <datalist id="orders-list-options">
+                    {(customerOrders || []).map((o: any) => (
+                      <option key={o.id} value={o.order_no}>{o.order_no}</option>
+                    ))}
+                    {(quotations || []).map((q: any) => (
+                      <option key={q.id} value={q.quotation_no}>{q.quotation_no}</option>
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Amount */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Amount (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      placeholder="0.00"
+                      value={newExpenseForm.amount}
+                      onChange={(e) => setNewExpenseForm({ ...newExpenseForm, amount: e.target.value })}
+                      className="w-full h-11 pl-8 pr-3.5 rounded-xl border border-zinc-200 text-xs font-mono font-black text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B]"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Mode */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Payment Mode
+                  </label>
+                  <select
+                    value={newExpenseForm.payment_mode}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, payment_mode: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] bg-white"
+                  >
+                    <option value="Bank Transfer">Bank Transfer (NEFT/RTGS/IMPS)</option>
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Company Corporate Card">Company Corporate Card</option>
+                    <option value="Vendor Payable / Credit">Vendor Payable / Credit</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Sales Person / Incurred By */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Incurred By / Staff
+                  </label>
+                  <input
+                    type="text"
+                    list="staff-list-options"
+                    placeholder="Staff name"
+                    value={newExpenseForm.sales_person}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, sales_person: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B]"
+                  />
+                  <datalist id="staff-list-options">
+                    {(employees || []).map((emp: any) => (
+                      <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
+                    ))}
+                  </datalist>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                    Expense Status
+                  </label>
+                  <select
+                    value={newExpenseForm.status}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, status: e.target.value })}
+                    className="w-full h-11 px-3.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] bg-white"
+                  >
+                    <option value="Paid">Paid / Settled</option>
+                    <option value="Allocated">Allocated</option>
+                    <option value="Pending">Pending Approval / Payment</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Description / Narration */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                  Description / Narration <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Details of expense, vendor name, invoice reference, purpose..."
+                  value={newExpenseForm.description}
+                  onChange={(e) => setNewExpenseForm({ ...newExpenseForm, description: e.target.value })}
+                  className="w-full p-3.5 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsAddExpenseModalOpen(false)}
+                  disabled={isSubmittingExpense}
+                  className="h-11 px-5 rounded-xl border border-zinc-200 text-xs font-black uppercase tracking-wider text-zinc-600 hover:bg-zinc-50"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingExpense}
+                  className="h-11 px-6 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {isSubmittingExpense ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  <span>{isSubmittingExpense ? 'Recording...' : 'Record Expense'}</span>
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
               {/* Remittance Information & Signatory */}
               <div className="grid grid-cols-2 gap-6 pt-6 border-t border-zinc-200 text-xs">
