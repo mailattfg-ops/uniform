@@ -17,7 +17,6 @@ import {
   Snowflake,
   ChevronDown,
   ChevronUp,
-  MapPin,
   History,
   FileText,
   Layers,
@@ -232,8 +231,7 @@ export default function QuotationList({
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         const zoneName = fullOrg?.zones?.name;
         return zoneName ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
-            <MapPin size={12} className="text-zinc-400 shrink-0" />
+          <div className="text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (

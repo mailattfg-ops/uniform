@@ -340,7 +340,7 @@ export default function FeedsRegistryPage() {
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${locality}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
         <td style="font-size: 10px; color: #4a5568;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
@@ -383,7 +383,7 @@ export default function FeedsRegistryPage() {
       <tr>
         <th style="width: 25px; text-align: center;">#</th>
         <th>Prospect / Organization</th>
-        <th>Locality</th>
+        <th style="text-align: left;">Area/Locality</th>
         <th>Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Scouted By</th>
@@ -439,19 +439,19 @@ export default function FeedsRegistryPage() {
       )
     },
     {
-      header: 'Locality',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-center',
+      header: 'Area/Locality',
+      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-left',
       sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
         const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
         const fullTooltip = [l.address, l.city, l.state, l.pincode].filter(Boolean).join(', ') || locality;
         return locality ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
+          <div className="flex items-center justify-start gap-1.5 text-xs font-bold text-zinc-800 truncate" title={fullTooltip}>
             <MapPin size={12} className="text-[#9E1B1D] shrink-0" />
             <span className="truncate">{locality}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -464,8 +464,7 @@ export default function FeedsRegistryPage() {
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
-            <MapPin size={12} className="text-zinc-400 shrink-0" />
+          <div className="text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (

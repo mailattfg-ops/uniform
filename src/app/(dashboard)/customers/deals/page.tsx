@@ -8,7 +8,7 @@ import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 import { formatDate } from '@/lib/formatters';
 import { 
-  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, MapPin, Calendar,
+  Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, Calendar,
   MoreVertical, Send, Check, ShieldCheck, Lock, Edit3, MessageSquare, AlertCircle, X, ChevronRight, Loader2
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -524,8 +524,7 @@ export default function DealsRegistryPage() {
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-700 truncate" title={zoneName}>
-            <MapPin size={12} className="text-zinc-400 shrink-0" />
+          <div className="text-xs font-medium text-zinc-700 truncate" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
