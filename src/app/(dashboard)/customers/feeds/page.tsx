@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { formatDate } from '@/lib/formatters';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { 
@@ -320,10 +321,7 @@ export default function FeedsRegistryPage() {
   const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintFeeds = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredFeeds;
-    const printedAt = new Date().toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
+    const printedAt = formatDate(new Date(), true);
 
     const activeBranchName = selectedBranch === 'ALL'
       ? 'All Branches'

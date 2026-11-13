@@ -234,7 +234,7 @@ export default function DealsRegistryPage() {
         created_at: q.created_at,
         updated_at: q.updated_at || q.created_at,
         remarks: [{
-          date: new Date(q.created_at).toLocaleDateString(),
+          date: formatDate(q.created_at),
           time: '',
           text: `Quotation #${q.quotation_no} approved.`,
           stage: 'Deals',
@@ -357,10 +357,7 @@ export default function DealsRegistryPage() {
   const userReportTriggerRef = useRef<(() => void) | null>(null);
   const handlePrintDeals = (sortedData?: Lead[], currentSort?: SortInfo<Lead> | null) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredDeals;
-    const printedAt = new Date().toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
+    const printedAt = formatDate(new Date(), true);
 
     const activeBranchName = selectedBranch === 'ALL'
       ? 'All Branches'

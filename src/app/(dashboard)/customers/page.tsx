@@ -532,7 +532,7 @@ export default function CustomersRegistry() {
     const activeBranch = branches.find(b => String(b.id) === selectedBranch);
     const selectedBranchName = selectedBranch === 'ALL' ? 'All Branches' : (activeBranch?.name || `Branch #${selectedBranch}`);
     const now = new Date();
-    const printedAt = `${now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    const printedAt = formatDate(now, true);
     return compileCustomerDirectoryHTML({
       customers: printModal.data,
       sortInfo: printModal.sortInfo,

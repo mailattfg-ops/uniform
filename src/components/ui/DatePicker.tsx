@@ -65,16 +65,10 @@ function formatDisplayDate(val?: string, format: 'DD-MM-YYYY' | 'DD MMM YYYY' | 
   const monthNum = String(monthIdx + 1).padStart(2, '0');
   const year = d.getFullYear();
 
-  if (format === 'DD-MM-YYYY') {
-    return `${day}-${monthNum}-${year}`;
-  }
-  if (format === 'DD/MM/YYYY') {
-    return `${day}/${monthNum}/${year}`;
-  }
   if (format === 'YYYY-MM-DD') {
     return `${year}-${monthNum}-${day}`;
   }
-  return `${day} ${MONTH_NAMES_SHORT[monthIdx]} ${year}`;
+  return `${day}-${monthNum}-${year}`;
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({

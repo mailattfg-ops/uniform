@@ -426,13 +426,7 @@ export default function QuotationList({
 
   const handlePrintQuotations = useCallback((sortedData?: Quotation[], sortInfo?: SortInfo<Quotation>) => {
     const dataToPrint = (sortedData && sortedData.length > 0) ? sortedData : filteredQuotations;
-    const printedAt = new Date().toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const printedAt = formatDate(new Date(), true);
 
     const activeBranchName = selectedBranch === 'ALL'
       ? 'All Branches'
@@ -835,7 +829,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
         const newEntry = {
           id: Date.now(),
           created_at: now.toISOString(),
-          date: now.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
+          date: formatDate(now),
           time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
           response_type: responseType,
           outcome: responseType,

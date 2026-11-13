@@ -11,7 +11,7 @@ import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { splitSpecificationLines, formatSpecificationDisplay } from '@/lib/formatters';
+import { splitSpecificationLines, formatSpecificationDisplay, formatDate } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface RemarkEntry {
@@ -1980,7 +1980,7 @@ export default function ProductManagement() {
 </head>
 <body>
   <h1>Readymades Catalog</h1>
-  <p>Generated on ${new Date().toLocaleDateString('en-GB')} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
+  <p>Generated on ${formatDate(new Date())} | Total Items: ${dataToPrint.length}${sortInfo?.headerLabel && sortInfo.headerLabel !== 'Default' ? ` | Sorted by: ${sortInfo.headerLabel} (${sortInfo.direction === 'asc' ? 'Ascending' : 'Descending'})` : ''}</p>
   <table>
     <thead>
       <tr>
@@ -2709,7 +2709,7 @@ export default function ProductManagement() {
               {/* Modal Footer */}
               <div className="p-4 px-6 border-t border-zinc-150 bg-zinc-50/70 flex items-center justify-between">
                 <span className="text-[10px] font-bold text-zinc-400">
-                  Registered on: {selectedProductForDetails.created_at ? new Date(selectedProductForDetails.created_at).toLocaleDateString('en-GB') : '—'}
+                  Registered on: {selectedProductForDetails.created_at ? formatDate(selectedProductForDetails.created_at) : '—'}
                 </span>
                 <button
                   type="button"
