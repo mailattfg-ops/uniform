@@ -95,8 +95,9 @@ export default function ProductTypeManagementPage() {
   const columns: Column<ProductType>[] = [
     {
       header: 'Creation Date',
+      className: 'w-[140px] whitespace-nowrap text-center',
       accessor: (pt) => (
-        <p className="text-xs font-bold text-zinc-500">
+        <p className="text-xs font-bold text-zinc-500 text-center">
           {formatDate(pt.created_at)}
         </p>
       )

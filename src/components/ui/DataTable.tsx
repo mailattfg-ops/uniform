@@ -575,8 +575,12 @@ export function DataTable<T extends { id: string | number }>({
                 const isSticky = (isAction || isLast) && !isCollapsed;
                 const isSortable = col.sortable !== false && !isAction && !isCollapsed;
                 const isSorted = sortColumnIndex === idx;
-                const isRightAligned = col.className?.includes('text-right');
-                const isLeftAligned = col.className?.includes('text-left');
+                const isDateCol = typeof col.header === 'string' && /date|created|updated|dispatch|expected|shipment|registered|timestamp/i.test(col.header);
+                const isRightAligned = !isDateCol && col.className?.includes('text-right');
+                const isLeftAligned = !isDateCol && col.className?.includes('text-left');
+                const cleanedHeaderClass = isDateCol 
+                  ? (col.className || '').replace(/\btext-left\b/g, '').replace(/\btext-right\b/g, '') 
+                  : (col.className || '');
 
                 return (
                   <th 
@@ -596,7 +600,7 @@ export function DataTable<T extends { id: string | number }>({
                         : 'text-zinc-600'
                     } ${
                       isSticky ? 'sticky right-0 bg-zinc-50 z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
-                    } ${col.className || ''}`}
+                    } ${cleanedHeaderClass}`}
                   >
                     <div className={`flex items-center ${isRightAligned ? 'justify-end' : isLeftAligned ? 'justify-start' : 'justify-center'} gap-1.5 w-full ${isRightAligned ? 'text-right' : isLeftAligned ? 'text-left' : 'text-center'}`}>
                       <span className={`truncate ${isRightAligned ? 'text-right' : isLeftAligned ? 'text-left' : 'text-center'}`}>{col.header}</span>
@@ -628,14 +632,16 @@ export function DataTable<T extends { id: string | number }>({
                     const isLast = j === columns.length - 1;
                     const isCollapsed = col.className?.includes('!w-0');
                     const isSticky = (isAction || isLast) && !isCollapsed;
+                    const isDateCol = typeof col.header === 'string' && /date|created|updated|dispatch|expected|shipment|registered|timestamp/i.test(col.header);
+                    const isCenterCol = isDateCol || col.className?.includes('text-center');
                     return (
                       <td 
                         key={j} 
                         className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 ${
                           isSticky ? 'sticky right-0 bg-white z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
-                        } ${col.className || ''}`}
+                        } ${isCenterCol ? 'text-center' : ''} ${col.className || ''}`}
                       >
-                        <div className="h-5 bg-zinc-100 rounded-xl w-3/4" />
+                        <div className={`h-5 bg-zinc-100 rounded-xl w-3/4 ${isCenterCol ? 'mx-auto' : ''}`} />
                       </td>
                     );
                   })}
@@ -669,6 +675,24 @@ export function DataTable<T extends { id: string | number }>({
                       const isCollapsed = col.className?.includes('!w-0');
                       const isSticky = (isAction || isLast) && !isCollapsed;
                       const isSorted = sortColumnIndex === idx;
+                      const isDateCol = typeof col.header === 'string' && /date|created|updated|dispatch|expected|shipment|registered|timestamp/i.test(col.header);
+                      const isRightAligned = !isDateCol && col.className?.includes('text-right');
+                      const isLeftAligned = !isDateCol && col.className?.includes('text-left');
+                      const isCenterCol = isDateCol || col.className?.includes('text-center');
+
+                      const alignmentClass = isDateCol
+                        ? 'text-center [&>*]:mx-auto [&>*]:text-center [&>.flex]:justify-center [&>.inline-flex]:justify-center'
+                        : col.className?.includes('text-center')
+                          ? 'text-center [&>.flex]:justify-center [&>.inline-flex]:justify-center'
+                          : isRightAligned
+                            ? 'text-right'
+                            : isLeftAligned
+                              ? 'text-left'
+                              : '';
+
+                      const cleanedColClass = isDateCol
+                        ? (col.className || '').replace(/\btext-left\b/g, '').replace(/\btext-right\b/g, '')
+                        : (col.className || '');
 
                       return (
                         <td 
@@ -687,7 +711,7 @@ export function DataTable<T extends { id: string | number }>({
                               : ''
                           } ${
                             isFirst && hasRedShade ? 'border-l-4 border-l-rose-500 shadow-[inset_4px_0_0_0_#f43f5e]' : ''
-                          } ${col.className || ''}`}
+                          } ${alignmentClass} ${cleanedColClass}`}
                         >
                           {typeof col.accessor === 'function' 
                             ? col.accessor(item) 

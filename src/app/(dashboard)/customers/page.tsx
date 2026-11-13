@@ -1597,12 +1597,12 @@ export default function CustomersRegistry() {
                           </td>
 
                           {/* Credit Terms & Due Date */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex flex-col">
-                              <span className="font-black text-zinc-700">
+                          <td className="py-3.5 px-4 text-center">
+                            <div className="flex flex-col items-center text-center">
+                              <span className="font-black text-zinc-700 text-center">
                                 {item.due_date ? formatDate(item.due_date) : 'N/A'}
                               </span>
-                              <span className="text-[10px] font-semibold text-zinc-400">
+                              <span className="text-[10px] font-semibold text-zinc-400 text-center">
                                 {item.credit_period_days ? `${item.credit_period_days} Days Credit` : 'Standard terms'}
                               </span>
                             </div>

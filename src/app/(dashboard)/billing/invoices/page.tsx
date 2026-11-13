@@ -673,10 +673,10 @@ export default function InvoicesPage() {
                     </td>
 
                     {/* Due Date & Overdue Tag */}
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 text-center">
                       {inv.due_date ? (
-                        <div>
-                          <p className={`font-mono text-xs ${isOverdue ? 'font-black text-rose-600' : inv.due_status === 'Due' ? 'font-black text-amber-600' : 'text-zinc-700'}`}>
+                        <div className="text-center">
+                          <p className={`font-mono text-xs text-center ${isOverdue ? 'font-black text-rose-600' : inv.due_status === 'Due' ? 'font-black text-amber-600' : 'text-zinc-700'}`}>
                             {formatDate(inv.due_date)}
                           </p>
                           {isOverdue && (

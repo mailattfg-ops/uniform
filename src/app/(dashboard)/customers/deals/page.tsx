@@ -490,7 +490,7 @@ export default function DealsRegistryPage() {
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.created_at || '',
       accessor: (l) => (
-        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap block text-center">
           {formatDate(l.created_at)}
         </span>
       )

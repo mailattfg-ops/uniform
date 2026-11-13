@@ -3668,8 +3668,9 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Created On',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (d) => (
-                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">
+                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap block text-center">
                         {formatDate(d.created_at)}
                       </span>
                     )
@@ -3898,8 +3899,9 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     accessor: (q) => (
-                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap block text-center">
                         {formatDate(q.quotation_date || q.created_at)}
                       </span>
                     )
@@ -4015,9 +4017,9 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[110px] whitespace-nowrap',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (p: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                         {formatDate(p.paid_at || p.created_at || p.date)}
                       </span>
                     )
@@ -4124,11 +4126,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (o: any) => new Date(o.order_date || o.created_at || 0).getTime(),
                     accessor: (o: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(o.order_date || o.created_at)}
                       </span>
                     )
@@ -4207,7 +4209,7 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Expected Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
                       const quote = o.quotations || quotations.find((q: any) => 
                         (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
@@ -4223,7 +4225,7 @@ function OrganizationDetailsPageContent() {
                         || quote?.created_at 
                         || o.expected_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                           {exp ? formatDate(exp) : '—'}
                         </span>
                       );
@@ -4231,12 +4233,12 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Shipment Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
                       const dcMatch = deliveryChallans.find((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
                       const shipDate = dcMatch?.dispatch_date || dcMatch?.created_at || o.shipped_at || o.shipment_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                           {shipDate ? formatDate(shipDate) : '—'}
                         </span>
                       );
@@ -4540,11 +4542,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (pkg: any) => new Date(pkg.date || 0).getTime(),
                     accessor: (pkg: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(pkg.date)}
                       </span>
                     )
@@ -4618,9 +4620,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Shipment Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                         {pkg.shipment_date ? formatDate(pkg.shipment_date) : '—'}
                       </span>
                     )
@@ -4659,11 +4661,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (dc: any) => new Date(dc.date || dc.dispatch_date || dc.created_at || 0).getTime(),
                     accessor: (dc: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(dc.date || dc.dispatch_date || dc.created_at)}
                       </span>
                     )
@@ -4722,9 +4724,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Shipment Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                         {dc.shipment_date ? formatDate(dc.shipment_date) : '—'}
                       </span>
                     )
@@ -4814,11 +4816,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (pi: any) => new Date(pi.date || 0).getTime(),
                     accessor: (pi: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(pi.date)}
                       </span>
                     )
@@ -4930,11 +4932,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (inv: any) => new Date(inv.date || inv.invoice_date || inv.created_at || 0).getTime(),
                     accessor: (inv: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(inv.date || inv.invoice_date || inv.created_at)}
                       </span>
                     )
@@ -5017,9 +5019,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Due Date',
-                    className: 'w-[110px] whitespace-nowrap',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap block text-center">
                         {inv.due_date ? formatDate(inv.due_date) : '—'}
                       </span>
                     )
@@ -5089,11 +5091,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (exp: any) => new Date(exp.date || 0).getTime(),
                     accessor: (exp: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(exp.date)}
                       </span>
                     )
@@ -5347,10 +5349,10 @@ function OrganizationDetailsPageContent() {
                   columns={[
                     {
                       header: 'Date',
-                      className: 'w-[110px] whitespace-nowrap',
+                      className: 'w-[110px] whitespace-nowrap text-center',
                       sortValue: (j: any) => (j.date ? new Date(j.date).getTime() : 0),
                       accessor: (j: any) => (
-                        <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                        <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                           {formatDate(j.date)}
                         </span>
                       )
@@ -5643,11 +5645,11 @@ function OrganizationDetailsPageContent() {
               columns={[
                 {
                   header: 'Date',
-                  className: 'w-[105px] whitespace-nowrap',
+                  className: 'w-[105px] whitespace-nowrap text-center',
                   sortable: true,
                   sortValue: (tx: any) => tx.is_opening ? -Infinity : new Date(tx.date || 0).getTime(),
                   accessor: (tx: any) => (
-                    <span className={`font-bold text-xs whitespace-nowrap ${tx.is_opening ? 'text-zinc-400 italic' : 'text-zinc-800'}`}>
+                    <span className={`font-bold text-xs whitespace-nowrap block text-center ${tx.is_opening ? 'text-zinc-400 italic' : 'text-zinc-800'}`}>
                       {tx.is_opening ? '—' : formatDate(tx.date)}
                     </span>
                   )

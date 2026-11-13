@@ -184,7 +184,7 @@ export default function QuotationList({
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => q.quotation_date || q.created_at || '',
       accessor: (q) => (
-        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap">
+        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap block text-center">
           {formatDate(q.quotation_date || q.created_at)}
         </span>
       )
@@ -307,15 +307,15 @@ export default function QuotationList({
     },
     {
       header: 'EXPECTED DATE',
-      className: 'w-[125px] whitespace-nowrap',
+      className: 'w-[125px] whitespace-nowrap text-center',
       sortValue: (q) => q.expected_delivery_date || '',
       accessor: (q) => (
-        <div>
-          <p className="text-xs font-bold text-zinc-700">
+        <div className="text-center">
+          <p className="text-xs font-bold text-zinc-700 text-center">
             {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
           </p>
           {q.production_days_estimate ? (
-            <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
+            <p className="text-[9px] font-bold text-zinc-400 mt-0.5 text-center">
               {q.production_days_estimate}d production
             </p>
           ) : null}
