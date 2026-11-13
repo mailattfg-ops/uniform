@@ -222,7 +222,7 @@ export default function QuotationList({
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (q) => {
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         return fullOrg?.zones?.name || '';
@@ -231,11 +231,11 @@ export default function QuotationList({
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         const zoneName = fullOrg?.zones?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -456,7 +456,7 @@ export default function QuotationList({
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
-        <td style="font-size: 10px; color: #4a5568;">${zoneName}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700;">${person}</div>
           ${desig ? `<div style="font-size: 8px; color: #a0aec0;">${desig}</div>` : ''}
@@ -514,9 +514,9 @@ export default function QuotationList({
         <th style="width: 30px;">#</th>
         <th style="text-align: center;">DATE</th>
         <th>QUOTATION NO.</th>
-        <th>CUSTOMER NAME</th>
-        <th>ZONE</th>
-        <th>CONTACT</th>
+        <th style="text-align: left;">CUSTOMER NAME</th>
+        <th style="text-align: left;">ZONE</th>
+        <th style="text-align: left;">CONTACT</th>
         <th>SALES PERSON</th>
         <th style="text-align: center;">EXPECTED DATE</th>
         <th style="text-align: right;">AMOUNT</th>

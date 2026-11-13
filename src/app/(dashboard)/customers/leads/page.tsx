@@ -670,11 +670,6 @@ export default function LeadsRegistryPage() {
                 {industryName}
               </p>
             )}
-            {l.requirements && (
-              <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
-                {l.requirements}
-              </p>
-            )}
           </div>
         );
       }
@@ -700,16 +695,16 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -922,7 +917,7 @@ export default function LeadsRegistryPage() {
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">${l.name}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568;">${zoneName || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -979,7 +974,7 @@ export default function LeadsRegistryPage() {
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
         <th style="text-align: left;">Area/Locality</th>
-        <th>Zone</th>
+        <th style="text-align: left;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Status</th>

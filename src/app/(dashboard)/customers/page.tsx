@@ -114,7 +114,7 @@ function compileCustomerDirectoryHTML({
   const rowsHtml = customers.map((c, idx) => {
     const custId = c.customer_code || `#${c.id}`;
     const name = c.name || 'Unnamed Customer';
-    const sector = c.industries?.name || '';
+    const sector = c.industries?.name || industries?.find((ind: any) => ind.id === c.industry_id)?.name || '';
     const locality = [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '—';
     const zoneName = c.zones?.name || (zones?.find((z: any) => String(z.id) === String(c.zone_id))?.name) || '—';
     const branchName = branches?.find((b: any) => String(b.id) === String(c.branch_id))?.name || (c as any).branches?.name || '—';
@@ -143,10 +143,10 @@ function compileCustomerDirectoryHTML({
         <td style="font-family: monospace; font-weight: bold; color: #C82A2B; font-size: 10px;">${custId}</td>
         <td>
           <div style="font-weight: 800; color: #1a202c; font-size: 11px;">${name}</div>
-          ${sector ? `<div style="font-size: 8px; color: #C82A2B; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
+          ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568;">${zoneName}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
           ${designation ? `<div style="color: #a0aec0; font-size: 8px;">${designation}</div>` : ''}
@@ -426,7 +426,7 @@ function compileCustomerDirectoryHTML({
         <th style="width: 80px;">CUST. ID</th>
         <th>CUSTOMER NAME</th>
         <th style="text-align: left;">AREA/LOCALITY</th>
-        <th>ZONE</th>
+        <th style="text-align: left;">ZONE</th>
         <th>CONTACT</th>
         <th style="text-align: right; width: 85px;">RECEIVABLES</th>
         <th style="text-align: right; width: 80px;">CREDITS</th>
@@ -1061,11 +1061,15 @@ export default function CustomersRegistry() {
                 </span>
               )}
             </div>
-            {c.industries?.name && (
-              <p className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-wider truncate mt-0.5 ml-4">
-                {c.industries.name}
-              </p>
-            )}
+            {(() => {
+              const industryName = c.industries?.name || industries.find(ind => ind.id === c.industry_id)?.name;
+              if (!industryName) return null;
+              return (
+                <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 ml-4">
+                  {industryName}
+                </p>
+              );
+            })()}
           </div>
         );
       }
@@ -1091,16 +1095,16 @@ export default function CustomersRegistry() {
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-center',
+      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (c) => c.zones?.name || (zones.find(z => z.id === c.zone_id)?.name) || '',
       accessor: (c) => {
         const zoneName = c.zones?.name || zones.find(z => z.id === c.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-left">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
