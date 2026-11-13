@@ -4372,17 +4372,48 @@ function OrganizationDetailsPageContent() {
                         (o.quotation_no && q.quotation_no === o.quotation_no)
                       );
                       const soVal = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
-                      const matchedPayments = customerPayments.filter((p: any) => p.order_id === o.id || p.order_ref === o.order_no);
-                      const paidTotal = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
-                      const isPaid = (soVal > 0 && paidTotal >= soVal) || o.payment_status === 'Paid' || o.status === 'Paid';
-                      const isPartial = !isPaid && (
-                        (paidTotal > 0 && (soVal === 0 || paidTotal < soVal)) ||
-                        o.payment_status === 'Partial' || 
-                        o.payment_status === 'Partially Paid' ||
-                        o.payment_status?.toLowerCase().includes('part') || 
-                        o.payment_status?.toLowerCase().includes('advance') ||
-                        (o.status && o.status.toLowerCase().includes('partial'))
+                      
+                      const matchedPayments = customerPayments.filter((p: any) => {
+                        if (p.order_id && o.id && String(p.order_id) === String(o.id)) return true;
+                        if (p.order_no && o.order_no && String(p.order_no) === String(o.order_no)) return true;
+                        if (p.order_ref && o.order_no && (String(p.order_ref) === String(o.order_no) || String(p.order_ref).includes(String(o.order_no)))) return true;
+                        if (p.order_ref && quote?.quotation_no && (String(p.order_ref) === String(quote.quotation_no) || String(p.order_ref).includes(String(quote.quotation_no)))) return true;
+                        if (quote?.id && p.quotation_id && String(p.quotation_id) === String(quote.id)) return true;
+                        if (o.quotation_id && p.quotation_id && String(p.quotation_id) === String(o.quotation_id)) return true;
+                        if (p.quotation_no && quote?.quotation_no && String(p.quotation_no) === String(quote.quotation_no)) return true;
+                        if (p.notes && o.order_no && p.notes.includes(o.order_no)) return true;
+                        return false;
+                      });
+
+                      const paymentsSum = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
+                      const directOrderPaid = parseFloat(String(o.paid_amount || o.advance_paid || o.advance_amount || 0));
+                      const quotePaid = parseFloat(String(quote?.paid_amount || quote?.advance_paid || quote?.advance_amount || 0));
+
+                      const orderInvoices = customerInvoices.filter((inv: any) => 
+                        (inv.order_id && o.id && String(inv.order_id) === String(o.id)) || 
+                        (inv.order_no && o.order_no && String(inv.order_no) === String(o.order_no))
                       );
+                      const invoicePaidSum = orderInvoices.reduce((sum: number, inv: any) => sum + parseFloat(String(inv.paid_amount || 0)), 0);
+
+                      const totalPaid = Math.max(paymentsSum, directOrderPaid, quotePaid, invoicePaidSum);
+
+                      const pStatus = (o.payment_status || o.paymentStatus || quote?.payment_status || '').toLowerCase();
+                      const oStatus = (o.status || '').toLowerCase();
+
+                      const isPaid = 
+                        pStatus === 'paid' || 
+                        pStatus === 'fully paid' || 
+                        oStatus === 'paid' || 
+                        (soVal > 0 && totalPaid >= soVal);
+
+                      const isPartial = !isPaid && (
+                        totalPaid > 0 ||
+                        pStatus.includes('part') ||
+                        pStatus.includes('advance') ||
+                        oStatus.includes('partial') ||
+                        orderInvoices.some((inv: any) => (inv.payment_status || '').toLowerCase().includes('part'))
+                      );
+
                       return isPaid ? 2 : isPartial ? 1 : 0;
                     },
                     accessor: (o: any) => {
@@ -4391,22 +4422,53 @@ function OrganizationDetailsPageContent() {
                         (o.quotation_no && q.quotation_no === o.quotation_no)
                       );
                       const soVal = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
-                      const matchedPayments = customerPayments.filter((p: any) => p.order_id === o.id || p.order_ref === o.order_no);
-                      const paidTotal = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
-                      const isPaid = (soVal > 0 && paidTotal >= soVal) || o.payment_status === 'Paid' || o.status === 'Paid';
-                      const isPartial = !isPaid && (
-                        (paidTotal > 0 && (soVal === 0 || paidTotal < soVal)) ||
-                        o.payment_status === 'Partial' || 
-                        o.payment_status === 'Partially Paid' ||
-                        o.payment_status?.toLowerCase().includes('part') || 
-                        o.payment_status?.toLowerCase().includes('advance') ||
-                        (o.status && o.status.toLowerCase().includes('partial'))
+                      
+                      const matchedPayments = customerPayments.filter((p: any) => {
+                        if (p.order_id && o.id && String(p.order_id) === String(o.id)) return true;
+                        if (p.order_no && o.order_no && String(p.order_no) === String(o.order_no)) return true;
+                        if (p.order_ref && o.order_no && (String(p.order_ref) === String(o.order_no) || String(p.order_ref).includes(String(o.order_no)))) return true;
+                        if (p.order_ref && quote?.quotation_no && (String(p.order_ref) === String(quote.quotation_no) || String(p.order_ref).includes(String(quote.quotation_no)))) return true;
+                        if (quote?.id && p.quotation_id && String(p.quotation_id) === String(quote.id)) return true;
+                        if (o.quotation_id && p.quotation_id && String(p.quotation_id) === String(o.quotation_id)) return true;
+                        if (p.quotation_no && quote?.quotation_no && String(p.quotation_no) === String(quote.quotation_no)) return true;
+                        if (p.notes && o.order_no && p.notes.includes(o.order_no)) return true;
+                        return false;
+                      });
+
+                      const paymentsSum = matchedPayments.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount || 0)), 0);
+                      const directOrderPaid = parseFloat(String(o.paid_amount || o.advance_paid || o.advance_amount || 0));
+                      const quotePaid = parseFloat(String(quote?.paid_amount || quote?.advance_paid || quote?.advance_amount || 0));
+
+                      const orderInvoices = customerInvoices.filter((inv: any) => 
+                        (inv.order_id && o.id && String(inv.order_id) === String(o.id)) || 
+                        (inv.order_no && o.order_no && String(inv.order_no) === String(o.order_no))
                       );
+                      const invoicePaidSum = orderInvoices.reduce((sum: number, inv: any) => sum + parseFloat(String(inv.paid_amount || 0)), 0);
+
+                      const totalPaid = Math.max(paymentsSum, directOrderPaid, quotePaid, invoicePaidSum);
+
+                      const pStatus = (o.payment_status || o.paymentStatus || quote?.payment_status || '').toLowerCase();
+                      const oStatus = (o.status || '').toLowerCase();
+
+                      const isPaid = 
+                        pStatus === 'paid' || 
+                        pStatus === 'fully paid' || 
+                        oStatus === 'paid' || 
+                        (soVal > 0 && totalPaid >= soVal);
+
+                      const isPartial = !isPaid && (
+                        totalPaid > 0 ||
+                        pStatus.includes('part') ||
+                        pStatus.includes('advance') ||
+                        oStatus.includes('partial') ||
+                        orderInvoices.some((inv: any) => (inv.payment_status || '').toLowerCase().includes('part'))
+                      );
+
                       const state: 'none' | 'partial' | 'full' = isPaid ? 'full' : isPartial ? 'partial' : 'none';
                       const label = state === 'full' 
-                        ? `Payment: Fully Paid${soVal > 0 ? ` (₹${(paidTotal || soVal).toLocaleString('en-IN')})` : ''}`
+                        ? `Payment: Fully Paid${soVal > 0 ? ` (₹${(totalPaid || soVal).toLocaleString('en-IN')})` : ''}`
                         : state === 'partial' 
-                          ? `Payment: Partially Paid${soVal > 0 ? ` (₹${paidTotal.toLocaleString('en-IN')} of ₹${soVal.toLocaleString('en-IN')})` : ''}`
+                          ? `Payment: Partially Paid${soVal > 0 ? ` (₹${totalPaid.toLocaleString('en-IN')} of ₹${soVal.toLocaleString('en-IN')})` : ''}`
                           : 'Payment: Unpaid';
                       return renderStatusCapsule(state, label);
                     }
