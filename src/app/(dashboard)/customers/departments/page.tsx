@@ -225,9 +225,10 @@ export default function DepartmentManagement() {
   const columns: Column<DepartmentRecord>[] = [
     {
       header: 'Setup Date',
+      className: 'w-[120px] whitespace-nowrap text-center',
       accessor: (d) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-black text-zinc-500 whitespace-nowrap">
+        <div className="flex flex-col items-center text-center">
+          <span className="text-xs font-black text-zinc-500 whitespace-nowrap text-center">
             {formatDate(d.created_at)}
           </span>
         </div>

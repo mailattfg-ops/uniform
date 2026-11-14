@@ -73,7 +73,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 import * as XLSX from 'xlsx';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import ProFormaInvoiceModal from '@/components/documents/ProFormaInvoiceModal';
 import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 import QuotationDetails from '@/app/(dashboard)/marketing/quotations/_components/QuotationDetails';
@@ -85,6 +85,7 @@ interface Organization {
   branch_id?: number | string | null;
   customer_code: string | null;
   name: string;
+  contact_title?: string | null;
   contact_person?: string | null;
   phone?: string | null;
   contact_number?: string | null;
@@ -2459,6 +2460,127 @@ function OrganizationDetailsPageContent() {
     return list;
   }, [quotations, customerOrders, ledgerData?.orders, orgDetails?.orders, org, employees]);
 
+  // Converted Proforma Invoice state & computation
+  const [convertedPiList, setConvertedPiList] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (org?.id) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(`converted_pi_${org.id}`) || '[]');
+        if (Array.isArray(cached)) {
+          setConvertedPiList(cached);
+        }
+      } catch (_) {}
+    }
+  }, [org?.id]);
+
+  const isProFormaConverted = React.useMemo(() => {
+    if (!selectedProForma) return false;
+    if (selectedProForma.is_converted || selectedProForma.converted_to_invoice) return true;
+
+    const piNo = String(selectedProForma.pi_no || '');
+    const piId = String(selectedProForma.id || selectedProForma.raw?.id || '');
+    const piOrderNo = selectedProForma.order_no;
+
+    if (convertedPiList.includes(piNo) || (piId && convertedPiList.includes(piId))) {
+      return true;
+    }
+
+    const exists = customerInvoices.some((inv: any) => {
+      if (piOrderNo && piOrderNo !== '—' && (inv.order_no === piOrderNo || inv.order_ref === piOrderNo)) return true;
+      if (piId && (String(inv.quotation_id) === piId || String(inv.order_id) === piId)) return true;
+      if (piNo && inv.notes && inv.notes.includes(piNo)) return true;
+      return false;
+    });
+
+    return exists;
+  }, [selectedProForma, convertedPiList, customerInvoices]);
+
+  const handleConvertProformaToInvoice = async (pi: any) => {
+    if (!org) return;
+    const loadingToast = toast.loading('Converting Proforma to Tax Invoice...');
+    try {
+      const quoteId = pi.raw?.id || pi.id;
+      const orderId = pi.raw?.order_id || pi.order_id;
+      const creditPeriod = org?.credit_period_days || 30;
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      let createdInvoice: any = null;
+
+      // 1. Try from-order endpoint
+      if (orderId || quoteId) {
+        try {
+          const res = await api.post('/invoices/from-order', {
+            order_id: orderId || undefined,
+            quotation_id: quoteId || undefined,
+            credit_period_days: creditPeriod,
+            invoice_date: todayStr,
+            notes: `Converted from Proforma Invoice #${pi.pi_no}`
+          });
+          if (res.data) {
+            createdInvoice = res.data.data || res.data;
+          }
+        } catch (fromOrderErr) {
+          console.warn('POST /invoices/from-order fallback:', fromOrderErr);
+        }
+      }
+
+      // 2. Fallback to /invoices direct creation if needed
+      if (!createdInvoice) {
+        const dueDate = getCalculatedDueDate(todayStr, creditPeriod);
+        const subtotal = pi.subtotal || pi.amount || 0;
+        const taxRate = pi.tax_rate ?? 5;
+        const taxAmount = pi.tax_amount ?? (subtotal * (taxRate / 100));
+        const totalAmount = subtotal + taxAmount;
+
+        const res = await api.post('/invoices', {
+          organization_id: org.id,
+          customer_name: org.name,
+          sale_type: 'bulk',
+          order_id: orderId || null,
+          quotation_id: quoteId || null,
+          invoice_date: todayStr,
+          credit_period_days: creditPeriod,
+          due_date: dueDate,
+          items: (pi.items && pi.items.length > 0) ? pi.items : [{
+            description: pi.title || `Proforma Conversion: ${pi.pi_no}`,
+            quantity: 1,
+            unit_price: subtotal,
+            total_price: subtotal
+          }],
+          subtotal: subtotal,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
+          notes: `Converted from Proforma Invoice #${pi.pi_no}`,
+          payment_status: 'Unpaid'
+        });
+        createdInvoice = res.data?.data || res.data;
+      }
+
+      // Save to localStorage converted cache
+      try {
+        const cacheKey = `converted_pi_${org.id}`;
+        const existing: string[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+        if (!existing.includes(String(pi.pi_no))) existing.push(String(pi.pi_no));
+        if (pi.id && !existing.includes(String(pi.id))) existing.push(String(pi.id));
+        localStorage.setItem(cacheKey, JSON.stringify(existing));
+        setConvertedPiList(existing);
+      } catch (_) {}
+
+      // Mark current modal data as converted
+      setSelectedProForma((prev: any) => prev ? { ...prev, is_converted: true } : null);
+
+      toast.success('Successfully converted Proforma to Tax Invoice!', { id: loadingToast });
+      
+      // Refresh customer data
+      fetchLedgerData();
+      fetchOrgData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.message || 'Failed to convert proforma to tax invoice', { id: loadingToast });
+      throw err;
+    }
+  };
+
   if (isLoadingOrg) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
@@ -2955,7 +3077,7 @@ function OrganizationDetailsPageContent() {
                 </span>
                 <div className="space-y-1">
                   <p className="text-sm font-bold text-zinc-900">
-                    {org.contact_person || 'No Contact Person Listed'}
+                    {formatContactPerson(org.contact_person, org.contact_title)}
                   </p>
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
                     {(org.contact_number || org.phone) && (
@@ -2964,7 +3086,7 @@ function OrganizationDetailsPageContent() {
                         className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
                       >
                         <Phone size={12} className="text-[#C82A2B]" />
-                        <span>{org.contact_number || org.phone}</span>
+                        <span>{formatPhoneNumber(org.contact_number || org.phone, org.country || 'India')}</span>
                       </a>
                     )}
                     {(org.email || org.contact_email) && (
@@ -3668,8 +3790,9 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Created On',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (d) => (
-                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">
+                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap block text-center">
                         {formatDate(d.created_at)}
                       </span>
                     )
@@ -3898,16 +4021,18 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     accessor: (q) => (
-                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap block text-center">
                         {formatDate(q.quotation_date || q.created_at)}
                       </span>
                     )
                   },
                   {
                     header: 'Quotation No.',
+                    className: 'text-center align-middle',
                     accessor: (q) => (
-                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center gap-1.5 whitespace-nowrap">
+                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap text-center">
                         <FileText size={14} className="text-[#C82A2B] shrink-0" />
                         <span>{q.quotation_no}</span>
                       </div>
@@ -3955,13 +4080,13 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Amount',
                     accessor: (q) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                      <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                         ₹{parseFloat(q.final_quote_value || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
                   },
                   {
-                    header: 'Status',
+                    header: 'Quote Status',
                     accessor: (q) => {
                       const statusColors: Record<string, string> = {
                         'Draft': 'bg-zinc-50 text-zinc-600 border-zinc-200',
@@ -4015,9 +4140,9 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[110px] whitespace-nowrap',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (p: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                         {formatDate(p.paid_at || p.created_at || p.date)}
                       </span>
                     )
@@ -4124,11 +4249,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (o: any) => new Date(o.order_date || o.created_at || 0).getTime(),
                     accessor: (o: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(o.order_date || o.created_at)}
                       </span>
                     )
@@ -4145,11 +4270,11 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Quotation No.',
-                    className: 'w-[125px] whitespace-nowrap',
+                    className: 'w-[125px] whitespace-nowrap text-center align-middle',
                     accessor: (o: any) => {
                       const quoteNo = o.quotations?.quotation_no || (quotations.find((q: any) => q.id === o.quotation_id)?.quotation_no) || (o.quotation_id ? `QT-${o.quotation_id}` : '—');
                       return (
-                        <span className="font-mono text-xs font-bold text-zinc-600 whitespace-nowrap">
+                        <span className="font-mono text-xs font-bold text-zinc-600 whitespace-nowrap block text-center">
                           {quoteNo}
                         </span>
                       );
@@ -4207,7 +4332,7 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Expected Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
                       const quote = o.quotations || quotations.find((q: any) => 
                         (o.quotation_id && String(q.id) === String(o.quotation_id)) ||
@@ -4223,7 +4348,7 @@ function OrganizationDetailsPageContent() {
                         || quote?.created_at 
                         || o.expected_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                           {exp ? formatDate(exp) : '—'}
                         </span>
                       );
@@ -4231,12 +4356,12 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Shipment Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (o: any) => {
                       const dcMatch = deliveryChallans.find((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
                       const shipDate = dcMatch?.dispatch_date || dcMatch?.created_at || o.shipped_at || o.shipment_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                           {shipDate ? formatDate(shipDate) : '—'}
                         </span>
                       );
@@ -4491,7 +4616,7 @@ function OrganizationDetailsPageContent() {
                       );
                       const val = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
                       return (
-                        <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-800 text-xs md:text-sm whitespace-nowrap">
                           {val > 0 ? `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </span>
                       );
@@ -4509,7 +4634,7 @@ function OrganizationDetailsPageContent() {
                       const orderInvoices = customerInvoices.filter((inv: any) => inv.order_id === o.id || inv.order_no === o.order_no || inv.order_ref === o.order_no);
                       const invoicedVal = orderInvoices.reduce((sum: number, inv: any) => sum + parseFloat(String(inv.total_amount || inv.amount || 0)), 0);
                       return (
-                        <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-800 text-xs md:text-sm whitespace-nowrap">
                           {invoicedVal > 0 ? `₹${invoicedVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </span>
                       );
@@ -4540,11 +4665,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (pkg: any) => new Date(pkg.date || 0).getTime(),
                     accessor: (pkg: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(pkg.date)}
                       </span>
                     )
@@ -4618,9 +4743,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Shipment Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                         {pkg.shipment_date ? formatDate(pkg.shipment_date) : '—'}
                       </span>
                     )
@@ -4659,11 +4784,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (dc: any) => new Date(dc.date || dc.dispatch_date || dc.created_at || 0).getTime(),
                     accessor: (dc: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(dc.date || dc.dispatch_date || dc.created_at)}
                       </span>
                     )
@@ -4722,9 +4847,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Shipment Date',
-                    className: 'w-[115px] whitespace-nowrap',
+                    className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
                         {dc.shipment_date ? formatDate(dc.shipment_date) : '—'}
                       </span>
                     )
@@ -4814,11 +4939,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (pi: any) => new Date(pi.date || 0).getTime(),
                     accessor: (pi: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(pi.date)}
                       </span>
                     )
@@ -4879,7 +5004,7 @@ function OrganizationDetailsPageContent() {
                     sortValue: (pi: any) => parseFloat(String(pi.amount || 0)),
                     accessor: (pi: any) => (
                       <div className="text-right">
-                        <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                           ₹{parseFloat(String(pi.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -4930,11 +5055,11 @@ function OrganizationDetailsPageContent() {
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (inv: any) => new Date(inv.date || inv.invoice_date || inv.created_at || 0).getTime(),
                     accessor: (inv: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(inv.date || inv.invoice_date || inv.created_at)}
                       </span>
                     )
@@ -4996,7 +5121,7 @@ function OrganizationDetailsPageContent() {
                     sortable: true,
                     sortValue: (inv: any) => parseFloat(String(inv.total_amount || 0)),
                     accessor: (inv: any) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                      <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                         ₹{parseFloat(String(inv.total_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
@@ -5009,7 +5134,7 @@ function OrganizationDetailsPageContent() {
                     accessor: (inv: any) => {
                       const bal = parseFloat(String(inv.due_amount !== undefined ? inv.due_amount : (parseFloat(String(inv.total_amount || 0)) - parseFloat(String(inv.paid_amount || 0)))));
                       return (
-                        <span className={`font-mono font-black text-xs whitespace-nowrap ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        <span className={`font-mono font-black text-xs md:text-sm whitespace-nowrap ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
                           ₹{Math.max(0, bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       );
@@ -5017,9 +5142,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Due Date',
-                    className: 'w-[110px] whitespace-nowrap',
+                    className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap">
+                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap block text-center">
                         {inv.due_date ? formatDate(inv.due_date) : '—'}
                       </span>
                     )
@@ -5058,42 +5183,42 @@ function OrganizationDetailsPageContent() {
                 title="Customer & Job Expenses"
                 subtitle={`Direct commercial costs, materials procurement & development charges for ${org.name}`}
                 headerAction={
-                  <div className="flex flex-wrap items-center gap-3">
-                    <DateRangeFilter
-                      label="Date"
-                      value={expenseDateFilter}
-                      onChange={setExpenseDateFilter}
-                    />
-                    <Button
-                      onClick={() => {
-                        setNewExpenseForm({
-                          date: new Date().toISOString().slice(0, 10),
-                          category: 'Fabric & Raw Materials',
-                          amount: '',
-                          so_no: customerOrders?.[0]?.order_no || quotations?.[0]?.order_no || '',
-                          sales_person: org?.relationship_manager?.full_name || employees?.[0]?.full_name || '',
-                          payment_mode: 'Bank Transfer',
-                          voucher_no: `EXP-M-${Date.now().toString().slice(-6)}`,
-                          description: '',
-                          status: 'Paid'
-                        });
-                        setIsAddExpenseModalOpen(true);
-                      }}
-                      className="h-10 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <Plus size={15} />
-                      <span>Add Expense</span>
-                    </Button>
-                  </div>
+                  <DateRangeFilter
+                    label="Date"
+                    value={expenseDateFilter}
+                    onChange={setExpenseDateFilter}
+                  />
+                }
+                rightAction={
+                  <Button
+                    onClick={() => {
+                      setNewExpenseForm({
+                        date: new Date().toISOString().slice(0, 10),
+                        category: 'Fabric & Raw Materials',
+                        amount: '',
+                        so_no: customerOrders?.[0]?.order_no || quotations?.[0]?.order_no || '',
+                        sales_person: org?.relationship_manager?.full_name || employees?.[0]?.full_name || '',
+                        payment_mode: 'Bank Transfer',
+                        voucher_no: `EXP-M-${Date.now().toString().slice(-6)}`,
+                        description: '',
+                        status: 'Paid'
+                      });
+                      setIsAddExpenseModalOpen(true);
+                    }}
+                    className="h-10 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Plus size={15} />
+                    <span>Add Expense</span>
+                  </Button>
                 }
                 columns={[
                   {
                     header: 'Date',
-                    className: 'w-[105px] whitespace-nowrap',
+                    className: 'w-[105px] whitespace-nowrap text-center',
                     sortable: true,
                     sortValue: (exp: any) => new Date(exp.date || 0).getTime(),
                     accessor: (exp: any) => (
-                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                      <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(exp.date)}
                       </span>
                     )
@@ -5164,7 +5289,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Amount',
                     className: 'w-[130px] whitespace-nowrap text-right',
                     accessor: (exp: any) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                      <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                         ₹{parseFloat(String(exp.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
@@ -5347,10 +5472,10 @@ function OrganizationDetailsPageContent() {
                   columns={[
                     {
                       header: 'Date',
-                      className: 'w-[110px] whitespace-nowrap',
+                      className: 'w-[110px] whitespace-nowrap text-center',
                       sortValue: (j: any) => (j.date ? new Date(j.date).getTime() : 0),
                       accessor: (j: any) => (
-                        <span className="text-zinc-600 font-bold text-xs whitespace-nowrap">
+                        <span className="text-zinc-600 font-bold text-xs whitespace-nowrap block text-center">
                           {formatDate(j.date)}
                         </span>
                       )
@@ -5405,7 +5530,7 @@ function OrganizationDetailsPageContent() {
                       className: 'w-[130px] whitespace-nowrap text-right',
                       sortValue: (j: any) => (j.amount || j.debit || j.credit || 0),
                       accessor: (j: any) => (
-                        <span className="font-mono font-black text-xs text-zinc-900 whitespace-nowrap">
+                        <span className="font-mono font-black text-xs md:text-sm text-zinc-900 whitespace-nowrap">
                           ₹{parseFloat(String(j.amount || j.debit || j.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       )
@@ -5643,11 +5768,11 @@ function OrganizationDetailsPageContent() {
               columns={[
                 {
                   header: 'Date',
-                  className: 'w-[105px] whitespace-nowrap',
+                  className: 'w-[105px] whitespace-nowrap text-center',
                   sortable: true,
                   sortValue: (tx: any) => tx.is_opening ? -Infinity : new Date(tx.date || 0).getTime(),
                   accessor: (tx: any) => (
-                    <span className={`font-bold text-xs whitespace-nowrap ${tx.is_opening ? 'text-zinc-400 italic' : 'text-zinc-800'}`}>
+                    <span className={`font-bold text-xs whitespace-nowrap block text-center ${tx.is_opening ? 'text-zinc-400 italic' : 'text-zinc-800'}`}>
                       {tx.is_opening ? '—' : formatDate(tx.date)}
                     </span>
                   )
@@ -5723,7 +5848,7 @@ function OrganizationDetailsPageContent() {
                   header: 'Amount',
                   className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: any) => (
-                    <span className={`font-mono text-xs font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
+                    <span className={`font-mono text-xs md:text-sm font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
                       {tx.debit > 0 ? `₹${parseFloat(String(tx.debit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                     </span>
                   )
@@ -5732,7 +5857,7 @@ function OrganizationDetailsPageContent() {
                   header: 'Payments',
                   className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: any) => (
-                    <span className={`font-mono text-xs font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
+                    <span className={`font-mono text-xs md:text-sm font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
                       {tx.credit > 0 ? `₹${parseFloat(String(tx.credit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                     </span>
                   )
@@ -5743,7 +5868,7 @@ function OrganizationDetailsPageContent() {
                   accessor: (tx: any) => {
                     const bal = tx.period_running_balance ?? tx.running_balance ?? 0;
                     return (
-                      <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
+                      <span className={`font-mono text-xs md:text-sm font-black px-2.5 py-1 rounded-lg ${
                         bal > 0
                           ? 'bg-rose-50 text-rose-700 border border-rose-100'
                           : bal === 0
@@ -5852,7 +5977,7 @@ function OrganizationDetailsPageContent() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b-2 border-zinc-900 text-zinc-600 uppercase text-[9px] font-black tracking-wider">
-                      <th className="py-2.5 px-2 text-center">Date</th>
+                      <th className="py-2.5 px-2 text-center align-middle">Date</th>
                       <th className="py-2.5 px-2 text-center">Voucher Type</th>
                       <th className="py-2.5 px-2 text-center">Description</th>
                       <th className="py-2.5 px-2 text-center">Amount</th>
@@ -5863,7 +5988,7 @@ function OrganizationDetailsPageContent() {
                   <tbody className="divide-y divide-zinc-200">
                     {/* Opening Balance Row */}
                     <tr className="bg-zinc-50 font-semibold text-zinc-700">
-                      <td className="py-2 px-2 whitespace-nowrap text-center font-bold text-zinc-400">—</td>
+                      <td className="py-2 px-2 whitespace-nowrap text-center font-bold text-zinc-400 align-middle">—</td>
                       <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">OB</td>
                       <td className="py-2 px-2 font-bold italic">Opening Balance (Brought Forward)</td>
                       <td className="py-2 px-2 text-right font-mono">
@@ -5880,7 +6005,7 @@ function OrganizationDetailsPageContent() {
                     {/* Period Transactions (No Time!) */}
                     {statementLedgerDetails.filteredTransactions.map((tx: any) => (
                       <tr key={tx.id} className="text-zinc-800">
-                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center">
+                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center align-middle">
                           {formatDate(tx.date)}
                         </td>
                         <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">{tx.reference_no}</td>
@@ -7485,6 +7610,8 @@ function OrganizationDetailsPageContent() {
         isOpen={isProFormaModalOpen}
         onClose={() => setIsProFormaModalOpen(false)}
         data={selectedProForma}
+        isConverted={isProFormaConverted}
+        onConvertToInvoice={handleConvertProformaToInvoice}
       />
 
       {/* Real GST Tax Invoice Template Modal */}

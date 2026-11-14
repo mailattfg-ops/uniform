@@ -252,9 +252,9 @@ export default function InitialPaymentPage() {
   const columns: Column<Quotation>[] = [
     {
       header: 'Quote No',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap text-center align-middle',
       accessor: (item) => (
-        <span className="font-mono font-bold text-zinc-900 text-xs">{item.quotation_no}</span>
+        <span className="font-mono font-bold text-zinc-900 text-xs block text-center">{item.quotation_no}</span>
       )
     },
     {

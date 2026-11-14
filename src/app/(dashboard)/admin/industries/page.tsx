@@ -110,8 +110,9 @@ export default function IndustryManagementPage() {
   const columns: Column<Industry>[] = [
     {
       header: 'Registration Date',
+      className: 'w-[140px] whitespace-nowrap text-center',
       accessor: (ind) => (
-        <p className="text-xs font-bold text-zinc-500">
+        <p className="text-xs font-bold text-zinc-500 text-center">
            {formatDate(ind.created_at)}
         </p>
       )

@@ -172,7 +172,7 @@ export const TemporaryDeputationModal: React.FC<TemporaryDeputationModalProps> =
         {/* Deputation Form */}
         <form onSubmit={handleAssign} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-[#C82A2B] mb-1.5">
               Select Temporary Destination Branch *
             </label>
             <Select

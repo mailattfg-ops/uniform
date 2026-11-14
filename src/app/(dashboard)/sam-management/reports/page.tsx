@@ -150,10 +150,11 @@ export default function SAMReports() {
   const historyColumns: Column<HistoryEntry>[] = [
     {
       header: 'Date & Time',
+      className: 'w-[160px] whitespace-nowrap text-center',
       accessor: (h) => (
-        <div className="flex items-center gap-1.5 text-zinc-400 whitespace-nowrap">
+        <div className="flex items-center justify-center gap-1.5 text-zinc-400 whitespace-nowrap text-center">
           <Clock size={12} />
-          <span className="text-[10px] font-bold tracking-widest">
+          <span className="text-[10px] font-bold tracking-widest text-center">
             {new Date(h.created_at).toLocaleString()}
           </span>
         </div>

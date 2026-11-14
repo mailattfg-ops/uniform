@@ -227,8 +227,8 @@ export default function CustomJournalModal({
           {/* Top Metadata Row: Date, Journal #, Reference # */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                Date<span className="text-rose-500">*</span>
+              <label className="block text-xs font-bold text-[#C82A2B] mb-1.5">
+                Date *
               </label>
               <DatePicker
                 required
@@ -240,8 +240,8 @@ export default function CustomJournalModal({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                Journal #<span className="text-rose-500">*</span>
+              <label className="block text-xs font-bold text-[#C82A2B] mb-1.5">
+                Journal # *
               </label>
               <input
                 type="text"
@@ -270,8 +270,8 @@ export default function CustomJournalModal({
           {/* Row 2: Title and Currency */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                Journal Title<span className="text-rose-500">*</span>
+              <label className="block text-xs font-bold text-[#C82A2B] mb-1.5">
+                Journal Title *
               </label>
               <input
                 type="text"
@@ -300,8 +300,8 @@ export default function CustomJournalModal({
 
           {/* Notes* */}
           <div>
-            <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-              Notes<span className="text-rose-500">*</span>
+            <label className="block text-xs font-bold text-[#C82A2B] mb-1.5">
+              Notes *
             </label>
             <textarea
               rows={2}

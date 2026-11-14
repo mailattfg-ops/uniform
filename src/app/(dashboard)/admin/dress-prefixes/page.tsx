@@ -115,8 +115,9 @@ export default function DressPrefixManagementPage() {
   const columns: Column<DressPrefix>[] = [
     {
       header: 'Registration Date',
+      className: 'w-[140px] whitespace-nowrap text-center',
       accessor: (dp) => (
-        <p className="text-xs font-bold text-zinc-500">
+        <p className="text-xs font-bold text-zinc-500 text-center">
           {formatDate(dp.created_at)}
         </p>
       )

@@ -20,7 +20,8 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { Select } from '@/components/ui/Select';
-import { formatDate, capitalizeFirstLetter, capitalizeWords } from '@/lib/formatters';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { formatDate, capitalizeFirstLetter, capitalizeWords, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { supabase } from '@/lib/supabase';
 import { useLayout } from '@/hooks/useLayout';
 
@@ -637,7 +638,7 @@ export default function LeadsRegistryPage() {
     const isOtherInactive = l.status === 'New Leads' && daysInactive >= 3;
 
     return (
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-center gap-1 mx-auto">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${cls}`}>
           {l.status === 'Hot Leads' && <Flame size={11} className="text-orange-500" />}
           {l.status}
@@ -656,7 +657,7 @@ export default function LeadsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[180px] max-w-[280px] text-left',
+      className: 'min-w-[150px] max-w-[200px] text-left',
       sortValue: (l) => l.name,
       accessor: (l) => {
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
@@ -676,7 +677,7 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Area/Locality',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-left',
+      className: 'w-[125px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
         const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
@@ -695,16 +696,16 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[90px] min-w-[80px] whitespace-nowrap text-center',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -712,14 +713,14 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Contact',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      className: 'w-[130px] min-w-[120px] whitespace-nowrap text-left',
       sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
-                {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(l.contact_person, l.contact_title)}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
+                {formatContactPerson(l.contact_person, l.contact_title)}
                 {l.contact_designation && (
                   <span className="text-[10px] text-zinc-400 font-normal ml-1">({l.contact_designation})</span>
                 )}
@@ -727,7 +728,7 @@ export default function LeadsRegistryPage() {
             )}
             {l.phone && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+                <ContactPhoneLink phone={l.phone} country={l.country || 'India'} name={l.contact_person || l.name} />
               </div>
             )}
           </div>
@@ -740,7 +741,7 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-center',
+      className: 'w-[110px] min-w-[100px] whitespace-nowrap text-center',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
@@ -763,13 +764,13 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Lead Status',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[110px] min-w-[100px] whitespace-nowrap text-center',
       sortValue: (l) => `${l.status}_${l.is_cold ? '1' : '0'}`,
       accessor: (l) => renderStatusBadge(l)
     },
     {
       header: 'Next step',
-      className: 'w-[170px] min-w-[170px] whitespace-nowrap text-center',
+      className: 'w-[115px] min-w-[105px] whitespace-nowrap text-center',
       sortable: false,
       accessor: (l: Lead) => {
         let content: React.ReactNode = null;
@@ -884,7 +885,7 @@ export default function LeadsRegistryPage() {
         }
 
         return (
-          <div className="w-[170px] whitespace-nowrap flex items-center justify-center text-center">
+          <div className="whitespace-nowrap flex items-center justify-center text-center mx-auto">
             {content}
           </div>
         );
@@ -915,11 +916,11 @@ export default function LeadsRegistryPage() {
           ${industryName ? `<div style="font-size: 9px; font-weight: 800; color: #9e1b1d; text-transform: uppercase; margin-top: 2px;">${industryName}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
-          <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
+          <div style="font-weight: 600; color: #1a202c;">${formatContactPerson(l.contact_person, l.contact_title)}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
-          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
+          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${formatPhoneNumber(l.phone, l.country || 'India')}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Unassigned'}</td>
         <td style="text-align: center;">
@@ -972,7 +973,7 @@ export default function LeadsRegistryPage() {
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
         <th style="text-align: left;">Area/Locality</th>
-        <th style="text-align: left;">Zone</th>
+        <th style="text-align: center;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Lead Status</th>
@@ -1525,8 +1526,16 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
       toast.error('Customer Name is required');
       return;
     }
-    if (!phone.trim()) {
-      toast.error('Contact phone number is required');
+    if (!industryId) {
+      toast.error('Industry Sector is required');
+      return;
+    }
+    if (!city.trim()) {
+      toast.error('City is required');
+      return;
+    }
+    if (!state.trim()) {
+      toast.error('State is required');
       return;
     }
     if (email.trim()) {
@@ -1626,7 +1635,8 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
           {/* Customer Name & Industry Sector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Building2 size={13} className="text-[#C82A2B]" />
                 Customer Name *
               </label>
               <input
@@ -1640,9 +1650,9 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#9E1B1D]" />
-                Industry Sector
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#C82A2B]" />
+                Industry Sector *
               </label>
               <Select
                 value={industryId}
@@ -1701,20 +1711,13 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
 
           {/* Contact Number & Email Address */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Phone size={13} className="text-[#9E1B1D]" />
-                Contact Number *
-              </label>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +91 98450 12345"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+            <PhoneInput
+              label="Contact Number"
+              value={phone}
+              onChange={setPhone}
+              country={country}
+              onCountryChange={setCountry}
+            />
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
@@ -1753,11 +1756,13 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  City
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  City *
                 </label>
                 <input
                   type="text"
+                  required
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -1766,11 +1771,13 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  State
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  State *
                 </label>
                 <input
                   type="text"
+                  required
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -1887,7 +1894,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                     isZoneDropdownOpen
                       ? zoneSearchQuery
                       : selectedZone
-                      ? `${selectedZone.name}${selectedZone.code ? ` (${selectedZone.code})` : ''}`
+                      ? selectedZone.name
                       : zoneSearchQuery
                   }
                   onChange={(e) => {
@@ -2177,26 +2184,54 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     return (zones || []).filter(z => String(z.branch_id) === String(effectiveBranchId));
   }, [zones, effectiveBranchId]);
 
+  const isConvertingFeed = Boolean(prefillData || (editingLead && (editingLead.status === 'Feeds' || editingLead.status === 'Open Feeds' || editingLead.status === 'Contacted Leads')));
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Lead / Company name is required');
+      toast.error('Customer / Lead name is required');
+      return;
+    }
+    if (!industryId) {
+      toast.error('Industry Sector is required');
       return;
     }
     if (!phone.trim()) {
       toast.error('Primary phone number is required');
       return;
     }
-    if (!email.trim()) {
-      toast.error('Email address is required');
+    if (!contactTitle) {
+      toast.error('Contact person salutation is required');
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error('Please enter a valid email address');
+    if (!contactPerson.trim()) {
+      toast.error('Contact person name is required');
       return;
+    }
+    if (!contactDesignation.trim()) {
+      toast.error('Contact person designation is required');
+      return;
+    }
+    if (!address.trim()) {
+      toast.error('Street Address is required');
+      return;
+    }
+    if (!city.trim()) {
+      toast.error('City is required');
+      return;
+    }
+    if (!state.trim()) {
+      toast.error('State is required');
+      return;
+    }
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -2207,8 +2242,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
-        email: email.trim().toLowerCase(),
-        source: source.trim() || null,
+        email: email.trim() ? email.trim().toLowerCase() : null,
+        source: isEditing ? (editingLead?.source || null) : (source.trim() || null),
         requirements: requirements.trim() || null,
         industry_id: industryId || null,
         address: address.trim() || null,
@@ -2219,19 +2254,19 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         pincode: pincode.trim() || null,
         country: country.trim() || 'India',
         branch_id: isEditing
-          ? (branchId || null)
+          ? (editingLead?.branch_id || branchId || null)
           : intakeRole === 'hq_staff'
           ? (branchId || null)
           : (userBranchId ? String(userBranchId) : branchId || null),
         zone_id: zoneId ? parseInt(zoneId, 10) : null,
         assigned_staff_id: isEditing
-          ? (assignedStaffId || null)
+          ? (editingLead?.assigned_staff_id || null)
           : intakeRole === 'salesperson'
           ? (assignedStaffId || (currentUser?.employeeRecordId ? String(currentUser.employeeRecordId) : null))
           : intakeRole === 'branch_staff'
           ? (assignedStaffId || null)
           : null,
-        status: isEditing ? (status || 'New Leads') : derivedIntakeStage,
+        status: isEditing ? (editingLead?.status || 'New Leads') : derivedIntakeStage,
         remarks: remarks.trim() || null
       });
     } finally {
@@ -2254,15 +2289,15 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 {editingLead ? (editingLead.lead_code || `Lead #${editingLead.id}`) : 'Lead Pipeline'}
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-rose-200 border border-white/15 text-[9px] font-black uppercase tracking-wider">
-                {prefillData ? 'Convert Feed to Lead' : editingLead ? 'Edit Profile' : 'New Prospect'}
+                {isConvertingFeed ? 'Customer Update • Convert to Lead' : editingLead ? 'Edit Profile' : 'New Prospect'}
               </span>
             </div>
             <h3 className="text-2xl font-black italic tracking-tight">
-              {prefillData ? 'Convert Field Feed to Lead' : editingLead ? 'Edit Lead Profile' : 'Add New Commercial Lead'}
+              {isConvertingFeed ? 'Customer Update — Convert Feed to Lead' : editingLead ? 'Edit Lead Profile' : 'Add New Commercial Lead'}
             </h3>
             <p className="text-xs text-zinc-300 font-semibold mt-0.5">
-              {prefillData
-                ? 'Review and complete information from the field intake to advance into the pipeline'
+              {isConvertingFeed
+                ? 'Update mandatory contact person details and address to graduate this feed into the active commercial pipeline'
                 : editingLead ? `Update details for ${editingLead.name}` : 'Register full prospect profile to initiate the 11-stage sales funnel'}
             </p>
           </div>
@@ -2310,8 +2345,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           )}
           {/* Company Name */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Building2 size={13} className="text-[#9E1B1D]" />
+            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+              <Building2 size={13} className="text-[#C82A2B]" />
               Lead / Company Name *
             </label>
             <input
@@ -2327,12 +2362,13 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
           {/* Contact Person Details: Title + Full Name + Designation */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <User size={13} className="text-[#9E1B1D]" />
-              Contact Person Details
+            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+              <User size={13} className="text-[#C82A2B]" />
+              Contact Person Details *
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Salutation *</span>
                 <Select
                   value={contactTitle}
                   onChange={(val) => setContactTitle(val)}
@@ -2345,9 +2381,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   ]}
                 />
               </div>
-              <div className="sm:col-span-5">
+              <div className="sm:col-span-5 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Contact Person Name *</span>
                 <input
                   type="text"
+                  required
                   value={contactPerson}
                   onChange={(e) => setContactPerson(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2355,9 +2393,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-4 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Designation *</span>
                 <input
                   type="text"
+                  required
                   value={contactDesignation}
                   onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2370,28 +2410,21 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
           {/* Phone & Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Phone size={13} className="text-[#9E1B1D]" />
-                Primary Phone Number *
-              </label>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +91 98765 43210"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+            <PhoneInput
+              required
+              label="Primary Phone Number *"
+              value={phone}
+              onChange={setPhone}
+              country={country}
+              onCountryChange={setCountry}
+            />
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
-                Email Address *
+                Email Address
               </label>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@acme.com"
@@ -2400,12 +2433,12 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
-          {/* Sector, Source, Branch, Salesperson, and Stage Grid */}
+          {/* Sector, Source, Branch, Salesperson Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#9E1B1D]" />
-                Industry Sector
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#C82A2B]" />
+                Industry Sector *
               </label>
               <Select
                 value={industryId}
@@ -2418,24 +2451,27 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Compass size={13} className="text-[#9E1B1D]" />
-                Lead Source
-              </label>
-              <Select
-                value={source}
-                onChange={(val) => setSource(val)}
-                options={[
-                  { value: 'Direct Visit', label: 'Direct Visit' },
-                  { value: 'Referral', label: 'Referral' },
-                  { value: 'Website', label: 'Website' },
-                  { value: 'Phone Enquiry', label: 'Phone Enquiry' },
-                  { value: 'Exhibition', label: 'Exhibition' },
-                  { value: 'Other', label: 'Other' }
-                ]}
-              />
-            </div>
+            {/* Lead Source: Only on creation, not in edit */}
+            {!isEditing && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                  <Compass size={13} className="text-[#9E1B1D]" />
+                  Lead Source
+                </label>
+                <Select
+                  value={source}
+                  onChange={(val) => setSource(val)}
+                  options={[
+                    { value: 'Direct Visit', label: 'Direct Visit' },
+                    { value: 'Referral', label: 'Referral' },
+                    { value: 'Website', label: 'Website' },
+                    { value: 'Phone Enquiry', label: 'Phone Enquiry' },
+                    { value: 'Exhibition', label: 'Exhibition' },
+                    { value: 'Other', label: 'Other' }
+                  ]}
+                />
+              </div>
+            )}
 
             {/* Branch Assignment Provision: Visible for HQ staff or when editing */}
             {(isEditing || intakeRole === 'hq_staff') && (
@@ -2475,13 +2511,13 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 placeholder={effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}
                 options={availableZones.map((z) => ({
                   value: String(z.id),
-                  label: `${z.name} ${z.code ? `(${z.code})` : ''}`
+                  label: z.name
                 }))}
               />
             </div>
 
-            {/* Salesperson Assignment Provision: Visible for Branch staff or when editing */}
-            {(isEditing || intakeRole === 'branch_staff') && (
+            {/* Salesperson Assignment Provision: Only on creation for branch staff, not in edit */}
+            {!isEditing && intakeRole === 'branch_staff' && (
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                   <ShieldCheck size={13} className="text-[#9E1B1D]" />
@@ -2500,24 +2536,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                         label: `${emp.full_name} (${emp.employee_id})`
                       }))
                   ]}
-                />
-              </div>
-            )}
-
-            {/* Pipeline Stage Provision: Visible ONLY when editing an existing lead */}
-            {isEditing && (
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Layers size={13} className="text-[#9E1B1D]" />
-                  Pipeline Stage
-                </label>
-                <Select
-                  value={status}
-                  onChange={(val) => setStatus(val as any)}
-                  options={PIPELINE_STAGES.map(s => ({
-                    value: s.key,
-                    label: s.label
-                  }))}
                 />
               </div>
             )}
@@ -2542,11 +2560,13 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           {/* Address & City */}
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                Street Address
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#C82A2B]" />
+                Street Address *
               </label>
               <input
                 type="text"
+                required
                 value={address}
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
                 autoCapitalize="words"
@@ -2557,9 +2577,10 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">City</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B]">City *</label>
                 <input
                   type="text"
+                  required
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2568,9 +2589,10 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">State</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B]">State *</label>
                 <input
                   type="text"
+                  required
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2911,24 +2933,39 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         }
       }
 
-      // Stage milestones when no activities recorded yet
-      if (mapped.length === 0) {
-        if (selectedStageTab === 'Feeds' && lead.requirements) {
-          mapped = [{
-            id: 'milestone_feed',
+      // Always include enquiry requirements as the first contact log when viewing lead / feed contact logs
+      if (lead.requirements && (selectedStageTab === 'Leads' || selectedStageTab === 'Feeds')) {
+        const hasEnquiryLog = mapped.some(m => 
+          m.id === 'enquiry_requirements_log' || 
+          m.activity_type === 'Enquiry Requirements' || 
+          m.activity_type === 'First Contact Log' ||
+          m.remarks === lead.requirements ||
+          m.remarks === `Inquired Feed Requirements: ${lead.requirements}` ||
+          m.remarks === `Inquired Requirements: ${lead.requirements}`
+        );
+
+        if (!hasEnquiryLog) {
+          mapped.push({
+            id: 'enquiry_requirements_log',
             lead_id: lead.id,
-            stage: 'Feeds',
-            activity_type: 'Raw Feed Intake',
-            response_type: 'feed_recorded',
-            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
-            staff_name: 'Field Scout',
-            staff_employee_id: 'FIELD',
-            staff_designation: 'Field Agent',
-            staff_department: 'Field Scouting',
+            stage: selectedStageTab,
+            activity_type: 'Enquiry Requirements',
+            response_type: 'Initial Enquiry',
+            version_label: 'First Contact Log',
+            remarks: lead.requirements,
+            staff_name: lead.employees?.full_name || 'Customer / Intake',
+            staff_employee_id: lead.employees?.employee_id || 'ORIGIN',
+            staff_designation: 'Customer Intake',
+            staff_department: 'Field Scouting & Intake',
             staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.created_at
-          }];
-        } else if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
+          } as any);
+        }
+      }
+
+      // Stage milestones when no activities recorded yet
+      if (mapped.length === 0) {
+        if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
           mapped = [{
             id: 'milestone_deal',
             lead_id: lead.id,
@@ -2961,6 +2998,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         }
       }
 
+      mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setStageActivities(mapped);
     } catch (e) {
       console.error('Failed to load stage-specific activities', e);
@@ -3014,6 +3052,37 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           }))
           .reverse();
       }
+
+      if (lead.requirements && (selectedStageTab === 'Leads' || selectedStageTab === 'Feeds')) {
+        const hasEnquiryLog = derived.some(m => 
+          m.id === 'enquiry_requirements_log' || 
+          m.activity_type === 'Enquiry Requirements' || 
+          m.activity_type === 'First Contact Log' ||
+          m.remarks === lead.requirements ||
+          m.remarks === `Inquired Feed Requirements: ${lead.requirements}` ||
+          m.remarks === `Inquired Requirements: ${lead.requirements}`
+        );
+
+        if (!hasEnquiryLog) {
+          derived.push({
+            id: 'enquiry_requirements_log',
+            lead_id: lead.id,
+            stage: selectedStageTab,
+            activity_type: 'Enquiry Requirements',
+            response_type: 'Initial Enquiry',
+            version_label: 'First Contact Log',
+            remarks: lead.requirements,
+            staff_name: lead.employees?.full_name || 'Customer / Intake',
+            staff_employee_id: lead.employees?.employee_id || 'ORIGIN',
+            staff_designation: 'Customer Intake',
+            staff_department: 'Field Scouting & Intake',
+            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
+            created_at: lead.created_at
+          } as any);
+        }
+      }
+
+      derived.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setStageActivities(derived);
     } finally {
       setIsLoadingLogs(false);
@@ -3120,12 +3189,20 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             <div className="flex items-center gap-2">
               {lead.status === 'Feeds' && (
                 perms.canManageFeeds ? (
-                  <button
-                    onClick={onFeedOutcome}
-                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] text-white hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/20 cursor-pointer"
-                  >
-                    Follow-up
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={onFeedOutcome}
+                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white transition-all border border-white/20 cursor-pointer"
+                    >
+                      Follow-up
+                    </button>
+                    <button
+                      onClick={onConvertFeed}
+                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] text-white hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/20 cursor-pointer flex items-center gap-1.5"
+                    >
+                      Convert to Lead
+                    </button>
+                  </div>
                 ) : (
                   <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_feeds">
                     <Lock size={12} /> Feed Processing Locked
@@ -3600,16 +3677,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Inquired Requirements */}
-              {lead.requirements && (
-                <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
-                    Inquired Requirements
-                  </label>
-                  <p className="text-xs font-semibold text-zinc-800 leading-relaxed whitespace-pre-wrap">{lead.requirements}</p>
-                </div>
-              )}
             </div>
 
             {/* Right Column: Stage-Specific Activity Log Section (Zoho Style Timeline) */}
@@ -3648,12 +3715,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       Lead Status: <strong className="text-zinc-900">{lead.status}</strong>
                     </span>
                   </div>
-                  {lead.requirements && (
-                    <p className="text-xs font-semibold text-zinc-700">
-                      <span className="font-bold text-[#2d8d9b]">Origin Inquired Requirements: </span>
-                      {lead.requirements}
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -3934,6 +3995,9 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
       });
       toast.success(res.data?.message || 'Feed outcome updated!', { id: toastId });
       onSuccess(res.data?.lead);
+      if (responseType === 'positive' && onConvertToLead) {
+        onConvertToLead();
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to update feed outcome', { id: toastId });
     } finally {
@@ -3964,7 +4028,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
 
         {/* Field Contact Response Outcome Options */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
+          <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] block">
             Field Contact Response Outcome *
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -4051,7 +4115,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
                 : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
             }`}
           >
-            {isSubmitting ? 'Recording...' : 'Save Outcome'}
+            {isSubmitting ? 'Recording...' : responseType === 'positive' ? 'Save & Convert to Lead →' : 'Save Outcome'}
           </Button>
         </div>
       </div>
@@ -4124,7 +4188,7 @@ export const AssignBranchModal: React.FC<AssignBranchModalProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-500">Select Target Branch *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Select Target Branch *</label>
           <Select
             value={branchId}
             onChange={(val) => setBranchId(val)}
@@ -4230,7 +4294,7 @@ export const AssignStaffModal: React.FC<AssignStaffModalProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-500">Select Salesperson *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Select Salesperson *</label>
           <Select
             value={staffId}
             onChange={(val) => setStaffId(val)}
@@ -4342,7 +4406,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Call / Follow-up Outcome *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Call / Follow-up Outcome *</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {/* 1. Negative (Left) */}
             <button
@@ -4391,7 +4455,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Communication Remarks *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Communication Remarks *</label>
           <textarea
             rows={3}
             value={remarks}
@@ -4505,7 +4569,7 @@ export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
 
         {/* Outcome Choice Radio */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Meeting Decision *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Meeting Decision *</label>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -4562,7 +4626,7 @@ export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
 
         {/* Meeting Remarks */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Meeting Notes & Minutes *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Meeting Notes & Minutes *</label>
           <textarea
             rows={3}
             value={remarks}

@@ -605,7 +605,7 @@ export function UserActivityReportModal<T = any>({
           <thead>
             <tr>
               <th style="width: 35px;">#</th>
-              <th style="width: 140px;">Date & Time (IST)</th>
+              <th style="width: 140px; text-align: center; vertical-align: middle;">Date & Time (IST)</th>
               <th style="width: 190px;">Record / Entity</th>
               <th style="width: 150px;">Activity Type</th>
               <th>Details / Remarks / Follow-up Notes</th>
@@ -618,7 +618,7 @@ export function UserActivityReportModal<T = any>({
                 : filteredActivities.map((act, index) => `
                   <tr>
                     <td>${index + 1}</td>
-                    <td>${formatISTDateTime(act.timestamp)}</td>
+                    <td style="text-align: center; vertical-align: middle;">${formatISTDateTime(act.timestamp)}</td>
                     <td>
                       <strong>${act.itemTitle}</strong>
                       ${act.itemSubtitle ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${act.itemSubtitle}</div>` : ''}

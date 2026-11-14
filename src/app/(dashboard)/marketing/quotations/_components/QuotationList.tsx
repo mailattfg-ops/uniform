@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import toast from '@/components/ui/toast';
 import { Quotation, Organization } from '../page';
-import { formatDate, capitalizeFirstLetter } from '@/lib/formatters';
+import { formatDate, capitalizeFirstLetter, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
@@ -184,17 +184,17 @@ export default function QuotationList({
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => q.quotation_date || q.created_at || '',
       accessor: (q) => (
-        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap">
+        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap block text-center">
           {formatDate(q.quotation_date || q.created_at)}
         </span>
       )
     },
     {
       header: 'QUOTATION NO.',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[140px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.quotation_no,
       accessor: (q) => (
-        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
+        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate text-center">
           {q.quotation_no}
         </span>
       )
@@ -222,7 +222,7 @@ export default function QuotationList({
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => {
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         return fullOrg?.zones?.name || '';
@@ -231,11 +231,11 @@ export default function QuotationList({
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         const zoneName = fullOrg?.zones?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -263,8 +263,8 @@ export default function QuotationList({
         return (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[190px]">
             {person && (
-              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={`${title ? title + ' ' : ''}${person}`}>
-                {title ? `${title} ` : ''}{person}
+              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={formatContactPerson(person, title)}>
+                {formatContactPerson(person, title)}
               </span>
             )}
             {desig && (
@@ -274,7 +274,7 @@ export default function QuotationList({
             )}
             {ph && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={ph} name={person || org?.name} />
+                <ContactPhoneLink phone={ph} country={org?.country || 'India'} name={person || org?.name} />
               </div>
             )}
           </div>
@@ -307,15 +307,15 @@ export default function QuotationList({
     },
     {
       header: 'EXPECTED DATE',
-      className: 'w-[125px] whitespace-nowrap',
+      className: 'w-[125px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.expected_delivery_date || '',
       accessor: (q) => (
-        <div>
-          <p className="text-xs font-bold text-zinc-700">
+        <div className="text-center">
+          <p className="text-xs font-bold text-zinc-700 text-center">
             {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
           </p>
           {q.production_days_estimate ? (
-            <p className="text-[9px] font-bold text-zinc-400 mt-0.5">
+            <p className="text-[9px] font-bold text-zinc-400 mt-0.5 text-center">
               {q.production_days_estimate}d production
             </p>
           ) : null}
@@ -340,7 +340,7 @@ export default function QuotationList({
       )
     },
     {
-      header: 'STATUS',
+      header: 'QUOTE STATUS',
       className: 'w-[140px] whitespace-nowrap',
       sortValue: (q) => q.status,
       accessor: (q) => {
@@ -436,28 +436,28 @@ export default function QuotationList({
       const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
       const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
       const zoneName = fullOrg?.zones?.name || '—';
-      const person = fullOrg?.contact_person || '—';
+      const person = formatContactPerson(fullOrg?.contact_person, fullOrg?.contact_title);
       const desig = fullOrg?.contact_designation;
-      const phone = fullOrg?.contact_number || fullOrg?.phone || '—';
+      const phone = (fullOrg?.contact_number || fullOrg?.phone) ? formatPhoneNumber(fullOrg?.contact_number || fullOrg?.phone, fullOrg?.country || 'India') : '—';
       const sp = getSalesPerson(q)?.name || 'Unassigned';
 
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.quotation_date || q.created_at)}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap;">${q.quotation_no}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap; text-align: center; vertical-align: middle;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700;">${person}</div>
           ${desig ? `<div style="font-size: 8px; color: #a0aec0;">${desig}</div>` : ''}
           ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #718096; margin-top: 2px;">${phone}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${sp}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
         <td style="font-size: 10px; font-weight: bold; font-family: monospace; text-align: right; color: #1a202c;">
           ₹${(parseFloat(String(q.final_quote_value)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>
@@ -506,15 +506,15 @@ export default function QuotationList({
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th style="text-align: center;">DATE</th>
-        <th>QUOTATION NO.</th>
+        <th style="text-align: center; vertical-align: middle;">DATE</th>
+        <th style="text-align: center; vertical-align: middle;">QUOTATION NO.</th>
         <th style="text-align: left;">CUSTOMER NAME</th>
-        <th style="text-align: left;">ZONE</th>
+        <th style="text-align: center;">ZONE</th>
         <th style="text-align: left;">CONTACT</th>
         <th>SALES PERSON</th>
-        <th style="text-align: center;">EXPECTED DATE</th>
+        <th style="text-align: center; vertical-align: middle;">EXPECTED DATE</th>
         <th style="text-align: right;">AMOUNT</th>
-        <th style="text-align: center;">STATUS</th>
+        <th style="text-align: center;">QUOTE STATUS</th>
       </tr>
     </thead>
     <tbody>

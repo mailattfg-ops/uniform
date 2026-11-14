@@ -6,7 +6,7 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { 
   Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, Calendar,
   MoreVertical, Send, Check, ShieldCheck, Lock, Edit3, MessageSquare, AlertCircle, X, ChevronRight, Loader2
@@ -390,7 +390,7 @@ export default function DealsRegistryPage() {
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(l.created_at)}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
           ${(() => {
@@ -398,11 +398,11 @@ export default function DealsRegistryPage() {
             return indName ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${indName}</div>` : '';
           })()}
         </td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
-          <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
+          <div style="font-weight: 700; color: #1a202c;">${formatContactPerson(l.contact_person, l.contact_title)}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
-          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
+          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${formatPhoneNumber(l.phone, l.country || 'India')}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Unassigned'}</td>
         <td style="text-align: center;">
@@ -452,9 +452,9 @@ export default function DealsRegistryPage() {
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th style="text-align: center;">Date</th>
+        <th style="text-align: center; vertical-align: middle;">Date</th>
         <th style="text-align: left;">Customer Name</th>
-        <th style="text-align: left;">Zone</th>
+        <th style="text-align: center;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th style="text-align: center;">Status</th>
@@ -490,7 +490,7 @@ export default function DealsRegistryPage() {
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.created_at || '',
       accessor: (l) => (
-        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap">
+        <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap block text-center">
           {formatDate(l.created_at)}
         </span>
       )
@@ -517,16 +517,16 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -540,8 +540,8 @@ export default function DealsRegistryPage() {
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}`}>
-                {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(l.contact_person, l.contact_title)}`}>
+                {formatContactPerson(l.contact_person, l.contact_title)}
               </span>
             )}
             {l.contact_designation && (
@@ -551,7 +551,7 @@ export default function DealsRegistryPage() {
             )}
             {l.phone && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+                <ContactPhoneLink phone={l.phone} country={l.country || 'India'} name={l.contact_person || l.name} />
               </div>
             )}
           </div>
@@ -634,7 +634,7 @@ export default function DealsRegistryPage() {
         const { quoteAmount } = getDealFinancials(l);
         return (
           <div className="text-right">
-            <span className="text-xs font-mono font-black text-zinc-900">
+            <span className="text-xs md:text-sm font-mono font-black text-zinc-900">
               ₹{quoteAmount > 0 ? quoteAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
           </div>
@@ -649,7 +649,7 @@ export default function DealsRegistryPage() {
         const { advanceAmount } = getDealFinancials(l);
         return (
           <div className="text-right">
-            <span className="text-xs font-mono font-black text-emerald-700">
+            <span className="text-xs md:text-sm font-mono font-black text-emerald-700">
               ₹{advanceAmount > 0 ? advanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
           </div>

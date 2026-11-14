@@ -293,8 +293,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       className={`flex flex-col gap-1.5 group relative ${wrapperClassName} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {label && (
-        <label className={`text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] ml-1 transition-colors ${!disabled ? 'group-focus-within:text-[#C82A2B]' : ''}`}>
-          {label} {required && <span className="text-red-500">*</span>}
+        <label className={`text-[10px] font-black uppercase tracking-[0.2em] ${required || (typeof label === 'string' && label.includes('*')) ? 'text-[#C82A2B]' : 'text-[#8b6b5a]'} ml-1 transition-colors ${!disabled ? 'group-focus-within:text-[#C82A2B]' : ''}`}>
+          {label} {required && !label.includes('*') && <span className="text-[#C82A2B]">*</span>}
         </label>
       )}
 

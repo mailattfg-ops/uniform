@@ -244,8 +244,9 @@ export default function MeasurementApprovals() {
     },
     {
       header: 'Recorded On',
+      className: 'text-center align-middle',
       accessor: (m) => (
-        <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground whitespace-nowrap">
           <Calendar size={14} strokeWidth={2.5} />
           <span className="text-[10px] font-bold">{formatDate(m.recorded_at)}</span>
         </div>

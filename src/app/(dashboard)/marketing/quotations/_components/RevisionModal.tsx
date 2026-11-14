@@ -98,9 +98,9 @@ export const RevisionModal: React.FC<RevisionModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700 flex items-center justify-between">
-              <span>Revision Instructions / Feedback <span className="text-rose-500">*</span></span>
-              <span className="text-[9px] text-zinc-400 font-semibold">Required</span>
+            <label className="text-[11px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center justify-between">
+              <span>Revision Instructions / Feedback *</span>
+              <span className="text-[9px] text-[#C82A2B] font-semibold">Required</span>
             </label>
             <textarea
               rows={4}

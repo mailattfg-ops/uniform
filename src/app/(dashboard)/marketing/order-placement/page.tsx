@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { Barcode } from '@/components/ui/Barcode';
 import {
   Package,
@@ -460,8 +460,8 @@ export default function OrderPlacementPage() {
     const pincode = org?.delivery_pincode || metrics?.delivery_pincode || org?.pincode || '';
     
     const cityStatePin = [city, state].filter(Boolean).join(', ') + (pincode ? ` - ${pincode}` : '');
-    const contactPerson = org?.contact_person ? `${org?.contact_title ? org.contact_title + ' ' : ''}${org.contact_person}` : '';
-    const phone = org?.phone || '';
+    const contactPerson = formatContactPerson(org?.contact_person, org?.contact_title);
+    const phone = org?.phone ? formatPhoneNumber(org?.phone, org?.country || 'India') : '';
 
     return {
       orgName,
@@ -601,9 +601,9 @@ export default function OrderPlacementPage() {
   const awaitingColumns: Column<Quotation>[] = [
     {
       header: 'Quote No',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap text-center align-middle',
       accessor: (item) => (
-        <span className="font-mono font-bold text-zinc-900 text-xs">{item.quotation_no}</span>
+        <span className="font-mono font-bold text-zinc-900 text-xs block text-center">{item.quotation_no}</span>
       )
     },
     {
