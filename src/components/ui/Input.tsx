@@ -104,7 +104,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className={`flex flex-col gap-2 w-full group ${props.disabled ? 'opacity-40' : ''}`}>
       {label && (
-        <label className={`text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1 transition-colors ${!props.disabled ? 'group-focus-within:text-[#9E1B1D]' : ''}`}>
+        <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${props.required || (typeof label === 'string' && label.includes('*')) ? 'text-[#C82A2B]' : 'text-zinc-700'} ml-1 transition-colors ${!props.disabled ? 'group-focus-within:text-[#9E1B1D]' : ''}`}>
           {label}
         </label>
       )}

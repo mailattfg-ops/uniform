@@ -158,14 +158,12 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       toast.error('Primary phone number is required');
       return;
     }
-    if (!email.trim()) {
-      toast.error('Email address is required');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error('Please enter a valid email address');
-      return;
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -176,7 +174,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
-        email: email.trim().toLowerCase(),
+        email: email.trim() ? email.trim().toLowerCase() : null,
         industry_id: industryId || null,
         branch_id: branchId ? parseInt(branchId, 10) : null,
         zone_id: zoneId ? parseInt(zoneId, 10) : null,
@@ -235,8 +233,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto flex-1">
           {/* Customer / Institution Name */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Building2 size={13} className="text-[#9E1B1D]" />
+            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+              <Building2 size={13} className="text-[#C82A2B]" />
               Customer / Institution Name *
             </label>
             <input
@@ -291,8 +289,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {/* Phone & Email in 2 columns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Phone size={13} className="text-[#9E1B1D]" />
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Phone size={13} className="text-[#C82A2B]" />
                 Primary Phone Number *
               </label>
               <input
@@ -307,11 +305,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
-                Email Address *
+                Email Address
               </label>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. billing@institution.com"
@@ -323,8 +320,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {/* Sector, Classification, Account Status in 3 columns */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#9E1B1D]" />
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#C82A2B]" />
                 Customer Sector / Type *
               </label>
               <Select

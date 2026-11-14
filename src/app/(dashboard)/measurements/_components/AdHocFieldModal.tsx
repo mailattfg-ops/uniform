@@ -49,7 +49,8 @@ export function AdHocFieldModal({ isOpen, onClose, onAdd }: AdHocModalProps) {
           <div className="space-y-4">
             <Input 
               autoFocus
-              label="LABEL NAME"
+              required
+              label="LABEL NAME *"
               placeholder="e.g. Wrist Diameter..." 
               value={label}
               onChange={(e) => setLabel(e.target.value)}

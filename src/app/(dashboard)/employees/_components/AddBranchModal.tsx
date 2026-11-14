@@ -106,7 +106,7 @@ export const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose,
               />
             </div>
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">Branch Tier / Type *</label>
+              <label className="block text-[11px] font-black uppercase tracking-wider text-[#C82A2B] mb-1.5">Branch Tier / Type *</label>
               <Select
                 value={tier}
                 onChange={e => setTier(e.target.value)}
@@ -120,7 +120,7 @@ export const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose,
           </div>
 
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 mb-1.5">Branch Name *</label>
+            <label className="block text-[11px] font-black uppercase tracking-wider text-[#C82A2B] mb-1.5">Branch Name *</label>
             <input
               type="text"
               required

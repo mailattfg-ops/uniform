@@ -2189,6 +2189,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     return (zones || []).filter(z => String(z.branch_id) === String(effectiveBranchId));
   }, [zones, effectiveBranchId]);
 
+  const isConvertingFeed = Boolean(prefillData || (editingLead && (editingLead.status === 'Feeds' || editingLead.status === 'Open Feeds' || editingLead.status === 'Contacted Leads')));
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2203,6 +2205,22 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     }
     if (!phone.trim()) {
       toast.error('Primary phone number is required');
+      return;
+    }
+    if (!contactTitle) {
+      toast.error('Contact person salutation is required');
+      return;
+    }
+    if (!contactPerson.trim()) {
+      toast.error('Contact person name is required');
+      return;
+    }
+    if (!contactDesignation.trim()) {
+      toast.error('Contact person designation is required');
+      return;
+    }
+    if (!address.trim()) {
+      toast.error('Street Address is required');
       return;
     }
     if (!city.trim()) {
@@ -2276,15 +2294,15 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 {editingLead ? (editingLead.lead_code || `Lead #${editingLead.id}`) : 'Lead Pipeline'}
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-rose-200 border border-white/15 text-[9px] font-black uppercase tracking-wider">
-                {prefillData ? 'Convert Feed to Lead' : editingLead ? 'Edit Profile' : 'New Prospect'}
+                {isConvertingFeed ? 'Customer Update • Convert to Lead' : editingLead ? 'Edit Profile' : 'New Prospect'}
               </span>
             </div>
             <h3 className="text-2xl font-black italic tracking-tight">
-              {prefillData ? 'Convert Field Feed to Lead' : editingLead ? 'Edit Lead Profile' : 'Add New Commercial Lead'}
+              {isConvertingFeed ? 'Customer Update — Convert Feed to Lead' : editingLead ? 'Edit Lead Profile' : 'Add New Commercial Lead'}
             </h3>
             <p className="text-xs text-zinc-300 font-semibold mt-0.5">
-              {prefillData
-                ? 'Review and complete information from the field intake to advance into the pipeline'
+              {isConvertingFeed
+                ? 'Update mandatory contact person details and address to graduate this feed into the active commercial pipeline'
                 : editingLead ? `Update details for ${editingLead.name}` : 'Register full prospect profile to initiate the 11-stage sales funnel'}
             </p>
           </div>
@@ -2349,12 +2367,13 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
           {/* Contact Person Details: Title + Full Name + Designation */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <User size={13} className="text-[#9E1B1D]" />
-              Contact Person Details
+            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+              <User size={13} className="text-[#C82A2B]" />
+              Contact Person Details *
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Salutation *</span>
                 <Select
                   value={contactTitle}
                   onChange={(val) => setContactTitle(val)}
@@ -2367,9 +2386,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   ]}
                 />
               </div>
-              <div className="sm:col-span-5">
+              <div className="sm:col-span-5 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Contact Person Name *</span>
                 <input
                   type="text"
+                  required
                   value={contactPerson}
                   onChange={(e) => setContactPerson(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2377,9 +2398,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-4 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Designation *</span>
                 <input
                   type="text"
+                  required
                   value={contactDesignation}
                   onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2563,11 +2586,13 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           {/* Address & City */}
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                Street Address
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#C82A2B]" />
+                Street Address *
               </label>
               <input
                 type="text"
+                required
                 value={address}
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
                 autoCapitalize="words"
@@ -3190,12 +3215,20 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             <div className="flex items-center gap-2">
               {lead.status === 'Feeds' && (
                 perms.canManageFeeds ? (
-                  <button
-                    onClick={onFeedOutcome}
-                    className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] text-white hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/20 cursor-pointer"
-                  >
-                    Follow-up
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={onFeedOutcome}
+                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white transition-all border border-white/20 cursor-pointer"
+                    >
+                      Follow-up
+                    </button>
+                    <button
+                      onClick={onConvertFeed}
+                      className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] text-white hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/20 cursor-pointer flex items-center gap-1.5"
+                    >
+                      Convert to Lead
+                    </button>
+                  </div>
                 ) : (
                   <span className="px-3 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/70 border border-white/20 flex items-center gap-1.5 select-none" title="Requires permission: manage_lead_stage_feeds">
                     <Lock size={12} /> Feed Processing Locked
@@ -3988,6 +4021,9 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
       });
       toast.success(res.data?.message || 'Feed outcome updated!', { id: toastId });
       onSuccess(res.data?.lead);
+      if (responseType === 'positive' && onConvertToLead) {
+        onConvertToLead();
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to update feed outcome', { id: toastId });
     } finally {
@@ -4018,7 +4054,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
 
         {/* Field Contact Response Outcome Options */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
+          <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] block">
             Field Contact Response Outcome *
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -4105,7 +4141,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
                 : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
             }`}
           >
-            {isSubmitting ? 'Recording...' : 'Save Outcome'}
+            {isSubmitting ? 'Recording...' : responseType === 'positive' ? 'Save & Convert to Lead →' : 'Save Outcome'}
           </Button>
         </div>
       </div>
@@ -4178,7 +4214,7 @@ export const AssignBranchModal: React.FC<AssignBranchModalProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-500">Select Target Branch *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Select Target Branch *</label>
           <Select
             value={branchId}
             onChange={(val) => setBranchId(val)}
@@ -4284,7 +4320,7 @@ export const AssignStaffModal: React.FC<AssignStaffModalProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-500">Select Salesperson *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Select Salesperson *</label>
           <Select
             value={staffId}
             onChange={(val) => setStaffId(val)}
@@ -4396,7 +4432,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Call / Follow-up Outcome *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Call / Follow-up Outcome *</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {/* 1. Negative (Left) */}
             <button
@@ -4445,7 +4481,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Communication Remarks *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Communication Remarks *</label>
           <textarea
             rows={3}
             value={remarks}
@@ -4559,7 +4595,7 @@ export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
 
         {/* Outcome Choice Radio */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Meeting Decision *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Meeting Decision *</label>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -4616,7 +4652,7 @@ export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
 
         {/* Meeting Remarks */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase text-zinc-400">Meeting Notes & Minutes *</label>
+          <label className="text-[10px] font-black uppercase text-[#C82A2B]">Meeting Notes & Minutes *</label>
           <textarea
             rows={3}
             value={remarks}

@@ -279,9 +279,10 @@ export default function FeedsRegistryPage() {
     const loadingToast = toast.loading('Converting field feed to active lead...');
     try {
       if (convertingFeed) {
+        const targetBranchId = formData.branch_id || convertingFeed.branch_id;
         await api.put(`/leads/${convertingFeed.id}`, {
           ...formData,
-          status: 'Open Leads' // Advance from Feeds to Open Leads
+          status: targetBranchId ? 'New Leads' : 'Open Leads'
         });
       }
       toast.success('Feed graduated to active commercial pipeline!', { id: loadingToast });
