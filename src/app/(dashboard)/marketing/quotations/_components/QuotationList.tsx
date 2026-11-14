@@ -444,7 +444,7 @@ export default function QuotationList({
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(q.quotation_date || q.created_at)}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
         <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
@@ -457,7 +457,7 @@ export default function QuotationList({
           ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #718096; margin-top: 2px;">${phone}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${sp}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
         <td style="font-size: 10px; font-weight: bold; font-family: monospace; text-align: right; color: #1a202c;">
           ₹${(parseFloat(String(q.final_quote_value)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>
@@ -506,13 +506,13 @@ export default function QuotationList({
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th style="text-align: center;">DATE</th>
+        <th style="text-align: center; vertical-align: middle;">DATE</th>
         <th>QUOTATION NO.</th>
         <th style="text-align: left;">CUSTOMER NAME</th>
         <th style="text-align: center;">ZONE</th>
         <th style="text-align: left;">CONTACT</th>
         <th>SALES PERSON</th>
-        <th style="text-align: center;">EXPECTED DATE</th>
+        <th style="text-align: center; vertical-align: middle;">EXPECTED DATE</th>
         <th style="text-align: right;">AMOUNT</th>
         <th style="text-align: center;">STATUS</th>
       </tr>

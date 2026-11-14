@@ -266,9 +266,9 @@ export default function OperationTeamPage() {
     },
     {
       header: 'Delivery',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap text-center align-middle',
       accessor: (q) => (
-        <span className="font-bold text-xs text-zinc-500 whitespace-nowrap">
+        <span className="font-bold text-xs text-zinc-500 whitespace-nowrap block text-center">
           {formatDate(q.expected_delivery_date)}
         </span>
       )

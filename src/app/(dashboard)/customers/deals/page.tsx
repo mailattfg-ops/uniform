@@ -390,7 +390,7 @@ export default function DealsRegistryPage() {
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center;">${formatDate(l.created_at)}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(l.created_at)}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${l.name}</div>
           ${(() => {
@@ -452,7 +452,7 @@ export default function DealsRegistryPage() {
     <thead>
       <tr>
         <th style="width: 30px;">#</th>
-        <th style="text-align: center;">Date</th>
+        <th style="text-align: center; vertical-align: middle;">Date</th>
         <th style="text-align: left;">Customer Name</th>
         <th style="text-align: center;">Zone</th>
         <th style="text-align: left;">Contact</th>

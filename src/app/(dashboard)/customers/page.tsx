@@ -1541,7 +1541,7 @@ export default function CustomersRegistry() {
                         <th className="py-3 px-4 text-center">Customer</th>
                         <th className="py-3 px-4 text-center">Contact Details</th>
                         <th className="py-3 px-4 text-center">Reference / Type</th>
-                        <th className="py-3 px-4 text-center">Credit Terms & Due Date</th>
+                        <th className="py-3 px-4 text-center align-middle">Credit Terms & Due Date</th>
                         <th className="py-3 px-4 text-center">Status & Aging</th>
                         <th className="py-3 px-4 text-center">Outstanding Amount</th>
                       </tr>
@@ -1601,7 +1601,7 @@ export default function CustomersRegistry() {
                           </td>
 
                           {/* Credit Terms & Due Date */}
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-3.5 px-4 text-center align-middle">
                             <div className="flex flex-col items-center text-center">
                               <span className="font-black text-zinc-700 text-center">
                                 {item.due_date ? formatDate(item.due_date) : 'N/A'}

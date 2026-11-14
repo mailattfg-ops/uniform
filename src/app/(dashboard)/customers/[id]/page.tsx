@@ -5855,7 +5855,7 @@ function OrganizationDetailsPageContent() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b-2 border-zinc-900 text-zinc-600 uppercase text-[9px] font-black tracking-wider">
-                      <th className="py-2.5 px-2 text-center">Date</th>
+                      <th className="py-2.5 px-2 text-center align-middle">Date</th>
                       <th className="py-2.5 px-2 text-center">Voucher Type</th>
                       <th className="py-2.5 px-2 text-center">Description</th>
                       <th className="py-2.5 px-2 text-center">Amount</th>
@@ -5866,7 +5866,7 @@ function OrganizationDetailsPageContent() {
                   <tbody className="divide-y divide-zinc-200">
                     {/* Opening Balance Row */}
                     <tr className="bg-zinc-50 font-semibold text-zinc-700">
-                      <td className="py-2 px-2 whitespace-nowrap text-center font-bold text-zinc-400">—</td>
+                      <td className="py-2 px-2 whitespace-nowrap text-center font-bold text-zinc-400 align-middle">—</td>
                       <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">OB</td>
                       <td className="py-2 px-2 font-bold italic">Opening Balance (Brought Forward)</td>
                       <td className="py-2 px-2 text-right font-mono">
@@ -5883,7 +5883,7 @@ function OrganizationDetailsPageContent() {
                     {/* Period Transactions (No Time!) */}
                     {statementLedgerDetails.filteredTransactions.map((tx: any) => (
                       <tr key={tx.id} className="text-zinc-800">
-                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center">
+                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center align-middle">
                           {formatDate(tx.date)}
                         </td>
                         <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">{tx.reference_no}</td>

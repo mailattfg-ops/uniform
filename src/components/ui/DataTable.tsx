@@ -145,6 +145,21 @@ function getColumnValue<T>(item: T, col: Column<T>): any {
   return '';
 }
 
+const DATE_COLUMN_REGEX = /date|created|updated|dispatch|expected|shipment|registered|timestamp|delivery|recorded|setup|onboarded|valid[_\s-]?until|validity|expires?|expiry|follow-up|follow\s+up|captured|capture\s+log/i;
+
+function isDateColumn<T>(col: Column<T>): boolean {
+  let headerText = '';
+  if (typeof col.header === 'string') {
+    headerText = col.header;
+  } else if (col.header) {
+    headerText = extractTextFromReactNode(col.header);
+  }
+  if (DATE_COLUMN_REGEX.test(headerText)) return true;
+  if (typeof col.accessor === 'string' && DATE_COLUMN_REGEX.test(col.accessor)) return true;
+  if (col.className && /(^|\s)(date-col|col-date)(\s|$)/i.test(col.className)) return true;
+  return false;
+}
+
 export function DataTable<T extends { id: string | number }>({ 
   columns, 
   data, 
@@ -575,7 +590,7 @@ export function DataTable<T extends { id: string | number }>({
                 const isSticky = (isAction || isLast) && !isCollapsed;
                 const isSortable = col.sortable !== false && !isAction && !isCollapsed;
                 const isSorted = sortColumnIndex === idx;
-                const isDateCol = typeof col.header === 'string' && /date|created|updated|dispatch|expected|shipment|registered|timestamp/i.test(col.header);
+                const isDateCol = isDateColumn(col);
                 const isRightAligned = !isDateCol && col.className?.includes('text-right');
                 const isLeftAligned = !isDateCol && col.className?.includes('text-left');
                 const cleanedHeaderClass = isDateCol 
@@ -588,7 +603,7 @@ export function DataTable<T extends { id: string | number }>({
                     onClick={() => isSortable && handleSort(idx)}
                     aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                     title={isSortable ? `Click to sort by ${typeof col.header === 'string' ? col.header : 'column'} (${isSorted && sortDirection === 'asc' ? 'Descending' : 'Ascending'})` : undefined}
-                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-zinc-200/60 last:border-r-0 ${
+                    className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap select-none border-r border-zinc-200/60 last:border-r-0 align-middle ${
                       isLeftAligned ? 'text-left' : isRightAligned ? 'text-right' : 'text-center'
                     } ${
                       isSortable 
@@ -632,12 +647,12 @@ export function DataTable<T extends { id: string | number }>({
                     const isLast = j === columns.length - 1;
                     const isCollapsed = col.className?.includes('!w-0');
                     const isSticky = (isAction || isLast) && !isCollapsed;
-                    const isDateCol = typeof col.header === 'string' && /date|created|updated|dispatch|expected|shipment|registered|timestamp/i.test(col.header);
+                    const isDateCol = isDateColumn(col);
                     const isCenterCol = isDateCol || col.className?.includes('text-center');
                     return (
                       <td 
                         key={j} 
-                        className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 ${
+                        className={`transition-all duration-300 ease-in-out px-4 py-2 md:py-2.5 align-middle ${
                           isSticky ? 'sticky right-0 bg-white z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]' : ''
                         } ${isCenterCol ? 'text-center' : ''} ${col.className || ''}`}
                       >
@@ -675,20 +690,20 @@ export function DataTable<T extends { id: string | number }>({
                       const isCollapsed = col.className?.includes('!w-0');
                       const isSticky = (isAction || isLast) && !isCollapsed;
                       const isSorted = sortColumnIndex === idx;
-                      const isDateCol = typeof col.header === 'string' && /date|created|updated|dispatch|expected|shipment|registered|timestamp/i.test(col.header);
+                      const isDateCol = isDateColumn(col);
                       const isRightAligned = !isDateCol && col.className?.includes('text-right');
                       const isLeftAligned = !isDateCol && col.className?.includes('text-left');
                       const isCenterCol = isDateCol || col.className?.includes('text-center');
 
                       const alignmentClass = isDateCol
-                        ? 'text-center [&>*]:mx-auto [&>*]:text-center [&>.flex]:justify-center [&>.inline-flex]:justify-center'
+                        ? 'text-center align-middle [&>*]:mx-auto [&>*]:text-center [&>*]:justify-center [&_.flex]:justify-center [&_.inline-flex]:justify-center [&_.flex]:mx-auto [&_.inline-flex]:mx-auto'
                         : col.className?.includes('text-center')
-                          ? 'text-center [&>.flex]:justify-center [&>.inline-flex]:justify-center'
+                          ? 'text-center align-middle [&>.flex]:justify-center [&>.inline-flex]:justify-center'
                           : isRightAligned
-                            ? 'text-right'
+                            ? 'text-right align-middle'
                             : isLeftAligned
-                              ? 'text-left'
-                              : '';
+                              ? 'text-left align-middle'
+                              : 'align-middle';
 
                       const cleanedColClass = isDateCol
                         ? (col.className || '').replace(/\btext-left\b/g, '').replace(/\btext-right\b/g, '')
@@ -697,7 +712,7 @@ export function DataTable<T extends { id: string | number }>({
                       return (
                         <td 
                           key={idx} 
-                          className={`transition-all duration-300 ease-in-out px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-foreground ${
+                          className={`transition-all duration-300 ease-in-out px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-foreground align-middle ${
                             isSorted && !hasRedShade ? 'bg-red-50/20 font-semibold' : ''
                           } ${
                             isSticky 

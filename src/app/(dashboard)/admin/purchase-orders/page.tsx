@@ -526,7 +526,7 @@ export default function PurchaseOrdersPage() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-[#fce4d4]/10 border-b border-[#fce4d4]">
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Date Created</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center align-middle">Date Created</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Order Details</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Supplier</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Origin Type</th>
@@ -546,7 +546,7 @@ export default function PurchaseOrdersPage() {
                     <tr key={po.id} className="hover:bg-zinc-50/50 transition-colors group">
                       
                       {/* Date */}
-                      <td className="p-6 text-xs text-zinc-500 font-bold whitespace-nowrap text-center">
+                      <td className="p-6 text-xs text-zinc-500 font-bold whitespace-nowrap text-center align-middle">
                         <div className="flex items-center justify-center gap-1.5">
                           <Calendar size={12} className="text-zinc-400" />
                           {new Date(po.created_at).toLocaleString()}
