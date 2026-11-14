@@ -398,7 +398,7 @@ export default function DealsRegistryPage() {
             return indName ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${indName}</div>` : '';
           })()}
         </td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '—'}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 700; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -454,7 +454,7 @@ export default function DealsRegistryPage() {
         <th style="width: 30px;">#</th>
         <th style="text-align: center;">Date</th>
         <th style="text-align: left;">Customer Name</th>
-        <th style="text-align: left;">Zone</th>
+        <th style="text-align: center;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th style="text-align: center;">Status</th>
@@ -517,16 +517,16 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );

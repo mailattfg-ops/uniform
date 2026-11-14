@@ -172,12 +172,9 @@ export default function FeedsRegistryPage() {
     return !isFeedContacted(lead);
   }, [isFeedContacted]);
 
-  const getRowClassName = useCallback((l: Lead) => {
-    if (isNoFollowupFeed(l)) {
-      return '!bg-rose-50/75 hover:!bg-rose-100/75 transition-colors border-b border-rose-200/50';
-    }
+  const getRowClassName = useCallback((_l: Lead) => {
     return undefined;
-  }, [isNoFollowupFeed]);
+  }, []);
 
   // Compute feed counts by status
   const feedCounts = useMemo(() => {
@@ -341,7 +338,7 @@ export default function FeedsRegistryPage() {
           <div>${l.name}</div>
         </td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -389,7 +386,7 @@ export default function FeedsRegistryPage() {
         <th style="width: 25px; text-align: center;">#</th>
         <th>Prospect / Organization</th>
         <th style="text-align: left;">Area/Locality</th>
-        <th style="text-align: left;">Zone</th>
+        <th style="text-align: center;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th style="text-align: center;">Feed Status</th>
         <th>Scouted By</th>
@@ -465,16 +462,16 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -649,7 +646,7 @@ export default function FeedsRegistryPage() {
               value={selectedZone}
               onChange={(val) => setSelectedZone(val)}
               options={availableFilterZones.map((z) => ({
-                label: `${z.name}${z.code ? ` (${z.code})` : ''}`,
+                label: z.name,
                 value: String(z.id),
                 badge: feedsList.filter(l => String(l.zone_id) === String(z.id)).length
               }))}

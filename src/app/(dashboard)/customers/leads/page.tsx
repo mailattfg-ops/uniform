@@ -637,7 +637,7 @@ export default function LeadsRegistryPage() {
     const isOtherInactive = l.status === 'New Leads' && daysInactive >= 3;
 
     return (
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-center gap-1 mx-auto">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${cls}`}>
           {l.status === 'Hot Leads' && <Flame size={11} className="text-orange-500" />}
           {l.status}
@@ -656,7 +656,7 @@ export default function LeadsRegistryPage() {
   const columns: Column<Lead>[] = useMemo(() => [
     {
       header: 'Customer Name',
-      className: 'min-w-[180px] max-w-[280px] text-left',
+      className: 'min-w-[150px] max-w-[200px] text-left',
       sortValue: (l) => l.name,
       accessor: (l) => {
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
@@ -676,7 +676,7 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Area/Locality',
-      className: 'w-[160px] min-w-[140px] whitespace-nowrap text-left',
+      className: 'w-[125px] min-w-[110px] whitespace-nowrap text-left',
       sortValue: (l) => [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '',
       accessor: (l) => {
         const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '';
@@ -695,16 +695,16 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Zone',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[90px] min-w-[80px] whitespace-nowrap text-center',
       sortValue: (l) => l.zones?.name || (zones.find(z => z.id === l.zone_id)?.name) || '',
       accessor: (l) => {
         const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
@@ -712,7 +712,7 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Contact',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      className: 'w-[130px] min-w-[120px] whitespace-nowrap text-left',
       sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
         l.contact_person || l.phone ? (
@@ -740,7 +740,7 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Sales Person',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-center',
+      className: 'w-[110px] min-w-[100px] whitespace-nowrap text-center',
       sortValue: (l) => l.employees?.full_name || '',
       accessor: (l) => (
         l.employees ? (
@@ -763,13 +763,13 @@ export default function LeadsRegistryPage() {
     },
     {
       header: 'Lead Status',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[110px] min-w-[100px] whitespace-nowrap text-center',
       sortValue: (l) => `${l.status}_${l.is_cold ? '1' : '0'}`,
       accessor: (l) => renderStatusBadge(l)
     },
     {
       header: 'Next step',
-      className: 'w-[170px] min-w-[170px] whitespace-nowrap text-center',
+      className: 'w-[115px] min-w-[105px] whitespace-nowrap text-center',
       sortable: false,
       accessor: (l: Lead) => {
         let content: React.ReactNode = null;
@@ -884,7 +884,7 @@ export default function LeadsRegistryPage() {
         }
 
         return (
-          <div className="w-[170px] whitespace-nowrap flex items-center justify-center text-center">
+          <div className="whitespace-nowrap flex items-center justify-center text-center mx-auto">
             {content}
           </div>
         );
@@ -915,7 +915,7 @@ export default function LeadsRegistryPage() {
           ${industryName ? `<div style="font-size: 9px; font-weight: 800; color: #9e1b1d; text-transform: uppercase; margin-top: 2px;">${industryName}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName || '—'}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
           <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
@@ -972,7 +972,7 @@ export default function LeadsRegistryPage() {
         <th style="width: 35px;">#</th>
         <th>Customer Name</th>
         <th style="text-align: left;">Area/Locality</th>
-        <th style="text-align: left;">Zone</th>
+        <th style="text-align: center;">Zone</th>
         <th style="text-align: left;">Contact</th>
         <th>Sales Person</th>
         <th>Lead Status</th>
@@ -1887,7 +1887,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                     isZoneDropdownOpen
                       ? zoneSearchQuery
                       : selectedZone
-                      ? `${selectedZone.name}${selectedZone.code ? ` (${selectedZone.code})` : ''}`
+                      ? selectedZone.name
                       : zoneSearchQuery
                   }
                   onChange={(e) => {
@@ -2475,7 +2475,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 placeholder={effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}
                 options={availableZones.map((z) => ({
                   value: String(z.id),
-                  label: `${z.name} ${z.code ? `(${z.code})` : ''}`
+                  label: z.name
                 }))}
               />
             </div>
@@ -2911,24 +2911,39 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         }
       }
 
-      // Stage milestones when no activities recorded yet
-      if (mapped.length === 0) {
-        if (selectedStageTab === 'Feeds' && lead.requirements) {
-          mapped = [{
-            id: 'milestone_feed',
+      // Always include enquiry requirements as the first contact log when viewing lead / feed contact logs
+      if (lead.requirements && (selectedStageTab === 'Leads' || selectedStageTab === 'Feeds')) {
+        const hasEnquiryLog = mapped.some(m => 
+          m.id === 'enquiry_requirements_log' || 
+          m.activity_type === 'Enquiry Requirements' || 
+          m.activity_type === 'First Contact Log' ||
+          m.remarks === lead.requirements ||
+          m.remarks === `Inquired Feed Requirements: ${lead.requirements}` ||
+          m.remarks === `Inquired Requirements: ${lead.requirements}`
+        );
+
+        if (!hasEnquiryLog) {
+          mapped.push({
+            id: 'enquiry_requirements_log',
             lead_id: lead.id,
-            stage: 'Feeds',
-            activity_type: 'Raw Feed Intake',
-            response_type: 'feed_recorded',
-            remarks: `Inquired Feed Requirements: ${lead.requirements}`,
-            staff_name: 'Field Scout',
-            staff_employee_id: 'FIELD',
-            staff_designation: 'Field Agent',
-            staff_department: 'Field Scouting',
+            stage: selectedStageTab,
+            activity_type: 'Enquiry Requirements',
+            response_type: 'Initial Enquiry',
+            version_label: 'First Contact Log',
+            remarks: lead.requirements,
+            staff_name: lead.employees?.full_name || 'Customer / Intake',
+            staff_employee_id: lead.employees?.employee_id || 'ORIGIN',
+            staff_designation: 'Customer Intake',
+            staff_department: 'Field Scouting & Intake',
             staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.created_at
-          }];
-        } else if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
+          } as any);
+        }
+      }
+
+      // Stage milestones when no activities recorded yet
+      if (mapped.length === 0) {
+        if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
           mapped = [{
             id: 'milestone_deal',
             lead_id: lead.id,
@@ -2961,6 +2976,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         }
       }
 
+      mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setStageActivities(mapped);
     } catch (e) {
       console.error('Failed to load stage-specific activities', e);
@@ -3014,6 +3030,37 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           }))
           .reverse();
       }
+
+      if (lead.requirements && (selectedStageTab === 'Leads' || selectedStageTab === 'Feeds')) {
+        const hasEnquiryLog = derived.some(m => 
+          m.id === 'enquiry_requirements_log' || 
+          m.activity_type === 'Enquiry Requirements' || 
+          m.activity_type === 'First Contact Log' ||
+          m.remarks === lead.requirements ||
+          m.remarks === `Inquired Feed Requirements: ${lead.requirements}` ||
+          m.remarks === `Inquired Requirements: ${lead.requirements}`
+        );
+
+        if (!hasEnquiryLog) {
+          derived.push({
+            id: 'enquiry_requirements_log',
+            lead_id: lead.id,
+            stage: selectedStageTab,
+            activity_type: 'Enquiry Requirements',
+            response_type: 'Initial Enquiry',
+            version_label: 'First Contact Log',
+            remarks: lead.requirements,
+            staff_name: lead.employees?.full_name || 'Customer / Intake',
+            staff_employee_id: lead.employees?.employee_id || 'ORIGIN',
+            staff_designation: 'Customer Intake',
+            staff_department: 'Field Scouting & Intake',
+            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
+            created_at: lead.created_at
+          } as any);
+        }
+      }
+
+      derived.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setStageActivities(derived);
     } finally {
       setIsLoadingLogs(false);
@@ -3600,16 +3647,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Inquired Requirements */}
-              {lead.requirements && (
-                <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
-                    Inquired Requirements
-                  </label>
-                  <p className="text-xs font-semibold text-zinc-800 leading-relaxed whitespace-pre-wrap">{lead.requirements}</p>
-                </div>
-              )}
             </div>
 
             {/* Right Column: Stage-Specific Activity Log Section (Zoho Style Timeline) */}
@@ -3648,12 +3685,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       Lead Status: <strong className="text-zinc-900">{lead.status}</strong>
                     </span>
                   </div>
-                  {lead.requirements && (
-                    <p className="text-xs font-semibold text-zinc-700">
-                      <span className="font-bold text-[#2d8d9b]">Origin Inquired Requirements: </span>
-                      {lead.requirements}
-                    </p>
-                  )}
                 </div>
               )}
 

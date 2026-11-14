@@ -421,7 +421,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 onChange={setZoneId}
                 disabled={!branchId}
                 options={availableZones.map((z) => ({
-                  label: `${z.name} ${z.code ? `(${z.code})` : ''}`.trim(),
+                  label: z.name,
                   value: String(z.id)
                 }))}
                 className="rounded-2xl py-3"

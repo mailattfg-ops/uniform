@@ -146,7 +146,7 @@ function compileCustomerDirectoryHTML({
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: left;">${zoneName}</td>
+        <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName}</td>
         <td style="font-size: 10px; color: #4a5568;">
           <div style="font-weight: 600;">${contactPerson}</div>
           ${designation ? `<div style="color: #a0aec0; font-size: 8px;">${designation}</div>` : ''}
@@ -426,7 +426,7 @@ function compileCustomerDirectoryHTML({
         <th style="width: 80px;">CUST. ID</th>
         <th>CUSTOMER NAME</th>
         <th style="text-align: left;">AREA/LOCALITY</th>
-        <th style="text-align: left;">ZONE</th>
+        <th style="text-align: center;">ZONE</th>
         <th>CONTACT</th>
         <th style="text-align: right; width: 85px;">RECEIVABLES</th>
         <th style="text-align: right; width: 80px;">CREDITS</th>
@@ -1095,16 +1095,16 @@ export default function CustomersRegistry() {
     },
     {
       header: 'ZONE',
-      className: 'w-[130px] min-w-[110px] whitespace-nowrap text-left',
+      className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (c) => c.zones?.name || (zones.find(z => z.id === c.zone_id)?.name) || '',
       accessor: (c) => {
         const zoneName = c.zones?.name || zones.find(z => z.id === c.zone_id)?.name;
         return zoneName ? (
-          <div className="text-xs font-medium text-zinc-700 truncate text-left" title={zoneName}>
+          <div className="text-xs font-medium text-zinc-700 truncate text-center" title={zoneName}>
             <span className="truncate">{zoneName}</span>
           </div>
         ) : (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-zinc-400 text-xs italic font-medium">—</span>
           </div>
         );
