@@ -1525,8 +1525,16 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
       toast.error('Customer Name is required');
       return;
     }
-    if (!phone.trim()) {
-      toast.error('Contact phone number is required');
+    if (!industryId) {
+      toast.error('Industry Sector is required');
+      return;
+    }
+    if (!city.trim()) {
+      toast.error('City is required');
+      return;
+    }
+    if (!state.trim()) {
+      toast.error('State is required');
       return;
     }
     if (email.trim()) {
@@ -1626,7 +1634,8 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
           {/* Customer Name & Industry Sector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Building2 size={13} className="text-[#C82A2B]" />
                 Customer Name *
               </label>
               <input
@@ -1640,9 +1649,9 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#9E1B1D]" />
-                Industry Sector
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#C82A2B]" />
+                Industry Sector *
               </label>
               <Select
                 value={industryId}
@@ -1704,11 +1713,10 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Phone size={13} className="text-[#9E1B1D]" />
-                Contact Number *
+                Contact Number
               </label>
               <input
                 type="text"
-                required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. +91 98450 12345"
@@ -1753,11 +1761,13 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  City
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  City *
                 </label>
                 <input
                   type="text"
+                  required
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -1766,11 +1776,13 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  State
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  State *
                 </label>
                 <input
                   type="text"
+                  required
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2182,21 +2194,31 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Lead / Company name is required');
+      toast.error('Customer / Lead name is required');
+      return;
+    }
+    if (!industryId) {
+      toast.error('Industry Sector is required');
       return;
     }
     if (!phone.trim()) {
       toast.error('Primary phone number is required');
       return;
     }
-    if (!email.trim()) {
-      toast.error('Email address is required');
+    if (!city.trim()) {
+      toast.error('City is required');
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error('Please enter a valid email address');
+    if (!state.trim()) {
+      toast.error('State is required');
       return;
+    }
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -2207,7 +2229,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
-        email: email.trim().toLowerCase(),
+        email: email.trim() ? email.trim().toLowerCase() : null,
         source: source.trim() || null,
         requirements: requirements.trim() || null,
         industry_id: industryId || null,
@@ -2310,8 +2332,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           )}
           {/* Company Name */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Building2 size={13} className="text-[#9E1B1D]" />
+            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+              <Building2 size={13} className="text-[#C82A2B]" />
               Lead / Company Name *
             </label>
             <input
@@ -2371,8 +2393,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           {/* Phone & Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Phone size={13} className="text-[#9E1B1D]" />
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Phone size={13} className="text-[#C82A2B]" />
                 Primary Phone Number *
               </label>
               <input
@@ -2387,11 +2409,10 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
-                Email Address *
+                Email Address
               </label>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@acme.com"
@@ -2403,9 +2424,9 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           {/* Sector, Source, Branch, Salesperson, and Stage Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#9E1B1D]" />
-                Industry Sector
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#C82A2B]" />
+                Industry Sector *
               </label>
               <Select
                 value={industryId}
@@ -2557,9 +2578,10 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">City</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B]">City *</label>
                 <input
                   type="text"
+                  required
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -2568,9 +2590,10 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">State</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B]">State *</label>
                 <input
                   type="text"
+                  required
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
