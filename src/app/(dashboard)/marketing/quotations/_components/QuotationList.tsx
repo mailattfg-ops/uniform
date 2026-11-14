@@ -191,10 +191,10 @@ export default function QuotationList({
     },
     {
       header: 'QUOTATION NO.',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[140px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.quotation_no,
       accessor: (q) => (
-        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate">
+        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate text-center">
           {q.quotation_no}
         </span>
       )
@@ -307,7 +307,7 @@ export default function QuotationList({
     },
     {
       header: 'EXPECTED DATE',
-      className: 'w-[125px] whitespace-nowrap text-center',
+      className: 'w-[125px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.expected_delivery_date || '',
       accessor: (q) => (
         <div className="text-center">
@@ -340,7 +340,7 @@ export default function QuotationList({
       )
     },
     {
-      header: 'STATUS',
+      header: 'QUOTE STATUS',
       className: 'w-[140px] whitespace-nowrap',
       sortValue: (q) => q.status,
       accessor: (q) => {
@@ -445,7 +445,7 @@ export default function QuotationList({
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
-        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap;">${q.quotation_no}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap; text-align: center; vertical-align: middle;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
           ${sector ? `<div style="font-size: 8px; color: #9E1B1D; font-weight: bold; text-transform: uppercase;">${sector}</div>` : ''}
@@ -507,14 +507,14 @@ export default function QuotationList({
       <tr>
         <th style="width: 30px;">#</th>
         <th style="text-align: center; vertical-align: middle;">DATE</th>
-        <th>QUOTATION NO.</th>
+        <th style="text-align: center; vertical-align: middle;">QUOTATION NO.</th>
         <th style="text-align: left;">CUSTOMER NAME</th>
         <th style="text-align: center;">ZONE</th>
         <th style="text-align: left;">CONTACT</th>
         <th>SALES PERSON</th>
         <th style="text-align: center; vertical-align: middle;">EXPECTED DATE</th>
         <th style="text-align: right;">AMOUNT</th>
-        <th style="text-align: center;">STATUS</th>
+        <th style="text-align: center;">QUOTE STATUS</th>
       </tr>
     </thead>
     <tbody>

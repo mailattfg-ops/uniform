@@ -3909,8 +3909,9 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Quotation No.',
+                    className: 'text-center align-middle',
                     accessor: (q) => (
-                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center gap-1.5 whitespace-nowrap">
+                      <div className="font-mono font-bold text-zinc-900 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap text-center">
                         <FileText size={14} className="text-[#C82A2B] shrink-0" />
                         <span>{q.quotation_no}</span>
                       </div>
@@ -3964,7 +3965,7 @@ function OrganizationDetailsPageContent() {
                     )
                   },
                   {
-                    header: 'Status',
+                    header: 'Quote Status',
                     accessor: (q) => {
                       const statusColors: Record<string, string> = {
                         'Draft': 'bg-zinc-50 text-zinc-600 border-zinc-200',
@@ -4148,11 +4149,11 @@ function OrganizationDetailsPageContent() {
                   },
                   {
                     header: 'Quotation No.',
-                    className: 'w-[125px] whitespace-nowrap',
+                    className: 'w-[125px] whitespace-nowrap text-center align-middle',
                     accessor: (o: any) => {
                       const quoteNo = o.quotations?.quotation_no || (quotations.find((q: any) => q.id === o.quotation_id)?.quotation_no) || (o.quotation_id ? `QT-${o.quotation_id}` : '—');
                       return (
-                        <span className="font-mono text-xs font-bold text-zinc-600 whitespace-nowrap">
+                        <span className="font-mono text-xs font-bold text-zinc-600 whitespace-nowrap block text-center">
                           {quoteNo}
                         </span>
                       );

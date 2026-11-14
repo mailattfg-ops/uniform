@@ -207,16 +207,18 @@ export default function OperationTeamPage() {
   const listColumns: Column<Quotation>[] = [
     {
       header: 'Quote No',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap text-center align-middle',
       accessor: (q) => (
-        <button
-          type="button"
-          onClick={() => handleViewDetails(q)}
-          className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/5 hover:bg-[#2d8d9b]/15 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest font-mono whitespace-nowrap inline-block cursor-pointer transition-all"
-          title="Click to review quotation"
-        >
-          {q.quotation_no}
-        </button>
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => handleViewDetails(q)}
+            className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-[#2d8d9b]/5 hover:bg-[#2d8d9b]/15 text-[#2d8d9b] border border-[#2d8d9b]/10 tracking-widest font-mono whitespace-nowrap inline-block cursor-pointer transition-all"
+            title="Click to review quotation"
+          >
+            {q.quotation_no}
+          </button>
+        </div>
       )
     },
     {
@@ -283,7 +285,7 @@ export default function OperationTeamPage() {
       )
     },
     {
-      header: 'Status',
+      header: 'Quote Status',
       className: 'whitespace-nowrap',
       accessor: (q) => {
         const styles: Record<string, string> = {
