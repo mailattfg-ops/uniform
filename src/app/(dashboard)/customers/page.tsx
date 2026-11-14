@@ -729,19 +729,23 @@ export default function CustomersRegistry() {
         const autoPassword = generateInitialPassword();
         const submissionData = {
           ...payload,
-          username: formData.username,
           password: autoPassword
         };
 
-        await api.post('/customers', submissionData).catch(() => api.post('/organizations', submissionData));
+        const res = await api.post('/customers', submissionData).catch(() => api.post('/organizations', submissionData));
         toast.success('Customer registered successfully!', { id: loadingToast });
+
+        const createdOrg = res?.data?.data || res?.data;
+        const creds = res?.data?.credentials;
+        const finalCustCode = creds?.customer_code || createdOrg?.customer_code || (createdOrg?.id ? `CN${String(createdOrg.id).padStart(3, '0')}` : 'Customer Account');
+        const loginUsername = creds?.username || finalCustCode;
 
         setCredsModal({
           isOpen: true,
           data: {
             full_name: formData.name,
-            username: formData.username,
-            password: autoPassword
+            username: loginUsername,
+            password: creds?.password || autoPassword
           }
         });
       }

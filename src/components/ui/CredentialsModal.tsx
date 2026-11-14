@@ -22,7 +22,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({ isOpen, onCl
   if (!isOpen || !data) return null;
 
   const handleCopy = () => {
-    const text = `Entity: ${data.full_name}\nUsername: ${data.username || 'Unchanged'}${data.email ? `\nEmail: ${data.email}` : ''}\nPassword: ${data.password || 'Unchanged'}`;
+    const text = `Entity: ${data.full_name}\nCustomer ID / Login ID: ${data.username || 'Unchanged'}${data.email ? `\nEmail: ${data.email}` : ''}\nPassword: ${data.password || 'Unchanged'}`;
     navigator.clipboard.writeText(text);
     setHasCopied(true);
     toast.success('Credentials copied!');
@@ -59,7 +59,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({ isOpen, onCl
           <div className="space-y-3.5">
             {data.username && (
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">New Username</label>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Customer ID / Portal Login ID</label>
                 <p className="text-sm font-bold text-zinc-900 font-mono">{data.username}</p>
               </div>
             )}
