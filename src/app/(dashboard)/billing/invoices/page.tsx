@@ -595,7 +595,7 @@ export default function InvoicesPage() {
                 <th className="px-5 py-3.5 text-center">Type</th>
                 <th className="px-5 py-3.5 text-center align-middle">Due Date</th>
                 <th className="px-5 py-3.5 text-center">Total Amount</th>
-                <th className="px-5 py-3.5 text-center">Status</th>
+                <th className="px-5 py-3.5 text-center align-middle">Status</th>
                 <th className="px-5 py-3.5 text-center">Actions</th>
               </tr>
             </thead>
@@ -706,7 +706,7 @@ export default function InvoicesPage() {
                     </td>
 
                     {/* Payment Status */}
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-5 py-4 text-center align-middle">
                       <StatusBadge status={isOverdue ? 'Overdue' : inv.payment_status} size="sm" />
                     </td>
 

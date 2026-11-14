@@ -160,6 +160,21 @@ function isDateColumn<T>(col: Column<T>): boolean {
   return false;
 }
 
+const STATUS_COLUMN_REGEX = /status|stage|state|packed|shipped|invoiced|approval/i;
+
+function isStatusColumn<T>(col: Column<T>): boolean {
+  let headerText = '';
+  if (typeof col.header === 'string') {
+    headerText = col.header;
+  } else if (col.header) {
+    headerText = extractTextFromReactNode(col.header);
+  }
+  if (STATUS_COLUMN_REGEX.test(headerText)) return true;
+  if (typeof col.accessor === 'string' && STATUS_COLUMN_REGEX.test(col.accessor)) return true;
+  if (col.className && /(^|\s)(status-col|col-status)(\s|$)/i.test(col.className)) return true;
+  return false;
+}
+
 export function DataTable<T extends { id: string | number }>({ 
   columns, 
   data, 
@@ -591,9 +606,11 @@ export function DataTable<T extends { id: string | number }>({
                 const isSortable = col.sortable !== false && !isAction && !isCollapsed;
                 const isSorted = sortColumnIndex === idx;
                 const isDateCol = isDateColumn(col);
-                const isRightAligned = !isDateCol && col.className?.includes('text-right');
-                const isLeftAligned = !isDateCol && col.className?.includes('text-left');
-                const cleanedHeaderClass = isDateCol 
+                const isStatusCol = isStatusColumn(col);
+                const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
+                const isRightAligned = !isDateCol && !isStatusCol && col.className?.includes('text-right');
+                const isLeftAligned = !isDateCol && !isStatusCol && col.className?.includes('text-left');
+                const cleanedHeaderClass = (isDateCol || isStatusCol)
                   ? (col.className || '').replace(/\btext-left\b/g, '').replace(/\btext-right\b/g, '') 
                   : (col.className || '');
 
@@ -648,7 +665,8 @@ export function DataTable<T extends { id: string | number }>({
                     const isCollapsed = col.className?.includes('!w-0');
                     const isSticky = (isAction || isLast) && !isCollapsed;
                     const isDateCol = isDateColumn(col);
-                    const isCenterCol = isDateCol || col.className?.includes('text-center');
+                    const isStatusCol = isStatusColumn(col);
+                    const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
                     return (
                       <td 
                         key={j} 
@@ -691,11 +709,12 @@ export function DataTable<T extends { id: string | number }>({
                       const isSticky = (isAction || isLast) && !isCollapsed;
                       const isSorted = sortColumnIndex === idx;
                       const isDateCol = isDateColumn(col);
-                      const isRightAligned = !isDateCol && col.className?.includes('text-right');
-                      const isLeftAligned = !isDateCol && col.className?.includes('text-left');
-                      const isCenterCol = isDateCol || col.className?.includes('text-center');
+                      const isStatusCol = isStatusColumn(col);
+                      const isRightAligned = !isDateCol && !isStatusCol && col.className?.includes('text-right');
+                      const isLeftAligned = !isDateCol && !isStatusCol && col.className?.includes('text-left');
+                      const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
 
-                      const alignmentClass = isDateCol
+                      const alignmentClass = (isDateCol || isStatusCol)
                         ? 'text-center align-middle [&>*]:mx-auto [&>*]:text-center [&>*]:justify-center [&_.flex]:justify-center [&_.inline-flex]:justify-center [&_.flex]:mx-auto [&_.inline-flex]:mx-auto'
                         : col.className?.includes('text-center')
                           ? 'text-center align-middle [&>.flex]:justify-center [&>.inline-flex]:justify-center'
@@ -705,7 +724,7 @@ export function DataTable<T extends { id: string | number }>({
                               ? 'text-left align-middle'
                               : 'align-middle';
 
-                      const cleanedColClass = isDateCol
+                      const cleanedColClass = (isDateCol || isStatusCol)
                         ? (col.className || '').replace(/\btext-left\b/g, '').replace(/\btext-right\b/g, '')
                         : (col.className || '');
 

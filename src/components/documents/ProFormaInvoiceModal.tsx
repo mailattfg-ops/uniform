@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { X, Printer, Download, CheckCircle2 } from 'lucide-react';
+import { X, Printer, Download, CheckCircle2, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatDateDoc, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 
@@ -47,12 +47,16 @@ export interface ProFormaInvoiceData {
   title?: string;
   notes?: string[];
   raw?: any;
+  is_converted?: boolean;
+  converted_to_invoice?: boolean;
 }
 
 interface ProFormaInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: ProFormaInvoiceData | null;
+  isConverted?: boolean;
+  onConvertToInvoice?: (proformaData: ProFormaInvoiceData) => Promise<void> | void;
 }
 
 import api from '@/lib/api';
@@ -74,11 +78,32 @@ const DEFAULT_COMPANY = {
 
 import { printInvoiceElement } from '@/lib/printUtils';
 
-export default function ProFormaInvoiceModal({ isOpen, onClose, data }: ProFormaInvoiceModalProps) {
+export default function ProFormaInvoiceModal({ 
+  isOpen, 
+  onClose, 
+  data, 
+  isConverted = false, 
+  onConvertToInvoice 
+}: ProFormaInvoiceModalProps) {
   const printContainerRef = useRef<HTMLDivElement>(null);
   const [company, setCompany] = React.useState<any>(DEFAULT_COMPANY);
   const [fetchedItems, setFetchedItems] = React.useState<any[] | null>(null);
   const [allProducts, setAllProducts] = React.useState<any[]>([]);
+  const [isConverting, setIsConverting] = React.useState(false);
+
+  const isActuallyConverted = Boolean(isConverted || data?.is_converted || data?.converted_to_invoice);
+
+  const handleConvertToInvoice = async () => {
+    if (!onConvertToInvoice || !data || isConverting || isActuallyConverted) return;
+    setIsConverting(true);
+    try {
+      await onConvertToInvoice(data);
+    } catch (_) {
+      // errors handled by caller
+    } finally {
+      setIsConverting(false);
+    }
+  };
 
   React.useEffect(() => {
     if (isOpen) {
@@ -349,6 +374,23 @@ export default function ProFormaInvoiceModal({ isOpen, onClose, data }: ProForma
             </h3>
           </div>
           <div className="flex items-center gap-3">
+            {isActuallyConverted ? (
+              <span className="px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                <span>Converted to Tax Invoice</span>
+              </span>
+            ) : onConvertToInvoice ? (
+              <Button
+                onClick={handleConvertToInvoice}
+                disabled={isConverting}
+                className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-50"
+                title="Convert this Proforma Invoice into an official GST Tax Invoice"
+              >
+                {isConverting ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+                <span>{isConverting ? 'Converting...' : 'Convert to Tax Invoice'}</span>
+              </Button>
+            ) : null}
+
             <Button
               onClick={handlePrint}
               variant="secondary"

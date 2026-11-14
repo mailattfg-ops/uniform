@@ -2460,6 +2460,127 @@ function OrganizationDetailsPageContent() {
     return list;
   }, [quotations, customerOrders, ledgerData?.orders, orgDetails?.orders, org, employees]);
 
+  // Converted Proforma Invoice state & computation
+  const [convertedPiList, setConvertedPiList] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (org?.id) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(`converted_pi_${org.id}`) || '[]');
+        if (Array.isArray(cached)) {
+          setConvertedPiList(cached);
+        }
+      } catch (_) {}
+    }
+  }, [org?.id]);
+
+  const isProFormaConverted = React.useMemo(() => {
+    if (!selectedProForma) return false;
+    if (selectedProForma.is_converted || selectedProForma.converted_to_invoice) return true;
+
+    const piNo = String(selectedProForma.pi_no || '');
+    const piId = String(selectedProForma.id || selectedProForma.raw?.id || '');
+    const piOrderNo = selectedProForma.order_no;
+
+    if (convertedPiList.includes(piNo) || (piId && convertedPiList.includes(piId))) {
+      return true;
+    }
+
+    const exists = customerInvoices.some((inv: any) => {
+      if (piOrderNo && piOrderNo !== '—' && (inv.order_no === piOrderNo || inv.order_ref === piOrderNo)) return true;
+      if (piId && (String(inv.quotation_id) === piId || String(inv.order_id) === piId)) return true;
+      if (piNo && inv.notes && inv.notes.includes(piNo)) return true;
+      return false;
+    });
+
+    return exists;
+  }, [selectedProForma, convertedPiList, customerInvoices]);
+
+  const handleConvertProformaToInvoice = async (pi: any) => {
+    if (!org) return;
+    const loadingToast = toast.loading('Converting Proforma to Tax Invoice...');
+    try {
+      const quoteId = pi.raw?.id || pi.id;
+      const orderId = pi.raw?.order_id || pi.order_id;
+      const creditPeriod = org?.credit_period_days || 30;
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      let createdInvoice: any = null;
+
+      // 1. Try from-order endpoint
+      if (orderId || quoteId) {
+        try {
+          const res = await api.post('/invoices/from-order', {
+            order_id: orderId || undefined,
+            quotation_id: quoteId || undefined,
+            credit_period_days: creditPeriod,
+            invoice_date: todayStr,
+            notes: `Converted from Proforma Invoice #${pi.pi_no}`
+          });
+          if (res.data) {
+            createdInvoice = res.data.data || res.data;
+          }
+        } catch (fromOrderErr) {
+          console.warn('POST /invoices/from-order fallback:', fromOrderErr);
+        }
+      }
+
+      // 2. Fallback to /invoices direct creation if needed
+      if (!createdInvoice) {
+        const dueDate = getCalculatedDueDate(todayStr, creditPeriod);
+        const subtotal = pi.subtotal || pi.amount || 0;
+        const taxRate = pi.tax_rate ?? 5;
+        const taxAmount = pi.tax_amount ?? (subtotal * (taxRate / 100));
+        const totalAmount = subtotal + taxAmount;
+
+        const res = await api.post('/invoices', {
+          organization_id: org.id,
+          customer_name: org.name,
+          sale_type: 'bulk',
+          order_id: orderId || null,
+          quotation_id: quoteId || null,
+          invoice_date: todayStr,
+          credit_period_days: creditPeriod,
+          due_date: dueDate,
+          items: (pi.items && pi.items.length > 0) ? pi.items : [{
+            description: pi.title || `Proforma Conversion: ${pi.pi_no}`,
+            quantity: 1,
+            unit_price: subtotal,
+            total_price: subtotal
+          }],
+          subtotal: subtotal,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
+          notes: `Converted from Proforma Invoice #${pi.pi_no}`,
+          payment_status: 'Unpaid'
+        });
+        createdInvoice = res.data?.data || res.data;
+      }
+
+      // Save to localStorage converted cache
+      try {
+        const cacheKey = `converted_pi_${org.id}`;
+        const existing: string[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+        if (!existing.includes(String(pi.pi_no))) existing.push(String(pi.pi_no));
+        if (pi.id && !existing.includes(String(pi.id))) existing.push(String(pi.id));
+        localStorage.setItem(cacheKey, JSON.stringify(existing));
+        setConvertedPiList(existing);
+      } catch (_) {}
+
+      // Mark current modal data as converted
+      setSelectedProForma((prev: any) => prev ? { ...prev, is_converted: true } : null);
+
+      toast.success('Successfully converted Proforma to Tax Invoice!', { id: loadingToast });
+      
+      // Refresh customer data
+      fetchLedgerData();
+      fetchOrgData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.message || 'Failed to convert proforma to tax invoice', { id: loadingToast });
+      throw err;
+    }
+  };
+
   if (isLoadingOrg) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
@@ -5062,33 +5183,33 @@ function OrganizationDetailsPageContent() {
                 title="Customer & Job Expenses"
                 subtitle={`Direct commercial costs, materials procurement & development charges for ${org.name}`}
                 headerAction={
-                  <div className="flex flex-wrap items-center gap-3">
-                    <DateRangeFilter
-                      label="Date"
-                      value={expenseDateFilter}
-                      onChange={setExpenseDateFilter}
-                    />
-                    <Button
-                      onClick={() => {
-                        setNewExpenseForm({
-                          date: new Date().toISOString().slice(0, 10),
-                          category: 'Fabric & Raw Materials',
-                          amount: '',
-                          so_no: customerOrders?.[0]?.order_no || quotations?.[0]?.order_no || '',
-                          sales_person: org?.relationship_manager?.full_name || employees?.[0]?.full_name || '',
-                          payment_mode: 'Bank Transfer',
-                          voucher_no: `EXP-M-${Date.now().toString().slice(-6)}`,
-                          description: '',
-                          status: 'Paid'
-                        });
-                        setIsAddExpenseModalOpen(true);
-                      }}
-                      className="h-10 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <Plus size={15} />
-                      <span>Add Expense</span>
-                    </Button>
-                  </div>
+                  <DateRangeFilter
+                    label="Date"
+                    value={expenseDateFilter}
+                    onChange={setExpenseDateFilter}
+                  />
+                }
+                rightAction={
+                  <Button
+                    onClick={() => {
+                      setNewExpenseForm({
+                        date: new Date().toISOString().slice(0, 10),
+                        category: 'Fabric & Raw Materials',
+                        amount: '',
+                        so_no: customerOrders?.[0]?.order_no || quotations?.[0]?.order_no || '',
+                        sales_person: org?.relationship_manager?.full_name || employees?.[0]?.full_name || '',
+                        payment_mode: 'Bank Transfer',
+                        voucher_no: `EXP-M-${Date.now().toString().slice(-6)}`,
+                        description: '',
+                        status: 'Paid'
+                      });
+                      setIsAddExpenseModalOpen(true);
+                    }}
+                    className="h-10 px-4 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Plus size={15} />
+                    <span>Add Expense</span>
+                  </Button>
                 }
                 columns={[
                   {
@@ -7489,6 +7610,8 @@ function OrganizationDetailsPageContent() {
         isOpen={isProFormaModalOpen}
         onClose={() => setIsProFormaModalOpen(false)}
         data={selectedProForma}
+        isConverted={isProFormaConverted}
+        onConvertToInvoice={handleConvertProformaToInvoice}
       />
 
       {/* Real GST Tax Invoice Template Modal */}

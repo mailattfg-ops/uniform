@@ -530,7 +530,7 @@ export default function PurchaseOrdersPage() {
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Order Details</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Supplier</th>
                   <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Origin Type</th>
-                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center">Status</th>
+                  <th className="p-6 text-[10px] font-black tracking-[0.2em] uppercase text-[#8b6b5a] text-center align-middle">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -601,7 +601,7 @@ export default function PurchaseOrdersPage() {
                       </td>
 
                       {/* Status */}
-                      <td className="p-6">
+                      <td className="p-6 text-center align-middle">
                         <span className={`inline-block px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${statusColors[po.status]}`}>
                           {po.status}
                         </span>
