@@ -73,7 +73,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 import { MemberProfileModal } from '@/components/entities/MemberProfileModal';
 import * as XLSX from 'xlsx';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import ProFormaInvoiceModal from '@/components/documents/ProFormaInvoiceModal';
 import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 import QuotationDetails from '@/app/(dashboard)/marketing/quotations/_components/QuotationDetails';
@@ -85,6 +85,7 @@ interface Organization {
   branch_id?: number | string | null;
   customer_code: string | null;
   name: string;
+  contact_title?: string | null;
   contact_person?: string | null;
   phone?: string | null;
   contact_number?: string | null;
@@ -2955,7 +2956,7 @@ function OrganizationDetailsPageContent() {
                 </span>
                 <div className="space-y-1">
                   <p className="text-sm font-bold text-zinc-900">
-                    {org.contact_person || 'No Contact Person Listed'}
+                    {formatContactPerson(org.contact_person, org.contact_title)}
                   </p>
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
                     {(org.contact_number || org.phone) && (
@@ -2964,7 +2965,7 @@ function OrganizationDetailsPageContent() {
                         className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
                       >
                         <Phone size={12} className="text-[#C82A2B]" />
-                        <span>{org.contact_number || org.phone}</span>
+                        <span>{formatPhoneNumber(org.contact_number || org.phone, org.country || 'India')}</span>
                       </a>
                     )}
                     {(org.email || org.contact_email) && (
@@ -3957,7 +3958,7 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Amount',
                     accessor: (q) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                      <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                         ₹{parseFloat(q.final_quote_value || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
@@ -4493,7 +4494,7 @@ function OrganizationDetailsPageContent() {
                       );
                       const val = parseFloat(String(quote?.final_quote_value !== undefined ? quote.final_quote_value : (o.total_amount || 0)));
                       return (
-                        <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-800 text-xs md:text-sm whitespace-nowrap">
                           {val > 0 ? `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </span>
                       );
@@ -4511,7 +4512,7 @@ function OrganizationDetailsPageContent() {
                       const orderInvoices = customerInvoices.filter((inv: any) => inv.order_id === o.id || inv.order_no === o.order_no || inv.order_ref === o.order_no);
                       const invoicedVal = orderInvoices.reduce((sum: number, inv: any) => sum + parseFloat(String(inv.total_amount || inv.amount || 0)), 0);
                       return (
-                        <span className="font-mono font-black text-zinc-800 text-xs whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-800 text-xs md:text-sm whitespace-nowrap">
                           {invoicedVal > 0 ? `₹${invoicedVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </span>
                       );
@@ -4881,7 +4882,7 @@ function OrganizationDetailsPageContent() {
                     sortValue: (pi: any) => parseFloat(String(pi.amount || 0)),
                     accessor: (pi: any) => (
                       <div className="text-right">
-                        <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                        <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                           ₹{parseFloat(String(pi.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -4998,7 +4999,7 @@ function OrganizationDetailsPageContent() {
                     sortable: true,
                     sortValue: (inv: any) => parseFloat(String(inv.total_amount || 0)),
                     accessor: (inv: any) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                      <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                         ₹{parseFloat(String(inv.total_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
@@ -5011,7 +5012,7 @@ function OrganizationDetailsPageContent() {
                     accessor: (inv: any) => {
                       const bal = parseFloat(String(inv.due_amount !== undefined ? inv.due_amount : (parseFloat(String(inv.total_amount || 0)) - parseFloat(String(inv.paid_amount || 0)))));
                       return (
-                        <span className={`font-mono font-black text-xs whitespace-nowrap ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        <span className={`font-mono font-black text-xs md:text-sm whitespace-nowrap ${bal > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
                           ₹{Math.max(0, bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       );
@@ -5166,7 +5167,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Amount',
                     className: 'w-[130px] whitespace-nowrap text-right',
                     accessor: (exp: any) => (
-                      <span className="font-mono font-black text-zinc-900 text-xs whitespace-nowrap">
+                      <span className="font-mono font-black text-zinc-900 text-xs md:text-sm whitespace-nowrap">
                         ₹{parseFloat(String(exp.amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     )
@@ -5407,7 +5408,7 @@ function OrganizationDetailsPageContent() {
                       className: 'w-[130px] whitespace-nowrap text-right',
                       sortValue: (j: any) => (j.amount || j.debit || j.credit || 0),
                       accessor: (j: any) => (
-                        <span className="font-mono font-black text-xs text-zinc-900 whitespace-nowrap">
+                        <span className="font-mono font-black text-xs md:text-sm text-zinc-900 whitespace-nowrap">
                           ₹{parseFloat(String(j.amount || j.debit || j.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       )
@@ -5725,7 +5726,7 @@ function OrganizationDetailsPageContent() {
                   header: 'Amount',
                   className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: any) => (
-                    <span className={`font-mono text-xs font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
+                    <span className={`font-mono text-xs md:text-sm font-black ${tx.debit > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
                       {tx.debit > 0 ? `₹${parseFloat(String(tx.debit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                     </span>
                   )
@@ -5734,7 +5735,7 @@ function OrganizationDetailsPageContent() {
                   header: 'Payments',
                   className: 'w-[130px] whitespace-nowrap text-right',
                   accessor: (tx: any) => (
-                    <span className={`font-mono text-xs font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
+                    <span className={`font-mono text-xs md:text-sm font-black ${tx.credit > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>
                       {tx.credit > 0 ? `₹${parseFloat(String(tx.credit)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                     </span>
                   )
@@ -5745,7 +5746,7 @@ function OrganizationDetailsPageContent() {
                   accessor: (tx: any) => {
                     const bal = tx.period_running_balance ?? tx.running_balance ?? 0;
                     return (
-                      <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg ${
+                      <span className={`font-mono text-xs md:text-sm font-black px-2.5 py-1 rounded-lg ${
                         bal > 0
                           ? 'bg-rose-50 text-rose-700 border border-rose-100'
                           : bal === 0

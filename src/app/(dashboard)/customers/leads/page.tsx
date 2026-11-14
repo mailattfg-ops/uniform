@@ -20,7 +20,8 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { Select } from '@/components/ui/Select';
-import { formatDate, capitalizeFirstLetter, capitalizeWords } from '@/lib/formatters';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { formatDate, capitalizeFirstLetter, capitalizeWords, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { supabase } from '@/lib/supabase';
 import { useLayout } from '@/hooks/useLayout';
 
@@ -718,8 +719,8 @@ export default function LeadsRegistryPage() {
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
-                {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(l.contact_person, l.contact_title)}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
+                {formatContactPerson(l.contact_person, l.contact_title)}
                 {l.contact_designation && (
                   <span className="text-[10px] text-zinc-400 font-normal ml-1">({l.contact_designation})</span>
                 )}
@@ -727,7 +728,7 @@ export default function LeadsRegistryPage() {
             )}
             {l.phone && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+                <ContactPhoneLink phone={l.phone} country={l.country || 'India'} name={l.contact_person || l.name} />
               </div>
             )}
           </div>
@@ -917,9 +918,9 @@ export default function LeadsRegistryPage() {
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
-          <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
+          <div style="font-weight: 600; color: #1a202c;">${formatContactPerson(l.contact_person, l.contact_title)}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
-          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
+          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${formatPhoneNumber(l.phone, l.country || 'India')}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${l.employees?.full_name || 'Unassigned'}</td>
         <td style="text-align: center;">
@@ -1710,19 +1711,13 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
 
           {/* Contact Number & Email Address */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Phone size={13} className="text-[#9E1B1D]" />
-                Contact Number
-              </label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +91 98450 12345"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+            <PhoneInput
+              label="Contact Number"
+              value={phone}
+              onChange={setPhone}
+              country={country}
+              onCountryChange={setCountry}
+            />
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
@@ -2248,7 +2243,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         contact_designation: contactDesignation.trim() || null,
         phone: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
-        source: source.trim() || null,
+        source: isEditing ? (editingLead?.source || null) : (source.trim() || null),
         requirements: requirements.trim() || null,
         industry_id: industryId || null,
         address: address.trim() || null,
@@ -2259,19 +2254,19 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         pincode: pincode.trim() || null,
         country: country.trim() || 'India',
         branch_id: isEditing
-          ? (branchId || null)
+          ? (editingLead?.branch_id || branchId || null)
           : intakeRole === 'hq_staff'
           ? (branchId || null)
           : (userBranchId ? String(userBranchId) : branchId || null),
         zone_id: zoneId ? parseInt(zoneId, 10) : null,
         assigned_staff_id: isEditing
-          ? (assignedStaffId || null)
+          ? (editingLead?.assigned_staff_id || null)
           : intakeRole === 'salesperson'
           ? (assignedStaffId || (currentUser?.employeeRecordId ? String(currentUser.employeeRecordId) : null))
           : intakeRole === 'branch_staff'
           ? (assignedStaffId || null)
           : null,
-        status: isEditing ? (status || 'New Leads') : derivedIntakeStage,
+        status: isEditing ? (editingLead?.status || 'New Leads') : derivedIntakeStage,
         remarks: remarks.trim() || null
       });
     } finally {
@@ -2415,20 +2410,14 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
           {/* Phone & Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-                <Phone size={13} className="text-[#C82A2B]" />
-                Primary Phone Number *
-              </label>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +91 98765 43210"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+            <PhoneInput
+              required
+              label="Primary Phone Number *"
+              value={phone}
+              onChange={setPhone}
+              country={country}
+              onCountryChange={setCountry}
+            />
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
@@ -2444,7 +2433,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
-          {/* Sector, Source, Branch, Salesperson, and Stage Grid */}
+          {/* Sector, Source, Branch, Salesperson Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
@@ -2462,24 +2451,27 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Compass size={13} className="text-[#9E1B1D]" />
-                Lead Source
-              </label>
-              <Select
-                value={source}
-                onChange={(val) => setSource(val)}
-                options={[
-                  { value: 'Direct Visit', label: 'Direct Visit' },
-                  { value: 'Referral', label: 'Referral' },
-                  { value: 'Website', label: 'Website' },
-                  { value: 'Phone Enquiry', label: 'Phone Enquiry' },
-                  { value: 'Exhibition', label: 'Exhibition' },
-                  { value: 'Other', label: 'Other' }
-                ]}
-              />
-            </div>
+            {/* Lead Source: Only on creation, not in edit */}
+            {!isEditing && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                  <Compass size={13} className="text-[#9E1B1D]" />
+                  Lead Source
+                </label>
+                <Select
+                  value={source}
+                  onChange={(val) => setSource(val)}
+                  options={[
+                    { value: 'Direct Visit', label: 'Direct Visit' },
+                    { value: 'Referral', label: 'Referral' },
+                    { value: 'Website', label: 'Website' },
+                    { value: 'Phone Enquiry', label: 'Phone Enquiry' },
+                    { value: 'Exhibition', label: 'Exhibition' },
+                    { value: 'Other', label: 'Other' }
+                  ]}
+                />
+              </div>
+            )}
 
             {/* Branch Assignment Provision: Visible for HQ staff or when editing */}
             {(isEditing || intakeRole === 'hq_staff') && (
@@ -2524,8 +2516,8 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               />
             </div>
 
-            {/* Salesperson Assignment Provision: Visible for Branch staff or when editing */}
-            {(isEditing || intakeRole === 'branch_staff') && (
+            {/* Salesperson Assignment Provision: Only on creation for branch staff, not in edit */}
+            {!isEditing && intakeRole === 'branch_staff' && (
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                   <ShieldCheck size={13} className="text-[#9E1B1D]" />
@@ -2544,24 +2536,6 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                         label: `${emp.full_name} (${emp.employee_id})`
                       }))
                   ]}
-                />
-              </div>
-            )}
-
-            {/* Pipeline Stage Provision: Visible ONLY when editing an existing lead */}
-            {isEditing && (
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Layers size={13} className="text-[#9E1B1D]" />
-                  Pipeline Stage
-                </label>
-                <Select
-                  value={status}
-                  onChange={(val) => setStatus(val as any)}
-                  options={PIPELINE_STAGES.map(s => ({
-                    value: s.key,
-                    label: s.label
-                  }))}
                 />
               </div>
             )}

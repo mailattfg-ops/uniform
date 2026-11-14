@@ -3,7 +3,7 @@
 import React, { useRef } from 'react';
 import { X, Printer, Download, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { formatDateDoc } from '@/lib/formatters';
+import { formatDateDoc, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 
 export interface ProFormaItem {
   id?: string | number;
@@ -450,13 +450,13 @@ export default function ProFormaInvoiceModal({ isOpen, onClose, data }: ProForma
                   {customer.contact_person && (
                     <div className="flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Contact</span>
-                      <span className="font-semibold text-zinc-800">: {customer.contact_person}</span>
+                      <span className="font-semibold text-zinc-800">: {formatContactPerson(customer.contact_person, (customer as any).contact_title)}</span>
                     </div>
                   )}
                   {customer.phone && (
                     <div className="flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Phone</span>
-                      <span className="font-semibold text-zinc-800">: {customer.phone}</span>
+                      <span className="font-semibold text-zinc-800">: {formatPhoneNumber(customer.phone, customer.country || 'India')}</span>
                     </div>
                   )}
                   {customer.email && (
@@ -478,13 +478,13 @@ export default function ProFormaInvoiceModal({ isOpen, onClose, data }: ProForma
                   {customer.contact_person && (
                     <div className="pt-1 flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Contact</span>
-                      <span className="font-semibold text-zinc-800">: {customer.contact_person}</span>
+                      <span className="font-semibold text-zinc-800">: {formatContactPerson(customer.contact_person, (customer as any).contact_title)}</span>
                     </div>
                   )}
                   {customer.phone && (
                     <div className="flex gap-2">
                       <span className="text-zinc-500 font-medium w-16">Phone</span>
-                      <span className="font-semibold text-zinc-800">: {customer.phone}</span>
+                      <span className="font-semibold text-zinc-800">: {formatPhoneNumber(customer.phone, customer.country || 'India')}</span>
                     </div>
                   )}
                 </div>

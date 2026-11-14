@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { 
@@ -341,9 +341,9 @@ export default function FeedsRegistryPage() {
         <td style="font-size: 10px; color: #4a5568; text-align: left;">${locality}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: center;">${zoneName || '—'}</td>
         <td style="font-size: 10px; color: #4a5568; text-align: left;">
-          <div style="font-weight: 600; color: #1a202c;">${l.contact_person ? `${l.contact_title ? `${l.contact_title} ` : ''}${l.contact_person}` : '—'}</div>
+          <div style="font-weight: 600; color: #1a202c;">${formatContactPerson(l.contact_person, l.contact_title)}</div>
           ${l.contact_designation ? `<div style="color: #a0aec0; font-size: 8px;">${l.contact_designation}</div>` : ''}
-          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${l.phone}</div>` : ''}
+          ${l.phone ? `<div style="color: #2d8d9b; font-family: monospace; font-size: 9px; font-weight: bold; margin-top: 2px;">${formatPhoneNumber(l.phone, l.country || 'India')}</div>` : ''}
         </td>
         <td style="text-align: center; font-size: 10px;">
           <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 9px; font-weight: bold; text-transform: uppercase; background: ${contacted ? '#ecfdf5' : '#fff1f1'}; color: ${contacted ? '#047857' : '#9e1b1d'}; border: 1px solid ${contacted ? '#a7f3d0' : '#fecaca'};">
@@ -486,8 +486,8 @@ export default function FeedsRegistryPage() {
         l.contact_person || l.phone ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${l.contact_title ? l.contact_title + ' ' : ''}${l.contact_person}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
-                {l.contact_title ? `${l.contact_title} ` : ''}{l.contact_person}
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(l.contact_person, l.contact_title)}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}>
+                {formatContactPerson(l.contact_person, l.contact_title)}
                 {l.contact_designation && (
                   <span className="text-[10px] text-zinc-400 font-normal ml-1">({l.contact_designation})</span>
                 )}
@@ -495,7 +495,7 @@ export default function FeedsRegistryPage() {
             )}
             {l.phone && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={l.phone} name={l.contact_person || l.name} />
+                <ContactPhoneLink phone={l.phone} country={l.country || 'India'} name={l.contact_person || l.name} />
               </div>
             )}
           </div>

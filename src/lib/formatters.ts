@@ -393,3 +393,113 @@ export function formatSpecificationDisplay(raw: string | null | undefined, fallb
   const lines = splitSpecificationLines(raw);
   return lines.length > 0 ? lines.join(' / ') : fallback;
 }
+
+
+/**
+ * Country Dial Codes and phone formatting configuration
+ */
+export interface CountryDialCode {
+  country: string;
+  code: string;
+  flag: string;
+  digits: number;
+}
+
+export const COUNTRY_DIAL_CODES: CountryDialCode[] = [
+  { country: 'India', code: '+91', flag: '🇮🇳', digits: 10 },
+  { country: 'Saudi Arabia', code: '+966', flag: '🇸🇦', digits: 9 },
+  { country: 'United Arab Emirates', code: '+971', flag: '🇦🇪', digits: 9 },
+  { country: 'Qatar', code: '+974', flag: '🇶🇦', digits: 8 },
+  { country: 'Kuwait', code: '+965', flag: '🇰🇼', digits: 8 },
+  { country: 'Oman', code: '+968', flag: '🇴🇲', digits: 8 },
+  { country: 'Bahrain', code: '+973', flag: '🇧🇭', digits: 8 },
+  { country: 'United States', code: '+1', flag: '🇺🇸', digits: 10 },
+  { country: 'United Kingdom', code: '+44', flag: '🇬🇧', digits: 10 },
+  { country: 'Singapore', code: '+65', flag: '🇸🇬', digits: 8 },
+  { country: 'Australia', code: '+61', flag: '🇦🇺', digits: 9 },
+  { country: 'Malaysia', code: '+60', flag: '🇲🇾', digits: 10 },
+  { country: 'Sri Lanka', code: '+94', flag: '🇱🇰', digits: 9 },
+  { country: 'Bangladesh', code: '+880', flag: '🇧🇩', digits: 10 },
+  { country: 'Nepal', code: '+977', flag: '🇳🇵', digits: 10 },
+  { country: 'Germany', code: '+49', flag: '🇩🇪', digits: 10 },
+  { country: 'France', code: '+33', flag: '🇫🇷', digits: 9 }
+];
+
+/**
+ * Formats a phone number with country code and standard spacing: +91 xxxx xxx xxx
+ * If the country is India (default), always prefixes with +91.
+ */
+export function formatPhoneNumber(
+  rawPhone?: string | null,
+  countryHint?: string | null
+): string {
+  if (!rawPhone || !rawPhone.trim()) return '';
+  let phone = rawPhone.trim();
+
+  let detectedCode = '+91';
+
+  // If a country hint is provided, find its dial code
+  if (countryHint) {
+    const hintLower = countryHint.trim().toLowerCase();
+    const matched = COUNTRY_DIAL_CODES.find(
+      c => c.country.toLowerCase() === hintLower || c.code === countryHint.trim()
+    );
+    if (matched) {
+      detectedCode = matched.code;
+    }
+  }
+
+  // Detect dial code from raw phone if already prefixed
+  for (const c of COUNTRY_DIAL_CODES) {
+    const rawNoPlus = c.code.replace('+', '');
+    if (phone.startsWith(c.code)) {
+      detectedCode = c.code;
+      phone = phone.slice(c.code.length).trim();
+      break;
+    } else if (phone.startsWith('00' + rawNoPlus)) {
+      detectedCode = c.code;
+      phone = phone.slice(('00' + rawNoPlus).length).trim();
+      break;
+    } else if (phone.startsWith(rawNoPlus) && phone.length >= rawNoPlus.length + 8) {
+      detectedCode = c.code;
+      phone = phone.slice(rawNoPlus.length).trim();
+      break;
+    }
+  }
+
+  // Strip non-digits from remaining local phone string
+  let localDigits = phone.replace(/\D/g, '');
+  // Strip leading 0 if present (e.g. 09845012345)
+  if (localDigits.length === 11 && localDigits.startsWith('0')) {
+    localDigits = localDigits.slice(1);
+  }
+
+  if (!localDigits) {
+    return detectedCode;
+  }
+
+  // Format into xxxx xxx xxx (4 digits, 3 digits, 3 digits)
+  const part1 = localDigits.slice(0, 4);
+  const part2 = localDigits.slice(4, 7);
+  const part3 = localDigits.slice(7, 10);
+  const remaining = localDigits.slice(10);
+
+  const parts = [part1, part2, part3, remaining].filter(Boolean);
+  return `${detectedCode} ${parts.join(' ')}`.trim();
+}
+
+/**
+ * Formats a contact person name with proper salutation (Mr. Name).
+ * If salutation is missing, defaults to 'Mr.'.
+ */
+export function formatContactPerson(person?: string | null, title?: string | null): string {
+  if (!person || !person.trim()) return '—';
+  const trimmed = person.trim();
+  // If already starts with a title like Mr./Mrs./Ms./Dr./Prof., return as-is
+  if (/^(mr\.?|mrs\.?|ms\.?|dr\.?|prof\.?)\s+/i.test(trimmed)) {
+    return trimmed;
+  }
+  const salutation = (title && title.trim()) || 'Mr.';
+  const normalizedTitle = salutation.endsWith('.') ? salutation : `${salutation}.`;
+  return `${normalizedTitle} ${trimmed}`;
+}

@@ -16,6 +16,7 @@ import {
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { Select } from '@/components/ui/Select';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 import { capitalizeWords } from '@/lib/formatters';
 
 export interface CustomerFormModalProps {
@@ -288,20 +289,14 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
           {/* Phone & Email in 2 columns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-                <Phone size={13} className="text-[#C82A2B]" />
-                Primary Phone Number *
-              </label>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +91 98765 43210"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
+            <PhoneInput
+              required
+              label="Primary Phone Number *"
+              value={phone}
+              onChange={setPhone}
+              country={country}
+              onCountryChange={setCountry}
+            />
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />

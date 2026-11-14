@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import toast from '@/components/ui/toast';
 import { Quotation, Organization } from '../page';
-import { formatDate, capitalizeFirstLetter } from '@/lib/formatters';
+import { formatDate, capitalizeFirstLetter, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
@@ -263,8 +263,8 @@ export default function QuotationList({
         return (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[190px]">
             {person && (
-              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={`${title ? title + ' ' : ''}${person}`}>
-                {title ? `${title} ` : ''}{person}
+              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={formatContactPerson(person, title)}>
+                {formatContactPerson(person, title)}
               </span>
             )}
             {desig && (
@@ -274,7 +274,7 @@ export default function QuotationList({
             )}
             {ph && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={ph} name={person || org?.name} />
+                <ContactPhoneLink phone={ph} country={org?.country || 'India'} name={person || org?.name} />
               </div>
             )}
           </div>
@@ -436,9 +436,9 @@ export default function QuotationList({
       const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
       const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
       const zoneName = fullOrg?.zones?.name || '—';
-      const person = fullOrg?.contact_person || '—';
+      const person = formatContactPerson(fullOrg?.contact_person, fullOrg?.contact_title);
       const desig = fullOrg?.contact_designation;
-      const phone = fullOrg?.contact_number || fullOrg?.phone || '—';
+      const phone = (fullOrg?.contact_number || fullOrg?.phone) ? formatPhoneNumber(fullOrg?.contact_number || fullOrg?.phone, fullOrg?.country || 'India') : '—';
       const sp = getSalesPerson(q)?.name || 'Unassigned';
 
       return `

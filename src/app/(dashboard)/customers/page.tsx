@@ -31,7 +31,7 @@ import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 
 interface Customer {
   id: number;
@@ -118,9 +118,9 @@ function compileCustomerDirectoryHTML({
     const locality = [c.city, c.state].filter(Boolean).join(', ') || c.city || c.state || '—';
     const zoneName = c.zones?.name || (zones?.find((z: any) => String(z.id) === String(c.zone_id))?.name) || '—';
     const branchName = branches?.find((b: any) => String(b.id) === String(c.branch_id))?.name || (c as any).branches?.name || '—';
-    const contactPerson = c.contact_person || '—';
+    const contactPerson = formatContactPerson(c.contact_person, c.contact_title);
     const designation = c.contact_designation;
-    const phone = c.contact_number || c.phone || '—';
+    const phone = (c.contact_number || c.phone) ? formatPhoneNumber(c.contact_number || c.phone, c.country || 'India') : '—';
     const salesPerson = c.relationship_manager?.full_name || 'Unassigned';
     const receivables = Number(c.receivables || 0);
 
@@ -1134,8 +1134,8 @@ export default function CustomersRegistry() {
         return (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
             {person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${c.contact_title ? c.contact_title + ' ' : ''}${person}`}>
-                {c.contact_title ? `${c.contact_title} ` : ''}{person}
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(person, c.contact_title)}`}>
+                {formatContactPerson(person, c.contact_title)}
               </span>
             )}
             {desig && (
@@ -1145,7 +1145,7 @@ export default function CustomersRegistry() {
             )}
             {num && (
               <div className="mt-0.5">
-                <ContactPhoneLink phone={num} name={person || c.name} />
+                <ContactPhoneLink phone={num} country={c.country || 'India'} name={person || c.name} />
               </div>
             )}
           </div>
@@ -1161,7 +1161,7 @@ export default function CustomersRegistry() {
         const hasDue = amt > 0;
         return (
           <div className="flex flex-col items-end" title={String(amt)}>
-            <span className={`text-xs font-black font-mono ${hasDue ? 'text-rose-600' : 'text-zinc-600'}`}>
+            <span className={`text-xs md:text-sm font-black font-mono ${hasDue ? 'text-rose-600' : 'text-zinc-600'}`}>
               ₹{amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             <span className={`text-[8px] font-bold uppercase tracking-wider ${hasDue ? 'text-rose-500' : 'text-zinc-400'}`}>
@@ -1205,7 +1205,7 @@ export default function CustomersRegistry() {
         const hasCredit = amt > 0;
         return (
           <div className="flex flex-col items-end" title={`Credit (Amount Paid - Invoice): ₹${amt.toFixed(2)}`}>
-            <span className={`text-xs font-black font-mono ${hasCredit ? 'text-emerald-600' : 'text-zinc-600'}`}>
+            <span className={`text-xs md:text-sm font-black font-mono ${hasCredit ? 'text-emerald-600' : 'text-zinc-600'}`}>
               ₹{amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             <span className={`text-[8px] font-bold uppercase tracking-wider ${hasCredit ? 'text-emerald-600' : 'text-zinc-400'}`}>
@@ -1572,7 +1572,7 @@ export default function CustomersRegistry() {
                           <td className="py-3.5 px-4">
                             <div className="flex flex-col">
                               <span className="font-bold text-zinc-700">
-                                {item.contact_person || 'N/A'}
+                                {formatContactPerson(item.contact_person, (item as any).contact_title)}
                               </span>
                               {item.contact_phone ? (
                                 <a 
@@ -1580,7 +1580,7 @@ export default function CustomersRegistry() {
                                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline mt-0.5"
                                 >
                                   <Phone size={10} />
-                                  <span>{item.contact_phone}</span>
+                                  <span>{formatPhoneNumber(item.contact_phone)}</span>
                                 </a>
                               ) : (
                                 <span className="text-[10px] text-zinc-400">No phone</span>

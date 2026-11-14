@@ -697,7 +697,7 @@ export default function InvoicesPage() {
 
                     {/* Total Amount */}
                     <td className="px-5 py-4 text-right">
-                      <p className="font-mono font-black text-zinc-900 text-xs">
+                      <p className="font-mono font-black text-zinc-900 text-xs md:text-sm">
                         {formatCurrency(inv.total_amount)}
                       </p>
                       <span className="text-[10px] text-zinc-400">
