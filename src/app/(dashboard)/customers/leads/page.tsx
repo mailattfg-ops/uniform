@@ -824,7 +824,7 @@ export default function LeadsRegistryPage() {
               onClick={() => setFollowUpLead(l)}
               className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all cursor-pointer"
             >
-              Follow-up Note
+              Follow-up
             </button>
           ) : (
             <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_sales_contact">
@@ -838,7 +838,7 @@ export default function LeadsRegistryPage() {
               onClick={() => setFollowUpLead(l)}
               className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all cursor-pointer"
             >
-              Follow-up Note
+              Follow-up
             </button>
           ) : (
             <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_followups">
