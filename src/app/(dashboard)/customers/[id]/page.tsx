@@ -2733,18 +2733,6 @@ function OrganizationDetailsPageContent() {
                       <span>Edit Profile</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        handleResetPassword();
-                      }}
-                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-zinc-800 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-                    >
-                      <Key size={13} className="text-amber-600" />
-                      <span>Reset Password</span>
-                    </button>
-
                     <div className="my-1 border-t border-zinc-100" />
 
                     <button
@@ -3065,94 +3053,145 @@ function OrganizationDetailsPageContent() {
             <h3 className="text-lg font-black text-zinc-900 tracking-tight">Organization Profile</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                  <MapPin size={12} /> Address Location
-                </span>
-                <div className="space-y-1.5">
+              {/* 1. Contact Person & Contact Info */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <User size={12} /> Contact Person & Details
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-zinc-900">
+                      {formatContactPerson(org.contact_person, org.contact_title)}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
+                      {(org.contact_number || org.phone) && (
+                        <a
+                          href={`tel:${org.contact_number || org.phone}`}
+                          className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
+                        >
+                          <Phone size={12} className="text-[#C82A2B]" />
+                          <span>{formatPhoneNumber(org.contact_number || org.phone, org.country || 'India')}</span>
+                        </a>
+                      )}
+                      {(org.email || org.contact_email) && (
+                        <a
+                          href={`mailto:${org.email || org.contact_email}`}
+                          className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#C82A2B] transition-colors"
+                        >
+                          <Mail size={12} className="text-[#C82A2B]" />
+                          <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Sales Person */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <Users size={12} /> Sales Person
+                  </span>
                   <p className="text-sm font-bold text-zinc-900">
-                    {org.address || (org.city || org.state || org.pincode || org.country ? '' : 'Not registered')}
+                    {org.relationship_manager?.full_name
+                      ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
+                      : 'Unassigned'}
                   </p>
-                  {(org.city || org.state || org.pincode || org.country) && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
-                      {org.city && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
-                          {org.city}
-                        </span>
-                      )}
-                      {org.state && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
-                          {org.state}
-                        </span>
-                      )}
-                      {org.pincode && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#C82A2B]">
-                          PIN: {org.pincode}
-                        </span>
-                      )}
-                      {org.country && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
-                          {org.country}
-                        </span>
-                      )}
+                  {org.assigned_operator && (
+                    <div className="mt-3 pt-2.5 border-t border-zinc-200/60">
+                      <span className="flex items-center gap-1 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">
+                        Assigned Marketing Executive
+                      </span>
+                      <p className="text-xs font-bold text-zinc-700">
+                        {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Contact Person & Contact Info */}
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                  <User size={12} /> Contact Person & Details
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-zinc-900">
-                    {formatContactPerson(org.contact_person, org.contact_title)}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
-                    {(org.contact_number || org.phone) && (
-                      <a
-                        href={`tel:${org.contact_number || org.phone}`}
-                        className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
-                      >
-                        <Phone size={12} className="text-[#C82A2B]" />
-                        <span>{formatPhoneNumber(org.contact_number || org.phone, org.country || 'India')}</span>
-                      </a>
-                    )}
-                    {(org.email || org.contact_email) && (
-                      <a
-                        href={`mailto:${org.email || org.contact_email}`}
-                        className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#C82A2B] transition-colors"
-                      >
-                        <Mail size={12} className="text-[#C82A2B]" />
-                        <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
-                      </a>
+              {/* 3. Address Location */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <MapPin size={12} /> Address Location
+                  </span>
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-bold text-zinc-900">
+                      {org.address || (org.city || org.state || org.pincode || org.country ? '' : 'Not registered')}
+                    </p>
+                    {(org.city || org.state || org.pincode || org.country) && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                        {org.city && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.city}
+                          </span>
+                        )}
+                        {org.state && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.state}
+                          </span>
+                        )}
+                        {org.pincode && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#C82A2B]">
+                            PIN: {org.pincode}
+                          </span>
+                        )}
+                        {org.country && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
+                            {org.country}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                  <Users size={12} /> Sales Person
-                </span>
-                <p className="text-sm font-bold text-zinc-900">
-                  {org.relationship_manager?.full_name
-                    ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
-                    : 'Unassigned'}
-                </p>
-              </div>
-
-              {org.assigned_operator && (
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <Users size={12} /> Assigned Marketing Executive
-                  </span>
-                  <p className="text-sm font-bold text-zinc-900">
-                    {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
-                  </p>
+              {/* 4. Customer Credentials & Portal Login */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                      <Key size={12} className="text-[#C82A2B]" /> Customer Credentials
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
+                      Portal Login
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      Customer ID / Login ID
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black font-mono text-zinc-900 tracking-wider">
+                        {org.customer_code || (org.id ? `CN${String(org.id).padStart(3, '0')}` : '—')}
+                      </p>
+                      <span className="text-[10px] font-semibold text-zinc-400 font-mono">
+                        (#{org.id})
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                <div className="pt-3 mt-3 border-t border-zinc-200/60 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-zinc-500">
+                    Portal access management
+                  </span>
+                  {!isClientUser && (
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="Reset customer portal password"
+                    >
+                      <Key size={12} className="text-amber-600 shrink-0" />
+                      <span>Reset Password</span>
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {/* GST & B2B Tax Profile Card */}
               <div 
