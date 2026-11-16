@@ -145,7 +145,7 @@ function getColumnValue<T>(item: T, col: Column<T>): any {
   return '';
 }
 
-const DATE_COLUMN_REGEX = /date|created|updated|dispatch|expected|shipment|registered|timestamp|delivery|recorded|setup|onboarded|valid[_\s-]?until|validity|expires?|expiry|follow-up|follow\s+up|captured|capture\s+log/i;
+const DATE_COLUMN_REGEX = /date|created|updated|dispatch|expected|shipment|registered|timestamp|delivery|recorded|setup|onboarded|valid[_\s-]?until|validity|expires?|expiry|follow[_\s-]?up\s*(date|time|at)|captured|capture\s+log/i;
 
 function isDateColumn<T>(col: Column<T>): boolean {
   let headerText = '';
@@ -715,7 +715,9 @@ export function DataTable<T extends { id: string | number }>({
                       const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
 
                       const alignmentClass = (isDateCol || isStatusCol)
-                        ? 'text-center align-middle [&>*]:mx-auto [&>*]:text-center [&>*]:justify-center [&_.flex]:justify-center [&_.inline-flex]:justify-center [&_.flex]:mx-auto [&_.inline-flex]:mx-auto'
+                        ? `text-center align-middle [&>*]:mx-auto [&>*]:text-center [&>*]:justify-center [&_.flex]:justify-center [&_.inline-flex]:justify-center [&_.flex]:mx-auto [&_.inline-flex]:mx-auto ${
+                            isDateCol ? '!font-bold [&>*]:!font-bold [&_span]:!font-bold [&_p]:!font-bold [&_div]:!font-bold text-zinc-800' : ''
+                          }`
                         : col.className?.includes('text-center')
                           ? 'text-center align-middle [&>.flex]:justify-center [&>.inline-flex]:justify-center'
                           : isRightAligned

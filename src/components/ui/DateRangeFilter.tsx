@@ -236,18 +236,18 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-9 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-2 border shadow-2xs cursor-pointer w-full ${
+        className={`h-9 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-between gap-2 border shadow-2xs cursor-pointer w-full ${
           isFiltered
             ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
-            : 'bg-white hover:bg-zinc-50 text-zinc-700 border-zinc-200/80 hover:border-zinc-300'
+            : 'bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-200/80 hover:border-zinc-300'
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <Calendar size={13} className={isFiltered ? 'text-[#C82A2B]' : 'text-zinc-400'} />
-          <span className="text-[10px] uppercase font-black tracking-wider opacity-60 shrink-0">
+          <Calendar size={13} className={isFiltered ? 'text-[#C82A2B]' : 'text-zinc-700'} strokeWidth={2.5} />
+          <span className="text-[10px] uppercase font-black tracking-wider text-zinc-900 opacity-90 shrink-0">
             {label}:
           </span>
-          <span className="truncate font-semibold">{displayLabel}</span>
+          <span className={`truncate font-black text-xs ${isFiltered ? 'text-white' : 'text-zinc-900'}`}>{displayLabel}</span>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
@@ -257,12 +257,13 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
               className="p-0.5 rounded-full hover:bg-white/20 text-white/70 hover:text-white transition-colors"
               title="Reset date filter"
             >
-              <X size={12} />
+              <X size={12} strokeWidth={2.5} />
             </span>
           )}
           <ChevronDown
             size={13}
-            className={`transition-transform duration-200 opacity-60 ${isOpen ? 'rotate-180' : ''}`}
+            strokeWidth={2.5}
+            className={`transition-transform duration-200 opacity-70 ${isOpen ? 'rotate-180' : ''}`}
           />
         </div>
       </button>
@@ -297,14 +298,14 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleSelectPreset(opt.value)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold text-left transition-colors flex items-center justify-between cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold text-left transition-colors flex items-center justify-between cursor-pointer ${
                     isSelected
-                      ? 'bg-[#FFF1F1] text-[#9E1B1D] font-bold border border-[#C82A2B]/20'
-                      : 'hover:bg-zinc-100 text-zinc-700'
+                      ? 'bg-[#FFF1F1] text-[#9E1B1D] font-black border border-[#C82A2B]/20'
+                      : 'hover:bg-zinc-100 text-zinc-800'
                   }`}
                 >
                   <span className="truncate">{opt.label}</span>
-                  {isSelected && <Check size={13} className="text-[#C82A2B] shrink-0 ml-1" />}
+                  {isSelected && <Check size={13} className="text-[#C82A2B] shrink-0 ml-1" strokeWidth={2.5} />}
                 </button>
               );
             })}
@@ -318,32 +319,32 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
             <form onSubmit={handleApplyCustomRange} className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">
+                  <label className="text-[9px] font-bold uppercase text-zinc-500 block mb-0.5">
                     From
                   </label>
                   <input
                     type="date"
                     value={customStart}
                     onChange={(e) => setCustomStart(e.target.value)}
-                    className="w-full text-xs font-medium px-2 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C82A2B] text-zinc-800"
+                    className="w-full text-xs font-bold px-2 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C82A2B] text-zinc-900"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">
+                  <label className="text-[9px] font-bold uppercase text-zinc-500 block mb-0.5">
                     To
                   </label>
                   <input
                     type="date"
                     value={customEnd}
                     onChange={(e) => setCustomEnd(e.target.value)}
-                    className="w-full text-xs font-medium px-2 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C82A2B] text-zinc-800"
+                    className="w-full text-xs font-bold px-2 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C82A2B] text-zinc-900"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer active:scale-98"
+                className="w-full h-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-xs font-black uppercase tracking-wider transition-colors shadow-2xs cursor-pointer active:scale-98"
               >
                 Apply Range
               </button>

@@ -184,7 +184,7 @@ export default function QuotationList({
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => q.quotation_date || q.created_at || '',
       accessor: (q) => (
-        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap block text-center">
+        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap block text-center">
           {formatDate(q.quotation_date || q.created_at)}
         </span>
       )
@@ -311,7 +311,7 @@ export default function QuotationList({
       sortValue: (q) => q.expected_delivery_date || '',
       accessor: (q) => (
         <div className="text-center">
-          <p className="text-xs font-bold text-zinc-700 text-center">
+          <p className="text-xs font-bold text-zinc-800 text-center">
             {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
           </p>
           {q.production_days_estimate ? (
@@ -444,7 +444,7 @@ export default function QuotationList({
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
+        <td style="font-size: 10px; font-weight: 700; color: #1a202c; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
         <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap; text-align: center; vertical-align: middle;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
@@ -457,7 +457,7 @@ export default function QuotationList({
           ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #718096; margin-top: 2px;">${phone}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${sp}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
+        <td style="font-size: 10px; font-weight: 700; color: #1a202c; text-align: center; vertical-align: middle;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
         <td style="font-size: 10px; font-weight: bold; font-family: monospace; text-align: right; color: #1a202c;">
           ₹${(parseFloat(String(q.final_quote_value)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>

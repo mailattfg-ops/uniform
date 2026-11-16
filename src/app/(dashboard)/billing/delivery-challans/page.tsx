@@ -520,7 +520,7 @@ export default function DeliveryChallansPage() {
               {challans.length > 0 ? (
                 challans.map(dc => (
                   <tr key={dc.id} className="hover:bg-slate-50/80 transition">
-                    <td className="p-3 text-slate-600 font-semibold text-center align-middle whitespace-nowrap">{dc.dispatch_date}</td>
+                    <td className="p-3 text-slate-800 font-bold text-center align-middle whitespace-nowrap">{dc.dispatch_date}</td>
                     <td className="p-3 font-mono font-bold text-indigo-600">{dc.dc_no}</td>
                     <td className="p-3 font-mono text-slate-700">{dc.orders?.order_no || `ORD-#${dc.order_id}`}</td>
                     <td className="p-3">

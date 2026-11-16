@@ -4023,7 +4023,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Date',
                     className: 'w-[105px] whitespace-nowrap text-center',
                     accessor: (q) => (
-                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap block text-center">
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap block text-center">
                         {formatDate(q.quotation_date || q.created_at)}
                       </span>
                     )
@@ -4142,7 +4142,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Date',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (p: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(p.paid_at || p.created_at || p.date)}
                       </span>
                     )
@@ -6005,7 +6005,7 @@ function OrganizationDetailsPageContent() {
                     {/* Period Transactions (No Time!) */}
                     {statementLedgerDetails.filteredTransactions.map((tx: any) => (
                       <tr key={tx.id} className="text-zinc-800">
-                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center align-middle">
+                        <td className="py-2 px-2 font-bold text-zinc-800 whitespace-nowrap text-center align-middle">
                           {formatDate(tx.date)}
                         </td>
                         <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">{tx.reference_no}</td>
