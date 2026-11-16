@@ -205,17 +205,39 @@ export default function QuotationList({
       className: 'min-w-[160px] max-w-[260px]',
       sortValue: (q) => q.organizations?.name || '',
       accessor: (q) => {
-        const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+        const fullOrg = organizations?.find(o => 
+          (q.organization_id && String(o.id) === String(q.organization_id)) ||
+          (q.organizations?.id && String(o.id) === String(q.organizations.id)) ||
+          (o.name && q.organizations?.name && o.name.toLowerCase().trim() === q.organizations.name.toLowerCase().trim())
+        ) || (q.organizations as any);
+
+        const isRisk = Boolean(
+          (fullOrg as any)?.is_risk === true || (fullOrg as any)?.is_risk === 'true' || (fullOrg as any)?.is_risk === 1 ||
+          (fullOrg as any)?.client_tag === 'risk' ||
+          (q.organizations as any)?.is_risk === true || (q.organizations as any)?.is_risk === 'true' || (q.organizations as any)?.is_risk === 1 ||
+          (q.organizations as any)?.client_tag === 'risk'
+        );
+        const isSpecial = Boolean(
+          (fullOrg as any)?.is_special === true || (fullOrg as any)?.is_special === 'true' || (fullOrg as any)?.is_special === 1 ||
+          (fullOrg as any)?.client_tag === 'special' ||
+          (q.organizations as any)?.is_special === true || (q.organizations as any)?.is_special === 'true' || (q.organizations as any)?.is_special === 1 ||
+          (q.organizations as any)?.client_tag === 'special'
+        );
         const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
-        const isRisk = Boolean(fullOrg?.is_risk);
-        const isSpecial = Boolean(fullOrg?.is_special);
+
         return (
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 max-w-full">
-              <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
-                {q.organizations?.name || '—'}
+              <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || fullOrg?.name || '—'}>
+                {q.organizations?.name || fullOrg?.name || '—'}
               </p>
-              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={14} />
+              <CustomerRiskFavBadge 
+                isRisk={isRisk} 
+                isSpecial={isSpecial} 
+                clientTag={fullOrg?.client_tag || (q.organizations as any)?.client_tag}
+                customer={fullOrg} 
+                size={14} 
+              />
             </div>
             {sector && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5" title={sector}>

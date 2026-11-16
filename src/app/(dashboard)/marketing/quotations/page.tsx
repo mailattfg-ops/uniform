@@ -27,6 +27,17 @@ export interface Organization {
   delivery_pincode?: string | null;
   delivery_country?: string | null;
   is_b2b?: boolean | null;
+  is_risk?: boolean | null;
+  is_special?: boolean | null;
+  client_tag?: string | null;
+  industry_id?: number | null;
+  industries?: { id: number; name: string };
+  industry?: string | null;
+  zones?: { id: number; name: string; code?: string };
+  contact_person?: string | null;
+  contact_title?: string | null;
+  contact_designation?: string | null;
+  contact_number?: string | null;
   address?: string | null;
   city?: string | null;
   state?: string | null;

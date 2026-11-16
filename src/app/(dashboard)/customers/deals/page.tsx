@@ -91,7 +91,7 @@ export default function DealsRegistryPage() {
         api.get('/zones').catch(() => ({ data: [] })),
         api.get('/quotations').catch(() => ({ data: [] })),
         api.get('/payments').catch(() => ({ data: [] })),
-        api.get('/customers').catch(() => api.get('/organizations')).catch(() => ({ data: [] }))
+        api.get('/organizations').catch(() => ({ data: [] }))
       ]);
 
       setLeads(leadsRes.data || []);
@@ -223,6 +223,10 @@ export default function DealsRegistryPage() {
         contact_person: org?.contact_person || '',
         status: 'Deals',
         organization_id: q.organization_id,
+        organizations: org,
+        is_risk: org?.is_risk,
+        is_special: org?.is_special,
+        client_tag: org?.client_tag,
         branch_id: q.branch_id || org?.branch_id || null,
         zone_id: (q as any).zone_id || org?.zone_id || null,
         industry_id: org?.industry_id || null,
@@ -498,12 +502,35 @@ export default function DealsRegistryPage() {
         const fin = getDealFinancials(l);
         const quote = fin.approvedQuote;
         const linkedCust = customers.find(c => 
-          (l.organization_id && c.id === l.organization_id) ||
-          (quote?.organization_id && c.id === quote.organization_id) ||
-          (c.name && c.name.toLowerCase().trim() === l.name.toLowerCase().trim())
+          (l.organization_id && String(c.id) === String(l.organization_id)) ||
+          (quote?.organization_id && String(c.id) === String(quote.organization_id)) ||
+          (quote?.organizations?.id && String(c.id) === String(quote.organizations.id)) ||
+          (c.name && l.name && c.name.toLowerCase().trim() === l.name.toLowerCase().trim()) ||
+          (c.name && quote?.organizations?.name && c.name.toLowerCase().trim() === quote.organizations.name.toLowerCase().trim())
+        ) || (quote?.organizations as any) || (l as any).organizations;
+
+        const isRisk = Boolean(
+          (linkedCust as any)?.is_risk === true || (linkedCust as any)?.is_risk === 'true' || (linkedCust as any)?.is_risk === 1 ||
+          (linkedCust as any)?.client_tag === 'risk' ||
+          (quote?.organizations as any)?.is_risk === true || (quote?.organizations as any)?.is_risk === 'true' || (quote?.organizations as any)?.is_risk === 1 ||
+          (quote?.organizations as any)?.client_tag === 'risk' ||
+          (l as any).organizations?.is_risk === true || (l as any).organizations?.is_risk === 'true' || (l as any).organizations?.is_risk === 1 ||
+          (l as any).organizations?.client_tag === 'risk' ||
+          (l as any).is_risk === true || (l as any).is_risk === 'true' || (l as any).is_risk === 1 ||
+          (l as any).client_tag === 'risk'
         );
-        const isRisk = Boolean(linkedCust?.is_risk ?? quote?.organizations?.is_risk ?? (l as any).organizations?.is_risk ?? (l as any).is_risk);
-        const isSpecial = Boolean(linkedCust?.is_special ?? quote?.organizations?.is_special ?? (l as any).organizations?.is_special ?? (l as any).is_special);
+
+        const isSpecial = Boolean(
+          (linkedCust as any)?.is_special === true || (linkedCust as any)?.is_special === 'true' || (linkedCust as any)?.is_special === 1 ||
+          (linkedCust as any)?.client_tag === 'special' ||
+          (quote?.organizations as any)?.is_special === true || (quote?.organizations as any)?.is_special === 'true' || (quote?.organizations as any)?.is_special === 1 ||
+          (quote?.organizations as any)?.client_tag === 'special' ||
+          (l as any).organizations?.is_special === true || (l as any).organizations?.is_special === 'true' || (l as any).organizations?.is_special === 1 ||
+          (l as any).organizations?.client_tag === 'special' ||
+          (l as any).is_special === true || (l as any).is_special === 'true' || (l as any).is_special === 1 ||
+          (l as any).client_tag === 'special'
+        );
+
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
         return (
           <div className="min-w-0 text-left flex flex-col items-start">
@@ -511,7 +538,13 @@ export default function DealsRegistryPage() {
               <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
                 {l.name}
               </p>
-              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={15} />
+              <CustomerRiskFavBadge 
+                isRisk={isRisk} 
+                isSpecial={isSpecial} 
+                clientTag={linkedCust?.client_tag}
+                customer={linkedCust} 
+                size={15} 
+              />
             </div>
             {industryName && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
