@@ -2799,7 +2799,7 @@ function OrganizationDetailsPageContent() {
             />
           )}
           <div
-            className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
+            className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-center transition-transform duration-300 ease-out select-none ${
               isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)]'
             }`}
           >
@@ -2807,14 +2807,14 @@ function OrganizationDetailsPageContent() {
             <button
               type="button"
               onClick={() => setIsMeasurementDrawerOpen(!isMeasurementDrawerOpen)}
-              className="relative w-8 h-9 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-xl flex items-center justify-center shadow-[-4px_2px_12px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0 active:scale-95"
+              className="relative w-8 h-20 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-2xl flex flex-col items-center justify-center shadow-[-4px_2px_12px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0 active:scale-95"
               title="Measurements & Sizing Quick Actions"
             >
-              <Ruler size={14} className="text-white" />
+              <Ruler size={16} className="text-white" />
 
               {(orgDetails?.measurements?.pending || 0) > 0 && (
                 <span
-                  className="absolute -top-1 -left-1 w-3.5 h-3.5 rounded-full bg-amber-400 text-zinc-900 text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse ring-1 ring-white"
+                  className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-amber-400 text-zinc-900 text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse ring-1 ring-white"
                   title={`${orgDetails?.measurements?.pending} pending measurements`}
                 >
                   {orgDetails?.measurements?.pending}
