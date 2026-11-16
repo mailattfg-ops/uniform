@@ -3149,51 +3149,7 @@ function OrganizationDetailsPageContent() {
                 </div>
               </div>
 
-              {/* 4. Customer Credentials & Portal Login */}
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-                      <Key size={12} className="text-[#C82A2B]" /> Customer Credentials
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
-                      Portal Login
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Customer ID / Login ID
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-black font-mono text-zinc-900 tracking-wider">
-                        {org.customer_code || (org.id ? `CN${String(org.id).padStart(3, '0')}` : '—')}
-                      </p>
-                      <span className="text-[10px] font-semibold text-zinc-400 font-mono">
-                        (#{org.id})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-3 mt-3 border-t border-zinc-200/60 flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-medium text-zinc-500">
-                    Portal access management
-                  </span>
-                  {!isClientUser && (
-                    <button
-                      type="button"
-                      onClick={handleResetPassword}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
-                      title="Reset customer portal password"
-                    >
-                      <Key size={12} className="text-amber-600 shrink-0" />
-                      <span>Reset Password</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* GST & B2B Tax Profile Card */}
+              {/* 4. GST & B2B Tax Profile Card (Right side, above Portal Access) */}
               <div 
                 onClick={() => {
                   if (isClientUser) return;
@@ -3258,7 +3214,7 @@ function OrganizationDetailsPageContent() {
                 )}
               </div>
 
-              {/* Delivery & Dispatch Destination Card */}
+              {/* 5. Delivery & Dispatch Destination Card (Left side) */}
               <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
@@ -3324,8 +3280,52 @@ function OrganizationDetailsPageContent() {
                 )}
               </div>
 
-              {/* Credit Period & Commercial Terms Card */}
-              <div className="p-5 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20">
+              {/* 6. Customer Credentials & Portal Login (Right side, below GST) */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                      <Key size={12} className="text-[#C82A2B]" /> Customer Credentials
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
+                      Portal Login
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      Customer ID / Login ID
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black font-mono text-zinc-900 tracking-wider">
+                        {org.customer_code || (org.id ? `CN${String(org.id).padStart(3, '0')}` : '—')}
+                      </p>
+                      <span className="text-[10px] font-semibold text-zinc-400 font-mono">
+                        (#{org.id})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 mt-3 border-t border-zinc-200/60 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-zinc-500">
+                    Portal access management
+                  </span>
+                  {!isClientUser && (
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="Reset customer portal password"
+                    >
+                      <Key size={12} className="text-amber-600 shrink-0" />
+                      <span>Reset Password</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 7. Credit Period & Commercial Terms Card */}
+              <div className="p-5 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20 md:col-span-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-2 text-[9px] font-black text-[#9E1B1D] uppercase tracking-widest">
                     <CreditCard size={12} /> Credit Period Terms
