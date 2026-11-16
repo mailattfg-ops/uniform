@@ -724,8 +724,28 @@ export default function CustomersRegistry() {
 
     try {
       if (editingCustomer) {
-        await api.put(`/customers/${editingCustomer.id}`, payload).catch(() => api.put(`/organizations/${editingCustomer.id}`, payload));
+        const res = await api.put(`/customers/${editingCustomer.id}`, payload).catch(() => api.put(`/organizations/${editingCustomer.id}`, payload));
         toast.success('Customer profile updated successfully!', { id: loadingToast });
+        const updatedData = res?.data?.data || res?.data;
+        setCustomers((prev) =>
+          prev.map((c) =>
+            c.id === editingCustomer.id
+              ? {
+                  ...c,
+                  ...payload,
+                  ...(updatedData || {}),
+                  phone: updatedData?.contact_number || updatedData?.phone || payload.phone,
+                  contact_number: updatedData?.contact_number || updatedData?.phone || payload.phone,
+                  email: updatedData?.contact_email || updatedData?.email || payload.email,
+                  contact_email: updatedData?.contact_email || updatedData?.email || payload.email,
+                  contact_title: updatedData?.contact_title || payload.contact_title,
+                  contact_person: updatedData?.contact_person || payload.contact_person,
+                  contact_designation: updatedData?.contact_designation || payload.contact_designation,
+                  industries: industries.find((ind) => ind.id === (updatedData?.industry_id || payload.industry_id)) || c.industries
+                }
+              : c
+          )
+        );
       } else {
         const autoPassword = generateInitialPassword();
         const submissionData = {

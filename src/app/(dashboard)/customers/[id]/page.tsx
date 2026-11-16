@@ -83,10 +83,13 @@ import { formatDocumentNumber } from '@/lib/documentNumberGenerator';
 interface Organization {
   id: number;
   branch_id?: number | string | null;
+  zone_id?: number | string | null;
+  zones?: { id: number; name: string; code?: string } | null;
   customer_code: string | null;
   name: string;
   contact_title?: string | null;
   contact_person?: string | null;
+  contact_designation?: string | null;
   phone?: string | null;
   contact_number?: string | null;
   email?: string | null;
@@ -1329,7 +1332,9 @@ function OrganizationDetailsPageContent() {
 
     const payload = {
       name: formData.name,
+      contact_title: formData.contact_title || 'Mr.',
       contact_person: formData.contact_person?.trim() || null,
+      contact_designation: formData.contact_designation?.trim() || null,
       phone: formData.phone.trim(),
       contact_number: formData.phone.trim(),
       email: formData.email?.trim() || null,
@@ -1340,6 +1345,8 @@ function OrganizationDetailsPageContent() {
       state: formData.state?.trim() || null,
       pincode: formData.pincode?.trim() || null,
       country: formData.country?.trim() || 'India',
+      branch_id: formData.branch_id ? parseInt(formData.branch_id, 10) : (org?.branch_id || null),
+      zone_id: formData.zone_id ? parseInt(formData.zone_id, 10) : (org?.zone_id || null),
       relationship_manager_id: org?.relationship_manager_id || null,
       is_active: formData.is_active === 'true',
       is_special: isSpecial,
@@ -1351,9 +1358,32 @@ function OrganizationDetailsPageContent() {
     };
 
     try {
-      await api.put(`/customers/${orgId}`, payload).catch(() => api.put(`/organizations/${orgId}`, payload));
+      const res = await api.put(`/customers/${orgId}`, payload).catch(() => api.put(`/organizations/${orgId}`, payload));
       toast.success('Customer profile updated successfully!', { id: loadingToast });
       setIsEditingCustomer(false);
+      
+      const updatedData = res?.data?.data || res?.data;
+      if (updatedData) {
+        setOrg((prev: any) => ({
+          ...prev,
+          ...payload,
+          ...updatedData,
+          phone: updatedData.contact_number || updatedData.phone || payload.phone,
+          contact_number: updatedData.contact_number || updatedData.phone || payload.phone,
+          email: updatedData.contact_email || updatedData.email || payload.email,
+          contact_email: updatedData.contact_email || updatedData.email || payload.email,
+          contact_title: updatedData.contact_title || payload.contact_title,
+          contact_person: updatedData.contact_person || payload.contact_person,
+          contact_designation: updatedData.contact_designation || payload.contact_designation,
+          industries: industries.find(ind => ind.id === (updatedData.industry_id || payload.industry_id)) || prev?.industries
+        }));
+      } else {
+        setOrg((prev: any) => ({
+          ...prev,
+          ...payload
+        }));
+      }
+
       fetchOrgData();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to update customer profile', { id: loadingToast });

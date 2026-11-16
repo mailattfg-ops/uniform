@@ -462,16 +462,32 @@ export default function LeadsRegistryPage() {
     };
 
     try {
+      let updatedLeadData: any = null;
       if (editingLead) {
-        await api.put(`/leads/${editingLead.id}`, payload);
+        const res = await api.put(`/leads/${editingLead.id}`, payload);
+        updatedLeadData = res?.data?.data || res?.data;
         toast.success('Lead updated successfully!', { id: loadingToast });
       } else {
-        await api.post('/leads', payload);
+        const res = await api.post('/leads', payload);
+        updatedLeadData = res?.data?.data || res?.data;
         toast.success('New lead registered successfully!', { id: loadingToast });
       }
       setIsAddingLead(false);
       setEditingLead(null);
       setPrefillFeedData(null);
+
+      // Instantly synchronize viewingLead if currently open in LeadViewModal
+      if (editingLead && viewingLead && String(viewingLead.id) === String(editingLead.id)) {
+        setViewingLead((prev: any) => ({
+          ...prev,
+          ...payload,
+          ...(updatedLeadData || {}),
+          industries: industries.find(i => i.id === (updatedLeadData?.industry_id || payload.industry_id)) || prev?.industries,
+          zones: zones.find(z => z.id === (updatedLeadData?.zone_id || payload.zone_id)) || prev?.zones,
+          branches: branches.find(b => b.id === (updatedLeadData?.branch_id || payload.branch_id)) || prev?.branches,
+        }));
+      }
+
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Operation failed', { id: loadingToast });
