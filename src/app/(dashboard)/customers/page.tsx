@@ -32,6 +32,7 @@ import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 
 interface Customer {
   id: number;
@@ -1551,21 +1552,33 @@ export default function CustomersRegistry() {
                         <tr key={item.id} className="hover:bg-zinc-50/80 transition-colors">
                           {/* Customer */}
                           <td className="py-3.5 px-4">
-                            <div className="flex flex-col">
-                              <span className="font-black text-zinc-900 hover:text-[#C82A2B] cursor-pointer"
-                                onClick={() => {
-                                  if (item.customer_id) {
-                                    setFinancialModal({ isOpen: false, type: null });
-                                    router.push(`/customers/${item.customer_id}`);
-                                  }
-                                }}
-                              >
-                                {item.customer_name}
-                              </span>
-                              <span className="text-[10px] font-mono font-bold text-zinc-400">
-                                {item.customer_code || `#${item.customer_id}`}
-                              </span>
-                            </div>
+                            {(() => {
+                              const linkedC = customers.find(c => c.id === item.customer_id);
+                              return (
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-black text-zinc-900 hover:text-[#C82A2B] cursor-pointer"
+                                      onClick={() => {
+                                        if (item.customer_id) {
+                                          setFinancialModal({ isOpen: false, type: null });
+                                          router.push(`/customers/${item.customer_id}`);
+                                        }
+                                      }}
+                                    >
+                                      {item.customer_name}
+                                    </span>
+                                    <CustomerRiskFavBadge 
+                                      isRisk={Boolean(linkedC?.is_risk)} 
+                                      isSpecial={Boolean(linkedC?.is_special)} 
+                                      size={14} 
+                                    />
+                                  </div>
+                                  <span className="text-[10px] font-mono font-bold text-zinc-400">
+                                    {item.customer_code || `#${item.customer_id}`}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </td>
 
                           {/* Contact */}

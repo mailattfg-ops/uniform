@@ -30,6 +30,7 @@ import { formatDate, capitalizeFirstLetter, formatContactPerson, formatPhoneNumb
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -206,11 +207,16 @@ export default function QuotationList({
       accessor: (q) => {
         const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
         const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
+        const isRisk = Boolean(fullOrg?.is_risk);
+        const isSpecial = Boolean(fullOrg?.is_special);
         return (
           <div className="min-w-0">
-            <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
-              {q.organizations?.name || '—'}
-            </p>
+            <div className="flex items-center gap-1.5 max-w-full">
+              <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
+                {q.organizations?.name || '—'}
+              </p>
+              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={14} />
+            </div>
             {sector && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5" title={sector}>
                 {sector}

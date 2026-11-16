@@ -14,6 +14,7 @@ import {
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import { 
   Lead, 
   Industry, 
@@ -27,6 +28,7 @@ import {
 export default function DealsRegistryPage() {
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -57,8 +59,6 @@ export default function DealsRegistryPage() {
   const [corpApprovalDeal, setCorpApprovalDeal] = useState<Lead | null>(null);
   const [corpApprovalQuotation, setCorpApprovalQuotation] = useState<any | null>(null);
 
-  const [openMenuDealId, setOpenMenuDealId] = useState<number | null>(null);
-
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -79,25 +79,19 @@ export default function DealsRegistryPage() {
     }
   }, []);
 
-  // Close 3-dots action menu on click outside
-  useEffect(() => {
-    const handleClickOutside = () => setOpenMenuDealId(null);
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, []);
-
   // Fetch master data, leads, quotations, and payments
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [leadsRes, indRes, empRes, brRes, zonesRes, quotesRes, paymentsRes] = await Promise.all([
+      const [leadsRes, indRes, empRes, brRes, zonesRes, quotesRes, paymentsRes, custRes] = await Promise.all([
         api.get('/leads'),
         api.get('/industries').catch(() => ({ data: [] })),
         api.get('/employees').catch(() => ({ data: [] })),
         api.get('/branches').catch(() => ({ data: [] })),
         api.get('/zones').catch(() => ({ data: [] })),
         api.get('/quotations').catch(() => ({ data: [] })),
-        api.get('/payments').catch(() => ({ data: [] }))
+        api.get('/payments').catch(() => ({ data: [] })),
+        api.get('/customers').catch(() => api.get('/organizations')).catch(() => ({ data: [] }))
       ]);
 
       setLeads(leadsRes.data || []);
@@ -107,6 +101,7 @@ export default function DealsRegistryPage() {
       setZones(zonesRes.data || []);
       setQuotations(quotesRes.data || []);
       setPayments(paymentsRes.data || []);
+      setCustomers(custRes.data || []);
     } catch (err: any) {
       console.error('Failed to load deals data:', err);
       toast.error('Failed to load deals registry');
@@ -500,12 +495,24 @@ export default function DealsRegistryPage() {
       className: 'min-w-[170px] max-w-[260px] text-left',
       sortValue: (l) => l.name,
       accessor: (l) => {
+        const fin = getDealFinancials(l);
+        const quote = fin.approvedQuote;
+        const linkedCust = customers.find(c => 
+          (l.organization_id && c.id === l.organization_id) ||
+          (quote?.organization_id && c.id === quote.organization_id) ||
+          (c.name && c.name.toLowerCase().trim() === l.name.toLowerCase().trim())
+        );
+        const isRisk = Boolean(linkedCust?.is_risk ?? quote?.organizations?.is_risk ?? (l as any).organizations?.is_risk ?? (l as any).is_risk);
+        const isSpecial = Boolean(linkedCust?.is_special ?? quote?.organizations?.is_special ?? (l as any).organizations?.is_special ?? (l as any).is_special);
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
         return (
           <div className="min-w-0 text-left flex flex-col items-start">
-            <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate w-full" title={l.name}>
-              {l.name}
-            </p>
+            <div className="flex items-center gap-1.5 max-w-full">
+              <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+                {l.name}
+              </p>
+              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={15} />
+            </div>
             {industryName && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
                 {industryName}
@@ -584,44 +591,109 @@ export default function DealsRegistryPage() {
       )
     },
     {
-      header: 'Status',
-      className: 'w-[180px] whitespace-nowrap',
+      header: 'Deal Status',
+      className: 'min-w-[190px] whitespace-nowrap text-center',
       sortValue: (l) => getDealFinancials(l).dealStage,
       accessor: (l) => {
-        const { dealStage } = getDealFinancials(l);
+        const fin = getDealFinancials(l);
+        const quote = fin.approvedQuote;
+        const stage = fin.dealStage;
 
         return (
-          <div className="flex flex-col items-start gap-1">
-            {dealStage === 'NEW_DEALS' && (
+          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {/* Primary Status / Action Badge */}
+            {stage === 'NEW_DEALS' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-teal-50 text-teal-800 border-teal-200 shadow-2xs">
                 <Sparkles size={12} className="text-teal-600 shrink-0" />
                 <span>New Deals</span>
               </span>
             )}
-            {dealStage === 'SO_DRAFT' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 shadow-2xs">
-                <FileText size={12} className="text-amber-600 shrink-0" />
-                <span>SO Draft</span>
-              </span>
+
+            {stage === 'SO_DRAFT' && (
+              <button
+                type="button"
+                onClick={() => handleSendToBm(l, quote)}
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                title="Send SO Draft to Branch Manager for approval"
+              >
+                <Send size={11} />
+                <span>Send for Approval</span>
+              </button>
             )}
-            {dealStage === 'PENDING_BM_APPROVAL' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-orange-50 text-orange-800 border-orange-300 shadow-2xs">
-                <Lock size={10} />
-                <span>Pending BM Approval</span>
-              </span>
+
+            {stage === 'PENDING_BM_APPROVAL' && (
+              isBranchManager ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBmApprovalDeal(l);
+                    setBmApprovalQuotation(quote);
+                  }}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Check and approve Sales Order draft in Deals table"
+                >
+                  <CheckCircle2 size={11} />
+                  <span>Check & Approve</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200">
+                  <Lock size={10} /> <span>Pending BM Approval</span>
+                </span>
+              )
             )}
-            {dealStage === 'SO_APPROVED' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-800 border-indigo-200 shadow-2xs">
-                <CheckCircle2 size={12} className="text-indigo-600 shrink-0" />
-                <span>SO Approved Deals</span>
-              </span>
+
+            {stage === 'SO_APPROVED' && (
+              isBranchManager ? (
+                <button
+                  type="button"
+                  onClick={() => handleSendToCorporate(l, quote)}
+                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Send to Corporate for final approval"
+                >
+                  <Send size={11} />
+                  <span>Send for Approval</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200">
+                  <CheckCircle2 size={10} /> <span>SO Approved Deals</span>
+                </span>
+              )
             )}
-            {dealStage === 'PENDING_CORP_APPROVAL' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-purple-50 text-purple-800 border-purple-200 shadow-2xs">
-                <ShieldCheck size={12} className="text-purple-600 shrink-0" />
-                <span>Pending Corp Approval</span>
-              </span>
+
+            {stage === 'PENDING_CORP_APPROVAL' && (
+              isCorporate ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCorpApprovalDeal(l);
+                    setCorpApprovalQuotation(quote);
+                  }}
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Corporate approve deal and release to production"
+                >
+                  <ShieldCheck size={11} />
+                  <span>Corporate Approve</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200">
+                  <ShieldCheck size={10} /> <span>Pending Corp Approval</span>
+                </span>
+              )
             )}
+
+            {/* Edit / View Remarks Icon Button in Brand Red */}
+            <button
+              type="button"
+              onClick={() => {
+                setRemarksModalDeal(l);
+                setRemarksModalQuotation(quote);
+                setIsRemarksReadOnly(stage !== 'NEW_DEALS' && stage !== 'SO_DRAFT');
+              }}
+              className="p-1.5 rounded-lg border border-[#C82A2B]/30 bg-[#FFF1F1] text-[#C82A2B] hover:bg-[#C82A2B] hover:text-white transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+              title={stage === 'NEW_DEALS' ? 'Add Remarks' : stage === 'SO_DRAFT' ? 'Edit Remarks' : 'View Remarks'}
+            >
+              <Edit3 size={13} strokeWidth={2.5} />
+            </button>
           </div>
         );
       }
@@ -655,160 +727,8 @@ export default function DealsRegistryPage() {
           </div>
         );
       }
-    },
-    {
-      header: 'SO Action',
-      className: 'min-w-[190px] whitespace-nowrap text-center',
-      sortable: false,
-      accessor: (l) => {
-        const fin = getDealFinancials(l);
-        const quote = fin.approvedQuote;
-        const stage = fin.dealStage;
-
-        return (
-          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-            {/* Primary Action Button based on Stage */}
-            {stage === 'NEW_DEALS' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRemarksModalDeal(l);
-                  setRemarksModalQuotation(quote);
-                  setIsRemarksReadOnly(false);
-                }}
-                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                title="Add remarks against each quotation item"
-              >
-                <Edit3 size={11} />
-                <span>Add Remarks</span>
-              </button>
-            )}
-
-            {stage === 'SO_DRAFT' && (
-              <button
-                type="button"
-                onClick={() => handleSendToBm(l, quote)}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                title="Send SO Draft to Branch Manager for approval"
-              >
-                <Send size={11} />
-                <span>Send for Approval</span>
-              </button>
-            )}
-
-            {stage === 'PENDING_BM_APPROVAL' && (
-              isBranchManager ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBmApprovalDeal(l);
-                    setBmApprovalQuotation(quote);
-                  }}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                  title="Check and approve Sales Order draft in Deals table"
-                >
-                  <CheckCircle2 size={11} />
-                  <span>Check & Approve</span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200">
-                  <Lock size={10} /> With BM
-                </span>
-              )
-            )}
-
-            {stage === 'SO_APPROVED' && (
-              isBranchManager ? (
-                <button
-                  type="button"
-                  onClick={() => handleSendToCorporate(l, quote)}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                  title="Send to Corporate for final approval"
-                >
-                  <Send size={11} />
-                  <span>Send for Approval</span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200">
-                  <CheckCircle2 size={10} /> BM Approved
-                </span>
-              )
-            )}
-
-            {stage === 'PENDING_CORP_APPROVAL' && (
-              isCorporate ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCorpApprovalDeal(l);
-                    setCorpApprovalQuotation(quote);
-                  }}
-                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                  title="Corporate approve deal and release to production"
-                >
-                  <ShieldCheck size={11} />
-                  <span>Corporate Approve</span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200">
-                  <ShieldCheck size={10} /> With Corporate
-                </span>
-              )
-            )}
-
-            {/* 3-Dots Action Menu */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setOpenMenuDealId(openMenuDealId === l.id ? null : l.id)}
-                className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 hover:text-zinc-800 transition-colors cursor-pointer"
-                title="Options"
-              >
-                <MoreVertical size={14} />
-              </button>
-
-              {openMenuDealId === l.id && (
-                <div 
-                  className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl border border-zinc-200 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-100 text-left"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {stage === 'SO_DRAFT' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenMenuDealId(null);
-                        setRemarksModalDeal(l);
-                        setRemarksModalQuotation(quote);
-                        setIsRemarksReadOnly(false);
-                      }}
-                      className="w-full px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <Edit3 size={12} className="text-amber-600" />
-                      <span>Edit Remarks</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenMenuDealId(null);
-                      setRemarksModalDeal(l);
-                      setRemarksModalQuotation(quote);
-                      setIsRemarksReadOnly(stage !== 'NEW_DEALS' && stage !== 'SO_DRAFT');
-                    }}
-                    className="w-full px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <Eye size={12} className="text-zinc-500" />
-                    <span>View Remarks</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      }
     }
-  ], [getDealFinancials, zones, isBranchManager, isCorporate, openMenuDealId]);
+  ], [getDealFinancials, zones, isBranchManager, isCorporate, customers, industries]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -1150,6 +1070,8 @@ function DealItemRemarksModal({
               <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-2xs">
                 {items.map((it, idx) => {
                   const itemName = it.manual_item_name || it.product_types?.name || it.products?.name || `Item #${idx + 1}`;
+                  const artNumber = it.art_number || it.art_no || it.product_code || it.products?.art_number || it.product?.art_number || (typeof it.notes === 'string' && it.notes.startsWith('{') ? (() => { try { return JSON.parse(it.notes).art_number; } catch(e) { return null; } })() : null);
+
                   return (
                     <div key={it.id || idx} className="p-4 hover:bg-zinc-50/50 transition-colors space-y-3">
                       <div className="flex items-start justify-between gap-4">
@@ -1166,11 +1088,18 @@ function DealItemRemarksModal({
                               <span>•</span>
                               <span>Total: <strong className="text-zinc-900 font-mono">₹{parseFloat(it.total_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
                             </div>
-                            {it.design_number && (
-                              <span className="inline-block mt-1 text-[10px] font-mono font-bold px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded">
-                                Design: {it.design_number}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              {artNumber && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 bg-rose-50 text-[#9E1B1D] border border-rose-200 rounded">
+                                  Art No: {artNumber}
+                                </span>
+                              )}
+                              {it.design_number && (
+                                <span className="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded">
+                                  Design: {it.design_number}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -33,6 +33,7 @@ import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { Select } from '@/components/ui/Select';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import { DashboardCardGroup } from '@/components/dashboard/DashboardCardGroup';
 import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 
@@ -643,7 +644,14 @@ export default function InvoicesPage() {
 
                     {/* Customer */}
                     <td className="px-5 py-4">
-                      <p className="font-bold text-zinc-900 text-xs">{inv.customer_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-zinc-900 text-xs">{inv.customer_name}</p>
+                        <CustomerRiskFavBadge 
+                          isRisk={Boolean(inv.organizations?.is_risk)} 
+                          isSpecial={Boolean(inv.organizations?.is_special)} 
+                          size={14} 
+                        />
+                      </div>
                       {(() => {
                         const sector = inv.organizations?.industries?.name || inv.organizations?.industry;
                         return sector ? (
