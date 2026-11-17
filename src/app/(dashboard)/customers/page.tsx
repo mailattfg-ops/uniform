@@ -1154,14 +1154,15 @@ export default function CustomersRegistry() {
 
         return (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
-            {person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(person, c.contact_title)}`}>
-                {formatContactPerson(person, c.contact_title)}
-              </span>
-            )}
-            {desig && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full mt-0.5" title={desig}>
-                {desig}
+            {(person || desig) && (
+              <span 
+                className="text-xs font-bold text-zinc-900 truncate block w-full" 
+                title={`${person ? formatContactPerson(person, c.contact_title) : ''}${desig ? ` (${desig})` : ''}`}
+              >
+                {person ? formatContactPerson(person, c.contact_title) : ''}
+                {desig && (
+                  <span className="text-[10px] text-zinc-500 font-normal ml-1">({desig})</span>
+                )}
               </span>
             )}
             {num && (

@@ -271,7 +271,7 @@ export default function QuotationList({
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-left',
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
       sortValue: (q) => (q.organizations as any)?.contact_person || (q.organizations as any)?.contact_number || (q.organizations as any)?.phone || '',
       accessor: (q) => {
         const org = q.organizations as any;
@@ -289,15 +289,16 @@ export default function QuotationList({
         }
 
         return (
-          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[190px]">
-            {person && (
-              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={formatContactPerson(person, title)}>
-                {formatContactPerson(person, title)}
-              </span>
-            )}
-            {desig && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full mt-0.5" title={desig}>
-                {desig}
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+            {(person || desig) && (
+              <span 
+                className="text-xs font-bold text-zinc-800 truncate block w-full" 
+                title={`${person ? formatContactPerson(person, title) : ''}${desig ? ` (${desig})` : ''}`}
+              >
+                {person ? formatContactPerson(person, title) : ''}
+                {desig && (
+                  <span className="text-[10px] text-zinc-500 font-normal ml-1">({desig})</span>
+                )}
               </span>
             )}
             {ph && (

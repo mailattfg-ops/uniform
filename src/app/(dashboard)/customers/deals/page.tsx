@@ -577,16 +577,17 @@ export default function DealsRegistryPage() {
       className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
       sortValue: (l) => l.contact_person || l.phone || '',
       accessor: (l) => (
-        l.contact_person || l.phone ? (
+        l.contact_person || l.phone || l.contact_designation ? (
           <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
-            {l.contact_person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(l.contact_person, l.contact_title)}`}>
-                {formatContactPerson(l.contact_person, l.contact_title)}
-              </span>
-            )}
-            {l.contact_designation && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full" title={l.contact_designation}>
-                {l.contact_designation}
+            {(l.contact_person || l.contact_designation) && (
+              <span 
+                className="text-xs font-bold text-zinc-900 truncate block w-full" 
+                title={`${l.contact_person ? formatContactPerson(l.contact_person, l.contact_title) : ''}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}
+              >
+                {l.contact_person ? formatContactPerson(l.contact_person, l.contact_title) : ''}
+                {l.contact_designation && (
+                  <span className="text-[10px] text-zinc-500 font-normal ml-1">({l.contact_designation})</span>
+                )}
               </span>
             )}
             {l.phone && (

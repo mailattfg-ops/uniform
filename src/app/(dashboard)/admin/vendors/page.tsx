@@ -10,6 +10,8 @@ import { Plus, Trash2, Edit2, ShieldCheck, ArrowRight } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
+import { formatContactPerson } from '@/lib/formatters';
 
 interface Vendor {
   id: number;
@@ -139,14 +141,29 @@ export default function VendorManagementPage() {
     },
     {
       header: 'Contact',
-      className: 'text-left',
-      accessor: (v) => (
-        <div className="flex flex-col items-start text-left">
-          <span className="text-xs font-bold text-zinc-900">{v.contact_person || '—'}</span>
-          {v.phone && <span className="text-xs text-zinc-500 font-mono font-bold mt-0.5">{v.phone}</span>}
-          {v.email && <span className="text-[10px] text-zinc-400 font-medium">{v.email}</span>}
-        </div>
-      )
+      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      accessor: (v) => {
+        if (!v.contact_person && !v.phone && !v.email) {
+          return <span className="text-zinc-400 text-xs italic font-medium">—</span>;
+        }
+        return (
+          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+            {v.contact_person && (
+              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={formatContactPerson(v.contact_person)}>
+                {formatContactPerson(v.contact_person)}
+              </span>
+            )}
+            {v.phone && (
+              <div className="mt-0.5">
+                <ContactPhoneLink phone={v.phone} name={v.contact_person || v.name} />
+              </div>
+            )}
+            {v.email && !v.phone && (
+              <span className="text-[10px] text-zinc-400 font-medium truncate block w-full mt-0.5">{v.email}</span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Status',
