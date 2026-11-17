@@ -342,11 +342,6 @@ export default function QuotationList({
           <p className="text-xs font-bold text-zinc-800 text-center">
             {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
           </p>
-          {q.production_days_estimate ? (
-            <p className="text-[9px] font-bold text-zinc-400 mt-0.5 text-center">
-              {q.production_days_estimate}d production
-            </p>
-          ) : null}
         </div>
       )
     },
@@ -359,11 +354,6 @@ export default function QuotationList({
           <p className="text-xs md:text-sm font-black text-[#C82A2B] font-mono">
             ₹{Number(q.final_quote_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          {q.estimated_expenses ? (
-            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">
-              Exp: ₹{Number(q.estimated_expenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          ) : null}
         </div>
       )
     },
