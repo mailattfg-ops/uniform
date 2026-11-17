@@ -667,7 +667,7 @@ export default function DealsRegistryPage() {
             {dealStage === 'SO_APPROVED' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-800 border-indigo-200 shadow-2xs">
                 <CheckCircle2 size={12} className="text-indigo-600 shrink-0" />
-                <span>SO Approved Deals</span>
+                <span>BM Approved • Ready for Corp</span>
               </span>
             )}
 
@@ -750,7 +750,7 @@ export default function DealsRegistryPage() {
               <button
                 type="button"
                 onClick={() => handleSendToBm(l, quote)}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                className="px-3 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
                 title="Send SO Draft to Branch Manager for approval"
               >
                 <Send size={11} />
@@ -780,21 +780,15 @@ export default function DealsRegistryPage() {
             )}
 
             {stage === 'SO_APPROVED' && (
-              isBranchManager ? (
-                <button
-                  type="button"
-                  onClick={() => handleSendToCorporate(l, quote)}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                  title="Send to Corporate for final approval"
-                >
-                  <Send size={11} />
-                  <span>Send for Approval</span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200">
-                  <CheckCircle2 size={10} /> BM Approved
-                </span>
-              )
+              <button
+                type="button"
+                onClick={() => handleSendToCorporate(l, quote)}
+                className="px-3 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                title="BM approved. Send to Corporate for final approval"
+              >
+                <Send size={11} />
+                <span>Send to Corporate</span>
+              </button>
             )}
 
             {stage === 'PENDING_CORP_APPROVAL' && (
@@ -1310,7 +1304,7 @@ function BmApprovalModal({
     const loadingToast = toast.loading('Branch Manager approving SO...');
     try {
       await api.put(`/quotations/${quotation.id}/bm-approve-so`, { bm_notes: bmNotes });
-      toast.success('Deal approved by Branch Manager! Status updated to SO Approved Deals.', { id: loadingToast });
+      toast.success('Deal approved by Branch Manager! Returned to marketing staff to submit to Corporate for final approval.', { id: loadingToast });
       onSuccess();
       onClose();
     } catch (err: any) {

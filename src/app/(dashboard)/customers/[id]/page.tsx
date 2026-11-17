@@ -3861,7 +3861,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Created On',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (d) => (
-                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap block text-center">
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap block text-center">
                         {formatDate(d.created_at)}
                       </span>
                     )
@@ -4417,7 +4417,7 @@ function OrganizationDetailsPageContent() {
                         || quote?.created_at 
                         || o.expected_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                        <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                           {exp ? formatDate(exp) : '—'}
                         </span>
                       );
@@ -4430,7 +4430,7 @@ function OrganizationDetailsPageContent() {
                       const dcMatch = deliveryChallans.find((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
                       const shipDate = dcMatch?.dispatch_date || dcMatch?.created_at || o.shipped_at || o.shipment_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                        <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                           {shipDate ? formatDate(shipDate) : '—'}
                         </span>
                       );
@@ -4814,7 +4814,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Shipment Date',
                     className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {pkg.shipment_date ? formatDate(pkg.shipment_date) : '—'}
                       </span>
                     )
@@ -4918,7 +4918,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Shipment Date',
                     className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {dc.shipment_date ? formatDate(dc.shipment_date) : '—'}
                       </span>
                     )
@@ -5213,7 +5213,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Due Date',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {inv.due_date ? formatDate(inv.due_date) : '—'}
                       </span>
                     )
@@ -6643,7 +6643,7 @@ function OrganizationDetailsPageContent() {
                       type="text"
                       value={gstDeliveryForm.legal_name}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, legal_name: e.target.value }))}
-                      placeholder={org?.name || 'Legal Company Name'}
+                      placeholder={org?.name || 'Customer Name'}
                       className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>

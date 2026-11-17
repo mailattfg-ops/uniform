@@ -1674,11 +1674,19 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         {/* Header */}
         <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0 border-b border-white/10">
           <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-3 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
+                {editingFeed ? (editingFeed.lead_code || `Customer #${editingFeed.id}`) : 'Customer Directory'}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-rose-200 border border-white/15 text-[9px] font-black uppercase tracking-wider">
+                {editingFeed ? 'Edit Customer Profile' : 'Add New Customer'}
+              </span>
+            </div>
             <h3 className="text-2xl font-black italic tracking-tight">
-              {editingFeed ? 'Edit Feed Profile' : 'Add New Feed'}
+              {editingFeed ? 'Edit Customer Profile' : 'Add New Customer'}
             </h3>
             <p className="text-xs text-zinc-300 font-medium mt-0.5">
-              {editingFeed ? `Update scouting prospect details for ${editingFeed.name}` : 'Add new feed to the dataset.'}
+              {editingFeed ? `Update customer profile for ${editingFeed.name}` : 'Register new customer profile.'}
             </p>
           </div>
           <button
@@ -2188,6 +2196,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
   const intakeRole = getUserIntakeRole(currentUser);
   const isEditing = Boolean(editingLead);
+  const hasSavedRequirements = Boolean(editingLead?.requirements && editingLead.requirements.trim().length > 0);
 
   useEffect(() => {
     const data = editingLead || prefillData;
@@ -2280,7 +2289,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Customer / Lead name is required');
+      toast.error('Customer name is required');
       return;
     }
     if (!industryId) {
@@ -2333,7 +2342,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         phone: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
         source: isEditing ? (editingLead?.source || null) : (source.trim() || null),
-        requirements: requirements.trim() || null,
+        requirements: hasSavedRequirements ? (editingLead?.requirements || null) : (requirements.trim() || null),
         industry_id: industryId || null,
         address: address.trim() || null,
         area: null,
@@ -2374,20 +2383,20 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0 border-b border-white/10">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15 text-[9px] font-black uppercase tracking-wider">
-                {editingLead ? (editingLead.lead_code || `Lead #${editingLead.id}`) : 'Lead Pipeline'}
+              <span className="px-3 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
+                {editingLead ? (editingLead.lead_code || `Customer #${editingLead.id}`) : 'Customer Directory'}
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-rose-200 border border-white/15 text-[9px] font-black uppercase tracking-wider">
-                {isConvertingFeed ? 'Customer Update • Convert to Lead' : editingLead ? 'Edit Profile' : 'New Prospect'}
+                {isConvertingFeed ? 'Customer Update • Convert to Lead' : editingLead ? 'Edit Customer Profile' : 'Add New Customer'}
               </span>
             </div>
             <h3 className="text-2xl font-black italic tracking-tight">
-              {isConvertingFeed ? 'Customer Update — Convert Feed to Lead' : editingLead ? 'Edit Lead Profile' : 'Add New Commercial Lead'}
+              {isConvertingFeed ? 'Customer Update — Convert Feed to Lead' : editingLead ? 'Edit Customer Profile' : 'Add New Customer'}
             </h3>
             <p className="text-xs text-zinc-300 font-semibold mt-0.5">
               {isConvertingFeed
                 ? 'Update mandatory contact person details and address to graduate this feed into the active commercial pipeline'
-                : editingLead ? `Update details for ${editingLead.name}` : 'Register full prospect profile to initiate the 11-stage sales funnel'}
+                : editingLead ? `Update details for ${editingLead.name}` : 'Register full customer profile to initiate the 11-stage sales funnel'}
             </p>
           </div>
           <button
@@ -2432,11 +2441,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               </div>
             </div>
           )}
-          {/* Company Name */}
+          {/* Customer Name */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
               <Building2 size={13} className="text-[#C82A2B]" />
-              Lead / Company Name *
+              Customer Name *
             </label>
             <input
               type="text"
@@ -2632,18 +2641,40 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
           {/* Requirements */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <FileSpreadsheet size={13} className="text-[#9E1B1D]" />
-              Inquired Uniform Requirements
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <FileSpreadsheet size={13} className="text-[#9E1B1D]" />
+                Inquired Uniform Requirements
+              </span>
+              {hasSavedRequirements && (
+                <span className="text-[9px] text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  Locked (Saved)
+                </span>
+              )}
             </label>
             <textarea
               rows={2}
               value={requirements}
-              onChange={(e) => setRequirements(capitalizeFirstLetter(e.target.value))}
+              disabled={hasSavedRequirements}
+              readOnly={hasSavedRequirements}
+              onChange={(e) => {
+                if (!hasSavedRequirements) {
+                  setRequirements(capitalizeFirstLetter(e.target.value));
+                }
+              }}
               autoCapitalize="sentences"
-              placeholder="e.g. 500 sets corporate blazers, 1200 sets industrial coveralls..."
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-semibold text-zinc-800 transition-all placeholder:text-zinc-400 resize-none"
+              placeholder={hasSavedRequirements ? "Requirements cannot be edited once saved." : "e.g. 500 sets corporate blazers, 1200 sets industrial coveralls..."}
+              className={`w-full px-4 py-3 rounded-2xl border text-xs font-semibold transition-all resize-none ${
+                hasSavedRequirements
+                  ? "bg-zinc-100/80 border-zinc-200 text-zinc-600 cursor-not-allowed select-none"
+                  : "border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-800 placeholder:text-zinc-400"
+              }`}
             />
+            {hasSavedRequirements && (
+              <p className="text-[10px] text-zinc-500 italic">
+                Requirements cannot be edited once saved.
+              </p>
+            )}
           </div>
 
           {/* Address & City */}
