@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { Barcode } from '@/components/ui/Barcode';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import {
   Package,
   Plus,
@@ -611,12 +612,17 @@ export default function OrderPlacementPage() {
       className: 'min-w-[160px] max-w-[220px]',
       accessor: (item) => {
         const sector = (item.organizations as any)?.industries?.name || (item.organizations as any)?.industry || '';
+        const isRisk = Boolean((item.organizations as any)?.is_risk);
+        const isSpecial = Boolean((item.organizations as any)?.is_special);
         return (
           <div className="flex flex-col min-w-0">
             <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
-              {item.organizations?.name || 'Unknown Client'}
-            </span>
+            <div className="flex items-center gap-1.5 max-w-full mt-0.5">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate" title={item.organizations?.name || 'Unknown Client'}>
+                {item.organizations?.name || 'Unknown Client'}
+              </span>
+              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={13} />
+            </div>
             {sector && (
               <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
                 {sector}
@@ -701,6 +707,11 @@ export default function OrderPlacementPage() {
             <span className="text-[9px] text-zinc-500 font-black uppercase tracking-wider truncate">
               {item.quotations?.organizations?.name || 'Customer'}
             </span>
+            <CustomerRiskFavBadge 
+              isRisk={Boolean((item.quotations?.organizations as any)?.is_risk)} 
+              isSpecial={Boolean((item.quotations?.organizations as any)?.is_special)} 
+              size={12} 
+            />
             <span className="text-[9px] text-zinc-300 font-bold">|</span>
             <span className="font-mono text-[9px] text-[#2d8d9b] font-bold shrink-0">
               {item.quotations?.quotation_no}

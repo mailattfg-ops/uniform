@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { formatDate } from '@/lib/formatters';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import {
   CreditCard,
   History,
@@ -29,7 +30,7 @@ interface Quotation {
   quotation_no: string;
   title: string;
   organization_id: number;
-  organizations?: { name: string };
+  organizations?: { name: string; is_risk?: boolean | null; is_special?: boolean | null };
   final_quote_value: number;
   paid_amount: number;
   payment_status: string; // Pending, Partially Paid, Paid
@@ -260,14 +261,21 @@ export default function InitialPaymentPage() {
     {
       header: 'Title & Client',
       className: 'min-w-[160px] max-w-[220px]',
-      accessor: (item) => (
-        <div className="flex flex-col min-w-0">
-          <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
-          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 truncate" title={item.organizations?.name || 'Unknown Client'}>
-            {item.organizations?.name || 'Unknown Client'}
-          </span>
-        </div>
-      )
+      accessor: (item) => {
+        const isRisk = Boolean(item.organizations?.is_risk);
+        const isSpecial = Boolean(item.organizations?.is_special);
+        return (
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-zinc-800 text-xs md:text-sm truncate" title={item.title}>{item.title}</span>
+            <div className="flex items-center gap-1.5 max-w-full mt-0.5">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate" title={item.organizations?.name || 'Unknown Client'}>
+                {item.organizations?.name || 'Unknown Client'}
+              </span>
+              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={13} />
+            </div>
+          </div>
+        );
+      }
     },
     {
       header: 'Quote Value',

@@ -30,6 +30,7 @@ import { Quotation } from '../page';
 import { formatDate, formatSpecificationDisplay } from '@/lib/formatters';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { QuotationFollowUpModal } from './QuotationList';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 
 interface QuotationDetailsProps {
   selectedQuotation: Quotation;
@@ -1100,13 +1101,19 @@ export default function QuotationDetails({
                     className="text-base font-black text-[#C82A2B] hover:text-[#C82A2B] hover:underline flex items-center gap-1.5 cursor-pointer text-left group transition-colors"
                     title="Open Customer Profile in new tab"
                   >
-                    <span>{selectedQuotation.organizations?.name || 'Customer'}</span>
-                    <ExternalLink size={14} className="opacity-70 group-hover:opacity-100" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{selectedQuotation.organizations?.name || 'Customer'}</span>
+                      <CustomerRiskFavBadge customer={selectedQuotation.organizations} size={16} />
+                      <ExternalLink size={14} className="opacity-70 group-hover:opacity-100" />
+                    </div>
                   </button>
                 ) : (
-                  <p className="text-base font-black text-zinc-900">
-                    {selectedQuotation.organizations?.name || 'Customer'}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-base font-black text-zinc-900">
+                      {selectedQuotation.organizations?.name || 'Customer'}
+                    </p>
+                    <CustomerRiskFavBadge customer={selectedQuotation.organizations} size={16} />
+                  </div>
                 )}
                 {(selectedQuotation.metrics_summary?.customer_gstin || (selectedQuotation.organizations as any)?.gst_number) && (
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">

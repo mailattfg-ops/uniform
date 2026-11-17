@@ -33,6 +33,7 @@ import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { Select } from '@/components/ui/Select';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import { DashboardCardGroup } from '@/components/dashboard/DashboardCardGroup';
 import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 
@@ -617,7 +618,7 @@ export default function InvoicesPage() {
                     className="hover:bg-red-50/45 cursor-pointer transition-colors group"
                   >
                     {/* Invoice Date */}
-                    <td className="px-5 py-4 text-zinc-600 font-semibold whitespace-nowrap text-center align-middle">
+                    <td className="px-5 py-4 text-zinc-800 font-bold whitespace-nowrap text-center align-middle">
                       {formatDate(inv.invoice_date || inv.created_at)}
                     </td>
 
@@ -643,7 +644,14 @@ export default function InvoicesPage() {
 
                     {/* Customer */}
                     <td className="px-5 py-4">
-                      <p className="font-bold text-zinc-900 text-xs">{inv.customer_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-zinc-900 text-xs">{inv.customer_name}</p>
+                        <CustomerRiskFavBadge 
+                          isRisk={Boolean(inv.organizations?.is_risk)} 
+                          isSpecial={Boolean(inv.organizations?.is_special)} 
+                          size={14} 
+                        />
+                      </div>
                       {(() => {
                         const sector = inv.organizations?.industries?.name || inv.organizations?.industry;
                         return sector ? (
@@ -676,7 +684,7 @@ export default function InvoicesPage() {
                     <td className="px-5 py-4 text-center align-middle">
                       {inv.due_date ? (
                         <div className="text-center">
-                          <p className={`font-mono text-xs text-center ${isOverdue ? 'font-black text-rose-600' : inv.due_status === 'Due' ? 'font-black text-amber-600' : 'text-zinc-700'}`}>
+                          <p className={`font-mono text-xs text-center font-bold ${isOverdue ? 'font-black text-rose-600' : inv.due_status === 'Due' ? 'font-black text-amber-600' : 'text-zinc-800'}`}>
                             {formatDate(inv.due_date)}
                           </p>
                           {isOverdue && (

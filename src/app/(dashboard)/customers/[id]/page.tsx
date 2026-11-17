@@ -83,10 +83,13 @@ import { formatDocumentNumber } from '@/lib/documentNumberGenerator';
 interface Organization {
   id: number;
   branch_id?: number | string | null;
+  zone_id?: number | string | null;
+  zones?: { id: number; name: string; code?: string } | null;
   customer_code: string | null;
   name: string;
   contact_title?: string | null;
   contact_person?: string | null;
+  contact_designation?: string | null;
   phone?: string | null;
   contact_number?: string | null;
   email?: string | null;
@@ -1329,7 +1332,9 @@ function OrganizationDetailsPageContent() {
 
     const payload = {
       name: formData.name,
+      contact_title: formData.contact_title || 'Mr.',
       contact_person: formData.contact_person?.trim() || null,
+      contact_designation: formData.contact_designation?.trim() || null,
       phone: formData.phone.trim(),
       contact_number: formData.phone.trim(),
       email: formData.email?.trim() || null,
@@ -1340,6 +1345,8 @@ function OrganizationDetailsPageContent() {
       state: formData.state?.trim() || null,
       pincode: formData.pincode?.trim() || null,
       country: formData.country?.trim() || 'India',
+      branch_id: formData.branch_id ? parseInt(formData.branch_id, 10) : (org?.branch_id || null),
+      zone_id: formData.zone_id ? parseInt(formData.zone_id, 10) : (org?.zone_id || null),
       relationship_manager_id: org?.relationship_manager_id || null,
       is_active: formData.is_active === 'true',
       is_special: isSpecial,
@@ -1351,9 +1358,32 @@ function OrganizationDetailsPageContent() {
     };
 
     try {
-      await api.put(`/customers/${orgId}`, payload).catch(() => api.put(`/organizations/${orgId}`, payload));
+      const res = await api.put(`/customers/${orgId}`, payload).catch(() => api.put(`/organizations/${orgId}`, payload));
       toast.success('Customer profile updated successfully!', { id: loadingToast });
       setIsEditingCustomer(false);
+      
+      const updatedData = res?.data?.data || res?.data;
+      if (updatedData) {
+        setOrg((prev: any) => ({
+          ...prev,
+          ...payload,
+          ...updatedData,
+          phone: updatedData.contact_number || updatedData.phone || payload.phone,
+          contact_number: updatedData.contact_number || updatedData.phone || payload.phone,
+          email: updatedData.contact_email || updatedData.email || payload.email,
+          contact_email: updatedData.contact_email || updatedData.email || payload.email,
+          contact_title: updatedData.contact_title || payload.contact_title,
+          contact_person: updatedData.contact_person || payload.contact_person,
+          contact_designation: updatedData.contact_designation || payload.contact_designation,
+          industries: industries.find(ind => ind.id === (updatedData.industry_id || payload.industry_id)) || prev?.industries
+        }));
+      } else {
+        setOrg((prev: any) => ({
+          ...prev,
+          ...payload
+        }));
+      }
+
       fetchOrgData();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to update customer profile', { id: loadingToast });
@@ -2703,18 +2733,6 @@ function OrganizationDetailsPageContent() {
                       <span>Edit Profile</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        handleResetPassword();
-                      }}
-                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-zinc-800 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-                    >
-                      <Key size={13} className="text-amber-600" />
-                      <span>Reset Password</span>
-                    </button>
-
                     <div className="my-1 border-t border-zinc-100" />
 
                     <button
@@ -2781,7 +2799,7 @@ function OrganizationDetailsPageContent() {
             />
           )}
           <div
-            className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-stretch transition-transform duration-300 ease-out select-none ${
+            className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-center transition-transform duration-300 ease-out select-none ${
               isMeasurementDrawerOpen ? 'translate-x-0' : 'translate-x-[calc(100%-32px)]'
             }`}
           >
@@ -2789,14 +2807,14 @@ function OrganizationDetailsPageContent() {
             <button
               type="button"
               onClick={() => setIsMeasurementDrawerOpen(!isMeasurementDrawerOpen)}
-              className="relative w-8 h-9 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-xl flex items-center justify-center shadow-[-4px_2px_12px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0 active:scale-95"
+              className="relative w-8 h-20 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-l-2xl flex flex-col items-center justify-center shadow-[-4px_2px_12px_rgba(200,42,43,0.3)] border-y border-l border-[#C82A2B]/40 cursor-pointer transition-all shrink-0 active:scale-95"
               title="Measurements & Sizing Quick Actions"
             >
-              <Ruler size={14} className="text-white" />
+              <Ruler size={16} className="text-white" />
 
               {(orgDetails?.measurements?.pending || 0) > 0 && (
                 <span
-                  className="absolute -top-1 -left-1 w-3.5 h-3.5 rounded-full bg-amber-400 text-zinc-900 text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse ring-1 ring-white"
+                  className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-amber-400 text-zinc-900 text-[8px] font-black flex items-center justify-center shadow-xs animate-pulse ring-1 ring-white"
                   title={`${orgDetails?.measurements?.pending} pending measurements`}
                 >
                   {orgDetails?.measurements?.pending}
@@ -3035,96 +3053,103 @@ function OrganizationDetailsPageContent() {
             <h3 className="text-lg font-black text-zinc-900 tracking-tight">Organization Profile</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                  <MapPin size={12} /> Address Location
-                </span>
-                <div className="space-y-1.5">
+              {/* 1. Contact Person & Contact Info */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <User size={12} /> Contact Person & Details
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-zinc-900">
+                      {formatContactPerson(org.contact_person, org.contact_title)}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
+                      {(org.contact_number || org.phone) && (
+                        <a
+                          href={`tel:${org.contact_number || org.phone}`}
+                          className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
+                        >
+                          <Phone size={12} className="text-[#C82A2B]" />
+                          <span>{formatPhoneNumber(org.contact_number || org.phone, org.country || 'India')}</span>
+                        </a>
+                      )}
+                      {(org.email || org.contact_email) && (
+                        <a
+                          href={`mailto:${org.email || org.contact_email}`}
+                          className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#C82A2B] transition-colors"
+                        >
+                          <Mail size={12} className="text-[#C82A2B]" />
+                          <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Sales Person */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <Users size={12} /> Sales Person
+                  </span>
                   <p className="text-sm font-bold text-zinc-900">
-                    {org.address || (org.city || org.state || org.pincode || org.country ? '' : 'Not registered')}
+                    {org.relationship_manager?.full_name
+                      ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
+                      : 'Unassigned'}
                   </p>
-                  {(org.city || org.state || org.pincode || org.country) && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
-                      {org.city && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
-                          {org.city}
-                        </span>
-                      )}
-                      {org.state && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
-                          {org.state}
-                        </span>
-                      )}
-                      {org.pincode && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#C82A2B]">
-                          PIN: {org.pincode}
-                        </span>
-                      )}
-                      {org.country && (
-                        <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
-                          {org.country}
-                        </span>
-                      )}
+                  {org.assigned_operator && (
+                    <div className="mt-3 pt-2.5 border-t border-zinc-200/60">
+                      <span className="flex items-center gap-1 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">
+                        Assigned Marketing Executive
+                      </span>
+                      <p className="text-xs font-bold text-zinc-700">
+                        {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Contact Person & Contact Info */}
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                  <User size={12} /> Contact Person & Details
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-zinc-900">
-                    {formatContactPerson(org.contact_person, org.contact_title)}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
-                    {(org.contact_number || org.phone) && (
-                      <a
-                        href={`tel:${org.contact_number || org.phone}`}
-                        className="inline-flex items-center gap-1.5 font-mono text-zinc-800 hover:text-[#C82A2B] transition-colors"
-                      >
-                        <Phone size={12} className="text-[#C82A2B]" />
-                        <span>{formatPhoneNumber(org.contact_number || org.phone, org.country || 'India')}</span>
-                      </a>
-                    )}
-                    {(org.email || org.contact_email) && (
-                      <a
-                        href={`mailto:${org.email || org.contact_email}`}
-                        className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#C82A2B] transition-colors"
-                      >
-                        <Mail size={12} className="text-[#C82A2B]" />
-                        <span className="truncate max-w-[200px]">{org.email || org.contact_email}</span>
-                      </a>
+              {/* 3. Address Location */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <MapPin size={12} /> Address Location
+                  </span>
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-bold text-zinc-900">
+                      {org.address || (org.city || org.state || org.pincode || org.country ? '' : 'Not registered')}
+                    </p>
+                    {(org.city || org.state || org.pincode || org.country) && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-zinc-600 pt-0.5">
+                        {org.city && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.city}
+                          </span>
+                        )}
+                        {org.state && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs">
+                            {org.state}
+                          </span>
+                        )}
+                        {org.pincode && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-[#C82A2B]">
+                            PIN: {org.pincode}
+                          </span>
+                        )}
+                        {org.country && (
+                          <span className="bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200 shadow-2xs text-zinc-500">
+                            {org.country}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                  <Users size={12} /> Sales Person
-                </span>
-                <p className="text-sm font-bold text-zinc-900">
-                  {org.relationship_manager?.full_name
-                    ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
-                    : 'Unassigned'}
-                </p>
-              </div>
-
-              {org.assigned_operator && (
-                <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <Users size={12} /> Assigned Marketing Executive
-                  </span>
-                  <p className="text-sm font-bold text-zinc-900">
-                    {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
-                  </p>
-                </div>
-              )}
-
-              {/* GST & B2B Tax Profile Card */}
+              {/* 4. GST & B2B Tax Profile Card (Right side, above Portal Access) */}
               <div 
                 onClick={() => {
                   if (isClientUser) return;
@@ -3189,7 +3214,7 @@ function OrganizationDetailsPageContent() {
                 )}
               </div>
 
-              {/* Delivery & Dispatch Destination Card */}
+              {/* 5. Delivery & Dispatch Destination Card (Left side) */}
               <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
@@ -3255,8 +3280,52 @@ function OrganizationDetailsPageContent() {
                 )}
               </div>
 
-              {/* Credit Period & Commercial Terms Card */}
-              <div className="p-5 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20">
+              {/* 6. Customer Credentials & Portal Login (Right side, below GST) */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                      <Key size={12} className="text-[#C82A2B]" /> Customer Credentials
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
+                      Portal Login
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      Customer ID / Login ID
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black font-mono text-zinc-900 tracking-wider">
+                        {org.customer_code || (org.id ? `CN${String(org.id).padStart(3, '0')}` : '—')}
+                      </p>
+                      <span className="text-[10px] font-semibold text-zinc-400 font-mono">
+                        (#{org.id})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 mt-3 border-t border-zinc-200/60 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-zinc-500">
+                    Portal access management
+                  </span>
+                  {!isClientUser && (
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="Reset customer portal password"
+                    >
+                      <Key size={12} className="text-amber-600 shrink-0" />
+                      <span>Reset Password</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 7. Credit Period & Commercial Terms Card */}
+              <div className="p-5 bg-[#FFF1F1] rounded-2xl border border-[#C82A2B]/20 md:col-span-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-2 text-[9px] font-black text-[#9E1B1D] uppercase tracking-widest">
                     <CreditCard size={12} /> Credit Period Terms
@@ -3792,7 +3861,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Created On',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (d) => (
-                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap block text-center">
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap block text-center">
                         {formatDate(d.created_at)}
                       </span>
                     )
@@ -4023,7 +4092,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Date',
                     className: 'w-[105px] whitespace-nowrap text-center',
                     accessor: (q) => (
-                      <span className="text-xs font-semibold text-zinc-600 whitespace-nowrap block text-center">
+                      <span className="text-xs font-bold text-zinc-800 whitespace-nowrap block text-center">
                         {formatDate(q.quotation_date || q.created_at)}
                       </span>
                     )
@@ -4142,7 +4211,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Date',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (p: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {formatDate(p.paid_at || p.created_at || p.date)}
                       </span>
                     )
@@ -4348,7 +4417,7 @@ function OrganizationDetailsPageContent() {
                         || quote?.created_at 
                         || o.expected_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                        <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                           {exp ? formatDate(exp) : '—'}
                         </span>
                       );
@@ -4361,7 +4430,7 @@ function OrganizationDetailsPageContent() {
                       const dcMatch = deliveryChallans.find((dc: any) => dc.order_id === o.id || dc.orders?.order_no === o.order_no);
                       const shipDate = dcMatch?.dispatch_date || dcMatch?.created_at || o.shipped_at || o.shipment_date;
                       return (
-                        <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                        <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                           {shipDate ? formatDate(shipDate) : '—'}
                         </span>
                       );
@@ -4745,7 +4814,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Shipment Date',
                     className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (pkg: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {pkg.shipment_date ? formatDate(pkg.shipment_date) : '—'}
                       </span>
                     )
@@ -4849,7 +4918,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Shipment Date',
                     className: 'w-[115px] whitespace-nowrap text-center',
                     accessor: (dc: any) => (
-                      <span className="text-zinc-600 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {dc.shipment_date ? formatDate(dc.shipment_date) : '—'}
                       </span>
                     )
@@ -5144,7 +5213,7 @@ function OrganizationDetailsPageContent() {
                     header: 'Due Date',
                     className: 'w-[110px] whitespace-nowrap text-center',
                     accessor: (inv: any) => (
-                      <span className="text-zinc-500 font-semibold text-xs whitespace-nowrap block text-center">
+                      <span className="text-zinc-800 font-bold text-xs whitespace-nowrap block text-center">
                         {inv.due_date ? formatDate(inv.due_date) : '—'}
                       </span>
                     )
@@ -6005,7 +6074,7 @@ function OrganizationDetailsPageContent() {
                     {/* Period Transactions (No Time!) */}
                     {statementLedgerDetails.filteredTransactions.map((tx: any) => (
                       <tr key={tx.id} className="text-zinc-800">
-                        <td className="py-2 px-2 font-medium whitespace-nowrap text-center align-middle">
+                        <td className="py-2 px-2 font-bold text-zinc-800 whitespace-nowrap text-center align-middle">
                           {formatDate(tx.date)}
                         </td>
                         <td className="py-2 px-2 font-mono font-bold whitespace-nowrap text-center">{tx.reference_no}</td>
@@ -6574,7 +6643,7 @@ function OrganizationDetailsPageContent() {
                       type="text"
                       value={gstDeliveryForm.legal_name}
                       onChange={(e) => setGstDeliveryForm(prev => ({ ...prev, legal_name: e.target.value }))}
-                      placeholder={org?.name || 'Legal Company Name'}
+                      placeholder={org?.name || 'Customer Name'}
                       className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-900 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>

@@ -32,6 +32,7 @@ import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 
 interface Customer {
   id: number;
@@ -723,8 +724,28 @@ export default function CustomersRegistry() {
 
     try {
       if (editingCustomer) {
-        await api.put(`/customers/${editingCustomer.id}`, payload).catch(() => api.put(`/organizations/${editingCustomer.id}`, payload));
+        const res = await api.put(`/customers/${editingCustomer.id}`, payload).catch(() => api.put(`/organizations/${editingCustomer.id}`, payload));
         toast.success('Customer profile updated successfully!', { id: loadingToast });
+        const updatedData = res?.data?.data || res?.data;
+        setCustomers((prev) =>
+          prev.map((c) =>
+            c.id === editingCustomer.id
+              ? {
+                  ...c,
+                  ...payload,
+                  ...(updatedData || {}),
+                  phone: updatedData?.contact_number || updatedData?.phone || payload.phone,
+                  contact_number: updatedData?.contact_number || updatedData?.phone || payload.phone,
+                  email: updatedData?.contact_email || updatedData?.email || payload.email,
+                  contact_email: updatedData?.contact_email || updatedData?.email || payload.email,
+                  contact_title: updatedData?.contact_title || payload.contact_title,
+                  contact_person: updatedData?.contact_person || payload.contact_person,
+                  contact_designation: updatedData?.contact_designation || payload.contact_designation,
+                  industries: industries.find((ind) => ind.id === (updatedData?.industry_id || payload.industry_id)) || c.industries
+                }
+              : c
+          )
+        );
       } else {
         const autoPassword = generateInitialPassword();
         const submissionData = {
@@ -1116,7 +1137,7 @@ export default function CustomersRegistry() {
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      className: 'w-[175px] min-w-[160px] max-w-[185px] whitespace-nowrap text-left',
       sortValue: (c) => c.contact_person || c.contact_number || c.phone || '',
       accessor: (c) => {
         const person = c.contact_person;
@@ -1131,20 +1152,27 @@ export default function CustomersRegistry() {
           );
         }
 
+        const contactText = `${person ? formatContactPerson(person, c.contact_title) : ''}${desig ? ` (${desig})` : ''}`;
+        const fullTooltip = [contactText, num].filter(Boolean).join(' • ');
+
         return (
-          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
-            {person && (
-              <span className="text-xs font-bold text-zinc-900 truncate block w-full" title={`${formatContactPerson(person, c.contact_title)}`}>
-                {formatContactPerson(person, c.contact_title)}
-              </span>
-            )}
-            {desig && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full mt-0.5" title={desig}>
-                {desig}
+          <div 
+            className="flex flex-col items-start justify-center text-left min-w-0 w-[175px] max-w-[175px] overflow-hidden"
+            title={fullTooltip}
+          >
+            {(person || desig) && (
+              <span 
+                className="text-xs font-bold text-zinc-900 truncate block w-full cursor-default" 
+                title={contactText}
+              >
+                {person ? formatContactPerson(person, c.contact_title) : ''}
+                {desig && (
+                  <span className="text-[10px] text-zinc-500 font-normal ml-1">({desig})</span>
+                )}
               </span>
             )}
             {num && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 truncate w-full" title={num}>
                 <ContactPhoneLink phone={num} country={c.country || 'India'} name={person || c.name} />
               </div>
             )}
@@ -1551,21 +1579,33 @@ export default function CustomersRegistry() {
                         <tr key={item.id} className="hover:bg-zinc-50/80 transition-colors">
                           {/* Customer */}
                           <td className="py-3.5 px-4">
-                            <div className="flex flex-col">
-                              <span className="font-black text-zinc-900 hover:text-[#C82A2B] cursor-pointer"
-                                onClick={() => {
-                                  if (item.customer_id) {
-                                    setFinancialModal({ isOpen: false, type: null });
-                                    router.push(`/customers/${item.customer_id}`);
-                                  }
-                                }}
-                              >
-                                {item.customer_name}
-                              </span>
-                              <span className="text-[10px] font-mono font-bold text-zinc-400">
-                                {item.customer_code || `#${item.customer_id}`}
-                              </span>
-                            </div>
+                            {(() => {
+                              const linkedC = customers.find(c => c.id === item.customer_id);
+                              return (
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-black text-zinc-900 hover:text-[#C82A2B] cursor-pointer"
+                                      onClick={() => {
+                                        if (item.customer_id) {
+                                          setFinancialModal({ isOpen: false, type: null });
+                                          router.push(`/customers/${item.customer_id}`);
+                                        }
+                                      }}
+                                    >
+                                      {item.customer_name}
+                                    </span>
+                                    <CustomerRiskFavBadge 
+                                      isRisk={Boolean(linkedC?.is_risk)} 
+                                      isSpecial={Boolean(linkedC?.is_special)} 
+                                      size={14} 
+                                    />
+                                  </div>
+                                  <span className="text-[10px] font-mono font-bold text-zinc-400">
+                                    {item.customer_code || `#${item.customer_id}`}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </td>
 
                           {/* Contact */}

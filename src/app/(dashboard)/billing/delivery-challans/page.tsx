@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Truck, Printer, Package, RefreshCw, AlertTriangle, X } from 'lucide-react';
 import toast from '@/components/ui/toast';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 
 interface DeliveryChallan {
   id: number;
@@ -520,19 +521,28 @@ export default function DeliveryChallansPage() {
               {challans.length > 0 ? (
                 challans.map(dc => (
                   <tr key={dc.id} className="hover:bg-slate-50/80 transition">
-                    <td className="p-3 text-slate-600 font-semibold text-center align-middle whitespace-nowrap">{dc.dispatch_date}</td>
+                    <td className="p-3 text-slate-800 font-bold text-center align-middle whitespace-nowrap">{dc.dispatch_date}</td>
                     <td className="p-3 font-mono font-bold text-indigo-600">{dc.dc_no}</td>
                     <td className="p-3 font-mono text-slate-700">{dc.orders?.order_no || `ORD-#${dc.order_id}`}</td>
                     <td className="p-3">
-                      <div className="font-semibold text-slate-800">{dc.orders?.quotations?.organizations?.name || 'Customer'}</div>
                       {(() => {
                         const org = dc.orders?.quotations?.organizations as any;
+                        const isRisk = Boolean(org?.is_risk);
+                        const isSpecial = Boolean(org?.is_special);
                         const sector = org?.industries?.name || org?.industry;
-                        return sector ? (
-                          <div className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                            {sector}
+                        return (
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-800">{org?.name || 'Customer'}</span>
+                              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={13} />
+                            </div>
+                            {sector ? (
+                              <div className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
+                                {sector}
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null;
+                        );
                       })()}
                     </td>
                     <td className="p-3 text-slate-600">{dc.vehicle_no || 'Manual Delivery'} {dc.transporter_name ? `(${dc.transporter_name})` : ''}</td>

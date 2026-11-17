@@ -232,11 +232,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto flex-1">
-          {/* Customer / Institution Name */}
+          {/* Customer Name */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
               <Building2 size={13} className="text-[#C82A2B]" />
-              Customer / Institution Name *
+              Customer Name *
             </label>
             <input
               type="text"

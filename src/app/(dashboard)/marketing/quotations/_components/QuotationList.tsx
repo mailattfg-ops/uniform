@@ -30,6 +30,7 @@ import { formatDate, capitalizeFirstLetter, formatContactPerson, formatPhoneNumb
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -184,7 +185,7 @@ export default function QuotationList({
       className: 'w-[110px] whitespace-nowrap text-center',
       sortValue: (q) => q.quotation_date || q.created_at || '',
       accessor: (q) => (
-        <span className="text-xs font-semibold text-zinc-700 whitespace-nowrap block text-center">
+        <span className="text-xs font-bold text-zinc-800 whitespace-nowrap block text-center">
           {formatDate(q.quotation_date || q.created_at)}
         </span>
       )
@@ -204,13 +205,40 @@ export default function QuotationList({
       className: 'min-w-[160px] max-w-[260px]',
       sortValue: (q) => q.organizations?.name || '',
       accessor: (q) => {
-        const fullOrg = organizations?.find(o => o.id === q.organization_id) || (q.organizations as any);
+        const fullOrg = organizations?.find(o => 
+          (q.organization_id && String(o.id) === String(q.organization_id)) ||
+          (q.organizations?.id && String(o.id) === String(q.organizations.id)) ||
+          (o.name && q.organizations?.name && o.name.toLowerCase().trim() === q.organizations.name.toLowerCase().trim())
+        ) || (q.organizations as any);
+
+        const isRisk = Boolean(
+          (fullOrg as any)?.is_risk === true || (fullOrg as any)?.is_risk === 'true' || (fullOrg as any)?.is_risk === 1 ||
+          (fullOrg as any)?.client_tag === 'risk' ||
+          (q.organizations as any)?.is_risk === true || (q.organizations as any)?.is_risk === 'true' || (q.organizations as any)?.is_risk === 1 ||
+          (q.organizations as any)?.client_tag === 'risk'
+        );
+        const isSpecial = Boolean(
+          (fullOrg as any)?.is_special === true || (fullOrg as any)?.is_special === 'true' || (fullOrg as any)?.is_special === 1 ||
+          (fullOrg as any)?.client_tag === 'special' ||
+          (q.organizations as any)?.is_special === true || (q.organizations as any)?.is_special === 'true' || (q.organizations as any)?.is_special === 1 ||
+          (q.organizations as any)?.client_tag === 'special'
+        );
         const sector = fullOrg?.industries?.name || fullOrg?.industry || '';
+
         return (
           <div className="min-w-0">
-            <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || '—'}>
-              {q.organizations?.name || '—'}
-            </p>
+            <div className="flex items-center gap-1.5 max-w-full">
+              <p className="text-xs font-bold text-zinc-800 truncate" title={q.organizations?.name || fullOrg?.name || '—'}>
+                {q.organizations?.name || fullOrg?.name || '—'}
+              </p>
+              <CustomerRiskFavBadge 
+                isRisk={isRisk} 
+                isSpecial={isSpecial} 
+                clientTag={fullOrg?.client_tag || (q.organizations as any)?.client_tag}
+                customer={fullOrg} 
+                size={14} 
+              />
+            </div>
             {sector && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5" title={sector}>
                 {sector}
@@ -243,7 +271,7 @@ export default function QuotationList({
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[140px] max-w-[200px] whitespace-nowrap text-left',
+      className: 'w-[175px] min-w-[160px] max-w-[185px] whitespace-nowrap text-left',
       sortValue: (q) => (q.organizations as any)?.contact_person || (q.organizations as any)?.contact_number || (q.organizations as any)?.phone || '',
       accessor: (q) => {
         const org = q.organizations as any;
@@ -260,20 +288,27 @@ export default function QuotationList({
           );
         }
 
+        const contactText = `${person ? formatContactPerson(person, title) : ''}${desig ? ` (${desig})` : ''}`;
+        const fullTooltip = [contactText, ph].filter(Boolean).join(' • ');
+
         return (
-          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[190px]">
-            {person && (
-              <span className="text-xs font-bold text-zinc-800 truncate block w-full" title={formatContactPerson(person, title)}>
-                {formatContactPerson(person, title)}
-              </span>
-            )}
-            {desig && (
-              <span className="text-[9px] text-zinc-400 font-medium truncate block w-full mt-0.5" title={desig}>
-                {desig}
+          <div 
+            className="flex flex-col items-start justify-center text-left min-w-0 w-[175px] max-w-[175px] overflow-hidden"
+            title={fullTooltip}
+          >
+            {(person || desig) && (
+              <span 
+                className="text-xs font-bold text-zinc-800 truncate block w-full cursor-default" 
+                title={contactText}
+              >
+                {person ? formatContactPerson(person, title) : ''}
+                {desig && (
+                  <span className="text-[10px] text-zinc-500 font-normal ml-1">({desig})</span>
+                )}
               </span>
             )}
             {ph && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 truncate w-full" title={ph}>
                 <ContactPhoneLink phone={ph} country={org?.country || 'India'} name={person || org?.name} />
               </div>
             )}
@@ -311,14 +346,9 @@ export default function QuotationList({
       sortValue: (q) => q.expected_delivery_date || '',
       accessor: (q) => (
         <div className="text-center">
-          <p className="text-xs font-bold text-zinc-700 text-center">
+          <p className="text-xs font-bold text-zinc-800 text-center">
             {q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}
           </p>
-          {q.production_days_estimate ? (
-            <p className="text-[9px] font-bold text-zinc-400 mt-0.5 text-center">
-              {q.production_days_estimate}d production
-            </p>
-          ) : null}
         </div>
       )
     },
@@ -331,11 +361,6 @@ export default function QuotationList({
           <p className="text-xs md:text-sm font-black text-[#C82A2B] font-mono">
             ₹{Number(q.final_quote_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          {q.estimated_expenses ? (
-            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">
-              Exp: ₹{Number(q.estimated_expenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          ) : null}
         </div>
       )
     },
@@ -444,7 +469,7 @@ export default function QuotationList({
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
+        <td style="font-size: 10px; font-weight: 700; color: #1a202c; text-align: center; vertical-align: middle;">${formatDate(q.quotation_date || q.created_at)}</td>
         <td style="font-family: monospace; font-weight: bold; color: #C82A2B; white-space: nowrap; text-align: center; vertical-align: middle;">${q.quotation_no}</td>
         <td style="font-weight: 800; color: #1a202c; font-size: 11px;">
           <div>${q.organizations?.name || '—'}</div>
@@ -457,7 +482,7 @@ export default function QuotationList({
           ${phone !== '—' ? `<div style="font-family: monospace; font-size: 9px; color: #718096; margin-top: 2px;">${phone}</div>` : ''}
         </td>
         <td style="font-size: 10px; color: #4a5568;">${sp}</td>
-        <td style="font-size: 10px; color: #4a5568; text-align: center; vertical-align: middle;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
+        <td style="font-size: 10px; font-weight: 700; color: #1a202c; text-align: center; vertical-align: middle;">${q.expected_delivery_date ? formatDate(q.expected_delivery_date) : 'N/A'}</td>
         <td style="font-size: 10px; font-weight: bold; font-family: monospace; text-align: right; color: #1a202c;">
           ₹${(parseFloat(String(q.final_quote_value)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>
