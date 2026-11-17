@@ -266,10 +266,19 @@ export default function QuotationsPage() {
       const quoteIdParam = searchParams.get('id');
       const quoteNoParam = searchParams.get('quote_no') || searchParams.get('quotation_no');
       const orgIdParam = searchParams.get('orgId') || searchParams.get('organization_id');
+      const customerNameParam = searchParams.get('customerName') || searchParams.get('customer') || searchParams.get('name') || searchParams.get('leadName');
 
       if (actionParam === 'create') {
         if (orgIdParam) {
-          setPreselectedOrgId(parseInt(orgIdParam, 10));
+          const parsed = parseInt(orgIdParam, 10);
+          if (!isNaN(parsed)) setPreselectedOrgId(parsed);
+        } else if (customerNameParam && organizations.length > 0) {
+          const match = organizations.find(o => 
+            o.name?.toLowerCase().trim() === customerNameParam.toLowerCase().trim()
+          );
+          if (match) {
+            setPreselectedOrgId(match.id);
+          }
         }
         setEditingQuotationId(null);
         setActiveTab('create');
@@ -321,7 +330,26 @@ export default function QuotationsPage() {
         }).catch(() => {});
       }
     }
-  }, [searchParams, quotations]);
+  }, [searchParams, quotations, organizations]);
+
+  // Sync customer pre-selection from search params when organizations list loads
+  useEffect(() => {
+    if (activeTab === 'create' && !preselectedOrgId && organizations.length > 0 && searchParams) {
+      const orgIdParam = searchParams.get('orgId') || searchParams.get('organization_id');
+      const customerNameParam = searchParams.get('customerName') || searchParams.get('customer') || searchParams.get('name') || searchParams.get('leadName');
+      if (orgIdParam) {
+        const parsed = parseInt(orgIdParam, 10);
+        if (!isNaN(parsed)) setPreselectedOrgId(parsed);
+      } else if (customerNameParam) {
+        const match = organizations.find(o => 
+          o.name?.toLowerCase().trim() === customerNameParam.toLowerCase().trim()
+        );
+        if (match) {
+          setPreselectedOrgId(match.id);
+        }
+      }
+    }
+  }, [activeTab, preselectedOrgId, organizations, searchParams]);
 
   // Load all baseline data
   const fetchQuotations = async () => {

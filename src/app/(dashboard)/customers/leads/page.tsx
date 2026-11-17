@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
@@ -164,6 +164,7 @@ export interface LeadActivity {
 }
 
 export default function LeadsRegistryPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [industries, setIndustries] = useState<Industry[]>([]);
@@ -669,6 +670,62 @@ export default function LeadsRegistryPage() {
     );
   };
 
+  const handleSendQuoteClick = useCallback((lead: Lead) => {
+    if (lead.organization_id) {
+      router.push(`/marketing/quotations?action=create&orgId=${lead.organization_id}&customerName=${encodeURIComponent(lead.name)}`);
+      return;
+    }
+
+    const toastId = toast.loading(`Preparing quotation wizard for ${lead.name}...`);
+    api.get('/organizations').then(async (res) => {
+      const orgs = Array.isArray(res.data) ? res.data : [];
+      const match = orgs.find((o: any) => o.name?.toLowerCase().trim() === lead.name?.toLowerCase().trim());
+      if (match) {
+        api.put(`/leads/${lead.id}`, { organization_id: match.id }).catch(() => {});
+        toast.dismiss(toastId);
+        router.push(`/marketing/quotations?action=create&orgId=${match.id}&customerName=${encodeURIComponent(match.name)}`);
+        return;
+      }
+
+      // If no organization exists yet, create one from lead profile
+      try {
+        const createRes = await api.post('/organizations', {
+          name: lead.name,
+          contact_title: lead.contact_title || 'Mr.',
+          contact_person: lead.contact_person,
+          contact_designation: lead.contact_designation,
+          phone: lead.phone,
+          contact_number: lead.phone,
+          email: lead.email,
+          address: lead.address,
+          city: lead.city,
+          state: lead.state,
+          pincode: lead.pincode,
+          country: lead.country || 'India',
+          industry_id: lead.industry_id,
+          branch_id: lead.branch_id,
+          zone_id: lead.zone_id,
+          relationship_manager_id: lead.assigned_staff_id,
+        });
+        const newOrg = createRes.data;
+        if (newOrg?.id) {
+          api.put(`/leads/${lead.id}`, { organization_id: newOrg.id }).catch(() => {});
+          toast.dismiss(toastId);
+          router.push(`/marketing/quotations?action=create&orgId=${newOrg.id}&customerName=${encodeURIComponent(newOrg.name)}`);
+          return;
+        }
+      } catch (e) {
+        console.error('Error auto-creating organization for quote:', e);
+      }
+
+      toast.dismiss(toastId);
+      router.push(`/marketing/quotations?action=create&customerName=${encodeURIComponent(lead.name)}`);
+    }).catch(() => {
+      toast.dismiss(toastId);
+      router.push(`/marketing/quotations?action=create&customerName=${encodeURIComponent(lead.name)}`);
+    });
+  }, [router]);
+
   // Table Columns
   const columns: Column<Lead>[] = useMemo(() => [
     {
@@ -793,12 +850,14 @@ export default function LeadsRegistryPage() {
       sortable: false,
       accessor: (l: Lead) => {
         let content: React.ReactNode = null;
+        const btnClass = "px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center justify-center";
+
         if (l.status === 'Feeds') {
           content = canManageFeeds ? (
             <button
               type="button"
               onClick={() => setFeedOutcomeLead(l)}
-              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 rounded-lg transition-all cursor-pointer"
+              className={btnClass}
               title="Record feed follow-up outcome"
             >
               Follow-up
@@ -813,7 +872,7 @@ export default function LeadsRegistryPage() {
             <button
               type="button"
               onClick={() => setAssignBranchLead(l)}
-              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all cursor-pointer"
+              className={btnClass}
             >
               Assign Branch
             </button>
@@ -827,7 +886,7 @@ export default function LeadsRegistryPage() {
             <button
               type="button"
               onClick={() => setAssignStaffLead(l)}
-              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all cursor-pointer"
+              className={btnClass}
             >
               Assign Staff
             </button>
@@ -841,7 +900,7 @@ export default function LeadsRegistryPage() {
             <button
               type="button"
               onClick={() => setFollowUpLead(l)}
-              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all cursor-pointer"
+              className={btnClass}
             >
               Follow-up
             </button>
@@ -855,7 +914,7 @@ export default function LeadsRegistryPage() {
             <button
               type="button"
               onClick={() => setFollowUpLead(l)}
-              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all cursor-pointer"
+              className={btnClass}
             >
               Follow-up
             </button>
@@ -869,7 +928,7 @@ export default function LeadsRegistryPage() {
             <button
               type="button"
               onClick={() => setMeetingOutcomeLead(l)}
-              className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all cursor-pointer"
+              className={btnClass}
             >
               Meeting Outcome
             </button>
@@ -880,12 +939,13 @@ export default function LeadsRegistryPage() {
           );
         } else if (l.status === 'Hot Leads') {
           content = canManageHotLeads ? (
-            <a
-              href={`/marketing/quotations`}
-              className="inline-block px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-lg transition-all cursor-pointer"
+            <button
+              type="button"
+              onClick={() => handleSendQuoteClick(l)}
+              className={btnClass}
             >
               Send Quote
-            </a>
+            </button>
           ) : (
             <span className="px-2 py-0.5 text-[9px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-md inline-flex items-center gap-1 select-none" title="Requires permission: manage_lead_stage_hot_leads">
               <Lock size={10} className="text-zinc-400" /> Locked
@@ -896,7 +956,7 @@ export default function LeadsRegistryPage() {
             <button
               type="button"
               onClick={() => setViewingLead(l)}
-              className="px-2 py-0.5 text-[10px] font-bold text-zinc-400 hover:text-[#2d8d9b] cursor-pointer"
+              className={btnClass}
             >
               View Journey →
             </button>
@@ -910,7 +970,7 @@ export default function LeadsRegistryPage() {
         );
       }
     }
-  ], [branches, zones, industries, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads]);
+  ], [branches, zones, industries, canManageFeeds, canAssignBranch, canAssignStaff, canSalesContact, canManageFollowups, canManageMeetings, canManageHotLeads, handleSendQuoteClick]);
 
   // Print Report & User Activity Report Handlers
   const printTriggerRef = useRef<(() => void) | null>(null);
