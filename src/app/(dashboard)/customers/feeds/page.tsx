@@ -480,15 +480,29 @@ export default function FeedsRegistryPage() {
     },
     {
       header: 'Contact',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      className: 'w-[175px] min-w-[160px] max-w-[185px] whitespace-nowrap text-left',
       sortValue: (l) => l.contact_person || l.phone || '',
-      accessor: (l) => (
-        l.contact_person || l.phone || l.contact_designation ? (
-          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+      accessor: (l) => {
+        if (!l.contact_person && !l.phone && !l.contact_designation) {
+          return (
+            <div className="text-left">
+              <span className="text-zinc-400 text-xs italic font-medium">—</span>
+            </div>
+          );
+        }
+
+        const contactText = `${l.contact_person ? formatContactPerson(l.contact_person, l.contact_title) : ''}${l.contact_designation ? ` (${l.contact_designation})` : ''}`;
+        const fullTooltip = [contactText, l.phone].filter(Boolean).join(' • ');
+
+        return (
+          <div 
+            className="flex flex-col items-start justify-center text-left min-w-0 w-[175px] max-w-[175px] overflow-hidden"
+            title={fullTooltip}
+          >
             {(l.contact_person || l.contact_designation) && (
               <span 
-                className="text-xs font-bold text-zinc-900 truncate block w-full" 
-                title={`${l.contact_person ? formatContactPerson(l.contact_person, l.contact_title) : ''}${l.contact_designation ? ` (${l.contact_designation})` : ''}`}
+                className="text-xs font-bold text-zinc-900 truncate block w-full cursor-default" 
+                title={contactText}
               >
                 {l.contact_person ? formatContactPerson(l.contact_person, l.contact_title) : ''}
                 {l.contact_designation && (
@@ -497,17 +511,13 @@ export default function FeedsRegistryPage() {
               </span>
             )}
             {l.phone && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 truncate w-full" title={l.phone}>
                 <ContactPhoneLink phone={l.phone} country={l.country || 'India'} name={l.contact_person || l.name} />
               </div>
             )}
           </div>
-        ) : (
-          <div className="text-left">
-            <span className="text-zinc-400 text-xs italic font-medium">—</span>
-          </div>
-        )
-      )
+        );
+      }
     },
     {
       header: 'Feed Status',

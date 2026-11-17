@@ -271,7 +271,7 @@ export default function QuotationList({
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      className: 'w-[175px] min-w-[160px] max-w-[185px] whitespace-nowrap text-left',
       sortValue: (q) => (q.organizations as any)?.contact_person || (q.organizations as any)?.contact_number || (q.organizations as any)?.phone || '',
       accessor: (q) => {
         const org = q.organizations as any;
@@ -288,12 +288,18 @@ export default function QuotationList({
           );
         }
 
+        const contactText = `${person ? formatContactPerson(person, title) : ''}${desig ? ` (${desig})` : ''}`;
+        const fullTooltip = [contactText, ph].filter(Boolean).join(' • ');
+
         return (
-          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+          <div 
+            className="flex flex-col items-start justify-center text-left min-w-0 w-[175px] max-w-[175px] overflow-hidden"
+            title={fullTooltip}
+          >
             {(person || desig) && (
               <span 
-                className="text-xs font-bold text-zinc-800 truncate block w-full" 
-                title={`${person ? formatContactPerson(person, title) : ''}${desig ? ` (${desig})` : ''}`}
+                className="text-xs font-bold text-zinc-800 truncate block w-full cursor-default" 
+                title={contactText}
               >
                 {person ? formatContactPerson(person, title) : ''}
                 {desig && (
@@ -302,7 +308,7 @@ export default function QuotationList({
               </span>
             )}
             {ph && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 truncate w-full" title={ph}>
                 <ContactPhoneLink phone={ph} country={org?.country || 'India'} name={person || org?.name} />
               </div>
             )}

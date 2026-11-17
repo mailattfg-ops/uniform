@@ -1137,7 +1137,7 @@ export default function CustomersRegistry() {
     },
     {
       header: 'CONTACT',
-      className: 'min-w-[150px] max-w-[220px] whitespace-nowrap text-left',
+      className: 'w-[175px] min-w-[160px] max-w-[185px] whitespace-nowrap text-left',
       sortValue: (c) => c.contact_person || c.contact_number || c.phone || '',
       accessor: (c) => {
         const person = c.contact_person;
@@ -1152,12 +1152,18 @@ export default function CustomersRegistry() {
           );
         }
 
+        const contactText = `${person ? formatContactPerson(person, c.contact_title) : ''}${desig ? ` (${desig})` : ''}`;
+        const fullTooltip = [contactText, num].filter(Boolean).join(' • ');
+
         return (
-          <div className="flex flex-col items-start justify-center text-left min-w-0 max-w-[210px]">
+          <div 
+            className="flex flex-col items-start justify-center text-left min-w-0 w-[175px] max-w-[175px] overflow-hidden"
+            title={fullTooltip}
+          >
             {(person || desig) && (
               <span 
-                className="text-xs font-bold text-zinc-900 truncate block w-full" 
-                title={`${person ? formatContactPerson(person, c.contact_title) : ''}${desig ? ` (${desig})` : ''}`}
+                className="text-xs font-bold text-zinc-900 truncate block w-full cursor-default" 
+                title={contactText}
               >
                 {person ? formatContactPerson(person, c.contact_title) : ''}
                 {desig && (
@@ -1166,7 +1172,7 @@ export default function CustomersRegistry() {
               </span>
             )}
             {num && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 truncate w-full" title={num}>
                 <ContactPhoneLink phone={num} country={c.country || 'India'} name={person || c.name} />
               </div>
             )}
