@@ -17,6 +17,7 @@ import {
   XCircle,
   Edit3,
   ShieldCheck,
+  CreditCard,
   Building2,
   FileCheck,
   ExternalLink,
@@ -33,6 +34,7 @@ import { formatDate, formatSpecificationDisplay } from '@/lib/formatters';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { QuotationFollowUpModal } from './QuotationList';
 import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
+import { RecordAdvancePaymentModal } from './RecordAdvancePaymentModal';
 
 interface QuotationDetailsProps {
   selectedQuotation: Quotation;
@@ -79,6 +81,7 @@ export default function QuotationDetails({
   onRefresh
 }: QuotationDetailsProps) {
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [showAdvancePaymentModal, setShowAdvancePaymentModal] = useState(false);
 
   // Group and sort all related quotations for this client (earliest = First Quote, subsequent = Revised)
   const relatedQuotations = useMemo(() => {
@@ -886,6 +889,18 @@ export default function QuotationDetails({
               </Button>
             )}
 
+            {/* Direct Advance Payment button (once approved) */}
+            {isOpsApproved && (
+              <Button
+                onClick={() => setShowAdvancePaymentModal(true)}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                title="Record advance payment from client"
+              >
+                <CreditCard size={14} strokeWidth={2.5} />
+                Advance Payment
+              </Button>
+            )}
+
             {/* Edit / Revise button */}
             {!readOnly && onStartEdit && selectedQuotation.status !== 'Approved' && (
               <Button
@@ -1603,6 +1618,31 @@ export default function QuotationDetails({
                 })}
               </p>
             </div>
+
+            {/* Advance Payment Block for Approved Quotations */}
+            {selectedQuotation.status === 'Approved' && (
+              <div className="border-t border-emerald-200/80 pt-4 mt-4 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1">
+                      <CreditCard size={12} /> Advance Payment Status
+                    </span>
+                    <div className="flex items-center gap-3 text-xs font-mono mt-1">
+                      <span className="text-zinc-600">Paid: <strong className="text-emerald-700 font-bold">₹{parseFloat(String(selectedQuotation.paid_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
+                      <span className="text-zinc-300">•</span>
+                      <span className="text-zinc-600">Balance: <strong className="text-amber-700 font-bold">₹{Math.max(0, Number(pricing.finalValue) - parseFloat(String(selectedQuotation.paid_amount || 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setShowAdvancePaymentModal(true)}
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-wider shadow-md shrink-0 h-8 cursor-pointer"
+                  >
+                    <CreditCard size={12} />
+                    <span>Record Advance</span>
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -1829,9 +1869,22 @@ export default function QuotationDetails({
             allQuotations={allQuotations}
             currentUser={currentUser}
             onStartEdit={onStartEdit}
+            onRecordPayment={() => setShowAdvancePaymentModal(true)}
             onClose={() => setShowFollowUpModal(false)}
             onSuccess={() => {
               setShowFollowUpModal(false);
+              if (onRefresh) onRefresh();
+            }}
+          />
+        )}
+
+        {showAdvancePaymentModal && (
+          <RecordAdvancePaymentModal
+            quotation={selectedQuotation}
+            isOpen={showAdvancePaymentModal}
+            onClose={() => setShowAdvancePaymentModal(false)}
+            onSuccess={() => {
+              setShowAdvancePaymentModal(false);
               if (onRefresh) onRefresh();
             }}
           />

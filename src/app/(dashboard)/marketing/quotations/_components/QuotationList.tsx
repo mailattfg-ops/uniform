@@ -17,6 +17,7 @@ import {
   XCircle,
   AlertCircle,
   Edit3,
+  CreditCard,
   Snowflake,
   ChevronDown,
   ChevronUp,
@@ -34,6 +35,7 @@ import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/components/ui/DateRangeFilter';
 import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
+import { RecordAdvancePaymentModal } from './RecordAdvancePaymentModal';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -73,6 +75,7 @@ export default function QuotationList({
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved' | 'rejected' | 'held'>('all');
   const [followUpQuotation, setFollowUpQuotation] = useState<Quotation | null>(null);
+  const [advancePaymentQuotation, setAdvancePaymentQuotation] = useState<Quotation | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('ALL');
   const [branches, setBranches] = useState<any[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
@@ -204,7 +207,11 @@ export default function QuotationList({
       className: 'w-[140px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.quotation_no,
       accessor: (q) => (
-        <span className="font-mono font-bold text-xs md:text-sm text-zinc-900 block truncate text-center">
+        <span
+          onClick={() => onViewDetails(q)}
+          className="font-mono font-bold text-xs md:text-sm text-[#C82A2B] hover:text-[#801416] hover:underline block truncate text-center cursor-pointer transition-colors"
+          title="Click to view quotation details"
+        >
           {q.quotation_no}
         </span>
       )
@@ -405,11 +412,26 @@ export default function QuotationList({
             </span>
           );
         } else if (q.status === 'Approved') {
+          const paid = parseFloat(String(q.paid_amount || 0));
           badge = (
-            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 w-fit shadow-2xs">
-              <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
-              Approved
-            </span>
+            <div className="flex flex-col items-start gap-1">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 w-fit shadow-2xs">
+                <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
+                Approved
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAdvancePaymentQuotation(q);
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                title="Record Advance Payment for this approved quotation"
+              >
+                <CreditCard size={10} />
+                <span>{paid > 0 ? `+ Advance (₹${paid.toLocaleString('en-IN')})` : 'Advance Payment'}</span>
+              </button>
+            </div>
           );
         } else if (q.status === 'Rejected') {
           badge = (
@@ -690,9 +712,22 @@ export default function QuotationList({
           allQuotations={quotations}
           currentUser={currentUser}
           onStartEdit={onStartEdit}
+          onRecordPayment={(q) => setAdvancePaymentQuotation(q)}
           onClose={() => setFollowUpQuotation(null)}
           onSuccess={() => {
             setFollowUpQuotation(null);
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {advancePaymentQuotation && (
+        <RecordAdvancePaymentModal
+          quotation={advancePaymentQuotation}
+          isOpen={Boolean(advancePaymentQuotation)}
+          onClose={() => setAdvancePaymentQuotation(null)}
+          onSuccess={() => {
+            setAdvancePaymentQuotation(null);
             if (onRefresh) onRefresh();
           }}
         />
@@ -711,6 +746,7 @@ interface QuotationFollowUpModalProps {
   onSuccess: () => void;
   currentUser?: any;
   onStartEdit?: (q: Quotation) => void;
+  onRecordPayment?: (q: Quotation) => void;
 }
 
 export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
@@ -719,9 +755,10 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
   onClose,
   onSuccess,
   currentUser,
-  onStartEdit
+  onStartEdit,
+  onRecordPayment
 }) => {
-  const [activeModalTab, setActiveModalTab] = useState<'log' | 'record'>('log');
+  const [activeModalTab, setActiveModalTab] = useState<'record' | 'log'>('record');
   const [responseType, setResponseType] = useState<'rejected' | 'held' | 'approved'>('held');
   const [remarks, setRemarks] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
@@ -997,6 +1034,18 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
         <div className="flex items-center gap-2 border-b border-zinc-150 pb-2 shrink-0">
           <button
             type="button"
+            onClick={() => setActiveModalTab('record')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              activeModalTab === 'record'
+                ? 'bg-[#801416] text-white shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+            }`}
+          >
+            <Plus size={13} />
+            <span>Response Log</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveModalTab('log')}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
               activeModalTab === 'log'
@@ -1006,18 +1055,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           >
             <Layers size={13} />
             <span>Quotation Log & Versions ({relatedQuotations.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveModalTab('record')}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-              activeModalTab === 'record'
-                ? 'bg-[#801416] text-white shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-            }`}
-          >
-            <Plus size={13} />
-            <span>Record Follow-up</span>
           </button>
         </div>
 
@@ -1050,14 +1087,30 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               )}
 
               {quotation.status === 'Approved' && (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 shadow-2xs animate-in fade-in">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={18} strokeWidth={2.5} />
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 shadow-2xs animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-emerald-900 uppercase tracking-wide">Quotation Approved by Customer</p>
+                      <p className="text-[11px] text-emerald-700 font-medium">Customer confirmed and approved this quotation.</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-black text-emerald-900 uppercase tracking-wide">Quotation Approved by Customer</p>
-                    <p className="text-[11px] text-emerald-700 font-medium">Customer confirmed and approved this quotation.</p>
-                  </div>
+                  {onRecordPayment && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onRecordPayment(quotation);
+                      }}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+                      title="Record advance payment for this approved quotation"
+                    >
+                      <CreditCard size={13} />
+                      <span>Record Advance</span>
+                    </button>
+                  )}
                 </div>
               )}
 

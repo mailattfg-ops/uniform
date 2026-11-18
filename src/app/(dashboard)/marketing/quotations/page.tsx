@@ -79,6 +79,8 @@ export interface Quotation {
   expected_delivery_date: string | null;
   profit_margin_percent: number;
   final_quote_value: number;
+  paid_amount?: number;
+  payment_status?: string;
   status: string;
   items?: any[];
     metrics_summary: {
@@ -519,15 +521,15 @@ export default function QuotationsPage() {
   };
 
   const handleViewDetails = async (quote: Quotation) => {
-    setIsLoading(true);
+    setSelectedQuotation(quote);
+    setActiveTab('details');
     try {
       const res = await api.get(`/quotations/${quote.id}`);
-      setSelectedQuotation(res.data);
-      setActiveTab('details');
+      if (res.data) {
+        setSelectedQuotation(res.data);
+      }
     } catch (err) {
-      toast.error('Failed to load quotation details');
-    } finally {
-      setIsLoading(false);
+      console.warn('Could not refresh full quotation details:', err);
     }
   };
 
