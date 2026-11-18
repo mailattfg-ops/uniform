@@ -16,6 +16,7 @@ import {
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
+import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
@@ -112,8 +113,11 @@ export interface Lead {
   area?: string | null;
   google_maps_link?: string | null;
   is_cold?: boolean;
+  is_risk?: boolean | null;
+  is_special?: boolean | null;
   origin?: string | null;
   organization_id?: number | null;
+  organizations?: any;
   created_at: string;
   updated_at: string;
 }
@@ -733,12 +737,22 @@ export default function LeadsRegistryPage() {
       className: 'min-w-[150px] max-w-[200px] text-left',
       sortValue: (l) => l.name,
       accessor: (l) => {
+        const isRisk = Boolean(l.is_risk || (l as any).organizations?.is_risk);
+        const isSpecial = Boolean(l.is_special || (l as any).organizations?.is_special);
         const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
         return (
           <div className="min-w-0 text-left flex flex-col items-start">
-            <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate w-full" title={l.name}>
-              {l.name}
-            </p>
+            <div className="flex items-center gap-1.5 max-w-full">
+              <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+                {l.name}
+              </p>
+              <CustomerRiskFavBadge 
+                isRisk={isRisk} 
+                isSpecial={isSpecial} 
+                customer={(l as any).organizations} 
+                size={18} 
+              />
+            </div>
             {industryName && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
                 {industryName}

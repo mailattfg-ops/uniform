@@ -332,22 +332,22 @@ export default function DealsRegistryPage() {
     }
   };
 
-  // Send for Corporate Approval Handler
+  // Send for HQ Approval Handler
   const handleSendToCorporate = async (deal: Lead, quote: any) => {
     if (!quote?.id) {
       toast.error('No approved quotation found for this deal');
       return;
     }
-    if (!window.confirm(`Submit SO Approved Deal for Quotation #${quote.quotation_no} to Corporate for final approval?`)) {
+    if (!window.confirm(`Submit BM Approved Deal for Quotation #${quote.quotation_no} to HQ for final approval?`)) {
       return;
     }
-    const loadingToast = toast.loading('Submitting deal to Corporate...');
+    const loadingToast = toast.loading('Submitting deal to HQ...');
     try {
       await api.put(`/quotations/${quote.id}/submit-so-corporate`);
-      toast.success('Deal submitted to Corporate for final approval!', { id: loadingToast });
+      toast.success('Deal submitted to HQ for final approval!', { id: loadingToast });
       fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to submit deal to Corporate', { id: loadingToast });
+      toast.error(err.response?.data?.error || 'Failed to submit deal to HQ', { id: loadingToast });
     }
   };
 
@@ -377,11 +377,11 @@ export default function DealsRegistryPage() {
         badgeBg = '#fff7ed';
         badgeColor = '#c2410c';
       } else if (fin.dealStage === 'SO_APPROVED') {
-        stageLabel = 'SO Approved';
+        stageLabel = 'BM Approved Deals';
         badgeBg = '#e0e7ff';
         badgeColor = '#3730a3';
       } else if (fin.dealStage === 'PENDING_CORP_APPROVAL') {
-        stageLabel = 'Pending Corp Approval';
+        stageLabel = 'Pending HQ Approval';
         badgeBg = '#f3e8ff';
         badgeColor = '#6b21a8';
       }
@@ -543,7 +543,7 @@ export default function DealsRegistryPage() {
                 isSpecial={isSpecial} 
                 clientTag={linkedCust?.client_tag}
                 customer={linkedCust} 
-                size={15} 
+                size={18} 
               />
             </div>
             {industryName && (
@@ -667,14 +667,14 @@ export default function DealsRegistryPage() {
             {dealStage === 'SO_APPROVED' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-800 border-indigo-200 shadow-2xs">
                 <CheckCircle2 size={12} className="text-indigo-600 shrink-0" />
-                <span>BM Approved • Ready for Corp</span>
+                <span>BM Approved Deals</span>
               </span>
             )}
 
             {dealStage === 'PENDING_CORP_APPROVAL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-purple-50 text-purple-800 border-purple-200 shadow-2xs">
                 <ShieldCheck size={10} />
-                <span>Pending Corp Approval</span>
+                <span>Pending HQ Approval</span>
               </span>
             )}
 
@@ -784,10 +784,10 @@ export default function DealsRegistryPage() {
                 type="button"
                 onClick={() => handleSendToCorporate(l, quote)}
                 className="px-3 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                title="BM approved. Send to Corporate for final approval"
+                title="BM approved. Send to HQ for final approval"
               >
                 <Send size={11} />
-                <span>Send to Corporate</span>
+                <span>Send to HQ</span>
               </button>
             )}
 
@@ -800,14 +800,14 @@ export default function DealsRegistryPage() {
                     setCorpApprovalQuotation(quote);
                   }}
                   className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                  title="Corporate approve deal and release to production"
+                  title="HQ approve deal and release to production"
                 >
                   <ShieldCheck size={11} />
-                  <span>Corporate Approve</span>
+                  <span>HQ Approve</span>
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200">
-                  <ShieldCheck size={10} /> With Corporate
+                  <ShieldCheck size={10} /> With HQ
                 </span>
               )
             )}
@@ -884,8 +884,8 @@ export default function DealsRegistryPage() {
                 { label: 'New Deals', value: 'NEW_DEALS', badge: stageCounts.newDeals },
                 { label: 'SO Draft', value: 'SO_DRAFT', badge: stageCounts.soDraft },
                 { label: 'Pending BM Approval', value: 'PENDING_BM_APPROVAL', badge: stageCounts.pendingBm },
-                { label: 'SO Approved Deals', value: 'SO_APPROVED', badge: stageCounts.soApproved },
-                { label: 'Pending Corp Approval', value: 'PENDING_CORP_APPROVAL', badge: stageCounts.pendingCorp }
+                { label: 'BM Approved Deals', value: 'SO_APPROVED', badge: stageCounts.soApproved },
+                { label: 'Pending HQ Approval', value: 'PENDING_CORP_APPROVAL', badge: stageCounts.pendingCorp }
               ]}
             />
 
@@ -1304,7 +1304,7 @@ function BmApprovalModal({
     const loadingToast = toast.loading('Branch Manager approving SO...');
     try {
       await api.put(`/quotations/${quotation.id}/bm-approve-so`, { bm_notes: bmNotes });
-      toast.success('Deal approved by Branch Manager! Returned to marketing staff to submit to Corporate for final approval.', { id: loadingToast });
+      toast.success('Deal approved by Branch Manager! Returned to marketing staff to submit to HQ for final approval.', { id: loadingToast });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -1424,7 +1424,7 @@ function BmApprovalModal({
               value={bmNotes}
               onChange={(e) => setBmNotes(e.target.value)}
               rows={2}
-              placeholder="Add any instructions or remarks for Corporate..."
+              placeholder="Add any instructions or remarks for HQ..."
               className="w-full text-xs p-3 rounded-xl border border-zinc-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 placeholder:text-zinc-400"
             />
           </div>
@@ -1477,10 +1477,10 @@ function CorporateApprovalModal({
 
   const handleApprove = async () => {
     setIsApproving(true);
-    const loadingToast = toast.loading('Corporate approving Sales Order...');
+    const loadingToast = toast.loading('HQ approving Sales Order...');
     try {
       await api.put(`/quotations/${quotation.id}/corporate-approve-so`, { approval_notes: approvalNotes });
-      toast.success('Deal approved by Corporate and released to Production! Deal converted and removed from Deals registry.', { id: loadingToast });
+      toast.success('Deal approved by HQ and released to Production! Deal converted and removed from Deals registry.', { id: loadingToast });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -1502,7 +1502,7 @@ function CorporateApprovalModal({
               <ShieldCheck size={18} />
             </span>
             <div>
-              <h2 className="text-base font-black text-zinc-900">Corporate Final SO Approval</h2>
+              <h2 className="text-base font-black text-zinc-900">HQ Final SO Approval</h2>
               <p className="text-[11px] text-zinc-500">Release deal to active Production & Factory execution</p>
             </div>
           </div>
@@ -1537,7 +1537,7 @@ function CorporateApprovalModal({
 
           <div>
             <label className="block text-xs font-bold text-zinc-700 mb-1">
-              Corporate Approval Instructions / Notes (Optional)
+              HQ Approval Instructions / Notes (Optional)
             </label>
             <textarea
               value={approvalNotes}
@@ -1564,7 +1564,7 @@ function CorporateApprovalModal({
             className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
           >
             {isApproving ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-            <span>Approve & Release</span>
+            <span>HQ Approve & Release</span>
           </button>
         </div>
       </div>

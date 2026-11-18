@@ -568,7 +568,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-50">
+            <tbody className="divide-y divide-zinc-200/50">
               {isLoading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
@@ -586,7 +586,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({ onRegister, onEdit
                   const isOnDeputation = Boolean(e.temp_branch_id);
 
                   return (
-                    <tr key={e.id} className="hover:bg-[#fce4d4]/5 transition-colors group">
+                    <tr key={e.id} className="hover:bg-[#fce4d4]/5 transition-colors group border-b border-zinc-200/50">
                       {/* Employee Details */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-3">

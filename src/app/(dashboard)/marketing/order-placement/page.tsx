@@ -621,7 +621,7 @@ export default function OrderPlacementPage() {
               <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate" title={item.organizations?.name || 'Unknown Client'}>
                 {item.organizations?.name || 'Unknown Client'}
               </span>
-              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={13} />
+              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={18} />
             </div>
             {sector && (
               <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
@@ -710,7 +710,7 @@ export default function OrderPlacementPage() {
             <CustomerRiskFavBadge 
               isRisk={Boolean((item.quotations?.organizations as any)?.is_risk)} 
               isSpecial={Boolean((item.quotations?.organizations as any)?.is_special)} 
-              size={12} 
+              size={18} 
             />
             <span className="text-[9px] text-zinc-300 font-bold">|</span>
             <span className="font-mono text-[9px] text-[#2d8d9b] font-bold shrink-0">

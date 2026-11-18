@@ -600,7 +600,7 @@ export default function InvoicesPage() {
                 <th className="px-5 py-3.5 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 text-zinc-700">
+            <tbody className="divide-y divide-zinc-200/50 text-zinc-700">
               {filteredInvoices.map(inv => {
                 const linkedOrderNo = inv.order_no || inv.orders?.order_no;
                 const isOverdue = inv.due_status === 'Overdue';
@@ -615,7 +615,7 @@ export default function InvoicesPage() {
                       }
                       openTaxInvoice(inv);
                     }}
-                    className="hover:bg-red-50/45 cursor-pointer transition-colors group"
+                    className="hover:bg-red-50/45 cursor-pointer transition-colors group border-b border-zinc-200/50"
                   >
                     {/* Invoice Date */}
                     <td className="px-5 py-4 text-zinc-800 font-bold whitespace-nowrap text-center align-middle">
@@ -649,7 +649,7 @@ export default function InvoicesPage() {
                         <CustomerRiskFavBadge 
                           isRisk={Boolean(inv.organizations?.is_risk)} 
                           isSpecial={Boolean(inv.organizations?.is_special)} 
-                          size={14} 
+                          size={18} 
                         />
                       </div>
                       {(() => {

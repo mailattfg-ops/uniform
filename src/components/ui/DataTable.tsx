@@ -655,10 +655,10 @@ export function DataTable<T extends { id: string | number }>({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-50">
+          <tbody className="divide-y divide-zinc-200/50">
             {isLoading ? (
               [...Array(5)].map((_, i) => (
-                <tr key={i} className="animate-pulse">
+                <tr key={i} className="animate-pulse border-b border-zinc-200/50">
                   {columns.map((col, j) => {
                     const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
                     const isLast = j === columns.length - 1;
@@ -695,7 +695,7 @@ export function DataTable<T extends { id: string | number }>({
                       }
                       if (onRowClick) onRowClick(item);
                     }}
-                    className={`transition-colors group ${
+                    className={`transition-colors group border-b border-zinc-200/50 ${
                       isClickable 
                         ? 'cursor-pointer hover:bg-[#FFE5E5] hover:shadow-2xs' 
                         : 'hover:bg-zinc-100/90 hover:shadow-2xs'

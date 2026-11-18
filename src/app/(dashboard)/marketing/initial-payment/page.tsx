@@ -271,7 +271,7 @@ export default function InitialPaymentPage() {
               <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate" title={item.organizations?.name || 'Unknown Client'}>
                 {item.organizations?.name || 'Unknown Client'}
               </span>
-              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={13} />
+              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={18} />
             </div>
           </div>
         );

@@ -236,7 +236,7 @@ export default function QuotationList({
                 isSpecial={isSpecial} 
                 clientTag={fullOrg?.client_tag || (q.organizations as any)?.client_tag}
                 customer={fullOrg} 
-                size={14} 
+                size={18} 
               />
             </div>
             {sector && (
@@ -422,27 +422,6 @@ export default function QuotationList({
             <div className="transition-all group-hover/status:ring-2 group-hover/status:ring-[#C82A2B]/50 group-hover/status:shadow-sm rounded-lg inline-flex items-center">
               {badge}
             </div>
-          </button>
-        );
-      }
-    },
-    {
-      header: 'LOG',
-      className: 'w-[105px] whitespace-nowrap text-center',
-      accessor: (q) => {
-        const count = Array.isArray(q.metrics_summary?.followups) ? q.metrics_summary.followups.length : 0;
-        return (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setFollowUpQuotation(q);
-            }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-zinc-100 hover:bg-[#801416] text-zinc-700 hover:text-white border border-zinc-200 hover:border-[#801416] transition-all cursor-pointer shadow-2xs group"
-            title="Click to view quotation history, versions & follow-up log"
-          >
-            <History size={12} className="text-zinc-500 group-hover:text-white transition-colors" />
-            <span>Log{count > 0 ? ` (${count})` : ''}</span>
           </button>
         );
       }

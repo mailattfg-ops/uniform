@@ -1574,9 +1574,9 @@ export default function CustomersRegistry() {
                         <th className="py-3 px-4 text-center">Outstanding Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100 text-xs">
+                    <tbody className="divide-y divide-zinc-200/50 text-xs">
                       {modalItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-zinc-50/80 transition-colors">
+                        <tr key={item.id} className="hover:bg-zinc-50/80 transition-colors border-b border-zinc-200/50">
                           {/* Customer */}
                           <td className="py-3.5 px-4">
                             {(() => {
@@ -1597,7 +1597,7 @@ export default function CustomersRegistry() {
                                     <CustomerRiskFavBadge 
                                       isRisk={Boolean(linkedC?.is_risk)} 
                                       isSpecial={Boolean(linkedC?.is_special)} 
-                                      size={14} 
+                                      size={18} 
                                     />
                                   </div>
                                   <span className="text-[10px] font-mono font-bold text-zinc-400">

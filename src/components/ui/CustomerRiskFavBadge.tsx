@@ -16,7 +16,7 @@ export const CustomerRiskFavBadge: React.FC<CustomerRiskFavBadgeProps> = ({
   clientTag,
   customer,
   className = '',
-  size = 15
+  size = 18
 }) => {
   const c = customer || {};
 

@@ -517,10 +517,10 @@ export default function DeliveryChallansPage() {
                 <th className="p-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200/50">
               {challans.length > 0 ? (
                 challans.map(dc => (
-                  <tr key={dc.id} className="hover:bg-slate-50/80 transition">
+                  <tr key={dc.id} className="hover:bg-slate-50/80 transition border-b border-slate-200/50">
                     <td className="p-3 text-slate-800 font-bold text-center align-middle whitespace-nowrap">{dc.dispatch_date}</td>
                     <td className="p-3 font-mono font-bold text-indigo-600">{dc.dc_no}</td>
                     <td className="p-3 font-mono text-slate-700">{dc.orders?.order_no || `ORD-#${dc.order_id}`}</td>
@@ -534,7 +534,7 @@ export default function DeliveryChallansPage() {
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-semibold text-slate-800">{org?.name || 'Customer'}</span>
-                              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={13} />
+                              <CustomerRiskFavBadge isRisk={isRisk} isSpecial={isSpecial} size={18} />
                             </div>
                             {sector ? (
                               <div className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
