@@ -14,6 +14,8 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
+  XCircle,
+  Edit3,
   ShieldCheck,
   Building2,
   FileCheck,
@@ -797,7 +799,9 @@ export default function QuotationDetails({
   // Determine stage states for 4-step lifecycle stepper
   const isBmApproved = Boolean(selectedQuotation.metrics_summary?.bm_approved);
   const isBmRevision = Boolean(selectedQuotation.metrics_summary?.needs_revision);
-  const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision && !isBmApproved);
+  const isRejected = selectedQuotation.status === 'Rejected';
+  const isHeld = selectedQuotation.status === 'Held';
+  const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision && !isBmApproved && !isRejected && !isHeld);
   const isUnderOps = selectedQuotation.status === 'Pending';
   const isOpsApproved = selectedQuotation.status === 'Approved';
 
@@ -882,15 +886,19 @@ export default function QuotationDetails({
               </Button>
             )}
 
-            {/* Edit button (disabled once finalized) */}
+            {/* Edit / Revise button */}
             {!readOnly && onStartEdit && selectedQuotation.status !== 'Approved' && (
               <Button
-                variant="outline"
+                variant={selectedQuotation.status === 'Rejected' ? 'primary' : 'outline'}
                 onClick={() => onStartEdit(selectedQuotation)}
-                className="flex items-center gap-1.5 border border-amber-500 hover:bg-amber-50 text-amber-600 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest bg-white h-9"
+                className={`flex items-center gap-1.5 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest h-9 ${
+                  selectedQuotation.status === 'Rejected'
+                    ? 'bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md'
+                    : 'border border-amber-500 hover:bg-amber-50 text-amber-600 bg-white'
+                }`}
               >
-                <Edit size={14} />
-                Edit
+                {selectedQuotation.status === 'Rejected' ? <Edit3 size={14} /> : <Edit size={14} />}
+                {selectedQuotation.status === 'Rejected' ? 'Revise Quote' : 'Edit'}
               </Button>
             )}
 
@@ -907,9 +915,13 @@ export default function QuotationDetails({
               </Button>
             )}
 
-            <span className={`px-3 py-1.5 rounded-xl border text-xs font-black uppercase tracking-wider ${
+            <span className={`px-3 py-1.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
               isOpsApproved
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : isRejected
+                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                : isHeld
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
                 : isUnderOps
                 ? 'bg-sky-50 text-sky-700 border-sky-200'
                 : isAwaitingBm
@@ -918,7 +930,28 @@ export default function QuotationDetails({
                 ? 'bg-rose-50 text-rose-700 border-rose-200'
                 : 'bg-zinc-100 text-zinc-600 border-zinc-200'
             }`}>
-              {isAwaitingBm ? 'Awaiting BM' : isUnderOps ? 'Ops Review' : selectedQuotation.status}
+              {isOpsApproved ? (
+                <>
+                  <CheckCircle2 size={13} className="text-emerald-600" />
+                  <span>Approved</span>
+                </>
+              ) : isRejected ? (
+                <>
+                  <XCircle size={13} className="text-rose-600" />
+                  <span>Rejected</span>
+                </>
+              ) : isHeld ? (
+                <>
+                  <Clock size={13} className="text-amber-600" />
+                  <span>Held</span>
+                </>
+              ) : isAwaitingBm ? (
+                'Awaiting BM'
+              ) : isUnderOps ? (
+                'Ops Review'
+              ) : (
+                selectedQuotation.status
+              )}
             </span>
           </div>
         </div>
@@ -1795,6 +1828,7 @@ export default function QuotationDetails({
             quotation={selectedQuotation}
             allQuotations={allQuotations}
             currentUser={currentUser}
+            onStartEdit={onStartEdit}
             onClose={() => setShowFollowUpModal(false)}
             onSuccess={() => {
               setShowFollowUpModal(false);

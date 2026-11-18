@@ -14,6 +14,9 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Edit3,
   Snowflake,
   ChevronDown,
   ChevronUp,
@@ -68,7 +71,7 @@ export default function QuotationList({
   onUserReportTrigger,
 }: QuotationListProps) {
   const router = useRouter();
-  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved' | 'rejected' | 'held'>('all');
   const [followUpQuotation, setFollowUpQuotation] = useState<Quotation | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('ALL');
   const [branches, setBranches] = useState<any[]>([]);
@@ -130,6 +133,10 @@ export default function QuotationList({
           return q.status === 'Pending';
         case 'approved':
           return q.status === 'Approved';
+        case 'rejected':
+          return q.status === 'Rejected';
+        case 'held':
+          return q.status === 'Held';
         default:
           return true;
       }
@@ -140,10 +147,12 @@ export default function QuotationList({
   const counts = useMemo(() => {
     return {
       all: quotations.length,
+      approved: quotations.filter(q => q.status === 'Approved').length,
+      held: quotations.filter(q => q.status === 'Held').length,
+      rejected: quotations.filter(q => q.status === 'Rejected').length,
       drafts: quotations.filter(q => q.status === 'Draft').length,
       pending_bm: quotations.filter(q => q.status === 'Pending Branch Approval' || q.status === 'Draft').length,
       pending_ops: quotations.filter(q => q.status === 'Pending').length,
-      approved: quotations.filter(q => q.status === 'Approved').length,
     };
   }, [quotations]);
 
@@ -397,8 +406,37 @@ export default function QuotationList({
           );
         } else if (q.status === 'Approved') {
           badge = (
-            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 shadow-2xs">
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 w-fit shadow-2xs">
+              <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
               Approved
+            </span>
+          );
+        } else if (q.status === 'Rejected') {
+          badge = (
+            <div className="flex flex-col items-start gap-1">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center gap-1 w-fit shadow-2xs">
+                <XCircle size={10} className="shrink-0 text-rose-600" />
+                Rejected
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartEdit(q);
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer"
+                title="Directly edit/revise this rejected quote"
+              >
+                <Edit3 size={10} />
+                <span>Revise Quote</span>
+              </button>
+            </div>
+          );
+        } else if (q.status === 'Held') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1 w-fit shadow-2xs">
+              <Clock size={10} className="shrink-0 text-amber-600" />
+              Held
             </span>
           );
         } else {
@@ -584,9 +622,11 @@ export default function QuotationList({
               value={activeFilter === 'all' ? 'ALL' : activeFilter}
               onChange={(val) => setActiveFilter(val === 'ALL' ? 'all' : val as any)}
               options={[
+                { label: 'Approved Quotes', value: 'approved', badge: counts.approved },
+                { label: 'Held Quotes', value: 'held', badge: counts.held },
+                { label: 'Rejected Quotes', value: 'rejected', badge: counts.rejected },
                 { label: "Waiting for BM's Approval", value: 'pending_bm', badge: counts.pending_bm },
                 { label: 'Under Ops Review', value: 'pending_ops', badge: counts.pending_ops },
-                { label: 'Approved Quotes', value: 'approved', badge: counts.approved },
                 { label: 'Drafts Only', value: 'drafts', badge: counts.drafts }
               ]}
               maxWidth="max-w-[240px]"
@@ -649,6 +689,7 @@ export default function QuotationList({
           quotation={followUpQuotation}
           allQuotations={quotations}
           currentUser={currentUser}
+          onStartEdit={onStartEdit}
           onClose={() => setFollowUpQuotation(null)}
           onSuccess={() => {
             setFollowUpQuotation(null);
@@ -669,6 +710,7 @@ interface QuotationFollowUpModalProps {
   onClose: () => void;
   onSuccess: () => void;
   currentUser?: any;
+  onStartEdit?: (q: Quotation) => void;
 }
 
 export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
@@ -676,13 +718,23 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
   allQuotations = [],
   onClose,
   onSuccess,
-  currentUser
+  currentUser,
+  onStartEdit
 }) => {
   const [activeModalTab, setActiveModalTab] = useState<'log' | 'record'>('log');
-  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
+  const [responseType, setResponseType] = useState<'rejected' | 'held' | 'approved'>('held');
   const [remarks, setRemarks] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleEditRevise = (qToEdit: Quotation) => {
+    onClose();
+    if (onStartEdit) {
+      onStartEdit(qToEdit);
+    } else {
+      window.location.href = `/marketing/quotations?id=${qToEdit.id}&action=edit`;
+    }
+  };
 
   // Group and sort all related quotations for this customer / organization
   const relatedQuotations = useMemo(() => {
@@ -808,18 +860,20 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
       return;
     }
     setIsSubmitting(true);
-    const toastId = toast.loading('Saving follow-up log for quotation...');
+    const targetStatus = responseType === 'rejected' ? 'Rejected' : responseType === 'held' ? 'Held' : 'Approved';
+    const toastId = toast.loading(`Saving quotation follow-up as ${targetStatus}...`);
 
     try {
       const res = await api.post(`/quotations/${quotation.id}/follow-up`, {
         outcome: responseType,
         response_type: responseType,
+        status: targetStatus,
         remarks: remarks.trim(),
         text: remarks.trim(),
         next_followup_date: nextFollowUpDate || null
       });
 
-      toast.success(res.data?.message || 'Quotation follow-up logged successfully!', { id: toastId });
+      toast.success(res.data?.message || `Quotation marked as ${targetStatus}!`, { id: toastId });
       onSuccess();
     } catch (err: any) {
       console.warn('Direct quotation follow-up endpoint error, applying safe fallback...', err);
@@ -846,17 +900,19 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           ...(quotation.metrics_summary || {}),
           followups: [newEntry, ...pastFollowups],
           last_followup: newEntry,
-          last_followup_at: now.toISOString()
+          last_followup_at: now.toISOString(),
+          customer_status: targetStatus
         };
 
         await api.put(`/quotations/${quotation.id}`, {
           title: quotation.title || `Quotation ${quotation.quotation_no}`,
           organization_id: quotation.organization_id,
+          status: targetStatus,
           items: quotation.items || [],
           metrics_summary: updatedMetrics
         }).catch(() => null);
 
-        toast.success('Quotation follow-up recorded successfully!', { id: toastId });
+        toast.success(`Quotation marked as ${targetStatus}!`, { id: toastId });
         onSuccess();
       } catch (fallbackErr: any) {
         toast.error(err.response?.data?.error || fallbackErr.message || 'Failed to save follow-up', { id: toastId });
@@ -880,8 +936,33 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 text-[10px] font-black uppercase font-mono tracking-wider">
                 {quotation.quotation_no}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 text-[10px] font-black uppercase">
-                {quotation.status || 'Draft'}
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border flex items-center gap-1 ${
+                quotation.status === 'Approved'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : quotation.status === 'Rejected'
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : quotation.status === 'Held'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-zinc-100 text-zinc-700 border-zinc-200'
+              }`}>
+                {quotation.status === 'Approved' ? (
+                  <>
+                    <CheckCircle2 size={11} className="text-emerald-600" />
+                    <span>Approved</span>
+                  </>
+                ) : quotation.status === 'Rejected' ? (
+                  <>
+                    <XCircle size={11} className="text-rose-600" />
+                    <span>Rejected</span>
+                  </>
+                ) : quotation.status === 'Held' ? (
+                  <>
+                    <Clock size={11} className="text-amber-600" />
+                    <span>Held</span>
+                  </>
+                ) : (
+                  quotation.status || 'Draft'
+                )}
               </span>
               <button
                 type="button"
@@ -944,6 +1025,54 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
         <div className="space-y-5 overflow-y-auto pr-1 flex-1">
           {activeModalTab === 'log' ? (
             <div className="space-y-6">
+              {/* Status Banner for Active Quotation */}
+              {quotation.status === 'Rejected' && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-3 shadow-2xs animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                      <XCircle size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-rose-900 uppercase tracking-wide">Quotation Rejected by Customer</p>
+                      <p className="text-[11px] text-rose-700 font-medium">Customer rejected this quote. You can directly edit and revise it.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleEditRevise(quotation)}
+                    className="px-3.5 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+                    title="Directly edit and create a revision for this quotation"
+                  >
+                    <Edit3 size={13} />
+                    <span>Edit / Revise Quote</span>
+                  </button>
+                </div>
+              )}
+
+              {quotation.status === 'Approved' && (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 shadow-2xs animate-in fade-in">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={18} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-emerald-900 uppercase tracking-wide">Quotation Approved by Customer</p>
+                    <p className="text-[11px] text-emerald-700 font-medium">Customer confirmed and approved this quotation.</p>
+                  </div>
+                </div>
+              )}
+
+              {quotation.status === 'Held' && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 shadow-2xs animate-in fade-in">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <Clock size={18} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-amber-900 uppercase tracking-wide">Quotation Held</p>
+                    <p className="text-[11px] text-amber-700 font-medium">Customer has not confirmed yet / decision pending.</p>
+                  </div>
+                </div>
+              )}
+
               {/* 1. All Quotation Versions (First quote, Revised quotes) */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
@@ -1022,13 +1151,39 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                           )}
                         </div>
 
-                        <div className="pt-2 flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-700 border border-zinc-200">
-                            {q.status || 'Draft'}
+                        <div className="pt-2 flex items-center justify-between border-t border-zinc-100 mt-2">
+                          <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border flex items-center gap-1 ${
+                            q.status === 'Approved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : q.status === 'Rejected'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : q.status === 'Held'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-zinc-100 text-zinc-700 border-zinc-200'
+                          }`}>
+                            {q.status === 'Approved' && <CheckCircle2 size={9} className="text-emerald-600" />}
+                            {q.status === 'Rejected' && <XCircle size={9} className="text-rose-600" />}
+                            {q.status === 'Held' && <Clock size={9} className="text-amber-600" />}
+                            <span>{q.status || 'Draft'}</span>
                           </span>
-                          <span className="text-[10px] text-[#C82A2B] font-bold group-hover:underline inline-flex items-center gap-0.5">
-                            Open in tab <ExternalLink size={9} />
-                          </span>
+                          {q.status === 'Rejected' ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditRevise(q);
+                              }}
+                              className="px-2.5 py-1 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                              title="Revise this rejected quotation"
+                            >
+                              <Edit3 size={10} />
+                              <span>Revise Quote</span>
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-[#C82A2B] font-bold group-hover:underline inline-flex items-center gap-0.5">
+                              Open in tab <ExternalLink size={9} />
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -1055,8 +1210,9 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                   <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                     {allTimelineActivities.map((entry) => {
                       const outcomeLower = String(entry.outcome || entry.badge || '').toLowerCase();
-                      const isPositive = outcomeLower.includes('pos') || outcomeLower.includes('won') || outcomeLower.includes('approv');
-                      const isNegative = outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('reject');
+                      const isApproved = outcomeLower.includes('approv') || outcomeLower.includes('pos') || outcomeLower.includes('won');
+                      const isRejected = outcomeLower.includes('reject') || outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('decline');
+                      const isHeld = outcomeLower.includes('held') || outcomeLower.includes('hold') || outcomeLower.includes('pend');
 
                       return (
                         <div
@@ -1069,16 +1225,19 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                             </span>
                             <div className="flex items-center gap-1.5">
                               {entry.badge && (
-                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border flex items-center gap-1 ${
                                   entry.badgeColor || (
-                                    isPositive
+                                    isApproved
                                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : isNegative
+                                      : isRejected
                                       ? 'bg-rose-50 text-rose-700 border-rose-200'
                                       : 'bg-amber-50 text-amber-700 border-amber-200'
                                   )
                                 }`}>
-                                  {entry.badge}
+                                  {isApproved && <CheckCircle2 size={10} className="text-emerald-600" />}
+                                  {isRejected && <XCircle size={10} className="text-rose-600" />}
+                                  {isHeld && <Clock size={10} className="text-amber-600" />}
+                                  <span>{isApproved ? 'Approved' : isRejected ? 'Rejected' : isHeld ? 'Held' : entry.badge}</span>
                                 </span>
                               )}
                               {entry.quotation_id && (
@@ -1130,69 +1289,88 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           ) : (
             /* Follow-up Logging Form */
             <div className="space-y-4">
-              {/* Outcome Selection: 3 Options (Negative, Hold/Pending default, Positive) */}
+              {/* Outcome Selection: 3 Options (Rejected, Held, Approved) */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-                  Follow-up Outcome *
+                  Customer Decision / Outcome *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Negative (Left) */}
+                  {/* Rejected */}
                   <button
                     type="button"
-                    onClick={() => setResponseType('negative')}
-                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      responseType === 'negative'
-                        ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-sm'
+                    onClick={() => setResponseType('rejected')}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'rejected'
+                        ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-sm ring-2 ring-rose-500/20'
                         : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
                     }`}
                   >
-                    <span className="text-xs font-black block flex items-center gap-1.5">
-                      <Snowflake size={13} className="text-rose-500 shrink-0" />
-                      Negative
+                    <span className="text-xs font-black block flex items-center gap-1.5 text-rose-700">
+                      <XCircle size={15} className="text-rose-600 shrink-0" />
+                      Rejected
                     </span>
-                    <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
-                      Declined / Chose other vendor
+                    <span className="text-[10px] text-rose-700/85 font-medium mt-1 block">
+                      Customer rejected quotation
                     </span>
                   </button>
 
-                  {/* Hold / Pending (Middle - DEFAULT) */}
+                  {/* Held / Pending */}
                   <button
                     type="button"
-                    onClick={() => setResponseType('hold')}
-                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      responseType === 'hold'
-                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
+                    onClick={() => setResponseType('held')}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'held'
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
                         : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
                     }`}
                   >
-                    <span className="text-xs font-black block flex items-center gap-1.5">
-                      <Clock size={13} className="text-amber-600 shrink-0" />
-                      Hold / Pending
+                    <span className="text-xs font-black block flex items-center gap-1.5 text-amber-700">
+                      <Clock size={15} className="text-amber-600 shrink-0" />
+                      Held
                     </span>
-                    <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">
-                      Under review / Decision pending
+                    <span className="text-[10px] text-amber-700/85 font-medium mt-1 block">
+                      Decision pending / Not confirmed
                     </span>
                   </button>
 
-                  {/* Positive (Right) */}
+                  {/* Approved */}
                   <button
                     type="button"
-                    onClick={() => setResponseType('positive')}
-                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      responseType === 'positive'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm'
+                    onClick={() => setResponseType('approved')}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'approved'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm ring-2 ring-emerald-500/20'
                         : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
                     }`}
                   >
-                    <span className="text-xs font-black block flex items-center gap-1.5">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                      Positive
+                    <span className="text-xs font-black block flex items-center gap-1.5 text-emerald-700">
+                      <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                      Approved
                     </span>
-                    <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">
-                      Moving ahead / Order expected
+                    <span className="text-[10px] text-emerald-700/85 font-medium mt-1 block">
+                      Customer approved quotation
                     </span>
                   </button>
                 </div>
+
+                {responseType === 'rejected' && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle size={14} className="text-rose-600 shrink-0" />
+                    <span>Quotation will be marked as Rejected. You can directly edit and revise the quote.</span>
+                  </div>
+                )}
+                {responseType === 'held' && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center gap-2 animate-in fade-in">
+                    <Clock size={14} className="text-amber-600 shrink-0" />
+                    <span>Quotation will be marked as Held while awaiting customer confirmation.</span>
+                  </div>
+                )}
+                {responseType === 'approved' && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                    <span>Quotation will be marked as Approved and advance forward in the pipeline.</span>
+                  </div>
+                )}
               </div>
 
               {/* Next Follow-up Date */}
@@ -1241,15 +1419,21 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
             <Button
               disabled={isSubmitting}
               onClick={handleSubmit}
-              className={`flex-1 py-3 text-[10px] font-black uppercase text-white shadow-lg ${
-                responseType === 'positive'
+              className={`flex-1 py-3 text-[10px] font-black uppercase text-white shadow-lg transition-all ${
+                responseType === 'approved'
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                  : responseType === 'negative'
+                  : responseType === 'rejected'
                   ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
                   : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
               }`}
             >
-              {isSubmitting ? 'Saving...' : 'Save Follow-up'}
+              {isSubmitting
+                ? 'Saving...'
+                : responseType === 'rejected'
+                ? 'Mark as Rejected & Save'
+                : responseType === 'approved'
+                ? 'Mark as Approved & Save'
+                : 'Mark as Held & Save'}
             </Button>
           ) : (
             <Button
