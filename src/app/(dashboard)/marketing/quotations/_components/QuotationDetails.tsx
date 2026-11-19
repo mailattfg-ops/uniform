@@ -889,8 +889,8 @@ export default function QuotationDetails({
               </Button>
             )}
 
-            {/* Direct Advance Payment button (once approved) */}
-            {isOpsApproved && (
+            {/* Direct Advance Payment button (once approved, only if not yet paid) */}
+            {isOpsApproved && parseFloat(String(selectedQuotation.paid_amount || 0)) <= 0 && (
               <Button
                 onClick={() => setShowAdvancePaymentModal(true)}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -1633,13 +1633,20 @@ export default function QuotationDetails({
                       <span className="text-zinc-600">Balance: <strong className="text-amber-700 font-bold">₹{Math.max(0, Number(pricing.finalValue) - parseFloat(String(selectedQuotation.paid_amount || 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
                     </div>
                   </div>
-                  <Button
-                    onClick={() => setShowAdvancePaymentModal(true)}
-                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-wider shadow-md shrink-0 h-8 cursor-pointer"
-                  >
-                    <CreditCard size={12} />
-                    <span>Record Advance</span>
-                  </Button>
+                  {parseFloat(String(selectedQuotation.paid_amount || 0)) <= 0 ? (
+                    <Button
+                      onClick={() => setShowAdvancePaymentModal(true)}
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-wider shadow-md shrink-0 h-8 cursor-pointer"
+                    >
+                      <CreditCard size={12} />
+                      <span>Record Advance</span>
+                    </Button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <CheckCircle2 size={12} className="text-emerald-700" />
+                      <span>Advance Received</span>
+                    </span>
+                  )}
                 </div>
               </div>
             )}

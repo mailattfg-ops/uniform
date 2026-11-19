@@ -419,18 +419,24 @@ export default function QuotationList({
                 <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
                 Approved
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAdvancePaymentQuotation(q);
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                title="Record Advance Payment for this approved quotation"
-              >
-                <CreditCard size={10} />
-                <span>{paid > 0 ? `+ Advance (₹${paid.toLocaleString('en-IN')})` : 'Advance Payment'}</span>
-              </button>
+              {paid <= 0 ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAdvancePaymentQuotation(q);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  title="Record Advance Payment for this approved quotation"
+                >
+                  <CreditCard size={10} />
+                  <span>Advance Payment</span>
+                </button>
+              ) : (
+                <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Adv: ₹{paid.toLocaleString('en-IN')}
+                </span>
+              )}
             </div>
           );
         } else if (q.status === 'Rejected') {
@@ -1097,19 +1103,26 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                       <p className="text-[11px] text-emerald-700 font-medium">Customer confirmed and approved this quotation.</p>
                     </div>
                   </div>
-                  {onRecordPayment && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        onRecordPayment(quotation);
-                      }}
-                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
-                      title="Record advance payment for this approved quotation"
-                    >
-                      <CreditCard size={13} />
-                      <span>Record Advance</span>
-                    </button>
+                  {parseFloat(String(quotation.paid_amount || 0)) <= 0 ? (
+                    onRecordPayment && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onRecordPayment(quotation);
+                        }}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+                        title="Record advance payment for this approved quotation"
+                      >
+                        <CreditCard size={13} />
+                        <span>Record Advance</span>
+                      </button>
+                    )
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 shrink-0">
+                      <CheckCircle2 size={12} className="text-emerald-700" />
+                      <span>Advance Received (₹{parseFloat(String(quotation.paid_amount || 0)).toLocaleString('en-IN')})</span>
+                    </span>
                   )}
                 </div>
               )}
