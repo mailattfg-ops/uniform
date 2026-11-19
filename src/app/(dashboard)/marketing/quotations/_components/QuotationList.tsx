@@ -475,6 +475,16 @@ export default function QuotationList({
           );
         }
 
+        const isApprovedAndPaid = q.status === 'Approved' && parseFloat(String(q.paid_amount || 0)) > 0;
+
+        if (isApprovedAndPaid) {
+          return (
+            <div className="inline-flex items-center text-left">
+              {badge}
+            </div>
+          );
+        }
+
         return (
           <button
             type="button"
@@ -712,7 +722,7 @@ export default function QuotationList({
         }
       />
 
-      {followUpQuotation && (
+      {followUpQuotation && !(followUpQuotation.status === 'Approved' && parseFloat(String(followUpQuotation.paid_amount || 0)) > 0) && (
         <QuotationFollowUpModal
           quotation={followUpQuotation}
           allQuotations={quotations}
@@ -964,6 +974,10 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  if (quotation.status === 'Approved' && parseFloat(String(quotation.paid_amount || 0)) > 0) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 animate-in fade-in duration-300">

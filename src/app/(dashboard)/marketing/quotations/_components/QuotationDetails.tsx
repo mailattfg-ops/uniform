@@ -807,6 +807,7 @@ export default function QuotationDetails({
   const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval' || (selectedQuotation.status === 'Draft' && !isBmRevision && !isBmApproved && !isRejected && !isHeld);
   const isUnderOps = selectedQuotation.status === 'Pending';
   const isOpsApproved = selectedQuotation.status === 'Approved';
+  const isApprovedAndPaid = isOpsApproved && parseFloat(String(selectedQuotation.paid_amount || 0)) > 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -1654,34 +1655,35 @@ export default function QuotationDetails({
         </div>
 
         {/* QUOTATION HISTORY & REVISIONS LOG */}
-        <Card className="p-6 md:p-8 border border-zinc-200/80 rounded-[2.5rem] bg-white shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-150 pb-5">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#801416]/10 text-[#801416] flex items-center justify-center">
-                  <History size={16} />
+        {(!isApprovedAndPaid || relatedQuotations.length > 1) && (
+          <Card className="p-6 md:p-8 border border-zinc-200/80 rounded-[2.5rem] bg-white shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-150 pb-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[#801416]/10 text-[#801416] flex items-center justify-center">
+                    <History size={16} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                    {isApprovedAndPaid ? 'Commercial Versions' : 'Commercial History & Versions'}
+                  </span>
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                  Commercial History & Versions
-                </span>
+                <h3 className="text-xl font-black text-zinc-900 mt-1">
+                  {isApprovedAndPaid ? 'Quotation Versions' : 'Quotation Versions & Follow-up Log'}
+                </h3>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                  Client: <strong className="text-zinc-800">{selectedQuotation.organizations?.name || 'Commercial Client'}</strong> • {relatedQuotations.length} total quotation proposal{relatedQuotations.length > 1 ? 's' : ''} (First quote & revisions)
+                </p>
               </div>
-              <h3 className="text-xl font-black text-zinc-900 mt-1">
-                Quotation Versions & Follow-up Log
-              </h3>
-              <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                Client: <strong className="text-zinc-800">{selectedQuotation.organizations?.name || 'Commercial Client'}</strong> • {relatedQuotations.length} total quotation proposal{relatedQuotations.length > 1 ? 's' : ''} (First quote & revisions)
-              </p>
-            </div>
 
-            {!readOnly && (
-              <Button
-                onClick={() => setShowFollowUpModal(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] text-white shadow-lg shadow-[#801416]/20 border-none cursor-pointer self-start sm:self-auto"
-              >
-                <Plus size={14} /> Record Follow-up
-              </Button>
-            )}
-          </div>
+              {!readOnly && !isApprovedAndPaid && (
+                <Button
+                  onClick={() => setShowFollowUpModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] text-white shadow-lg shadow-[#801416]/20 border-none cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus size={14} /> Record Follow-up
+                </Button>
+              )}
+            </div>
 
           {/* Quotation Versions Grid */}
           <div className="space-y-3">
@@ -1775,102 +1777,105 @@ export default function QuotationDetails({
             </div>
           </div>
 
-          {/* Activity Timeline */}
-          <div className="space-y-3 pt-3 border-t border-zinc-150">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                Timeline & Follow-up Communications ({timelineActivities.length})
-              </span>
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={() => setShowFollowUpModal(true)}
-                  className="text-[10px] font-black uppercase tracking-wider text-[#801416] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus size={11} /> Log Follow-up Note
-                </button>
-              )}
-            </div>
-
-            {timelineActivities.length > 0 ? (
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                {timelineActivities.map((entry) => {
-                  const outcomeLower = String(entry.outcome || entry.badge || '').toLowerCase();
-                  const isPositive = outcomeLower.includes('pos') || outcomeLower.includes('won') || outcomeLower.includes('approv');
-                  const isNegative = outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('reject');
-
-                  return (
-                    <div
-                      key={entry.id}
-                      className="bg-zinc-50/60 hover:bg-zinc-50 p-4 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1.5 transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-                        <span className="font-bold text-zinc-900">
-                          {entry.title}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {entry.badge && (
-                            <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
-                              entry.badgeColor || (
-                                isPositive
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : isNegative
-                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                  : 'bg-amber-50 text-amber-700 border-amber-200'
-                              )
-                            }`}>
-                              {entry.badge}
-                            </span>
-                          )}
-                          {entry.quotation_id && (
-                            <button
-                              type="button"
-                              onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
-                              className="text-[10px] font-bold text-[#C82A2B] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
-                              title="Open quotation in new tab"
-                            >
-                              Quote <ExternalLink size={9} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <p className="text-xs font-semibold text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                        {entry.remarks}
-                      </p>
-
-                      <div className="flex items-center justify-between text-[10px] text-zinc-400 font-medium pt-1 border-t border-zinc-150/70">
-                        <span>{entry.date ? formatDate(entry.date) : 'Recent'}</span>
-                        {entry.author && <span>By: {entry.author}</span>}
-                      </div>
-
-                      {entry.next_followup_date && (
-                        <div className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded inline-flex items-center gap-1 mt-1">
-                          <Calendar size={10} /> Next Follow-up: {formatDate(entry.next_followup_date)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 space-y-2">
-                <History size={24} className="mx-auto text-zinc-400" />
-                <p className="text-xs font-bold text-zinc-600">No activity or follow-up notes logged yet</p>
+          {/* Activity Timeline (Follow-up Logs) */}
+          {!isApprovedAndPaid && (
+            <div className="space-y-3 pt-3 border-t border-zinc-150">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                  Timeline & Follow-up Communications ({timelineActivities.length})
+                </span>
                 {!readOnly && (
-                  <Button
+                  <button
+                    type="button"
                     onClick={() => setShowFollowUpModal(true)}
-                    className="px-3 py-1.5 bg-[#801416] text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-[#681012] transition-colors"
+                    className="text-[10px] font-black uppercase tracking-wider text-[#801416] hover:underline inline-flex items-center gap-1 cursor-pointer"
                   >
-                    Log First Follow-up
-                  </Button>
+                    <Plus size={11} /> Log Follow-up Note
+                  </button>
                 )}
               </div>
-            )}
-          </div>
-        </Card>
 
-        {showFollowUpModal && (
+              {timelineActivities.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {timelineActivities.map((entry) => {
+                    const outcomeLower = String(entry.outcome || entry.badge || '').toLowerCase();
+                    const isPositive = outcomeLower.includes('pos') || outcomeLower.includes('won') || outcomeLower.includes('approv');
+                    const isNegative = outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('reject');
+
+                    return (
+                      <div
+                        key={entry.id}
+                        className="bg-zinc-50/60 hover:bg-zinc-50 p-4 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1.5 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                          <span className="font-bold text-zinc-900">
+                            {entry.title}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {entry.badge && (
+                              <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
+                                entry.badgeColor || (
+                                  isPositive
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : isNegative
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                )
+                              }`}>
+                                {entry.badge}
+                              </span>
+                            )}
+                            {entry.quotation_id && (
+                              <button
+                                type="button"
+                                onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
+                                className="text-[10px] font-bold text-[#C82A2B] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
+                                title="Open quotation in new tab"
+                              >
+                                Quote <ExternalLink size={9} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="text-xs font-semibold text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                          {entry.remarks}
+                        </p>
+
+                        <div className="flex items-center justify-between text-[10px] text-zinc-400 font-medium pt-1 border-t border-zinc-150/70">
+                          <span>{entry.date ? formatDate(entry.date) : 'Recent'}</span>
+                          {entry.author && <span>By: {entry.author}</span>}
+                        </div>
+
+                        {entry.next_followup_date && (
+                          <div className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded inline-flex items-center gap-1 mt-1">
+                            <Calendar size={10} /> Next Follow-up: {formatDate(entry.next_followup_date)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 space-y-2">
+                  <History size={24} className="mx-auto text-zinc-400" />
+                  <p className="text-xs font-bold text-zinc-600">No activity or follow-up notes logged yet</p>
+                  {!readOnly && (
+                    <Button
+                      onClick={() => setShowFollowUpModal(true)}
+                      className="px-3 py-1.5 bg-[#801416] text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-[#681012] transition-colors"
+                    >
+                      Log First Follow-up
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {showFollowUpModal && !isApprovedAndPaid && (
           <QuotationFollowUpModal
             quotation={selectedQuotation}
             allQuotations={allQuotations}
