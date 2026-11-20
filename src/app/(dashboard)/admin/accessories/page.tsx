@@ -27,11 +27,12 @@ import {
   Info,
   UploadCloud,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  RotateCcw
 } from 'lucide-react';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
-import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
+import { DataTable, Column, SortInfo, HeaderGroupItem } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 
 export interface AccessoryCategory {
@@ -59,6 +60,13 @@ export interface AccessoryItem {
   remarks?: any[];
   is_active?: boolean;
   created_at?: string;
+  brand_name?: string | null;
+  specification?: string | null;
+  color?: string | null;
+  shade_no?: string | null;
+  size?: string | null;
+  size_uom?: string | null;
+  description?: string | null;
 }
 
 const DEFAULT_ACCESSORY_CATEGORIES: AccessoryCategory[] = [
@@ -102,40 +110,62 @@ const LOCAL_STORAGE_CAT_KEY = 'forma_accessory_categories';
 const LOCAL_STORAGE_TRADE_CAT_KEY = 'forma_trade_categories';
 
 const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patterns: any[]) => {
-  if (!artNumber) return { dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
+  if (!artNumber) return { itemCode: '', specCode: '', dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
 
   const parts = artNumber.split('-');
 
-  // Option 1 format: [DressPrefix]-[GenderPattern]-[FitAllowance] (e.g. 4J-1012-R2, 4J-1012-R)
+  // Standard format: [item][spec]-[gender][pattern]-[fit][allowance] (e.g. 1A-3053-R2, 4J-1012-R2)
   if (parts.length === 3) {
-    const [dressCode, middle, lastPart] = parts;
+    const [rawItem, middle, lastPart] = parts;
     const fitMatch = lastPart.match(/^([A-Za-z]+)(.*)$/);
+    let fitCode = '';
+    let allowance = '';
     if (fitMatch && isNaN(Number(lastPart))) {
-      const fitCode = fitMatch[1].toUpperCase();
-      const allowance = fitMatch[2] ? fitMatch[2].trim() : '';
-      const genderCode = middle.slice(0, 1);
-      const patternCode = middle.slice(1);
-      return { dressCode, genderCode, patternCode, fitCode, allowance };
+      fitCode = fitMatch[1].toUpperCase();
+      allowance = fitMatch[2] ? fitMatch[2].trim() : '';
     }
-    return { dressCode, genderCode: middle, patternCode: lastPart, fitCode: '', allowance: '' };
+
+    let genderCode = '';
+    let patternCode = '';
+    if (middle.length >= 2) {
+      genderCode = middle.slice(0, 1);
+      patternCode = middle.slice(1);
+    } else {
+      genderCode = middle;
+    }
+
+    let itemCode = rawItem;
+    let specCode = '';
+    const exactMatch = (dresses || []).find(d => d.code === rawItem);
+    if (exactMatch) {
+      itemCode = exactMatch.code;
+    } else {
+      const match = rawItem.match(/^([0-9a-zA-Z]+?)([A-Za-z])$/);
+      if (match) {
+        itemCode = match[1];
+        specCode = match[2].toUpperCase();
+      }
+    }
+
+    return { itemCode, specCode, dressCode: itemCode, genderCode, patternCode, fitCode, allowance };
   }
 
   // Fallback for 2-part legacy format
   if (parts.length === 2) {
-    const isFirstDress = dresses.some(d => d.code === parts[0]);
+    const isFirstDress = (dresses || []).some(d => d.code === parts[0]);
     if (isFirstDress) {
       const dressCode = parts[0];
       const rest = parts[1];
-      for (const g of genders) {
+      for (const g of (genders || [])) {
         if (rest.startsWith(g.code)) {
           const remainder = rest.slice(g.code.length);
-          return { dressCode, genderCode: g.code, patternCode: remainder, fitCode: '', allowance: '' };
+          return { itemCode: dressCode, specCode: '', dressCode, genderCode: g.code, patternCode: remainder, fitCode: '', allowance: '' };
         }
       }
     }
   }
 
-  return { dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
+  return { itemCode: '', specCode: '', dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
 };
 
 const MultiEntryInput: React.FC<{
@@ -354,6 +384,7 @@ export default function AccessoriesAndTradeCatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [genderFilter, setGenderFilter] = useState('ALL');
   const [filterSize, setFilterSize] = useState('ALL');
+  const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterColour, setFilterColour] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -378,14 +409,21 @@ export default function AccessoriesAndTradeCatalogPage() {
   const [articleFormData, setArticleFormData] = useState({
     name: '',
     art_number: '',
-    category_name: 'Tie',
+    category_name: 'T-Shirt',
+    brand_name: '',
+    specification: '',
     color: '',
+    shade_no: '',
+    size: 'M',
+    size_uom: '',
     gender: 'Unisex',
-    sizing_mode: 'FREE_SIZE', // 'FREE_SIZE' | 'MULTI_SIZE'
-    sizes: '28, 30, 32, 34',
+    sizing_mode: 'MULTI_SIZE',
+    sizes: 'S, M, L, XL, 2XL',
     selling_price: '',
     cost_price: '',
     trader_name: '',
+    quantity: '0',
+    uom: 'Pcs',
     description: '',
     image_url: ''
   });
@@ -655,14 +693,37 @@ export default function AccessoriesAndTradeCatalogPage() {
     return Array.from(set).sort();
   }, [items]);
 
-  const uniqueColours = useMemo(() => {
+  const uniqueBrands = useMemo(() => {
     const set = new Set<string>();
     items.forEach(i => {
-      const col = extractItemColor(i);
-      if (col) set.add(col);
+      const b = i.brand_name || extractTradeMetadata(i).trader_name;
+      if (b && b.trim()) set.add(b.trim());
     });
     return Array.from(set).sort();
   }, [items]);
+
+  const uniqueColours = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => {
+      const col = i.color || extractItemColor(i);
+      if (col && col.trim()) set.add(col.trim());
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const categoryOptions = useMemo(() => {
+    const list: { label: string; value: string; badge?: number }[] = [];
+    const all = [...categories, ...tradeCategories];
+    const seen = new Set<string>();
+    all.forEach(c => {
+      if (c.name && !seen.has(c.name.toLowerCase())) {
+        seen.add(c.name.toLowerCase());
+        const count = items.filter(it => extractCategoryName(it).toLowerCase() === c.name.toLowerCase()).length;
+        list.push({ label: c.name, value: c.name, badge: count });
+      }
+    });
+    return list;
+  }, [categories, tradeCategories, items]);
 
   // Filtered List based on tab, category, gender, size, colour, search
   const filteredItems = useMemo(() => {
@@ -703,9 +764,17 @@ export default function AccessoriesAndTradeCatalogPage() {
         }
       }
 
+      // Brand filter
+      if (filterBrand !== 'ALL') {
+        const itemBrand = (item.brand_name || extractTradeMetadata(item).trader_name || '').toLowerCase();
+        if (itemBrand !== filterBrand.toLowerCase()) {
+          return false;
+        }
+      }
+
       // Size filter
       if (filterSize !== 'ALL') {
-        const itemSizes = (item.base_size || 'Free Size').toLowerCase();
+        const itemSizes = (item.size || item.base_size || 'Free Size').toLowerCase();
         if (!itemSizes.includes(filterSize.toLowerCase())) {
           return false;
         }
@@ -713,7 +782,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 
       // Colour filter
       if (filterColour !== 'ALL') {
-        const itemColor = extractItemColor(item).toLowerCase();
+        const itemColor = (item.color || extractItemColor(item) || '').toLowerCase();
         if (!itemColor.includes(filterColour.toLowerCase())) {
           return false;
         }
@@ -726,6 +795,10 @@ export default function AccessoriesAndTradeCatalogPage() {
         const matches = 
           item.name.toLowerCase().includes(term) ||
           item.art_number.toLowerCase().includes(term) ||
+          (item.brand_name || '').toLowerCase().includes(term) ||
+          (item.specification || '').toLowerCase().includes(term) ||
+          (item.color || '').toLowerCase().includes(term) ||
+          (item.shade_no || '').toLowerCase().includes(term) ||
           (item.base_size || '').toLowerCase().includes(term) ||
           meta.trader_name.toLowerCase().includes(term) ||
           meta.trade_category.toLowerCase().includes(term);
@@ -733,12 +806,38 @@ export default function AccessoriesAndTradeCatalogPage() {
       }
       return true;
     });
-  }, [items, activeCatalogTab, selectedCategory, genderFilter, filterSize, filterColour, searchTerm, categories, genders]);
+  }, [items, activeCatalogTab, selectedCategory, genderFilter, filterBrand, filterSize, filterColour, searchTerm, categories, genders]);
 
   // --- UNIFIED ARTICLE MODAL ACTIONS ---
   const getPrefixForCategory = (catName: string): string => {
-    const found = categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
-    return found?.code_prefix || catName.substring(0, 3).toUpperCase();
+    const clean = (catName || '').toLowerCase().trim();
+    if (clean.includes('t-shirt') || clean.includes('tshirt') || clean.includes('tee')) return 'TSH';
+    if (clean.includes('cap') || clean.includes('hat')) return 'CAP';
+    if (clean.includes('tie') || clean.includes('necktie') || clean.includes('bow')) return 'TIE';
+    if (clean.includes('shoe') || clean.includes('footwear')) return 'SHO';
+    if (clean.includes('belt')) return 'BLT';
+    if (clean.includes('sock')) return 'SCK';
+    if (clean.includes('badge') || clean.includes('crest')) return 'BDG';
+    if (clean.includes('lanyard')) return 'LAN';
+    if (clean.includes('scarf') || clean.includes('dupatta')) return 'SCF';
+    if (clean.includes('bottle')) return 'BOT';
+    const found = categories.find(c => c.name.toLowerCase() === clean);
+    return found?.code_prefix || catName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '') || 'ACC';
+  };
+
+  const generateNextAccessoryCode = (catName: string): string => {
+    const prefix = getPrefixForCategory(catName);
+    let maxNum = 0;
+    items.forEach(i => {
+      const art = (i.art_number || '').toUpperCase();
+      const match = art.match(new RegExp(`^(?:ACC-)?${prefix}-(\\d+)`, 'i'));
+      if (match && match[1]) {
+        const n = parseInt(match[1], 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+    });
+    const nextNum = maxNum + 1;
+    return `${prefix}-${String(nextNum).padStart(4, '0')}`;
   };
 
   const handleOpenAddArticle = (defaultType?: 'ACCESSORY' | 'TRADE_READYMADE') => {
@@ -748,41 +847,32 @@ export default function AccessoriesAndTradeCatalogPage() {
     setEditingItem(null);
     setArticleType(determinedType);
 
-    if (determinedType === 'TRADE_READYMADE') {
-      const initialTradeCat = tradeCategories[0]?.name || 'T-Shirt';
-      setArticleFormData({
-        name: '',
-        art_number: '',
-        category_name: initialTradeCat,
-        color: '',
-        gender: 'Unisex',
-        sizing_mode: 'MULTI_SIZE',
-        sizes: 'S, M, L, XL, 2XL',
-        selling_price: '',
-        cost_price: '',
-        trader_name: '',
-        description: '',
-        image_url: ''
-      });
-    } else {
-      const initialCat = categories[0]?.name || 'Tie';
-      const prefix = getPrefixForCategory(initialCat);
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      setArticleFormData({
-        name: '',
-        art_number: `ACC-${prefix}-${randomSuffix}`,
-        category_name: initialCat,
-        color: '',
-        gender: 'Unisex',
-        sizing_mode: 'FREE_SIZE',
-        sizes: '28, 30, 32, 34',
-        selling_price: '',
-        cost_price: '',
-        trader_name: '',
-        description: '',
-        image_url: ''
-      });
-    }
+    const initialCat = determinedType === 'TRADE_READYMADE'
+      ? (tradeCategories[0]?.name || 'T-Shirt')
+      : (categories[0]?.name || 'Tie');
+    const autoCode = generateNextAccessoryCode(initialCat);
+
+    setArticleFormData({
+      name: '',
+      art_number: autoCode,
+      category_name: initialCat,
+      brand_name: '',
+      specification: '',
+      color: '',
+      shade_no: '',
+      size: determinedType === 'TRADE_READYMADE' ? 'M' : 'Free Size',
+      size_uom: '',
+      gender: 'Unisex',
+      sizing_mode: determinedType === 'TRADE_READYMADE' ? 'MULTI_SIZE' : 'FREE_SIZE',
+      sizes: determinedType === 'TRADE_READYMADE' ? 'S, M, L, XL, 2XL' : 'Free Size',
+      selling_price: '',
+      cost_price: '',
+      trader_name: '',
+      quantity: '0',
+      uom: 'Pcs',
+      description: '',
+      image_url: ''
+    });
     setIsArticleModalOpen(true);
   };
 
@@ -793,39 +883,29 @@ export default function AccessoriesAndTradeCatalogPage() {
 
     const currentCat = extractCategoryName(item);
     const isMultiSize = !!(item.base_size && !item.base_size.toLowerCase().includes('free size'));
+    const meta = extractTradeMetadata(item);
 
-    if (isTrade) {
-      const meta = extractTradeMetadata(item);
-      setArticleFormData({
-        name: item.name || '',
-        art_number: item.art_number || '',
-        category_name: meta.trade_category || currentCat || (tradeCategories[0]?.name || 'T-Shirt'),
-        color: meta.colors || extractItemColor(item) || '',
-        gender: item.gender || 'Unisex',
-        sizing_mode: isMultiSize ? 'MULTI_SIZE' : 'FREE_SIZE',
-        sizes: isMultiSize ? (item.base_size || 'S, M, L, XL, 2XL') : 'S, M, L, XL, 2XL',
-        selling_price: item.base_price ? String(item.base_price) : '',
-        cost_price: item.retail_sam_value ? String(item.retail_sam_value) : '',
-        trader_name: meta.trader_name || '',
-        description: meta.fabric_details || item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').replace(/Color:[^|]+\|?/i, '').replace(/Trader:[^|]+\|?/i, '').trim() || '',
-        image_url: item.images?.[0] || ''
-      });
-    } else {
-      setArticleFormData({
-        name: item.name || '',
-        art_number: item.art_number || '',
-        category_name: currentCat || (categories[0]?.name || 'Tie'),
-        color: extractItemColor(item) || '',
-        gender: item.gender || 'Unisex',
-        sizing_mode: isMultiSize ? 'MULTI_SIZE' : 'FREE_SIZE',
-        sizes: isMultiSize ? (item.base_size || '28, 30, 32, 34') : '28, 30, 32, 34',
-        selling_price: item.base_price ? String(item.base_price) : '',
-        cost_price: item.retail_sam_value ? String(item.retail_sam_value) : '',
-        trader_name: '',
-        description: item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').replace(/Color:[^|]+\|?/i, '').trim() || '',
-        image_url: item.images?.[0] || ''
-      });
-    }
+    setArticleFormData({
+      name: item.name || '',
+      art_number: item.art_number || '',
+      category_name: (isTrade ? meta.trade_category : null) || currentCat || (categories[0]?.name || 'Tie'),
+      brand_name: item.brand_name || meta.trader_name || '',
+      specification: item.specification || '',
+      color: item.color || meta.colors || extractItemColor(item) || '',
+      shade_no: item.shade_no || '',
+      size: item.size || item.base_size || 'Free Size',
+      size_uom: item.size_uom || '',
+      gender: item.gender || 'Unisex',
+      sizing_mode: isMultiSize ? 'MULTI_SIZE' : 'FREE_SIZE',
+      sizes: item.base_size || (isMultiSize ? 'S, M, L, XL, 2XL' : 'Free Size'),
+      selling_price: item.base_price ? String(item.base_price) : '',
+      cost_price: item.retail_sam_value ? String(item.retail_sam_value) : '',
+      trader_name: meta.trader_name || item.brand_name || '',
+      quantity: item.quantity !== undefined ? String(item.quantity) : '0',
+      uom: item.uom || 'Pcs',
+      description: item.description || meta.fabric_details || item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').replace(/Color:[^|]+\|?/i, '').replace(/Trader:[^|]+\|?/i, '').trim() || '',
+      image_url: item.images?.[0] || ''
+    });
     setIsArticleModalOpen(true);
   };
 
@@ -836,20 +916,26 @@ export default function AccessoriesAndTradeCatalogPage() {
     const rowsHtml = dataToPrint.map((item, idx) => {
       const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
       const cleanMat = item.materials?.replace(/\[[^\]]+\]/g, '').trim();
-      const desc = rawRemark || cleanMat || 'Uniform Accessory';
-
+      const desc = item.description || rawRemark || cleanMat || '—';
       const effectivePrice = (Number(item.base_price) > 0)
         ? Number(item.base_price)
         : (Number(item.retail_sam_value) > 0 ? Number(item.retail_sam_value) : null);
 
       return `
         <tr>
-          <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
-          <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${desc}</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${item.uom || 'Pcs'}</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700;">${effectivePrice !== null ? formatCurrency(effectivePrice) : 'Quote-Based'}</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity ?? 0)} ${item.uom || 'Pcs'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; font-weight: bold; text-align: center;">${idx + 1}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; font-family: monospace; font-weight: 800; color: #9E1B1D;">${item.art_number || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; font-weight: 600;">${extractCategoryName(item) || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; font-weight: 600;">${item.brand_name || extractTradeMetadata(item).trader_name || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; font-weight: 700;">${item.name || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${item.specification || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${item.color || extractItemColor(item) || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-family: monospace;">${item.shade_no || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; font-family: monospace;">${item.size || item.base_size || '—'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${desc}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity ?? 0)}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: 600;">${item.uom || 'Pcs'}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: 700;">${effectivePrice ? formatCurrency(effectivePrice) : '—'}</td>
         </tr>
       `;
     }).join('');
@@ -860,11 +946,11 @@ export default function AccessoriesAndTradeCatalogPage() {
   <title>Accessories Catalog</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
-    h1 { margin: 0 0 6px 0; color: #18181b; font-size: 22px; font-style: italic; }
+    h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
     p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
-    td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 6px 8px; text-align: left; font-size: 9px; font-weight: 800; text-transform: uppercase; color: #475569; }
+    td { border: 1px solid #e2e8f0; padding: 6px 8px; }
     @media print {
       body { padding: 0; }
     }
@@ -876,16 +962,23 @@ export default function AccessoriesAndTradeCatalogPage() {
   <table>
     <thead>
       <tr>
-        <th style="width: 40px; text-align: center;">#</th>
+        <th style="width: 30px; text-align: center;">#</th>
+        <th>Acc No.</th>
+        <th>Category</th>
+        <th>Brand Name</th>
         <th>Item Name</th>
+        <th>Specification</th>
+        <th>Colour</th>
+        <th>Shade No.</th>
+        <th>Size</th>
         <th>Description</th>
-        <th style="text-align: center;">UOM</th>
-        <th style="text-align: right;">Unit Price</th>
         <th style="text-align: right;">Quantity</th>
+        <th style="text-align: center;">UOM</th>
+        <th style="text-align: right;">Rate</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml}
+      ${rowsHtml || '<tr><td colspan="13" style="text-align:center; padding: 20px;">No accessories found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -902,28 +995,56 @@ export default function AccessoriesAndTradeCatalogPage() {
     }
   };
 
+  const headerGroups: HeaderGroupItem[] = [
+    { header: 'ACC NO.', colSpan: 1 },
+    { header: 'ITEM NAME', colSpan: 7, className: 'bg-[#FEF08A]/75 text-zinc-900 border-[#FACC15] font-black tracking-widest' },
+    { header: 'DESCRIPTION', colSpan: 1 },
+    { header: 'QUANTITY', colSpan: 1 },
+    { header: 'UOM', colSpan: 1 },
+    { header: 'RATE', colSpan: 1 },
+    { header: 'ACTION', colSpan: 1 }
+  ];
+
   const columns: Column<AccessoryItem>[] = [
+    {
+      header: 'Acc No.',
+      accessor: 'art_number',
+      className: 'font-black text-[#9E1B1D]',
+      sortValue: (item) => item.art_number
+    },
+    {
+      header: 'Category',
+      accessor: (item) => (
+        <span className="font-bold text-xs text-zinc-800">
+          {extractCategoryName(item) || '—'}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => extractCategoryName(item) || ''
+    },
+    {
+      header: 'Brand Name',
+      accessor: (item) => (
+        <span className="font-semibold text-xs text-zinc-700">
+          {item.brand_name || extractTradeMetadata(item).trader_name || '—'}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => item.brand_name || extractTradeMetadata(item).trader_name || ''
+    },
     {
       header: 'Item Name',
       accessor: (item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
             {item.images && item.images.length > 0 ? (
               <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
             ) : (
-              <Tag size={18} className="text-[#9E1B1D]" />
+              <Tag size={15} className="text-[#9E1B1D]" />
             )}
           </div>
           <div>
-            <div className="font-bold text-zinc-800 text-sm">{item.name}</div>
-            <div className="text-[11px] text-zinc-400 font-mono flex items-center gap-1.5">
-              <span>{item.art_number}</span>
-              {item.gender && (
-                <span className="px-1.5 py-0.2 bg-zinc-100 rounded text-[10px] text-zinc-600">
-                  {item.gender}
-                </span>
-              )}
-            </div>
+            <div className="font-bold text-zinc-900 text-xs">{item.name}</div>
           </div>
         </div>
       ),
@@ -931,11 +1052,54 @@ export default function AccessoriesAndTradeCatalogPage() {
       sortValue: (item) => item.name || ''
     },
     {
+      header: 'Specification',
+      accessor: (item) => (
+        <span className="text-xs text-zinc-600 font-mono">
+          {item.specification || '—'}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => item.specification || ''
+    },
+    {
+      header: 'Colour',
+      accessor: (item) => {
+        const col = item.color || extractItemColor(item);
+        return col ? (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 font-bold text-xs">
+            <span className="w-2 h-2 rounded-full border border-black/20" style={{ backgroundColor: col.toLowerCase() }} />
+            {col}
+          </span>
+        ) : <span className="text-zinc-400 text-xs">—</span>;
+      },
+      sortable: true,
+      sortValue: (item) => item.color || extractItemColor(item) || ''
+    },
+    {
+      header: 'Shade No.',
+      accessor: (item) => (
+        <span className="text-xs font-mono font-medium text-zinc-600">
+          {item.shade_no || '—'}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => item.shade_no || ''
+    },
+    {
+      header: 'Size',
+      accessor: (item) => {
+        const sz = item.size || item.base_size || '—';
+        return <span className="font-bold text-xs text-zinc-800 font-mono">{sz}</span>;
+      },
+      sortable: true,
+      sortValue: (item) => item.size || item.base_size || ''
+    },
+    {
       header: 'Description',
       accessor: (item) => {
         const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
         const cleanMat = item.materials?.replace(/\[[^\]]+\]/g, '').trim();
-        const desc = rawRemark || cleanMat || 'Uniform Accessory';
+        const desc = item.description || rawRemark || cleanMat || '—';
         return (
           <div className="max-w-xs truncate text-xs text-zinc-600 font-medium" title={desc}>
             {desc}
@@ -943,51 +1107,12 @@ export default function AccessoriesAndTradeCatalogPage() {
         );
       },
       sortable: true,
-      sortValue: (item) => {
-        const rawRemark = item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
-        const cleanMat = item.materials?.replace(/\[[^\]]+\]/g, '').trim();
-        return rawRemark || cleanMat || 'Uniform Accessory';
-      }
-    },
-    {
-      header: 'UOM',
-      accessor: (item) => (
-        <span className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 font-bold text-xs uppercase">
-          {item.uom || 'Pcs'}
-        </span>
-      ),
-      sortable: true,
-      sortValue: (item) => item.uom || 'Pcs'
-    },
-    {
-      header: 'Unit Price',
-      accessor: (item) => {
-        const effectivePrice = (Number(item.base_price) > 0)
-          ? Number(item.base_price)
-          : (Number(item.retail_sam_value) > 0 ? Number(item.retail_sam_value) : null);
-
-        if (effectivePrice !== null) {
-          return (
-            <div className="flex flex-col">
-              <span className="font-bold text-emerald-600 text-sm">
-                {formatCurrency(effectivePrice)}
-              </span>
-              {!item.base_price && item.retail_sam_value ? (
-                <span className="text-[10px] text-zinc-400 font-medium">Cost Price</span>
-              ) : null}
-            </div>
-          );
-        }
-
-        return <span className="font-medium text-zinc-400 text-xs">Quote-Based</span>;
-      },
-      sortable: true,
-      sortValue: (item) => Number(item.base_price || item.retail_sam_value || 0)
+      sortValue: (item) => item.description || ''
     },
     {
       header: 'Quantity',
       accessor: (item) => (
-        <span className="font-bold text-zinc-700 text-xs font-mono">
+        <span className="font-black text-xs text-zinc-900 font-mono">
           {formatQuantity(item.quantity ?? 0)}
         </span>
       ),
@@ -995,29 +1120,57 @@ export default function AccessoriesAndTradeCatalogPage() {
       sortValue: (item) => item.quantity ?? 0
     },
     {
-      header: 'Actions',
+      header: 'UOM',
       accessor: (item) => (
-        <div className="flex items-center gap-1">
+        <span className="font-bold text-xs text-zinc-700 text-center">
+          {item.uom || 'Pcs'}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (item) => item.uom || 'Pcs'
+    },
+    {
+      header: 'Rate',
+      accessor: (item) => {
+        const effectivePrice = (Number(item.base_price) > 0)
+          ? Number(item.base_price)
+          : (Number(item.retail_sam_value) > 0 ? Number(item.retail_sam_value) : null);
+
+        return effectivePrice !== null ? (
+          <span className="font-bold text-xs text-zinc-900">
+            {formatCurrency(effectivePrice)}
+          </span>
+        ) : (
+          <span className="font-medium text-zinc-400 text-xs">—</span>
+        );
+      },
+      sortable: true,
+      sortValue: (item) => Number(item.base_price || item.retail_sam_value || 0)
+    },
+    {
+      header: 'Action',
+      accessor: (item) => (
+        <div className="flex items-center gap-1.5">
           <button 
             onClick={() => handleOpenEditArticle(item)}
-            className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-500 hover:text-[#9E1B1D] transition-colors cursor-pointer"
+            className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 hover:text-[#9E1B1D] transition-colors cursor-pointer"
             title="Edit Article"
           >
             <Edit2 size={14} />
           </button>
           <button 
             onClick={() => setDeleteConfirm({ isOpen: true, item })}
-            className="p-2 hover:bg-red-50 rounded-xl text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
+            className="p-1.5 hover:bg-red-50 rounded-lg text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
             title="Delete Item"
           >
             <Trash2 size={14} />
           </button>
         </div>
-      )
+      ),
+      className: 'w-24'
     }
   ];
-
-  const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
+const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     if (newType === articleType) return;
     setArticleType(newType);
 
@@ -1096,69 +1249,34 @@ export default function AccessoriesAndTradeCatalogPage() {
         ? 'Free Size' 
         : articleFormData.sizes.trim() || 'Free Size';
 
-      const colorTag = articleFormData.color.trim() ? `[Color: ${articleFormData.color.trim()}]` : '';
-      const catTag = `[Category: ${articleFormData.category_name.trim()}]`;
+      const finalArtNumber = editingItem?.art_number || articleFormData.art_number.trim() || generateNextAccessoryCode(articleFormData.category_name);
+      const brandVal = articleFormData.brand_name.trim() || articleFormData.trader_name.trim() || null;
 
-      let payload: any;
-
-      if (isTrade) {
-        const prefix = (articleFormData.category_name || 'TRD').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '') || 'TRD';
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const finalArtNumber = editingItem?.art_number || `TRD-${prefix}-${randomSuffix}`;
-
-        const traderTag = articleFormData.trader_name.trim() ? `[Trader: ${articleFormData.trader_name.trim()}]` : '';
-        const materialsStr = `[ProductType: trade_readymade] ${catTag} ${traderTag} ${colorTag} ${articleFormData.description.trim()}`.trim();
-
-        payload = {
-          name: articleFormData.name.trim(),
-          art_number: finalArtNumber,
-          category: 'trade_readymade',
-          product_type: 'trade_readymade',
-          gender: articleFormData.gender || 'Unisex',
-          base_size: finalSizes,
-          base_price: articleFormData.selling_price ? parseFloat(articleFormData.selling_price) : 0,
-          retail_sam_value: articleFormData.cost_price ? parseFloat(articleFormData.cost_price) : 0,
-          materials: materialsStr,
-          images: articleFormData.image_url ? [articleFormData.image_url.trim()] : [],
-          remarks: [{ 
-            text: `[Trade Readymade] [Category: ${articleFormData.category_name}] ${articleFormData.color ? `Color: ${articleFormData.color} | ` : ''}${articleFormData.trader_name ? `Trader: ${articleFormData.trader_name} | ` : ''}${articleFormData.description.trim()}`, 
-            images: [] 
-          }],
-          main_fabric: null,
-          main_fabric_id: null,
-          button_id: null,
-          button_count: 0,
-          thread_id: null,
-          thread_count: 0,
-          trims: [],
-          attachment_fabrics: [],
-          class_fabric_consumption: {},
-          is_active: true
-        };
-      } else {
-        const prefix = getPrefixForCategory(articleFormData.category_name);
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const finalArtNumber = editingItem?.art_number || articleFormData.art_number?.trim() || `ACC-${prefix}-${randomSuffix}`;
-
-        const remarksPayload = articleFormData.description.trim() 
-          ? [{ text: `[${articleFormData.category_name}] ${articleFormData.color ? `Color: ${articleFormData.color} | ` : ''}${articleFormData.description.trim()}`, images: [] }]
-          : [{ text: `[${articleFormData.category_name}] ${articleFormData.color ? `Color: ${articleFormData.color} | ` : ''}Accessory Item`, images: [] }];
-
-        payload = {
-          name: articleFormData.name.trim(),
-          art_number: finalArtNumber,
-          gender: articleFormData.gender,
-          category: 'accessories',
-          product_type: 'accessories',
-          base_size: finalSizes,
-          base_price: articleFormData.selling_price ? parseFloat(articleFormData.selling_price) : 0,
-          retail_sam_value: articleFormData.cost_price ? parseFloat(articleFormData.cost_price) : 0,
-          materials: `[ProductType: accessories] ${catTag} ${colorTag} ${articleFormData.category_name} Accessory`.trim(),
-          images: articleFormData.image_url ? [articleFormData.image_url.trim()] : [],
-          remarks: remarksPayload,
-          is_active: true
-        };
-      }
+      const payload = {
+        name: articleFormData.name.trim(),
+        art_number: finalArtNumber,
+        category: isTrade ? 'trade_readymade' : 'accessories',
+        product_type: isTrade ? 'trade_readymade' : 'accessories',
+        gender: articleFormData.gender || 'Unisex',
+        base_size: articleFormData.size || finalSizes,
+        brand_name: brandVal,
+        specification: articleFormData.specification.trim() || null,
+        color: articleFormData.color.trim() || null,
+        shade_no: articleFormData.shade_no.trim() || null,
+        size: articleFormData.size || finalSizes,
+        size_uom: articleFormData.size_uom.trim() || null,
+        uom: articleFormData.uom || 'Pcs',
+        quantity: articleFormData.quantity ? parseFloat(articleFormData.quantity) : 0,
+        base_price: articleFormData.selling_price ? parseFloat(articleFormData.selling_price) : 0,
+        retail_sam_value: articleFormData.cost_price ? parseFloat(articleFormData.cost_price) : 0,
+        materials: `[ProductType: ${isTrade ? 'trade_readymade' : 'accessories'}] [Category: ${articleFormData.category_name}] ${articleFormData.color ? `[Color: ${articleFormData.color}] ` : ''}${brandVal ? `[Brand: ${brandVal}] ` : ''}${articleFormData.description.trim()}`.trim(),
+        images: articleFormData.image_url ? [articleFormData.image_url.trim()] : [],
+        remarks: [{
+          text: `[Category: ${articleFormData.category_name}] ${articleFormData.color ? `Color: ${articleFormData.color} | ` : ''}${brandVal ? `Brand: ${brandVal} | ` : ''}${articleFormData.description.trim()}`,
+          images: []
+        }],
+        is_active: true
+      };
 
       if (editingItem) {
         await api.put(`/products/${editingItem.id}`, payload);
@@ -1438,65 +1556,32 @@ export default function AccessoriesAndTradeCatalogPage() {
       </div>
 
       {/* Table Content */}
-      <DataTable
-        columns={columns}
-        data={filteredItems}
-        isLoading={isLoading}
-        searchPlaceholder="Search"
-        onSearch={setSearchTerm}
-        onPrint={handlePrintAccessories}
-        hideTablePrint={true}
-        printTriggerRef={printTriggerRef}
-        userReportTriggerRef={userReportTriggerRef}
-        headerAction={
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Type Filter */}
-            <FilterDropdown
-              label="Type"
-              allLabel={`All Types (${stats.total})`}
-              value={activeCatalogTab}
-              onChange={(val) => {
-                setActiveCatalogTab(val as any);
-                setSelectedCategory('ALL');
-              }}
-              options={[
-                { label: 'All Types', value: 'ALL', badge: stats.total },
-                { label: 'Accessories', value: 'ACCESSORIES', badge: stats.accessoriesCount },
-                { label: 'Readymade (Trade)', value: 'TRADE_READYMADE', badge: stats.tradeCount }
-              ]}
-              maxWidth="max-w-[220px]"
-            />
-
+      {/* Yellow Filter Toolbar matching spreadsheet plan */}
+        <div className="relative z-20 bg-[#FEF08A]/75 border-2 border-[#FACC15] rounded-2xl p-3 md:px-5 md:py-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-zinc-900 shrink-0">
+            <span className="px-3 py-1 bg-[#FACC15] text-zinc-950 font-black text-xs uppercase tracking-widest rounded-lg shadow-2xs">
+              FILTER
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
             {/* Category Filter */}
             <FilterDropdown
-              label="Category"
-              allLabel="All Categories"
+              label="Categories"
+              allLabel={`All Categories (${items.length})`}
               value={selectedCategory}
               onChange={setSelectedCategory}
-              options={displayedCategories.map(cat => ({
-                label: cat.name,
-                value: cat.name,
-                badge: categoryCounts[cat.name] || undefined
-              }))}
-              maxWidth="max-w-[220px]"
+              options={categoryOptions}
+              maxWidth="max-w-[190px]"
             />
 
-            {/* Gender Filter */}
+            {/* Brand Filter */}
             <FilterDropdown
-              label="Gender"
-              allLabel="All Genders"
-              value={genderFilter}
-              onChange={setGenderFilter}
-              options={uniqueGenders}
-            />
-
-            {/* Size Filter */}
-            <FilterDropdown
-              label="Size"
-              allLabel="All Sizes"
-              value={filterSize}
-              onChange={setFilterSize}
-              options={uniqueSizes}
+              label="Brand Name"
+              allLabel="All Brands"
+              value={filterBrand}
+              onChange={setFilterBrand}
+              options={uniqueBrands}
+              maxWidth="max-w-[190px]"
             />
 
             {/* Colour Filter */}
@@ -1506,10 +1591,49 @@ export default function AccessoriesAndTradeCatalogPage() {
               value={filterColour}
               onChange={setFilterColour}
               options={uniqueColours}
+              maxWidth="max-w-[190px]"
             />
+
+            {/* Size Filter */}
+            <FilterDropdown
+              label="Size"
+              allLabel="All Sizes"
+              value={filterSize}
+              onChange={setFilterSize}
+              options={uniqueSizes}
+              maxWidth="max-w-[190px]"
+            />
+
+            {(selectedCategory !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('ALL');
+                  setFilterBrand('ALL');
+                  setFilterColour('ALL');
+                  setFilterSize('ALL');
+                }}
+                className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold rounded-xl border border-red-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
-        }
-      />
+        </div>
+
+        <DataTable
+          headerGroups={headerGroups}
+          columns={columns}
+          data={filteredItems}
+          isLoading={isLoading}
+          searchPlaceholder="Search accessories"
+          onSearch={setSearchTerm}
+          onPrint={handlePrintAccessories}
+          hideTablePrint={true}
+          printTriggerRef={printTriggerRef}
+          userReportTriggerRef={userReportTriggerRef}
+        />
 
       {/* ========================================================================= */}
       {/* UNIFIED MODAL: ADD / EDIT ARTICLE (ACCESSORY & READYMADE TRADE)          */}
@@ -1593,61 +1717,55 @@ export default function AccessoriesAndTradeCatalogPage() {
 
             {/* Modal Form */}
             <form onSubmit={handleArticleSubmit} className="mt-5 space-y-5 max-h-[74vh] overflow-y-auto pr-2 scrollbar-thin">
-              {/* Card 1: Article Identity */}
+              {/* Card 1: Article Identity & Classification */}
               <div className="p-5 bg-white rounded-2xl border border-zinc-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Tag size={16} className={articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'} />
                     <span className="text-xs font-black uppercase tracking-wider text-zinc-800">
-                      Article Identity
+                      Article Identity &amp; Classification
                     </span>
                   </div>
-                  {articleType === 'ACCESSORY' && (
-                    <span className="text-[10px] font-bold text-zinc-400">
-                      SKU Code: <span className="font-mono font-black text-[#9E1B1D]">{articleFormData.art_number || 'Auto-generated'}</span>
-                    </span>
-                  )}
+                  <span className="text-[10px] font-bold text-zinc-400">
+                    SKU Code: <span className="font-mono font-black text-[#9E1B1D]">{articleFormData.art_number || 'Auto-generated'}</span>
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Name */}
-                  <div className={articleType === 'TRADE_READYMADE' ? 'md:col-span-2' : 'md:col-span-1'}>
+                  {/* Item Name */}
+                  <div className="md:col-span-1">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                      {articleType === 'TRADE_READYMADE' ? 'Garment / Product Name *' : 'Accessory Name *'}
+                      Item Name *
                     </label>
                     <input 
                       type="text"
                       required
-                      placeholder={articleType === 'TRADE_READYMADE' ? 'e.g. Poly-Cotton Round Neck T-Shirt, Corporate Blazer...' : 'e.g. Navy Striped Woven Tie, School Crest Badge...'}
+                      placeholder={articleType === 'TRADE_READYMADE' ? 'e.g. Premium Tees, Round Neck T-Shirt...' : 'e.g. Stripe Woven Tie, School Baseball Cap...'}
                       value={articleFormData.name}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
-                      }`}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                   </div>
 
-                  {/* Art Number (Only for Accessory) */}
-                  {articleType === 'ACCESSORY' && (
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                        Art Number / SKU Code
-                      </label>
-                      <input 
-                        type="text"
-                        value={articleFormData.art_number}
-                        onChange={(e) => setArticleFormData(prev => ({ ...prev, art_number: e.target.value }))}
-                        placeholder="ACC-TIE-1001"
-                        className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-800 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
-                      />
-                    </div>
-                  )}
+                  {/* Brand Name */}
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Brand Name / Trader
+                    </label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. Spinnex, Arihant, Forma, Wildcraft..."
+                      value={articleFormData.brand_name || articleFormData.trader_name}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, brand_name: e.target.value, trader_name: e.target.value }))}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                    />
+                  </div>
 
-                  {/* Category Dropdown (Contextual) */}
+                  {/* Category Dropdown */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-700">
-                        {articleType === 'TRADE_READYMADE' ? 'Trade Garment Category *' : 'Accessory Category *'}
+                        Category *
                       </label>
                       <button
                         type="button"
@@ -1657,19 +1775,19 @@ export default function AccessoriesAndTradeCatalogPage() {
                           setNewCatPrefix('');
                           setIsAddCatModalOpen(true);
                         }}
-                        className={`text-[10px] font-black uppercase tracking-wider hover:underline cursor-pointer ${
-                          articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#C82A2B]'
-                        }`}
+                        className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] hover:underline cursor-pointer"
                       >
                         + New
                       </button>
                     </div>
                     <Select
                       value={articleFormData.category_name}
-                      onChange={(e) => handleFormCategoryChange(e.target.value)}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
-                      }`}
+                      onChange={(e) => {
+                        const newCat = e.target.value;
+                        const newCode = editingItem ? articleFormData.art_number : generateNextAccessoryCode(newCat);
+                        setArticleFormData(prev => ({ ...prev, category_name: newCat, art_number: newCode }));
+                      }}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     >
                       {(articleType === 'TRADE_READYMADE' ? tradeCategories : categories).map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -1677,17 +1795,43 @@ export default function AccessoriesAndTradeCatalogPage() {
                     </Select>
                   </div>
 
-                  {/* Target Gender */}
+                  {/* Art Number / SKU Code */}
                   <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      ACC No. / Art Number
+                    </label>
+                    <input 
+                      type="text"
+                      value={articleFormData.art_number}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, art_number: e.target.value }))}
+                      placeholder="e.g. TSH-0001, CAP-0001"
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-800 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Specification */}
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Specification
+                    </label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. MR220, 100% Cotton Bio-Wash, Woven Jacquard..."
+                      value={articleFormData.specification}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, specification: e.target.value }))}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Target Gender */}
+                  <div className="md:col-span-1">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Target Gender
                     </label>
                     <Select
                       value={articleFormData.gender}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, gender: e.target.value }))}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
-                      }`}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     >
                       {uniqueGenders.map(g => (
                         <option key={g} value={g}>{g}</option>
@@ -1695,45 +1839,27 @@ export default function AccessoriesAndTradeCatalogPage() {
                     </Select>
                   </div>
 
-                  {/* Trader Name (For Trade Product) */}
-                  {articleType === 'TRADE_READYMADE' && (
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                        Trader / Vendor Source (Optional)
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder="e.g. Apex Apparel Hub Tirupur, Classic Uniform Suppliers..."
-                        value={articleFormData.trader_name}
-                        onChange={(e) => setArticleFormData(prev => ({ ...prev, trader_name: e.target.value }))}
-                        className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-indigo-500 focus:outline-none"
-                      />
-                    </div>
-                  )}
-
                   {/* Colour / Shade */}
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-1">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                      Colour / Shade
+                      Colour
                     </label>
                     <input 
                       type="text"
-                      placeholder="e.g. Navy Blue, Sky Blue, Heather Grey, Bottle Green..."
+                      placeholder="e.g. Rama Blue, White, Black, Navy Blue..."
                       value={articleFormData.color}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
-                        articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
-                      }`}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                     />
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {COLOR_PRESETS.map(col => (
+                      {COLOR_PRESETS.slice(0, 6).map(col => (
                         <button
                           key={col}
                           type="button"
                           onClick={() => setArticleFormData(prev => ({ ...prev, color: col }))}
                           className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
                             articleFormData.color === col 
-                              ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[#C82A2B] text-white shadow-xs')
+                              ? 'bg-[#C82A2B] text-white shadow-xs'
                               : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
                           }`}
                         >
@@ -1741,6 +1867,20 @@ export default function AccessoriesAndTradeCatalogPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Shade No. */}
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Shade No.
+                    </label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. 001, #104, D-22"
+                      value={articleFormData.shade_no}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, shade_no: e.target.value }))}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-800 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
+                    />
                   </div>
                 </div>
               </div>
@@ -1751,15 +1891,14 @@ export default function AccessoriesAndTradeCatalogPage() {
                   <div className="flex items-center gap-2">
                     <SlidersHorizontal size={16} className={articleType === 'TRADE_READYMADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'} />
                     <span className="text-xs font-black uppercase tracking-wider text-zinc-800">
-                      Sizing & Fit Specification
+                      Sizing &amp; Dimensions
                     </span>
                   </div>
 
-                  {/* Sizing Mode Toggle */}
                   <div className="flex items-center p-1 bg-zinc-100 rounded-xl">
                     <button
                       type="button"
-                      onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'FREE_SIZE' }))}
+                      onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'FREE_SIZE', size: 'Free Size' }))}
                       className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                         articleFormData.sizing_mode === 'FREE_SIZE'
                           ? 'bg-white text-zinc-800 shadow-sm font-black'
@@ -1773,71 +1912,85 @@ export default function AccessoriesAndTradeCatalogPage() {
                       onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'MULTI_SIZE' }))}
                       className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                         articleFormData.sizing_mode === 'MULTI_SIZE'
-                          ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-[#C82A2B] text-white shadow-sm')
+                          ? 'bg-[#C82A2B] text-white shadow-sm'
                           : 'text-zinc-500 hover:text-zinc-900'
                       }`}
                     >
-                      Multiple Sizes
+                      Multiple Sizes / Dimension
                     </button>
                   </div>
                 </div>
 
-                {articleFormData.sizing_mode === 'MULTI_SIZE' ? (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                        Available Size Options (Comma-Separated)
-                      </label>
-                      <input 
-                        type="text"
-                        value={articleFormData.sizes}
-                        onChange={(e) => setArticleFormData(prev => ({ ...prev, sizes: e.target.value }))}
-                        placeholder={articleType === 'TRADE_READYMADE' ? 'S, M, L, XL, 2XL' : '28, 30, 32, 34, 36'}
-                        className={`w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
-                          articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1">
-                        Quick Add / Toggle Presets:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(articleType === 'TRADE_READYMADE' ? SIZE_PRESETS_MULTI : [...SIZE_PRESETS_NUMERIC, 'Free Size']).map(sz => {
-                          const isSelected = articleFormData.sizes.split(',').map(s => s.trim()).includes(sz);
-                          return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => toggleQuickSize(sz)}
-                              className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                                isSelected
-                                  ? (articleType === 'TRADE_READYMADE' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[#C82A2B] text-white shadow-xs')
-                                  : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
-                              }`}
-                            >
-                              {sz}
-                            </button>
-                          );
-                        })}
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Size Value */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Size Dimension / Value
+                    </label>
+                    <input 
+                      type="text"
+                      value={articleFormData.size}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, size: e.target.value }))}
+                      placeholder="e.g. M, 8, 44, Free Size"
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {['S', 'M', 'L', 'XL', '2XL', '8', 'Free Size'].map(sz => (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setArticleFormData(prev => ({ ...prev, size: sz }))}
+                          className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                            articleFormData.size === sz 
+                              ? 'bg-[#C82A2B] text-white shadow-xs'
+                              : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-zinc-500 bg-zinc-50 p-3 rounded-xl border border-zinc-200/80">
-                    Universal standard single size (e.g. standard necktie length, adjustable belt, universal badge pin, free-size garment).
-                  </p>
-                )}
+
+                  {/* Size UOM */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Size Unit (UOM)
+                    </label>
+                    <input 
+                      type="text"
+                      value={articleFormData.size_uom}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, size_uom: e.target.value }))}
+                      placeholder="e.g. Inchs., Mtrs., Pcs"
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {['Inchs.', 'Mtrs.', 'Pcs', 'Pairs'].map(u => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setArticleFormData(prev => ({ ...prev, size_uom: u }))}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                            articleFormData.size_uom === u 
+                              ? 'bg-zinc-800 text-white shadow-xs'
+                              : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+                          }`}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Card 3: Pricing & Commercials */}
+              {/* Card 3: Commercials & Stock Inventory */}
               <div className="p-5 bg-white rounded-2xl border border-zinc-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <DollarSign size={16} className="text-emerald-600" />
                     <span className="text-xs font-black uppercase tracking-wider text-zinc-800">
-                      Commercials & Profit Margin
+                      Pricing &amp; Inventory Balance
                     </span>
                   </div>
                   {formMarginAmt > 0 && (
@@ -1848,18 +2001,36 @@ export default function AccessoriesAndTradeCatalogPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Procurement Price */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Selling Price / Rate */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                      Cost / Procurement Price (₹)
+                      Rate / Selling Price (₹) *
                     </label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-xs">₹</span>
                       <input 
                         type="number"
                         step="0.01"
-                        placeholder="e.g. 150.00"
+                        placeholder="0.00"
+                        value={articleFormData.selling_price}
+                        onChange={(e) => setArticleFormData(prev => ({ ...prev, selling_price: e.target.value }))}
+                        className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Procurement / Cost Price */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Cost Price (₹)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-xs">₹</span>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
                         value={articleFormData.cost_price}
                         onChange={(e) => setArticleFormData(prev => ({ ...prev, cost_price: e.target.value }))}
                         className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-emerald-500 focus:outline-none"
@@ -1867,27 +2038,42 @@ export default function AccessoriesAndTradeCatalogPage() {
                     </div>
                   </div>
 
-                  {/* Selling Price */}
+                  {/* Stock Quantity */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                      Selling / Base Price (₹)
+                      Stock Quantity
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-xs">₹</span>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        placeholder="e.g. 290.00"
-                        value={articleFormData.selling_price}
-                        onChange={(e) => setArticleFormData(prev => ({ ...prev, selling_price: e.target.value }))}
-                        className="w-full h-11 pl-8 pr-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
+                    <input 
+                      type="number"
+                      step="any"
+                      placeholder="0"
+                      value={articleFormData.quantity}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Inventory UOM */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
+                      Inventory UOM
+                    </label>
+                    <Select
+                      value={articleFormData.uom}
+                      onChange={(e) => setArticleFormData(prev => ({ ...prev, uom: e.target.value }))}
+                      className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer focus:border-[#C82A2B]"
+                    >
+                      <option value="Pcs">Pcs</option>
+                      <option value="Pairs">Pairs</option>
+                      <option value="Sets">Sets</option>
+                      <option value="Mtrs">Mtrs</option>
+                      <option value="Inchs">Inchs</option>
+                    </Select>
                   </div>
                 </div>
               </div>
 
-              {/* Card 4: Image & Specifications */}
+              {/* Card 4: Image & Description */}
               <div className="p-5 bg-white rounded-2xl border border-zinc-200 space-y-4">
                 <ImageUploadField
                   label={articleType === 'TRADE_READYMADE' ? 'Product Garment Image (Optional)' : 'Accessory Product Image (Optional)'}
@@ -1898,16 +2084,14 @@ export default function AccessoriesAndTradeCatalogPage() {
 
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
-                    Specifications & Description
+                    Specifications &amp; Description
                   </label>
                   <textarea 
                     rows={2}
-                    placeholder={articleType === 'TRADE_READYMADE' ? 'Fabric composition, GSM, washcare, packaging specifications...' : 'Material composition, embroidery or crest details, dimensions...'}
+                    placeholder="Extended notes, fabric weave, application or packaging notes..."
                     value={articleFormData.description}
                     onChange={(e) => setArticleFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className={`w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none ${
-                      articleType === 'TRADE_READYMADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10'
-                    }`}
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10"
                   />
                 </div>
               </div>
@@ -1924,17 +2108,9 @@ export default function AccessoriesAndTradeCatalogPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-6 py-2.5 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all disabled:opacity-50 cursor-pointer ${
-                    articleType === 'TRADE_READYMADE'
-                      ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30'
-                      : 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20'
-                  }`}
+                  className="px-6 py-2.5 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all disabled:opacity-50 cursor-pointer bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/25 active:scale-95"
                 >
-                  {isSubmitting 
-                    ? 'Saving...' 
-                    : editingItem 
-                      ? 'Save' 
-                      : 'Save'}
+                  {isSubmitting ? 'Saving...' : (editingItem ? 'Update Article' : 'Create Article')}
                 </button>
               </div>
             </form>

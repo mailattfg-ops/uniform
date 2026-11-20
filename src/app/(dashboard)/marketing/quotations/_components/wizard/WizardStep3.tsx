@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Scale, ArrowRight } from 'lucide-react';
 import { ProductType, ManualItem, SeparateFabricItem } from '../../page';
+import { getItemKind } from '../../_lib/itemLines';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 interface WizardStep3Props {
@@ -103,26 +104,17 @@ export default function WizardStep3({
           {!hasMeasurements && (
             <div className="space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
-                {isSetType ? 'Department Sets Expenses Summary' : 'Manual Items Expenses Summary'}
+                {isSetType ? 'Department Sets Expenses Summary' : 'Item Lines Expenses Summary'}
               </h4>
               <div className="border border-zinc-150 rounded-3xl overflow-hidden bg-white shadow-sm text-xs">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
-                      <th className="p-3 text-center">{isAccessory ? 'Category / Department' : 'Product Type / Set'}</th>
-                      <th className="p-3 text-center">{isAccessory ? 'Accessory (Art #)' : 'Product & Fabric Details'}</th>
-                      {isAccessory ? (
-                        <>
-                          <th className="p-3 text-center">Size</th>
-                          <th className="p-3 text-center">Unit Price</th>
-                        </>
-                      ) : (
-                        <>
-                          <th className="p-3 text-center">Fabric Cost (Unit)</th>
-                          {!isFabric && <th className="p-3 text-center">Labor Cost (Unit)</th>}
-                          <th className="p-3 text-center">Unit Expense</th>
-                        </>
-                      )}
+                      <th className="p-3 text-center">Item Type</th>
+                      <th className="p-3 text-center">Item Details</th>
+                      <th className="p-3 text-center">Fabric Cost (Unit)</th>
+                      <th className="p-3 text-center">Labor Cost (Unit)</th>
+                      <th className="p-3 text-center">Unit Expense</th>
                       <th className="p-3 text-center">Quantity</th>
                       <th className="p-3 text-center">Total Expense</th>
                     </tr>
@@ -181,6 +173,7 @@ export default function WizardStep3({
                                   <div>
                                     <span className="font-bold text-zinc-900">{product?.name || item.product_name || item.design_number || 'Accessory'}</span>
                                     {artNum && <span className="block text-[9px] font-mono text-zinc-400">ART: {artNum}</span>}
+                                    <span className="block text-[9px] font-bold text-zinc-400">Size: {item.size_breakdown?.selected_size || 'Free Size'}</span>
                                   </div>
                                 ) : (
                                   <div>
@@ -240,6 +233,8 @@ export default function WizardStep3({
                     ) : (
                       manualItems
                         .map((item, index) => {
+                          // Lines are mixed: decide accessory vs readymade per line
+                          const isAccessory = getItemKind(item) === 'ACCESSORY';
                           const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || 'Garment';
                           const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
                           const fabricDisplayName = formatFabricDisplayName(fabric) || 'Fabric';
@@ -321,7 +316,8 @@ export default function WizardStep3({
                               </td>
                               {isAccessory ? (
                                 <>
-                                  <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
+                                  <td className="p-3 text-right font-mono text-zinc-300">—</td>
+                                  <td className="p-3 text-right font-mono text-zinc-300">—</td>
                                   <td className="p-3 text-right font-mono font-bold text-[#C82A2B]">₹{unitPrice.toFixed(2)}</td>
                                 </>
                               ) : (
@@ -330,12 +326,10 @@ export default function WizardStep3({
                                     ₹{itemFabricCost.toFixed(2)}
                                     <span className="block text-[9px] text-zinc-400 font-bold">({item.main_fabric_meters || '0'}m)</span>
                                   </td>
-                                  {!isFabric && (
-                                    <td className="p-3 text-right font-mono">
-                                      ₹{itemLaborCost.toFixed(2)}
-                                      <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
-                                    </td>
-                                  )}
+                                  <td className="p-3 text-right font-mono">
+                                    ₹{itemLaborCost.toFixed(2)}
+                                    <span className="block text-[9px] text-zinc-400 font-bold">({item.sam_value || '0'} min)</span>
+                                  </td>
                                   <td className="p-3 text-right font-mono">₹{unitExpense.toFixed(2)}</td>
                                 </>
                               )}
@@ -427,7 +421,7 @@ export default function WizardStep3({
             manualItems.forEach((item) => {
               const qty = parseInt(item.quantity) || 0;
               totalQty += qty;
-              if (isReadymade) {
+              if (isReadymade || getItemKind(item) === 'ACCESSORY') {
                 totalReadymade += (parseFloat(item.price) || 0) * qty;
               } else {
                 const mainCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
@@ -442,12 +436,17 @@ export default function WizardStep3({
             });
           }
 
+          // Fabric lines sold by the meter (marked-up fabric cost)
+          const totalFabricLines = (separateFabrics || []).reduce(
+            (sum, sf) => sum + calculateFabricCost(sf.fabric_id, sf.meters, '6.777', ''), 0);
+
           const tableTotals = {
             fabric: totalFabric,
             labor: totalLabor,
             readymade: totalReadymade,
+            fabricLines: totalFabricLines,
             quantity: totalQty,
-            total: isReadymade ? totalReadymade : (totalFabric + totalLabor)
+            total: isReadymade ? totalReadymade : (totalFabric + totalLabor + totalReadymade + totalFabricLines)
           };
 
           return (
@@ -490,6 +489,18 @@ export default function WizardStep3({
                       <div className="flex justify-between py-2 text-zinc-500">
                         <span>Total Labor Expense:</span>
                         <span className="font-mono text-zinc-800 font-black">₹{tableTotals.labor.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {tableTotals.readymade > 0 && (
+                      <div className="flex justify-between py-2 text-zinc-500">
+                        <span>Total Accessories Cost:</span>
+                        <span className="font-mono text-zinc-800 font-black">₹{tableTotals.readymade.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {tableTotals.fabricLines > 0 && (
+                      <div className="flex justify-between py-2 text-zinc-500">
+                        <span>Fabric Lines Expense:</span>
+                        <span className="font-mono text-zinc-800 font-black">₹{tableTotals.fabricLines.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between py-2 text-zinc-500">

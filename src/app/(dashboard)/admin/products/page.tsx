@@ -54,6 +54,8 @@ interface Product {
   retail_sam_value?: number | null;
   entry_methods?: string[];
   size_chart_id?: string;
+  item_id?: number | string | null;
+  specification_id?: number | string | null;
   product_type_id?: number | string;
   product_types?: { id: number; name: string };
   main_fabric?: number | null;
@@ -77,26 +79,183 @@ interface Product {
   remarks?: RemarkEntry[] | null;
 }
 
-const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patterns: any[]) => {
-  if (!artNumber) return { dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
+export const getProductDisplayName = (
+  p: { name?: string; art_number?: string; gender?: string; item_id?: any; specification_id?: any } | null | undefined,
+  dressesList?: any[],
+  gendersList?: any[]
+): string => {
+  if (!p) return '';
+
+  // Only in-house manufactured readymades use the [Item] [Specification] [Gender] naming rule
+  const rawArt = (p.art_number || '').toUpperCase();
+  const accPrefixes = ['TIE-', 'BLT-', 'SCK-', 'BDG-', 'CAP-', 'SCF-', 'EPL-', 'LNY-', 'BOW-', 'PKS-', 'CRST-', 'ACC-'];
+  if (
+    accPrefixes.some(pref => rawArt.startsWith(pref)) ||
+    (p as any).category === 'accessories' ||
+    (p as any).category === 'trade_readymade' ||
+    (p as any).category === 'readymade_trade'
+  ) {
+    return p.name || '';
+  }
+
+  const art = p.art_number || '';
+  if (art && art.includes('-')) {
+    const parts = art.split('-');
+    if (parts.length >= 2) {
+      const rawItem = parts[0];
+      const middle = parts[1];
+
+      let itemCode = rawItem;
+      let specCode = '';
+      const match = rawItem.match(/^([0-9a-zA-Z]+?)([A-Za-z])$/);
+      if (match) {
+        itemCode = match[1];
+        specCode = match[2].toUpperCase();
+      }
+
+      const genderCode = middle.length >= 1 ? middle.slice(0, 1) : '';
+
+      const matchedItem = (dressesList || []).find((d: any) => d.code === itemCode || String(d.id) === String(p.item_id));
+      const matchedSpec = (matchedItem?.art_item_specifications || []).find((s: any) => s.code === specCode || String(s.id) === String(p.specification_id));
+      const matchedGender = (gendersList || []).find((g: any) => g.code === genderCode);
+
+      let itemName = matchedItem?.name || '';
+      if (!itemName) {
+        if (itemCode === '1') itemName = 'Shirt';
+        else if (itemCode === '2') itemName = 'Trouser';
+        else if (itemCode === '3') itemName = 'Blazer';
+        else if (itemCode === '4') itemName = 'T-Shirt';
+        else if (itemCode === '5') itemName = 'Skirt';
+      }
+
+      let specName = matchedSpec?.name || '';
+      if (!specName) {
+        if (specCode === 'A') {
+          if (itemCode === '1') specName = 'Half Sleeve';
+          else if (itemCode === '2') specName = 'Full Length Pleated';
+          else if (itemCode === '3') specName = 'Single Breasted';
+        } else if (specCode === 'B') {
+          if (itemCode === '1') specName = 'Full Sleeve';
+          else if (itemCode === '2') specName = 'Flat Front';
+          else if (itemCode === '3') specName = 'Double Breasted';
+        } else if (specCode === 'C') {
+          if (itemCode === '1') specName = 'Sleeveless';
+          else if (itemCode === '2') specName = 'Shorts';
+        }
+      }
+
+      let genderName = p.gender || '';
+      if (!genderName) {
+        if (genderCode === '1') genderName = 'Male';
+        else if (genderCode === '2') genderName = 'Female';
+        else if (genderCode === '3') genderName = 'Boys';
+        else if (genderCode === '4') genderName = 'Girls';
+      } else {
+        genderName = genderName.charAt(0).toUpperCase() + genderName.slice(1).toLowerCase();
+      }
+
+      const cleanItem = itemName ? (itemName.charAt(0).toUpperCase() + itemName.slice(1).toLowerCase()) : '';
+      const cleanSpec = specName ? specName.trim() : '';
+      const cleanGender = genderName ? genderName.trim() : '';
+
+      const composed = [cleanItem, cleanSpec, cleanGender].filter(Boolean).join(' ');
+      if (composed) return composed;
+    }
+  }
+
+  return p.name || '';
+};
+
+export const getItemSpecDisplayName = (
+  p: { art_number?: string; item_id?: any; specification_id?: any } | null | undefined,
+  dressesList?: any[]
+): { code: string; name: string } | null => {
+  if (!p) return null;
+  const art = p.art_number || '';
+  if (art && art.includes('-')) {
+    const parts = art.split('-');
+    if (parts.length >= 2) {
+      const rawItem = parts[0];
+      let itemCode = rawItem;
+      let specCode = '';
+      const match = rawItem.match(/^([0-9a-zA-Z]+?)([A-Za-z])$/);
+      if (match) {
+        itemCode = match[1];
+        specCode = match[2].toUpperCase();
+      }
+
+      const matchedItem = (dressesList || []).find((d: any) => d.code === itemCode || String(d.id) === String(p.item_id));
+      const matchedSpec = (matchedItem?.art_item_specifications || []).find((s: any) => s.code === specCode || String(s.id) === String(p.specification_id));
+
+      let specName = matchedSpec?.name || '';
+      if (!specName) {
+        if (specCode === 'A') {
+          if (itemCode === '1') specName = 'Half Sleeve';
+          else if (itemCode === '2') specName = 'Full Length Pleated';
+          else if (itemCode === '3') specName = 'Single Breasted';
+        } else if (specCode === 'B') {
+          if (itemCode === '1') specName = 'Full Sleeve';
+          else if (itemCode === '2') specName = 'Flat Front';
+          else if (itemCode === '3') specName = 'Double Breasted';
+        } else if (specCode === 'C') {
+          if (itemCode === '1') specName = 'Sleeveless';
+          else if (itemCode === '2') specName = 'Shorts';
+        }
+      }
+
+      if (specCode || specName) {
+        return {
+          code: specCode,
+          name: specName || `Specification ${specCode}`
+        };
+      }
+    }
+  }
+  return null;
+};
+
+
+const parseArtNumber = (artNumber: string, dresses: any[] = [], genders: any[] = [], patterns: any[] = []) => {
+  if (!artNumber) return { itemCode: '', specCode: '', dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
 
   const parts = artNumber.split('-');
 
-  
-
-  // Option 1 format: [DressPrefix]-[GenderPattern]-[FitAllowance] (e.g. 4J-1012-R2, 4J-1012-R1.5, or 4J-1012-R)
+  // Standard format: [item][specification]-[gender][pattern]-[fit][allowance] (e.g. 1A-3053-R2 or 4J-1012-R2)
   if (parts.length === 3) {
-    const [dressCode, middle, lastPart] = parts;
+    const [rawItem, middle, lastPart] = parts;
+    let fitCode = '';
+    let allowance = '';
     const fitMatch = lastPart.match(/^([A-Za-z]+)(.*)$/);
     if (fitMatch && isNaN(Number(lastPart))) {
-      const fitCode = fitMatch[1].toUpperCase();
-      const allowance = fitMatch[2] ? fitMatch[2].trim() : '';
-      const genderCode = middle.slice(0, 1);
-      const patternCode = middle.slice(1);
-      return { dressCode, genderCode, patternCode, fitCode, allowance };
+      fitCode = fitMatch[1].toUpperCase();
+      allowance = fitMatch[2] ? fitMatch[2].trim() : '';
     }
-    // Legacy 3-part: [DressPrefix]-[GenderCode]-[PatternCode] (e.g. 4J-1-012)
-    return { dressCode, genderCode: middle, patternCode: lastPart, fitCode: '', allowance: '' };
+
+    let genderCode = '';
+    let patternCode = '';
+    if (middle.length >= 2) {
+      genderCode = middle.slice(0, 1);
+      patternCode = middle.slice(1);
+    } else {
+      genderCode = middle;
+    }
+
+    // Split rawItem into item and specification (e.g. "1A" -> item "1", spec "A")
+    let itemCode = rawItem;
+    let specCode = '';
+
+    const exactMatch = (dresses || []).find(d => d.code === rawItem);
+    if (exactMatch) {
+      itemCode = exactMatch.code;
+    } else {
+      const match = rawItem.match(/^([0-9a-zA-Z]+?)([A-Za-z])$/);
+      if (match) {
+        itemCode = match[1];
+        specCode = match[2].toUpperCase();
+      }
+    }
+
+    return { itemCode, specCode, dressCode: itemCode, genderCode, patternCode, fitCode, allowance };
   }
 
   // Fallback for 2-part legacy format
@@ -108,7 +267,7 @@ const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patte
       for (const g of genders) {
         if (rest.startsWith(g.code)) {
           const remainder = rest.slice(g.code.length);
-          return { dressCode, genderCode: g.code, patternCode: remainder, fitCode: '', allowance: '' };
+          return { itemCode: dressCode, specCode: '', dressCode, genderCode: g.code, patternCode: remainder, fitCode: '', allowance: '' };
         }
       }
     }
@@ -118,12 +277,12 @@ const parseArtNumber = (artNumber: string, dresses: any[], genders: any[], patte
     for (const dress of dresses) {
       if (rest.startsWith(dress.code)) {
         const remainder = rest.slice(dress.code.length);
-        return { dressCode: dress.code, genderCode, patternCode: remainder, fitCode: '', allowance: '' };
+        return { itemCode: dress.code, specCode: '', dressCode: dress.code, genderCode, patternCode: remainder, fitCode: '', allowance: '' };
       }
     }
   }
 
-  return { dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
+  return { itemCode: '', specCode: '', dressCode: '', genderCode: '', patternCode: '', fitCode: '', allowance: '' };
 };
 
 export const parseMaterialsField = (rawText: string | undefined | null) => {
@@ -370,7 +529,7 @@ const AttachmentFabricsEditor: React.FC<{
   value: AttachmentFabricEntry[] | null | undefined;
   onChange: (val: AttachmentFabricEntry[]) => void;
   fabrics?: any[];
-}> = ({ value, onChange }) => {
+}> = ({ value, onChange, fabrics = [] }) => {
   const currentList = Array.isArray(value) ? value : [];
 
   const handleAdd = () => {
@@ -432,11 +591,31 @@ const AttachmentFabricsEditor: React.FC<{
               <span className="text-[10px] font-black text-zinc-400 uppercase w-12 shrink-0">
                 Att #{index + 1}
               </span>
-              <div className="flex-1 min-w-[200px]">
+              {/* DB Fabric Selection */}
+              <div className="flex-1 min-w-[220px]">
+                <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
+                  Attachment Fabric (From Inventory)
+                </label>
+                <Select
+                  value={item.fabric_id || ''}
+                  onChange={(e) => handleUpdate(index, { fabric_id: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B]"
+                >
+                  <option value="">Select Fabric (Optional)...</option>
+                  {(fabrics || []).map((f: any) => (
+                    <option key={f.id} value={String(f.id)}>
+                      {f.code ? `[${f.code}] ` : ''}{f.name || f.quality || 'Fabric'}{f.color ? ` • ${f.color}` : ''}{f.width ? ` (${f.width}")` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Role / Placement */}
+              <div className="flex-1 min-w-[180px]">
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
                   Fabric Role / Placement
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <Select
                     value={ATTACHMENT_ROLE_PRESETS.includes(item.role || '') ? item.role : 'Custom'}
                     onChange={(e) => {
@@ -444,19 +623,19 @@ const AttachmentFabricsEditor: React.FC<{
                         handleUpdate(index, { role: e.target.value });
                       }
                     }}
-                    className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                    className="px-2.5 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B]"
                   >
                     {ATTACHMENT_ROLE_PRESETS.map((preset) => (
                       <option key={preset} value={preset}>{preset}</option>
                     ))}
-                    <option value="Custom">Custom Role...</option>
+                    <option value="Custom">Custom...</option>
                   </Select>
                   <input
                     type="text"
-                    placeholder="Role description (e.g. Contrast Collar)"
+                    placeholder="e.g. Contrast Collar"
                     value={item.role || ''}
                     onChange={(e) => handleUpdate(index, { role: e.target.value })}
-                    className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                    className="flex-1 px-2.5 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B]"
                   />
                 </div>
               </div>
@@ -511,7 +690,7 @@ const TrimsEditor: React.FC<{
   value: TrimEntry[] | null | undefined;
   onChange: (val: TrimEntry[]) => void;
   trimsList?: any[];
-}> = ({ value, onChange }) => {
+}> = ({ value, onChange, trimsList = [] }) => {
   const currentList = Array.isArray(value) ? value : [];
 
   const handleAdd = () => {
@@ -586,18 +765,33 @@ const TrimsEditor: React.FC<{
               <span className="text-[10px] font-black text-zinc-400 uppercase w-12 shrink-0">
                 Trim #{index + 1}
               </span>
-              <div className="flex-1 min-w-[160px]">
+              {/* DB Trim Selection */}
+              <div className="flex-1 min-w-[220px]">
                 <label className="text-[9px] font-black uppercase tracking-wider text-[#3a525d] block mb-1">
-                  Category
+                  Trim / Accessory (From Inventory)
                 </label>
                 <Select
-                  value={item.category || item.name || 'Buttons'}
-                  onChange={(e) => handleUpdate(index, { category: e.target.value })}
-                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#2d8d9b]"
+                  value={item.trim_id ? String(item.trim_id) : (item.name || '')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const found = (trimsList || []).find((t: any) => String(t.id) === val || t.name === val || t.code === val);
+                    if (found) {
+                      handleUpdate(index, {
+                        trim_id: found.id,
+                        name: found.name || found.item_name || '',
+                        category: found.category?.name || found.category || 'Trim',
+                        uom: found.default_uom || found.uom || 'Pcs'
+                      });
+                    } else {
+                      handleUpdate(index, { name: val });
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:outline-none focus:border-[#C82A2B]"
                 >
-                  {TRIM_CATEGORY_PRESETS.map((preset) => (
-                    <option key={preset.category} value={preset.category}>
-                      {preset.category}
+                  <option value="">Select Trim from Catalog...</option>
+                  {(trimsList || []).map((t: any) => (
+                    <option key={t.id} value={String(t.id)}>
+                      {t.code ? `[${t.code}] ` : ''}{t.name || t.item_name || 'Trim'}{t.category?.name ? ` (${t.category.name})` : ''} — {t.uom || t.default_uom || 'Pcs'}
                     </option>
                   ))}
                 </Select>
@@ -861,6 +1055,7 @@ export default function ProductManagement() {
   const [fabrics, setFabrics] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const prevIsAddingRef = useRef(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({
     isOpen: false,
@@ -899,6 +1094,7 @@ export default function ProductManagement() {
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['manual']);
   const [descLines, setDescLines] = useState<string[]>(['']);
   const [selectedDress, setSelectedDress] = useState('');
+  const [selectedSpec, setSelectedSpec] = useState('');
   const [selectedGender, setSelectedGender] = useState('');
   const [selectedPattern, setSelectedPattern] = useState('');
   const [selectedProductTypeId, setSelectedProductTypeId] = useState('');
@@ -960,7 +1156,7 @@ export default function ProductManagement() {
       setMeasureConfig(configRes.data || []);
       setSizeCharts(chartRes.data || []);
       setProductTypes(typeRes.data || []);
-      setDresses(masterHubRes.data?.dresses || []);
+      setDresses(masterHubRes.data?.items || masterHubRes.data?.dresses || []);
       setGenders(masterHubRes.data?.genders || []);
       setPatterns(masterHubRes.data?.patterns || []);
       setFitsList(masterHubRes.data?.fits || []);
@@ -1053,7 +1249,8 @@ export default function ProductManagement() {
     if (editingProduct) {
       setSelectedMethods(editingProduct.entry_methods || ['manual']);
       const parsed = parseArtNumber(editingProduct.art_number, activeDresses, activeGenders, activePatterns);
-      setSelectedDress(parsed.dressCode);
+      setSelectedDress(parsed.itemCode || parsed.dressCode);
+      setSelectedSpec(parsed.specCode || '');
       setSelectedGender(parsed.genderCode);
       setSelectedPattern(parsed.patternCode);
       setSelectedProductTypeId(editingProduct.product_type_id?.toString() || (editingProduct as any).product_types?.id?.toString() || '');
@@ -1121,10 +1318,11 @@ export default function ProductManagement() {
       setProductType(parsedMat.type || '');
       const parsedDescLines = splitSpecificationLines(editingProduct.description || parsedMat.description || '');
       setDescLines(parsedDescLines.length > 0 ? parsedDescLines : ['']);
-    } else {
+    } else if (isAdding && !prevIsAddingRef.current) {
       setDescLines(['']);
       setSelectedMethods(['manual']);
       setSelectedDress('');
+      setSelectedSpec('');
       setSelectedGender('');
       setSelectedPattern('');
       setSelectedProductTypeId('');
@@ -1145,82 +1343,98 @@ export default function ProductManagement() {
       // Refresh next pattern code on form open
       api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data?.nextCode || '001')).catch(() => { });
     }
-  }, [editingProduct, isAdding, dresses, genders, patterns]);
+    prevIsAddingRef.current = isAdding;
+  }, [editingProduct, isAdding]);
 
-  const availableProductTypes = productTypes;
   const availableDresses = dresses;
   const availableGenders = genders;
   const availablePatterns = patterns;
 
+  // Manufacturing classification and product type are not asked for an item:
+  // the product type comes from the selected Item (Garment Family), and the
+  // classification defaults to in-house readymade when the product is saved.
+  const getCleanVal = (v: any) => (v && typeof v === 'object' && 'target' in v && v.target ? v.target.value : v);
+
+  const matchedDressItem = availableDresses.find(d => String(d.code) === String(selectedDress));
+  const activeItemSpecs = matchedDressItem?.art_item_specifications || [];
+
   const productFields: FormField[] = [
     {
-      name: 'product_type',
-      label: 'Manufacturing Classification',
-      type: 'select',
-      options: [
-        { label: 'Select Manufacturing Type', value: '' },
-        { label: 'Manufactured In-House (Readymade Stock)', value: 'readymade' },
-        { label: 'Manufactured In-House (Custom / Made to Order)', value: 'custom_manufactured' },
-      ],
-      value: productType,
-      onChange: (val) => setProductType(val),
-      required: true
-    },
-    {
-      name: 'product_type_id',
-      label: 'Garment Category / Product Type',
-      type: 'select',
-      options: [
-        { label: 'Select Garment Category', value: '' },
-        ...availableProductTypes.map(pt => ({ label: pt.name, value: pt.id.toString() }))
-      ],
-      value: selectedProductTypeId,
-      onChange: (val) => setSelectedProductTypeId(val),
-      required: true
-    },
-    {
       name: 'dress_prefix',
-      label: 'Dress Prefix',
+      label: 'Item *',
       type: 'select',
       options: [
-        { label: 'Select Dress Prefix', value: '' },
+        { label: 'Select Item from Catalog', value: '' },
         ...availableDresses.map(d => ({
-          label: `${d.code} (${d.name})`,
-          value: d.code
+          label: d.name ? `${d.name} [${d.code}]` : String(d.code),
+          value: String(d.code)
         }))
       ],
       required: true,
-      value: selectedDress,
-      onChange: (val) => setSelectedDress(val)
+      value: selectedDress ? String(selectedDress) : '',
+      onChange: (rawVal) => {
+        const val = String(getCleanVal(rawVal) || '');
+        setSelectedDress(val);
+        setSelectedSpec('');
+        const matched = availableDresses.find(d => String(d.code) === val);
+        if (matched?.product_type_id) {
+          setSelectedProductTypeId(String(matched.product_type_id));
+        }
+      }
+    },
+    {
+      name: 'item_specification',
+      label: 'Specification',
+      type: 'select',
+      options: [
+        { label: selectedDress ? 'None / Base Style' : 'Select Item First', value: '' },
+        ...activeItemSpecs.map((s: any) => ({
+          label: s.name ? `${s.name} [${s.code}]` : String(s.code),
+          value: String(s.code)
+        }))
+      ],
+      value: selectedSpec ? String(selectedSpec) : '',
+      onChange: (rawVal) => {
+        const val = String(getCleanVal(rawVal) || '');
+        setSelectedSpec(val);
+      },
+      required: false,
+      disabled: !selectedDress
     },
     {
       name: 'gender_code',
-      label: 'Gender',
+      label: 'Gender *',
       type: 'select',
       options: [
         { label: 'Select Gender', value: '' },
         ...availableGenders.map(g => ({
-          label: `[${g.code}] ${g.name}`,
-          value: g.code
+          label: g.name ? `${g.name} [${g.code}]` : `[${g.code}]`,
+          value: String(g.code)
         }))
       ],
       required: true,
-      value: selectedGender,
-      onChange: (val) => setSelectedGender(val)
+      value: selectedGender ? String(selectedGender) : '',
+      onChange: (rawVal) => {
+        const val = String(getCleanVal(rawVal) || '');
+        setSelectedGender(val);
+      }
     },
     {
       name: 'pattern_code',
-      label: 'Pattern Code',
+      label: 'Pattern Code *',
       type: 'select',
       options: [
         { label: `Auto-Generate Next (${nextPatternCode || '001'})`, value: nextPatternCode || '001' },
         ...availablePatterns.map(p => ({
           label: `[${p.code}] ${p.name}`,
-          value: p.code
+          value: String(p.code)
         }))
       ],
       value: selectedPattern || nextPatternCode || '001',
-      onChange: (val) => setSelectedPattern(val),
+      onChange: (rawVal) => {
+        const val = String(getCleanVal(rawVal) || '');
+        setSelectedPattern(val);
+      },
       required: true
     },
     {
@@ -1243,28 +1457,53 @@ export default function ProductManagement() {
         const pat = /^\d+$/.test(patRaw) && patRaw.length < 3 ? patRaw.padStart(3, '0') : patRaw;
         const fitCode = 'R';
         const cleanAllowance = allowance && allowance.trim() ? allowance.trim() : '';
-        return `${selectedDress}-${selectedGender}${pat}-${fitCode}${cleanAllowance}`;
+        return `${selectedDress}${selectedSpec}-${selectedGender}${pat}-${fitCode}${cleanAllowance}`;
       })(),
       readOnly: true,
-      placeholder: 'Will generate automatically from Prefix, Gender, Pattern & Allowance (e.g. 4J-1012-R2)...',
+      placeholder: 'Format: [item][spec]-[gender][pattern]-[fit][allowance] (e.g. 1A-3053-R2)...',
       required: true
     },
-    {
-      name: 'name',
-      label: 'Item Name',
-      type: 'text',
-      placeholder: 'e.g. Cotton Shirt',
-      required: true,
-      defaultValue: editingProduct?.name
-    },
-    {
-      name: 'materials',
-      label: 'Specification (Single Line)',
-      type: 'text',
-      placeholder: 'e.g. 100% Combed Cotton, 180 GSM Single Jersey Knit',
-      defaultValue: editingProduct ? (parseMaterialsField(editingProduct.materials).materials || editingProduct.materials || '') : '',
-      className: 'md:col-span-2'
-    },
+    ...(productType === 'accessories' ? [
+      {
+        name: 'name',
+        label: 'Accessory Name',
+        type: 'text' as const,
+        placeholder: 'e.g. Formal Tie',
+        required: true,
+        defaultValue: editingProduct?.name
+      }
+    ] : [
+      {
+        name: 'formatted_product_title',
+        label: 'Product Title [Item Specification Gender]',
+        type: 'custom' as const,
+        className: 'md:col-span-2',
+        render: () => {
+          const itemObj = (dresses || []).find(d => d.code === selectedDress);
+          const specObj = selectedSpec && itemObj?.art_item_specifications?.find((s: any) => s.code === selectedSpec);
+          const genderObj = (genders || []).find(g => g.code === selectedGender);
+          const itemTitle = itemObj?.name ? (itemObj.name.charAt(0).toUpperCase() + itemObj.name.slice(1).toLowerCase()) : '';
+          const specTitle = specObj?.name || '';
+          const genderTitle = genderObj?.name || '';
+          const fullTitle = [itemTitle, specTitle, genderTitle].filter(Boolean).join(' ');
+
+          return (
+            <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B]">Product Title (Auto-Derived from Art Number)</p>
+                <p className="text-sm font-black text-zinc-900 mt-0.5">
+                  {fullTitle || <span className="text-zinc-400 font-semibold italic text-xs">Select Item, Specification &amp; Gender to generate title</span>}
+                </p>
+              </div>
+              <span className="text-[9px] font-mono px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-zinc-600 font-bold uppercase tracking-wider">
+                Format: Item Specification Gender
+              </span>
+            </div>
+          );
+        }
+      }
+    ]),
+
     {
       name: 'description',
       label: 'Description (Multi-Line)',
@@ -1332,15 +1571,31 @@ export default function ProductManagement() {
       className: 'md:col-span-2'
     },
     {
+      name: 'main_fabric_id',
+      label: 'Main Fabric (From Inventory)',
+      type: 'select',
+      options: [
+        { label: 'Select Fabric from Catalog...', value: '' },
+        ...fabrics.map((f: any) => ({
+          label: `${f.code ? `[${f.code}] ` : ''}${f.name || f.quality || 'Fabric'}${f.color ? ` • ${f.color}` : ''}${f.shade ? ` (Shade ${f.shade})` : ''}${f.width ? ` [${f.width}"]` : ''}`,
+          value: String(f.id)
+        }))
+      ],
+      value: selectedFabricId,
+      onChange: (val) => setSelectedFabricId(val),
+      required: false,
+      className: 'md:col-span-1'
+    },
+    {
       name: 'main_fabric',
       label: 'Main Fabric Consumption (meters) — Default 58" Width',
       type: 'number',
-      placeholder: 'e.g. 1.25 (enter fabric length for 58" width)',
+      placeholder: 'e.g. 1.25',
       defaultValue: editingProduct?.main_fabric !== null && editingProduct?.main_fabric !== undefined ? String(editingProduct.main_fabric) : '',
       required: true,
       step: 'any',
-      className: 'md:col-span-2',
-      helperText: '⚠️ Note: Please add fabric length as the width is 58". If a fabric with a different width is selected in quotations, required length will be automatically converted.'
+      className: 'md:col-span-1',
+      helperText: '⚠️ Standard 58" width length.'
     },
     {
       name: 'attachment_fabrics',
@@ -1662,6 +1917,7 @@ export default function ProductManagement() {
   ];
 
   const handleAddOrUpdate = async (data: any) => {
+    data.product_type = 'readymade';
     const loadingToast = toast.loading(editingProduct ? 'Updating product...' : 'Creating product...');
 
     // Normalize arrays
@@ -1723,18 +1979,41 @@ export default function ProductManagement() {
     data.button_id = selectedButtonId || data.button_id || null;
     data.thread_id = selectedThreadId || data.thread_id || null;
 
-    // Generate dynamic art_number: Option 1 [Prefix]-[Gender][Pattern]-[Fit]-[Allowance] (e.g. 4J-1012-R-2)
+    // Generate dynamic art_number: [item][specification]-[gender][pattern]-[fit][allowance] (e.g. 1A-3053-R2)
     const effectivePattern = selectedPattern || nextPatternCode || '001';
     const fitCode = 'R';
     data.pattern_code = effectivePattern;
     const cleanAllowance = allowance ? allowance.trim() : '';
     data.allowance = cleanAllowance || null;
     data.art_number = (selectedDress && selectedGender && effectivePattern)
-      ? `${selectedDress}-${selectedGender}${effectivePattern}-${fitCode}${cleanAllowance || ''}`
+      ? `${selectedDress}${selectedSpec}-${selectedGender}${effectivePattern}-${fitCode}${cleanAllowance || ''}`
       : '';
+    const matchedItem = (dresses || []).find(d => d.code === selectedDress);
+    if (matchedItem) data.item_id = matchedItem.id;
+    let specName = '';
+    if (selectedSpec && matchedItem?.art_item_specifications) {
+      const matchedSpec = matchedItem.art_item_specifications.find((s: any) => s.code === selectedSpec);
+      if (matchedSpec) {
+        data.specification_id = matchedSpec.id;
+        specName = matchedSpec.name;
+      }
+    }
     const activeGenders = genders;
     const genderObj = activeGenders.find(g => g.code === selectedGender);
     data.gender = genderObj ? genderObj.name : 'Unisex';
+
+    // Auto-generate product name for Art Number in format: [Item] [Specification] [Gender]
+    if (matchedItem || data.art_number) {
+      const cleanItemName = matchedItem?.name
+        ? (matchedItem.name.charAt(0).toUpperCase() + matchedItem.name.slice(1).toLowerCase())
+        : '';
+      const cleanSpecName = specName ? specName.trim() : '';
+      const cleanGender = data.gender ? data.gender.trim() : '';
+      const autoTitle = [cleanItemName, cleanSpecName, cleanGender].filter(Boolean).join(' ');
+      if (autoTitle) {
+        data.name = autoTitle;
+      }
+    }
 
     // Auto-infer category if not present
     if (!data.category) {
@@ -1764,9 +2043,17 @@ export default function ProductManagement() {
     const cleanDesc = rawDescList.map((s: any) => (s || '').toString().trim()).filter(Boolean);
     data.description = cleanDesc.length > 0 ? cleanDesc.join('\n') : null;
 
-    const rawSpec = typeof data.materials === 'string' ? data.materials.trim() : (Array.isArray(data.materials) ? data.materials.join(' / ') : '');
-    const cleanSpec = parseMaterialsField(rawSpec).materials || rawSpec;
-    data.materials = (pType && pType !== 'readymade') ? `[ProductType: ${pType}] ${cleanSpec}` : cleanSpec;
+    // Single-line specification input has been removed
+    let existingTags = '';
+    if (editingProduct?.materials) {
+      const tags = editingProduct.materials.match(/\[[A-Za-z0-9_]+:\s*[^\]]+\]/g);
+      if (tags) {
+        existingTags = tags.filter((t: string) => !t.startsWith('[ProductType:')).join(' ');
+      }
+    }
+    const ptTag = (pType && pType !== 'readymade') ? `[ProductType: ${pType}]` : '';
+    const combinedMat = [ptTag, existingTags].filter(Boolean).join(' ').trim();
+    data.materials = combinedMat || null;
 
     try {
       if (editingProduct) {
@@ -1844,29 +2131,55 @@ export default function ProductManagement() {
     return Array.from(set).sort();
   }, [genders, products]);
 
-  // Dress prefix (Product/dress) options
-  const uniqueDresses = useMemo(() => {
-    const map = new Map<string, string>(); // code -> name
+  // Master Item options for the filter (Item only)
+  const uniqueItemOptions = useMemo(() => {
+    const formatItemTitle = (name: string) => {
+      if (!name) return '';
+      const trimmed = name.trim();
+      if (trimmed.toUpperCase() === 'T-SHIRT') return 'T-Shirt';
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    };
+
+    const map = new Map<string, { code: string; name: string }>(); // code -> { code, name }
+
+    // 1. From master garment items (art_items / dresses)
     (dresses || []).forEach(d => {
-      if (d.code) map.set(d.code, d.name || d.code);
+      const code = String(d.code || '').trim();
+      if (!code) return;
+      const rawName = d.name || code;
+      map.set(code, {
+        code,
+        name: formatItemTitle(rawName)
+      });
     });
-    // Also include any dress prefixes present on products' art_number
+
+    // 2. Resolve item codes from any existing products' art numbers if not already in master
     (products || []).forEach(p => {
       if (p.art_number) {
-        const parts = p.art_number.split('-');
-        if (parts.length >= 2 && parts[0] && !map.has(parts[0])) {
-          map.set(parts[0], parts[0]);
+        const parsed = parseArtNumber(p.art_number, dresses, genders, patterns);
+        const itemCode = parsed.itemCode || parsed.dressCode;
+        if (itemCode && !map.has(itemCode)) {
+          let fallbackName = itemCode;
+          if (itemCode === '1') fallbackName = 'Shirt';
+          else if (itemCode === '2') fallbackName = 'Trouser';
+          else if (itemCode === '3') fallbackName = 'Blazer';
+          else if (itemCode === '4') fallbackName = 'T-Shirt';
+          else if (itemCode === '5') fallbackName = 'Skirt';
+          map.set(itemCode, {
+            code: itemCode,
+            name: formatItemTitle(fallbackName)
+          });
         }
       }
     });
-    return Array.from(map.entries())
-      .map(([code, name]) => ({
-        code,
-        name,
-        label: name && name !== code ? `${code} (${name})` : code
+
+    return Array.from(map.values())
+      .map(item => ({
+        label: item.name,
+        value: item.code
       }))
-      .sort((a, b) => a.code.localeCompare(b.code));
-  }, [dresses, products]);
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [dresses, products, genders, patterns]);
 
   // Garment type options
   const uniqueGarmentTypes = useMemo(() => {
@@ -1901,16 +2214,22 @@ export default function ProductManagement() {
         if (!matches) return false;
       }
 
-      // 2. Product/Dress (Dress Prefix) Filter
+      // 2. Item Filter (filters by distinct master garment item)
       if (filterDress !== 'ALL') {
-        const targetDress = filterDress.toLowerCase();
+        const target = filterDress.toLowerCase();
         const parsed = parseArtNumber(p.art_number || '', dresses, genders, patterns);
-        const pDressCode = (parsed.dressCode || '').toLowerCase();
-        const artPrefix = (p.art_number || '').split('-')[0]?.toLowerCase() || '';
+        const pItemCode = (parsed.itemCode || parsed.dressCode || '').toLowerCase();
 
-        const matches = pDressCode === targetDress || 
-          artPrefix === targetDress ||
-          (p.art_number || '').toLowerCase().startsWith(targetDress + '-');
+        const matchedItem = (dresses || []).find(d => 
+          String(d.code).toLowerCase() === pItemCode || 
+          String(d.id) === String(p.item_id)
+        );
+        const itemName = (matchedItem?.name || '').toLowerCase();
+
+        const matches = 
+          pItemCode === target || 
+          itemName === target ||
+          String(p.item_id) === target;
 
         if (!matches) return false;
       }
@@ -1953,11 +2272,14 @@ export default function ProductManagement() {
     const rowsHtml = dataToPrint.map((p, idx) => `
       <tr>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${p.name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${getProductDisplayName(p, dresses, genders) || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${p.gender || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-family: monospace; font-weight: 800; color: #2d8d9b;">${p.art_number || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px;">${p.description || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${parseMaterialsField(p.materials).materials || p.materials || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${(() => {
+          const spec = getItemSpecDisplayName(p, dresses);
+          return spec ? (spec.code ? `[${spec.code}] ${spec.name}` : spec.name) : '—';
+        })()}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${p.base_size || '—'}</td>
       </tr>
     `).join('');
@@ -2013,16 +2335,16 @@ export default function ProductManagement() {
 
   const columns: Column<Product>[] = [
     {
-      header: 'Item Name',
+      header: 'Item (Product)',
       accessor: (p) => (
         <div>
-          <p className="font-black text-sm tracking-tight text-zinc-900">{p.name}</p>
+          <p className="font-black text-sm tracking-tight text-zinc-900">{getProductDisplayName(p, dresses, genders)}</p>
           <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
             {p.product_types?.name || p.category?.replace('_', ' ') || ''}
           </span>
         </div>
       ),
-      sortValue: (p) => p.name
+      sortValue: (p) => getProductDisplayName(p, dresses, genders)
     },
     {
       header: 'Gender',
@@ -2060,16 +2382,17 @@ export default function ProductManagement() {
     {
       header: 'Specification',
       accessor: (p) => {
-        const spec = formatSpecificationDisplay(p.materials);
-        return (
-          <div className="max-w-xs">
-            <p className="text-xs font-medium text-zinc-600 line-clamp-2" title={spec}>
-              {spec}
-            </p>
-          </div>
+        const spec = getItemSpecDisplayName(p, dresses);
+        return spec ? (
+          <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs">
+            {spec.code && <strong className="font-black text-amber-700 bg-amber-200/60 px-1 rounded text-[10px]">{spec.code}</strong>}
+            <span>{spec.name}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-zinc-350 italic">—</span>
         );
       },
-      sortValue: (p) => formatSpecificationDisplay(p.materials)
+      sortValue: (p) => getItemSpecDisplayName(p, dresses)?.name || ''
     },
     {
       header: 'Base Size',
@@ -2091,7 +2414,7 @@ export default function ProductManagement() {
       <div className="py-10 animate-in zoom-in duration-500">
         <DynamicForm
           title={editingProduct ? "Edit Product Details" : "New Product Specification"}
-          subtitle={editingProduct ? `Refining ${editingProduct.name}` : "Define a new article for the catalog"}
+          subtitle={editingProduct ? `Refining ${getProductDisplayName(editingProduct, dresses, genders)}` : "Define a new article for the catalog"}
           fields={productFields}
           onSubmit={handleAddOrUpdate}
           onCancel={() => {
@@ -2186,14 +2509,14 @@ export default function ProductManagement() {
               options={uniqueGenders}
             />
 
-            {/* 2. Dress Prefix (Product/dress) Filter */}
+            {/* 2. Item Filter */}
             <FilterDropdown
-              label="Product/dress"
-              allLabel="All Product/Dress"
+              label="Item"
+              allLabel="All Items"
               value={filterDress}
               onChange={setFilterDress}
-              options={uniqueDresses.map(d => ({ label: d.label, value: d.code }))}
-              maxWidth="max-w-[260px]"
+              options={uniqueItemOptions}
+              maxWidth="max-w-[220px]"
             />
 
             {/* 3. Garment Type Filter */}
@@ -2290,7 +2613,7 @@ export default function ProductManagement() {
                   </div>
 
                   <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 truncate">
-                    {selectedProductForDetails.name}
+                    {getProductDisplayName(selectedProductForDetails, dresses, genders)}
                   </h2>
                 </div>
 
@@ -2412,16 +2735,25 @@ export default function ProductManagement() {
 
                   {/* Right Column: Key Identity, Description & Quick Metrics */}
                   <div className="lg:col-span-7 space-y-4">
-                    {/* Specification Card (Single-Line) */}
-                    <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-1.5">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
-                        <Scissors size={13} className="text-[#C82A2B]" />
-                        Product Specification
-                      </h4>
-                      <p className="text-xs text-zinc-800 font-semibold leading-relaxed">
-                        {formatSpecificationDisplay(selectedProductForDetails.materials, '') || <span className="text-zinc-400 font-normal italic">No specification entered for this article.</span>}
-                      </p>
-                    </div>
+                    {/* Item Specification Card */}
+                    {(() => {
+                      const spec = getItemSpecDisplayName(selectedProductForDetails, dresses);
+                      if (!spec) return null;
+                      return (
+                        <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/70 space-y-1">
+                          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-900 flex items-center gap-1.5">
+                            <Scissors size={13} className="text-amber-700" />
+                            Item Specification
+                          </h4>
+                          <p className="text-xs text-amber-950 font-black flex items-center gap-2">
+                            {spec.code && (
+                              <span className="font-mono bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded text-[10px]">[{spec.code}]</span>
+                            )}
+                            <span>{spec.name}</span>
+                          </p>
+                        </div>
+                      );
+                    })()}
 
                     {/* Description Card (Multi-Line) */}
                     <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-2">
@@ -2800,7 +3132,7 @@ export default function ProductManagement() {
       <ConfirmModal
         isOpen={!!editVerificationProduct}
         title="Edit Product Specification?"
-        message={`Are you sure you want to edit "${editVerificationProduct?.name}" (${editVerificationProduct?.art_number})? Any changes will update the catalog specification and standard BOM parameters.`}
+        message={`Are you sure you want to edit "${getProductDisplayName(editVerificationProduct, dresses, genders)}" (${editVerificationProduct?.art_number})? Any changes will update the catalog specification and standard BOM parameters.`}
         confirmLabel="Yes, Proceed to Edit"
         cancelLabel="Cancel"
         variant="warning"

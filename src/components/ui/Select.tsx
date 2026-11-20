@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Search, X } from 'lucide-react';
 
 export interface SelectOption {
   label: string;
   value: string;
   disabled?: boolean;
+  group?: string;
 }
 
 export interface SelectProps {
@@ -33,14 +35,19 @@ function extractOptionsFromChildren(children: React.ReactNode): { options: Selec
   const options: SelectOption[] = [];
   let defaultPlaceholder: string | undefined = undefined;
 
-  const traverse = (nodes: React.ReactNode) => {
+  const traverse = (nodes: React.ReactNode, currentGroup?: string) => {
     React.Children.forEach(nodes, child => {
       if (!child) return;
       if (Array.isArray(child)) {
-        traverse(child);
+        traverse(child, currentGroup);
       } else if (React.isValidElement(child)) {
         const props = child.props as any;
-        if (child.type === 'option') {
+        if (child.type === 'optgroup') {
+          const groupLabel = props.label ? String(props.label) : undefined;
+          if (props.children) {
+            traverse(props.children, groupLabel);
+          }
+        } else if (child.type === 'option') {
           const val = props.value !== undefined ? String(props.value) : (props.children !== undefined ? String(props.children) : '');
           let text = '';
           if (typeof props.children === 'string' || typeof props.children === 'number') {
@@ -59,10 +66,11 @@ function extractOptionsFromChildren(children: React.ReactNode): { options: Selec
           options.push({
             value: val,
             label: text.trim() || val,
-            disabled: !!props.disabled
+            disabled: !!props.disabled,
+            group: currentGroup
           });
         } else if (props && props.children) {
-          traverse(props.children);
+          traverse(props.children, currentGroup);
         }
       }
     });
@@ -94,7 +102,16 @@ export const Select: React.FC<SelectProps> = ({
   const [internalValue, setInternalValue] = useState(defaultValue !== undefined ? String(defaultValue) : '');
   const [filterQuery, setFilterQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+    placeAbove: boolean;
+  }>({ top: 0, left: 0, width: 0, maxHeight: 300, placeAbove: false });
 
   const currentValue = controlledValue !== undefined ? String(controlledValue) : internalValue;
 
@@ -121,13 +138,53 @@ export const Select: React.FC<SelectProps> = ({
     return { parsedOptions: [], defaultPlaceholder: undefined };
   }, [options, children]);
 
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+
+    // If completely scrolled out of viewport, close to prevent orphaned dropdown
+    if (rect.bottom < -20 || rect.top > viewportHeight + 20) {
+      setIsOpen(false);
+      return;
+    }
+
+    const dropdownPreferredHeight = 300;
+    const spaceBelow = viewportHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+
+    const placeAbove = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const availableHeight = placeAbove ? spaceAbove : spaceBelow;
+    const maxHeight = Math.max(120, Math.min(dropdownPreferredHeight, availableHeight));
+
+    const targetWidth = Math.max(rect.width, 240);
+    let left = rect.left;
+    if (left + targetWidth > viewportWidth - 16) {
+      left = Math.max(12, viewportWidth - targetWidth - 16);
+    }
+
+    setCoords({
+      top: placeAbove ? rect.top - 6 : rect.bottom + 6,
+      left: Math.max(8, left),
+      width: targetWidth,
+      maxHeight,
+      placeAbove
+    });
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
         setFilterQuery('');
       }
     };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false);
@@ -136,14 +193,22 @@ export const Select: React.FC<SelectProps> = ({
     };
 
     if (isOpen) {
+      updatePosition();
+      const rafId = requestAnimationFrame(updatePosition);
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   useEffect(() => {
     if (isOpen && parsedOptions.length > 6 && searchInputRef.current) {
@@ -153,7 +218,9 @@ export const Select: React.FC<SelectProps> = ({
 
   const handleToggle = () => {
     if (disabled) return;
-    if (isOpen) {
+    if (!isOpen) {
+      updatePosition();
+    } else {
       setFilterQuery('');
     }
     setIsOpen(!isOpen);
@@ -166,13 +233,20 @@ export const Select: React.FC<SelectProps> = ({
     setIsOpen(false);
     if (onChange) {
       const fnStr = onChange.toString();
-      if (fnStr.includes('.target') || fnStr.includes('.currentTarget')) {
-        const syntheticEvent = {
-          target: { value: option.value, name: name || '' },
-          currentTarget: { value: option.value, name: name || '' },
-          preventDefault: () => {},
-          stopPropagation: () => {}
-        };
+      const expectsEvent = 
+        fnStr.includes('.target') || 
+        fnStr.includes('target') || 
+        fnStr.includes('.currentTarget') || 
+        fnStr.includes('currentTarget');
+
+      const syntheticEvent = {
+        target: { value: option.value, name: name || '' },
+        currentTarget: { value: option.value, name: name || '' },
+        preventDefault: () => {},
+        stopPropagation: () => {}
+      };
+
+      if (expectsEvent) {
         (onChange as any)(syntheticEvent);
       } else {
         onChange(option.value);
@@ -182,7 +256,8 @@ export const Select: React.FC<SelectProps> = ({
 
   const filteredOptions = parsedOptions.filter(opt => 
     opt.label.toLowerCase().includes(filterQuery.toLowerCase()) ||
-    opt.value.toLowerCase().includes(filterQuery.toLowerCase())
+    opt.value.toLowerCase().includes(filterQuery.toLowerCase()) ||
+    (opt.group && opt.group.toLowerCase().includes(filterQuery.toLowerCase()))
   );
 
   const selectedOption = parsedOptions.find(opt => String(opt.value) === String(currentValue));
@@ -203,6 +278,7 @@ export const Select: React.FC<SelectProps> = ({
 
         <div
           onClick={handleToggle}
+          title={displayValue}
           className={`w-full px-3.5 py-2.5 bg-white border ${
             isOpen 
               ? 'border-[#C82A2B] ring-2 ring-[#C82A2B]/15 shadow-sm' 
@@ -230,19 +306,33 @@ export const Select: React.FC<SelectProps> = ({
           />
         </div>
 
-        {isOpen && !disabled && (
-          <div className={`absolute top-[calc(100%+6px)] left-0 min-w-full min-w-[200px] max-w-[420px] bg-white border border-zinc-200/90 rounded-2xl shadow-xl shadow-zinc-900/10 z-[999] animate-in fade-in zoom-in-95 duration-150 overflow-hidden ${dropdownClassName}`}>
+        {isOpen && !disabled && typeof document !== 'undefined' && createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: 'fixed',
+              top: coords.placeAbove ? 'auto' : `${coords.top}px`,
+              bottom: coords.placeAbove ? `${window.innerHeight - coords.top}px` : 'auto',
+              left: `${coords.left}px`,
+              width: `${coords.width}px`,
+              maxHeight: `${coords.maxHeight}px`,
+              maxWidth: 'min(94vw, 560px)',
+              zIndex: 99999,
+            }}
+            className={`bg-white border border-zinc-200/95 rounded-2xl shadow-2xl shadow-zinc-950/25 animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden ring-1 ring-black/5 ${dropdownClassName}`}
+          >
+            {/* Search Input when options > 6 */}
             {parsedOptions.length > 6 && (
-              <div className="p-2 border-b border-zinc-100 bg-zinc-50/50">
+              <div className="p-2 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
                 <div className="relative flex items-center">
-                  <Search size={12} className="absolute left-2.5 text-zinc-400 pointer-events-none" />
+                  <Search size={13} className="absolute left-2.5 text-zinc-400 pointer-events-none" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     value={filterQuery}
                     onChange={(e) => setFilterQuery(e.target.value)}
                     placeholder={`Search ${label ? label.toLowerCase() : 'options'}...`}
-                    className="w-full h-8 pl-7 pr-7 bg-white border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-800 placeholder:text-zinc-400 outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 transition-all"
+                    className="w-full h-8 pl-8 pr-7 bg-white border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-800 placeholder:text-zinc-400 outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 transition-all"
                   />
                   {filterQuery && (
                     <button
@@ -257,26 +347,34 @@ export const Select: React.FC<SelectProps> = ({
               </div>
             )}
 
-            <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-1">
+            {/* Options Scrollable List - Full Content Visibility */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent] p-1">
               {filteredOptions.length > 0 ? (
-                filteredOptions.map((opt) => {
+                filteredOptions.map((opt, i) => {
                   const isItemActive = String(opt.value) === String(currentValue);
+                  const showGroupHeader = opt.group && (i === 0 || filteredOptions[i - 1].group !== opt.group);
                   return (
-                    <div
-                      key={opt.value + '_' + opt.label}
-                      onClick={() => handleSelect(opt)}
-                      className={`px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors mb-0.5 group ${
-                        opt.disabled 
-                          ? 'opacity-40 pointer-events-none text-zinc-400' 
-                          : isItemActive
-                            ? 'bg-[#FFF1F1] text-[#9E1B1D] font-black'
-                            : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 font-bold'
-                      }`}
-                      title={opt.label}
-                    >
-                      <span className="truncate pr-2">{opt.label}</span>
-                      {isItemActive && <Check size={13} strokeWidth={3} className="text-[#C82A2B] shrink-0" />}
-                    </div>
+                    <React.Fragment key={opt.value + '_' + opt.label + '_' + i}>
+                      {showGroupHeader && (
+                        <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C82A2B] bg-[#FFF1F1]/80 rounded-lg my-1 border border-[#C82A2B]/15 select-none">
+                          {opt.group}
+                        </div>
+                      )}
+                      <div
+                        onClick={() => handleSelect(opt)}
+                        className={`px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors mb-0.5 group ${
+                          opt.disabled 
+                            ? 'opacity-40 pointer-events-none text-zinc-400' 
+                            : isItemActive
+                              ? 'bg-[#FFF1F1] text-[#9E1B1D] font-black'
+                              : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 font-bold'
+                        }`}
+                        title={opt.label}
+                      >
+                        <span className="break-words whitespace-normal leading-snug pr-2 text-left flex-1">{opt.label}</span>
+                        {isItemActive && <Check size={14} strokeWidth={3} className="text-[#C82A2B] shrink-0 ml-1" />}
+                      </div>
+                    </React.Fragment>
                   );
                 })
               ) : (
@@ -285,7 +383,8 @@ export const Select: React.FC<SelectProps> = ({
                 </div>
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

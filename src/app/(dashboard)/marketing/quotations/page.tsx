@@ -190,7 +190,14 @@ export interface ManualItem {
   qty_mode?: 'members_sets' | 'direct_products';
   no_of_members?: string;
   no_of_sets?: string;
+  // Per-line kind: a quotation can mix readymades, fabrics and accessories.
+  // For FABRIC lines, quantity = meters and price = rate per meter.
+  item_kind?: ItemKind;
+  // True when the user typed the rate by hand (stops auto-recalculation for readymades)
+  rate_manual?: boolean;
 }
+
+export type ItemKind = 'READYMADE' | 'FABRIC' | 'ACCESSORY' | 'CUSTOM';
 
 export interface TemplateLineItem {
   product_id: number;
@@ -567,16 +574,16 @@ export default function QuotationsPage() {
 
   const handleBmApprove = async () => {
     if (!bmApproveCandidate) return;
-    const toastId = toast.loading(`Approving ${bmApproveCandidate.quotation_no} and submitting to Operations...`);
+    const toastId = toast.loading(`Approving ${bmApproveCandidate.quotation_no}...`);
     try {
       await api.put(`/quotations/${bmApproveCandidate.id}/bm-approve`);
-      toast.success(`Quotation ${bmApproveCandidate.quotation_no} approved by Branch Manager & submitted to Operations!`, { id: toastId });
+      toast.success(`Quotation ${bmApproveCandidate.quotation_no} approved by Branch Manager! Ready for customer proposal.`, { id: toastId });
       fetchQuotations();
       if (selectedQuotation && selectedQuotation.id === bmApproveCandidate.id) {
         setSelectedQuotation(prev => prev ? { 
           ...prev, 
-          status: 'Pending', 
-          metrics_summary: { ...(prev.metrics_summary || {}), bm_approved: true, submitted_to_ops: true } 
+          status: 'BM Approved', 
+          metrics_summary: { ...(prev.metrics_summary || {}), bm_approved: true } 
         } : null);
       }
     } catch (err: any) {
@@ -772,11 +779,11 @@ export default function QuotationsPage() {
       {/* CONFIRMATION FOR BRANCH MANAGER APPROVAL */}
       <ConfirmModal
         isOpen={!!bmApproveCandidate}
-        title="Approve & Transmit to Operations"
-        message={`As Branch Manager, are you endorsing quotation "${bmApproveCandidate?.quotation_no} - ${bmApproveCandidate?.title}"? Approving will transmit this quotation directly to the central Operations Team for factory costing & production scheduling.`}
+        title="Approve Quotation (Branch Manager)"
+        message={`As Branch Manager, are you endorsing quotation "${bmApproveCandidate?.quotation_no} - ${bmApproveCandidate?.title}"? Approving will mark this quotation as "BM Approved", making it ready for client presentation and customer decision logging.`}
         onConfirm={handleBmApprove}
         onCancel={() => setBmApproveCandidate(null)}
-        confirmLabel="Approve & Send to Ops"
+        confirmLabel="Approve Quotation"
         variant="primary"
       />
 

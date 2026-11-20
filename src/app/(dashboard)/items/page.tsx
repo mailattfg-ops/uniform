@@ -176,7 +176,7 @@ export default function ItemsDashboardPage() {
       {/* Group 3: ART & Design Number Identifiers */}
       <DashboardCardGroup
         title="ART Number Hub & Design Catalog"
-        description="Standardized article identity schemes (DressPrefix - GenderPattern - FitAllowance) and variation tracking."
+        description="Standardized article identity schemes ([item][spec]-[gender][pattern]-[fit][allowance] e.g. 1A-3053-R2) and variation tracking."
         icon={Bookmark}
         targetHref="/admin/art-number-hub"
         targetLabel="Open ART Number Hub"
@@ -186,7 +186,7 @@ export default function ItemsDashboardPage() {
         <DashboardStatCard
           label="ART Pattern Scheme"
           value={isLoading ? '—' : `${uniqueArtNumbers} Articles`}
-          subValue="Dress prefix + Gender + Pattern + Fit"
+          subValue="Item + Specification + Gender + Pattern + Fit"
           icon={Bookmark}
           variant="default"
         />

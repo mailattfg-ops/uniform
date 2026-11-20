@@ -2,7 +2,7 @@
 import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
+import { DataTable, Column, SortInfo, HeaderGroupItem } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
@@ -15,7 +15,8 @@ import {
   Trash2, 
   FolderPlus,
   X,
-  ArrowLeft
+  ArrowLeft,
+  RotateCcw
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -35,6 +36,12 @@ interface TrimItem {
   code: string;
   name: string;
   type?: string | null;
+  brand_name?: string | null;
+  specification?: string | null;
+  color?: string | null;
+  shade_no?: string | null;
+  size?: string | null;
+  size_uom?: string | null;
   uom: string;
   description?: string | null;
   unit_price: number | null;
@@ -384,6 +391,13 @@ export default function TrimsCatalogPage() {
         code: data.code?.trim() || undefined,
         name: data.name?.trim(),
         type: data.type?.trim() || null,
+        brand_name: data.brand_name?.trim() || null,
+        specification: data.specification?.trim() || null,
+        color: data.color?.trim() || null,
+        shade_no: data.shade_no?.trim() || null,
+        size: data.size?.trim() || null,
+        size_uom: data.size_uom?.trim() || null,
+        quantity: data.quantity !== undefined && data.quantity !== '' ? parseFloat(data.quantity) : 0,
         uom: data.uom || 'Pcs',
         description: data.description?.trim() || null,
         unit_price: data.unit_price ? parseFloat(data.unit_price) : null,
@@ -421,6 +435,7 @@ export default function TrimsCatalogPage() {
   };
 
   // Trims filters state
+  const [filterBrand, setFilterBrand] = useState<string>('ALL');
   const [filterSize, setFilterSize] = useState<string>('ALL');
   const [filterColour, setFilterColour] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -437,9 +452,23 @@ export default function TrimsCatalogPage() {
     return '';
   };
 
+  const uniqueBrands = useMemo(() => {
+    const set = new Set<string>();
+    trims.forEach(t => {
+      if (t.brand_name && t.brand_name.trim()) {
+        set.add(t.brand_name.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [trims]);
+
   const uniqueSizes = useMemo(() => {
     const set = new Set<string>();
     trims.forEach(t => {
+      if (t.size && t.size.trim()) {
+        const full = t.size_uom ? `${t.size.trim()} ${t.size_uom.trim()}` : t.size.trim();
+        set.add(full);
+      }
       const text = `${t.name} ${t.description || ''} ${t.type || ''}`;
       const sizeMatch = (t.description || '').match(/(?:size|dimensions?|width|length)\s*:\s*([^,;|\n]+)/i);
       if (sizeMatch && sizeMatch[1]) {
@@ -460,9 +489,12 @@ export default function TrimsCatalogPage() {
     const commonColors = [
       'White', 'Black', 'Gold', 'Silver', 'Brass', 'Navy Blue', 'Navy', 
       'Royal Blue', 'Sky Blue', 'Grey', 'Heather Grey', 'Maroon', 'Red', 
-      'Bottle Green', 'Green', 'Beige', 'Khaki', 'Yellow', 'Brown', 'Bronze'
+      'Bottle Green', 'Green', 'Beige', 'Khaki', 'Yellow', 'Brown', 'Bronze', 'Rama Blue'
     ];
     trims.forEach(t => {
+      if (t.color && t.color.trim()) {
+        set.add(t.color.trim());
+      }
       const col = extractTrimColor(t);
       if (col) {
         set.add(col);
@@ -488,19 +520,30 @@ export default function TrimsCatalogPage() {
       if (selectedCategoryId !== 'ALL' && t.category_id !== selectedCategoryId) {
         return false;
       }
+      if (filterBrand !== 'ALL') {
+        const itemBrand = (t.brand_name || '').toLowerCase();
+        if (itemBrand !== filterBrand.toLowerCase()) return false;
+      }
       if (filterSize !== 'ALL') {
+        const itemSize = t.size ? `${t.size} ${t.size_uom || ''}`.trim().toLowerCase() : '';
         const text = `${t.name} ${t.description || ''} ${t.type || ''}`.toLowerCase();
-        if (!text.includes(filterSize.toLowerCase())) return false;
+        if (!text.includes(filterSize.toLowerCase()) && !itemSize.includes(filterSize.toLowerCase())) return false;
       }
       if (filterColour !== 'ALL') {
+        const itemColor = (t.color || extractTrimColor(t) || '').toLowerCase();
         const text = `${t.name} ${t.description || ''} ${t.type || ''}`.toLowerCase();
-        if (!text.includes(filterColour.toLowerCase())) return false;
+        if (!text.includes(filterColour.toLowerCase()) && !itemColor.includes(filterColour.toLowerCase())) return false;
       }
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const matches =
           (t.name || '').toLowerCase().includes(term) ||
           (t.code || '').toLowerCase().includes(term) ||
+          (t.brand_name || '').toLowerCase().includes(term) ||
+          (t.specification || '').toLowerCase().includes(term) ||
+          (t.color || '').toLowerCase().includes(term) ||
+          (t.shade_no || '').toLowerCase().includes(term) ||
+          (t.size || '').toLowerCase().includes(term) ||
           (t.description || '').toLowerCase().includes(term) ||
           (t.type || '').toLowerCase().includes(term) ||
           (t.uom || '').toLowerCase().includes(term);
@@ -508,7 +551,7 @@ export default function TrimsCatalogPage() {
       }
       return true;
     });
-  }, [trims, selectedCategoryId, filterSize, filterColour, searchTerm]);
+  }, [trims, selectedCategoryId, filterBrand, filterSize, filterColour, searchTerm]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
   const userReportTriggerRef = useRef<(() => void) | null>(null);
@@ -516,13 +559,19 @@ export default function TrimsCatalogPage() {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredTrims;
     const rowsHtml = dataToPrint.map((item, idx) => `
       <tr>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-family: monospace; font-weight: 800; color: #2d8d9b;">${item.code || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${item.description || item.type || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${item.uom || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700;">${item.unit_price ? formatCurrency(item.unit_price) : '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity)} ${item.uom}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-weight: bold; text-align: center;">${idx + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-family: monospace; font-weight: 800; color: #9E1B1D;">${item.code || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 600;">${item.category?.name || item.type || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 600;">${item.brand_name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 700;">${item.name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px;">${item.specification || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${item.color || extractTrimColor(item) || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-family: monospace;">${item.shade_no || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-family: monospace;">${item.size ? `${item.size}${item.size_uom ? ` ${item.size_uom}` : ''}` : '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px;">${item.description || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity)}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: 600;">${item.uom || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: 700;">${item.unit_price ? formatCurrency(item.unit_price) : '—'}</td>
       </tr>
     `).join('');
 
@@ -534,9 +583,9 @@ export default function TrimsCatalogPage() {
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
     h1 { margin: 0 0 6px 0; color: #3a525d; font-size: 22px; font-style: italic; }
     p { margin: 0 0 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
-    td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { border: 1px solid #cbd5e1; background: #f8fafc; padding: 6px 8px; text-align: left; font-size: 9px; font-weight: 800; text-transform: uppercase; color: #475569; }
+    td { border: 1px solid #e2e8f0; padding: 6px 8px; }
     @media print {
       body { padding: 0; }
     }
@@ -548,17 +597,23 @@ export default function TrimsCatalogPage() {
   <table>
     <thead>
       <tr>
-        <th style="width: 40px; text-align: center;">#</th>
+        <th style="width: 30px; text-align: center;">#</th>
         <th>Trim No.</th>
+        <th>Trim Type</th>
+        <th>Brand Name</th>
         <th>Item Name</th>
+        <th>Specification</th>
+        <th>Colour</th>
+        <th>Shade No.</th>
+        <th>Size</th>
         <th>Description</th>
-        <th style="text-align: center;">UOM</th>
-        <th style="text-align: right;">Unit Price</th>
         <th style="text-align: right;">Quantity</th>
+        <th style="text-align: center;">UOM</th>
+        <th style="text-align: right;">Rate</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="7" style="text-align:center; padding: 20px;">No trims found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="13" style="text-align:center; padding: 20px;">No trims found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -576,6 +631,16 @@ export default function TrimsCatalogPage() {
   };
 
   // Columns styled identically to Fabric CatalogManager
+  const headerGroups: HeaderGroupItem[] = [
+    { header: 'TRIM NO.', colSpan: 1 },
+    { header: 'ITEM NAME', colSpan: 7, className: 'bg-[#FEF08A]/75 text-zinc-900 border-[#FACC15] font-black tracking-widest' },
+    { header: 'DESCRIPTION', colSpan: 1 },
+    { header: 'QUANTITY', colSpan: 1 },
+    { header: 'UOM', colSpan: 1 },
+    { header: 'RATE', colSpan: 1 },
+    { header: 'ACTION', colSpan: 1 }
+  ];
+
   const columns: Column<TrimItem>[] = [
     { 
       header: 'Trim No.', 
@@ -583,46 +648,107 @@ export default function TrimsCatalogPage() {
       className: 'font-black text-[#9E1B1D]',
       sortValue: (item) => item.code
     },
+    {
+      header: 'Trim Type',
+      accessor: ((item: TrimItem) => (
+        <span className="font-bold text-xs text-zinc-800">
+          {item.category?.name || item.type || '—'}
+        </span>
+      )) as any,
+      sortValue: (item) => item.category?.name || item.type || ''
+    },
+    {
+      header: 'Brand Name',
+      accessor: ((item: TrimItem) => (
+        <span className="font-semibold text-xs text-zinc-700">
+          {item.brand_name || '—'}
+        </span>
+      )) as any,
+      sortValue: (item) => item.brand_name || ''
+    },
     { 
       header: 'Item Name', 
       accessor: ((item: TrimItem) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-150 flex items-center justify-center overflow-hidden shrink-0">
             {item.images && item.images.length > 0 ? (
               <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
+              <span className="text-[8px] text-zinc-300 font-bold uppercase">No Img</span>
             )}
           </div>
           <div>
-            <p className="font-bold text-sm text-zinc-900">{item.name}</p>
-            {item.category?.name && (
-              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">{item.category.name}</span>
-            )}
+            <p className="font-bold text-xs text-zinc-900">{item.name}</p>
           </div>
         </div>
       )) as any,
       sortValue: (item) => item.name
     },
     {
+      header: 'Specification',
+      accessor: ((item: TrimItem) => (
+        <span className="text-xs text-zinc-600 font-mono">
+          {item.specification || '—'}
+        </span>
+      )) as any,
+      sortValue: (item) => item.specification || ''
+    },
+    {
+      header: 'Colour',
+      accessor: ((item: TrimItem) => {
+        const col = item.color || extractTrimColor(item);
+        return col ? (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 font-bold text-xs">
+            <span className="w-2 h-2 rounded-full border border-black/20" style={{ backgroundColor: col.toLowerCase() }} />
+            {col}
+          </span>
+        ) : <span className="text-zinc-400 text-xs">—</span>;
+      }) as any,
+      sortValue: (item) => item.color || extractTrimColor(item) || ''
+    },
+    {
+      header: 'Shade No.',
+      accessor: ((item: TrimItem) => (
+        <span className="text-xs font-mono font-medium text-zinc-600">
+          {item.shade_no || '—'}
+        </span>
+      )) as any,
+      sortValue: (item) => item.shade_no || ''
+    },
+    {
+      header: 'Size',
+      accessor: ((item: TrimItem) => {
+        const sz = item.size ? `${item.size}${item.size_uom ? ` ${item.size_uom}` : ''}` : '—';
+        return <span className="font-bold text-xs text-zinc-800 font-mono">{sz}</span>;
+      }) as any,
+      sortValue: (item) => item.size || ''
+    },
+    {
       header: 'Description',
       accessor: ((item: TrimItem) => (
-        <div className="max-w-xs">
-          <p className="text-xs font-medium text-zinc-600 line-clamp-2">
-            {item.description || item.type || '—'}
-          </p>
+        <div className="max-w-xs truncate text-xs font-medium text-zinc-600" title={item.description || ''}>
+          {item.description || '—'}
         </div>
       )) as any,
-      sortValue: (item) => item.description || item.type || ''
+      sortValue: (item) => item.description || ''
+    },
+    {
+      header: 'Quantity',
+      accessor: ((item: TrimItem) => (
+        <span className="font-black text-xs text-zinc-900 font-mono">
+          {formatQuantity(item.quantity)}
+        </span>
+      )) as any,
+      sortValue: (item) => item.quantity || 0
     },
     {
       header: 'UOM',
       accessor: 'uom',
-      className: 'font-bold text-xs text-zinc-600',
+      className: 'font-bold text-xs text-zinc-700 text-center',
       sortValue: (item) => item.uom
     },
     {
-      header: 'Unit Price',
+      header: 'Rate',
       accessor: ((item: TrimItem) => (
         <span className="font-bold text-xs text-zinc-900">
           {item.unit_price ? formatCurrency(item.unit_price) : '—'}
@@ -631,44 +757,34 @@ export default function TrimsCatalogPage() {
       sortValue: (item) => item.unit_price || 0
     },
     {
-      header: 'Quantity',
-      accessor: ((item: TrimItem) => (
-        <span className="font-black text-sm text-zinc-900">
-          {formatQuantity(item.quantity)} {item.uom}
-        </span>
-      )) as any,
-      sortValue: (item) => item.quantity || 0
-    },
-    {
       header: 'Action',
       accessor: ((item: TrimItem) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <Button
             onClick={() => {
               setEditingItem(item);
               setView('edit');
             }}
             variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-zinc-900 hover:bg-[#3a525d] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-[#3a525d]/10 text-zinc-900 hover:bg-[#3a525d] hover:text-white transition-all shadow-xs p-0 border-none cursor-pointer"
             title="Edit Trim"
           >
-            <Edit2 size={16} />
+            <Edit2 size={14} />
           </Button>
           <Button
             onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
             variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
+            className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-xs p-0 border-none cursor-pointer"
             title="Delete Trim"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </Button>
         </div>
       )) as any,
-      className: 'w-28'
+      className: 'w-24'
     }
   ];
-
-  // View: Add or Edit Form matching Fabric CatalogManager
+// View: Add or Edit Form matching Fabric CatalogManager
   if (view !== 'list') {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
@@ -848,51 +964,87 @@ export default function TrimsCatalogPage() {
           </div>
         </div>
 
+        {/* Yellow Filter Toolbar matching spreadsheet plan */}
+        <div className="relative z-20 bg-[#FEF08A]/75 border-2 border-[#FACC15] rounded-2xl p-3 md:px-5 md:py-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-zinc-900 shrink-0">
+            <span className="px-3 py-1 bg-[#FACC15] text-zinc-950 font-black text-xs uppercase tracking-widest rounded-lg shadow-2xs">
+              FILTER
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+            {/* Category Filter */}
+            <FilterDropdown
+              label="Categories"
+              allLabel={`All Categories (${trims.length})`}
+              value={selectedCategoryId}
+              onChange={setSelectedCategoryId}
+              options={categories.map(c => ({
+                label: c.name,
+                value: c.id,
+                badge: trims.filter(t => t.category_id === c.id).length
+              }))}
+              maxWidth="max-w-[190px]"
+            />
+
+            {/* Brand Filter */}
+            <FilterDropdown
+              label="Brand Name"
+              allLabel="All Brands"
+              value={filterBrand}
+              onChange={setFilterBrand}
+              options={uniqueBrands}
+              maxWidth="max-w-[190px]"
+            />
+
+            {/* Colour Filter */}
+            <FilterDropdown
+              label="Colour"
+              allLabel="All Colours"
+              value={filterColour}
+              onChange={setFilterColour}
+              options={uniqueColours}
+              maxWidth="max-w-[190px]"
+            />
+
+            {/* Size Filter */}
+            <FilterDropdown
+              label="Size"
+              allLabel="All Sizes"
+              value={filterSize}
+              onChange={setFilterSize}
+              options={uniqueSizes}
+              maxWidth="max-w-[190px]"
+            />
+
+            {(selectedCategoryId !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategoryId('ALL');
+                  setFilterBrand('ALL');
+                  setFilterColour('ALL');
+                  setFilterSize('ALL');
+                }}
+                className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold rounded-xl border border-red-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         <DataTable
+          headerGroups={headerGroups}
           columns={columns}
           data={filteredTrims}
           isLoading={isLoading}
-          searchPlaceholder="Search"
+          searchPlaceholder="Search trims"
           onSearch={setSearchTerm}
           onPrint={handlePrintTrims}
           hideTablePrint={true}
           printTriggerRef={printTriggerRef}
           userReportTriggerRef={userReportTriggerRef}
-          headerAction={
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Category Filter Dropdown */}
-              <FilterDropdown
-                label="Category"
-                allLabel={`All Categories (${trims.length})`}
-                value={selectedCategoryId}
-                onChange={setSelectedCategoryId}
-                options={categories.map(c => ({
-                  label: c.name,
-                  value: c.id,
-                  badge: trims.filter(t => t.category_id === c.id).length
-                }))}
-                maxWidth="max-w-[220px]"
-              />
-
-              {/* Size Filter Dropdown */}
-              <FilterDropdown
-                label="Size"
-                allLabel="All Sizes"
-                value={filterSize}
-                onChange={setFilterSize}
-                options={uniqueSizes}
-              />
-
-              {/* Colour Filter Dropdown */}
-              <FilterDropdown
-                label="Colour"
-                allLabel="All Colours"
-                value={filterColour}
-                onChange={setFilterColour}
-                options={uniqueColours}
-              />
-            </div>
-          }
         />
       </div>
 

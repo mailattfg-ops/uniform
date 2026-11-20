@@ -4,12 +4,15 @@ import { Select } from '@/components/ui/Select';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw, Hash } from 'lucide-react';
-import { ProductType, TemplateLineItem, ManualItem, SeparateFabricItem } from '../../page';
+import { ProductType, TemplateLineItem, ManualItem, ItemKind } from '../../page';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { convertFabricMetersByWidth } from '../../_lib/fabricWidthConverter';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { formatSpecificationDisplay } from '@/lib/formatters';
+import { getItemKind, createBlankLine, getLineError, parseQty, ITEM_KIND_LABELS, newLocalId, formatProductDisplayName, formatSpecificationDisplayName, getLineDisplayView } from '../../_lib/itemLines';
+import ItemLinesTable, { ItemLineView } from './ItemLinesTable';
+import ItemLineModal from './ItemLineModal';
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
   if (!rawText) return { type: '', materials: '' };
@@ -339,230 +342,24 @@ export const getAutoProductDefaults = ({
   }
   if (!resolvedMain) resolvedMain = baseMainMeters;
 
-  // Preload dropdown selection IDs
-  let mainFabricId = '';
-  if (prod.main_fabric_id) {
-    mainFabricId = String(prod.main_fabric_id);
-  } else if (prod.fabric_id) {
-    mainFabricId = String(prod.fabric_id);
-  } else if (prod.class_fabric_consumption?._base_main_fabric_id) {
-    mainFabricId = String(prod.class_fabric_consumption._base_main_fabric_id);
-  }
-  if (fabricsList.length > 0 && mainFabricId && !fabricsList.some(f => String(f.id) === mainFabricId)) {
-    mainFabricId = '';
-  }
-
-  let att1FabricId = '';
-  if (prod.attachment_fabric1_id) {
-    att1FabricId = String(prod.attachment_fabric1_id);
-  } else if (baseAttFabrics[0]?.fabric_id) {
-    att1FabricId = String(baseAttFabrics[0].fabric_id);
-  }
-  if (fabricsList.length > 0 && att1FabricId && !fabricsList.some(f => String(f.id) === att1FabricId)) {
-    att1FabricId = '';
-  }
-
-  let att2FabricId = '';
-  if (prod.attachment_fabric2_id) {
-    att2FabricId = String(prod.attachment_fabric2_id);
-  } else if (baseAttFabrics[1]?.fabric_id) {
-    att2FabricId = String(baseAttFabrics[1].fabric_id);
-  }
-  if (fabricsList.length > 0 && att2FabricId && !fabricsList.some(f => String(f.id) === att2FabricId)) {
-    att2FabricId = '';
-  }
-
-  let buttonId = '';
-  if (prod.button_id) {
-    buttonId = String(prod.button_id);
-  } else if (btnTrim?.trim_id && !String(btnTrim.trim_id).startsWith('btn_default')) {
-    buttonId = String(btnTrim.trim_id);
-  }
-  const btnExists = (buttonsList.length > 0 && buttonsList.some(b => String(b.id) === buttonId)) ||
-                    (trimsList.length > 0 && trimsList.some(t => String(t.id) === buttonId));
-  if (buttonId && !btnExists && (buttonsList.length > 0 || trimsList.length > 0)) {
-    buttonId = '';
-  }
-
-  let threadId = '';
-  if (prod.thread_id) {
-    threadId = String(prod.thread_id);
-  } else if (thrTrim?.trim_id && !String(thrTrim.trim_id).startsWith('thr_default')) {
-    threadId = String(thrTrim.trim_id);
-  }
-  const threadExists = (threadsList.length > 0 && threadsList.some(t => String(t.id) === threadId)) ||
-                       (trimsList.length > 0 && trimsList.some(t => String(t.id) === threadId));
-  if (threadId && !threadExists && (threadsList.length > 0 || trimsList.length > 0)) {
-    threadId = '';
-  }
-  if (!threadId) {
-    const defaultThr = trimsList.find((t: any) =>
-      (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
-      (t.name || '').toLowerCase().includes('thread') ||
-      (t.code || '').toUpperCase().startsWith('THR')
-    ) || (threadsList.length > 0 ? threadsList[0] : null);
-    if (defaultThr) {
-      threadId = String(defaultThr.id);
-    }
-  }
-
-  // Preload and map dynamic trims from database
-  let resolvedTrims: Array<{
-    id: string | number;
-    trim_id: string;
-    category: string;
-    name: string;
-    count: string;
-    uom: string;
-    unit_price: number;
-  }> = [];
-
-  if (baseTrims.length > 0) {
-    resolvedTrims = baseTrims.map((t: any, idx: number) => {
-      const matched = trimsList.find((dbTrim: any) =>
-        String(dbTrim.id) === String(t.trim_id) ||
-        (dbTrim.name && t.name && dbTrim.name.toLowerCase() === t.name.toLowerCase()) ||
-        (dbTrim.code && t.code && dbTrim.code.toLowerCase() === t.code.toLowerCase())
-      ) || threadsList.find((th: any) => String(th.id) === String(t.trim_id))
-        || buttonsList.find((b: any) => String(b.id) === String(t.trim_id));
-      const catName = t.category || matched?.category?.name || matched?.trim_categories?.name || 'Trim';
-      const meta = getTrimCategoryMeta(catName, matched?.code || t.code);
-      const isThread = meta.isThr;
-      const isButton = meta.isBtn;
-      const uom = isThread 
-        ? 'spools'
-        : (matched?.uom || t.uom || meta.defaultUom || 'pcs');
-      const countVal = isThread
-        ? (resolvedThr || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1'))
-        : isButton
-        ? (resolvedBtn || (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '10'))
-        : (t.count !== undefined && t.count !== null && t.count !== '' ? String(t.count) : '1');
-      const unitPrice = parseFloat(matched?.unit_price || t.unit_price || '0') || 0;
-      return {
-        id: t.id || `trim-${idx}`,
-        trim_id: matched ? String(matched.id) : (t.trim_id ? String(t.trim_id) : ''),
-        category: isThread ? 'Thread' : (isButton ? 'Buttons' : catName),
-        name: matched?.name || t.name || (isThread ? 'Thread' : (isButton ? 'Buttons' : catName)),
-        count: countVal,
-        uom: uom,
-        unit_price: unitPrice
-      };
-    });
-
-    // If product has button configured in master but not in baseTrims, include it
-    const hasBtn = resolvedTrims.some(t => (t.category || '').toLowerCase().includes('button') || (t.name || '').toLowerCase().includes('button'));
-    if (!hasBtn && (buttonId || resolvedBtn)) {
-      const dbBtn = trimsList.find((t: any) =>
-        (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('button') ||
-        (t.name || '').toLowerCase().includes('button')
-      ) || (buttonsList.length > 0 ? buttonsList[0] : null);
-
-      resolvedTrims.unshift({
-        id: 'btn-0',
-        trim_id: buttonId || (dbBtn ? String(dbBtn.id) : ''),
-        category: 'Buttons',
-        name: dbBtn?.name || 'Buttons',
-        count: resolvedBtn || '10',
-        uom: dbBtn?.uom || 'pcs',
-        unit_price: parseFloat(dbBtn?.unit_price || '0') || 0
-      });
-      if (!buttonId && dbBtn) buttonId = String(dbBtn.id);
-    }
-
-    // If product has thread configured in master but not in baseTrims, include it
-    const hasThr = resolvedTrims.some(t => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread'));
-    if (!hasThr && (threadId || resolvedThr)) {
-      const dbThr = trimsList.find((t: any) =>
-        (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
-        (t.name || '').toLowerCase().includes('thread') ||
-        (t.code || '').toUpperCase().startsWith('THR')
-      ) || (threadsList.length > 0 ? threadsList[0] : null);
-
-      resolvedTrims.push({
-        id: 'thr-1',
-        trim_id: threadId || (dbThr ? String(dbThr.id) : ''),
-        category: 'Thread',
-        name: dbThr?.name || 'Thread',
-        count: resolvedThr || '1',
-        uom: 'spools',
-        unit_price: parseFloat(dbThr?.unit_price || '0') || 0
-      });
-      if (!threadId && dbThr) threadId = String(dbThr.id);
-    }
-  } else {
-    // If no trims configured on the product, search database for a Button and a Thread
-    const dbBtn = trimsList.find((t: any) =>
-      (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('button') ||
-      (t.name || '').toLowerCase().includes('button')
-    ) || (buttonsList.length > 0 ? buttonsList[0] : null);
-
-    const dbThr = trimsList.find((t: any) =>
-      (t.category?.name || t.trim_categories?.name || '').toLowerCase().includes('thread') ||
-      (t.name || '').toLowerCase().includes('thread') ||
-      (t.code || '').toUpperCase().startsWith('THR')
-    ) || (threadsList.length > 0 ? threadsList[0] : null);
-
-    if (dbBtn || resolvedBtn || buttonId) {
-      resolvedTrims.push({
-        id: 'btn-0',
-        trim_id: dbBtn ? String(dbBtn.id) : (buttonId || ''),
-        category: 'Buttons',
-        name: dbBtn?.name || 'Buttons',
-        count: resolvedBtn || '10',
-        uom: dbBtn?.uom || 'pcs',
-        unit_price: parseFloat(dbBtn?.unit_price || '0') || 0
-      });
-      if (!buttonId && dbBtn) buttonId = String(dbBtn.id);
-    }
-
-    if (threadId || resolvedThr) {
-      resolvedTrims.push({
-        id: 'thr-1',
-        trim_id: dbThr ? String(dbThr.id) : (threadId || ''),
-        category: 'Thread',
-        name: dbThr?.name || 'Thread',
-        count: resolvedThr || '1',
-        uom: 'spools',
-        unit_price: parseFloat(dbThr?.unit_price || '0') || 0
-      });
-      if (!threadId && dbThr) threadId = String(dbThr.id);
-    }
-  }
-  const buttonUom = btnTrim?.uom || 'pcs';
-  const threadUom = 'spools';
-
-  const defMainFab = fabricsList.find((f: any) => String(f.id) === String(mainFabricId));
-  const finalMainMeters = (defMainFab?.width && Number(defMainFab.width) !== 58)
-    ? convertFabricMetersByWidth(resolvedMain, defMainFab.width)
-    : resolvedMain;
-
-  const defAtt1Fab = fabricsList.find((f: any) => String(f.id) === String(att1FabricId));
-  const finalAtt1Meters = (defAtt1Fab?.width && Number(defAtt1Fab.width) !== 58)
-    ? convertFabricMetersByWidth(resolvedAtt1, defAtt1Fab.width)
-    : resolvedAtt1;
-
-  const defAtt2Fab = fabricsList.find((f: any) => String(f.id) === String(att2FabricId));
-  const finalAtt2Meters = (defAtt2Fab?.width && Number(defAtt2Fab.width) !== 58)
-    ? convertFabricMetersByWidth(resolvedAtt2, defAtt2Fab.width)
-    : resolvedAtt2;
-
+  // Fabrics and trims are only selected when the user explicitly selects them
   return {
     base_main_fabric_meters: resolvedMain,
-    main_fabric_meters: finalMainMeters,
+    main_fabric_meters: '',
     base_attachment_fabric1_meters: resolvedAtt1,
-    attachment_fabric1_meters: finalAtt1Meters,
+    attachment_fabric1_meters: '',
     base_attachment_fabric2_meters: resolvedAtt2,
-    attachment_fabric2_meters: finalAtt2Meters,
-    button_count: resolvedBtn,
-    thread_count: resolvedThr || '1',
-    button_uom: buttonUom,
-    thread_uom: threadUom,
-    fabric_id: mainFabricId,
-    attachment_fabric1_id: att1FabricId,
-    attachment_fabric2_id: att2FabricId,
-    button_id: buttonId,
-    thread_id: threadId,
-    trims: resolvedTrims,
+    attachment_fabric2_meters: '',
+    button_count: resolvedBtn || '',
+    thread_count: resolvedThr || '',
+    button_uom: 'pcs',
+    thread_uom: 'spools',
+    fabric_id: '',
+    attachment_fabric1_id: '',
+    attachment_fabric2_id: '',
+    button_id: '',
+    thread_id: '',
+    trims: [],
     sam_value: prod.sam_value !== null && prod.sam_value !== undefined ? String(prod.sam_value) : '',
     main_fabric_sam: '6.777',
     attachment_fabric1_sam: (resolvedAtt1 && resolvedAtt1 !== '0') ? '6.777' : '',
@@ -579,12 +376,8 @@ interface WizardStep2Props {
   setTemplateLineItems: (items: TemplateLineItem[]) => void;
   manualItems: ManualItem[];
   setManualItems: any;
-  separateFabrics: SeparateFabricItem[];
-  setSeparateFabrics: (items: SeparateFabricItem[]) => void;
   orgDepartments?: any[];
   setOrgDepartments?: (depts: any[]) => void;
-  departmentItems?: Record<string, ManualItem[]>;
-  setDepartmentItems?: any;
   productTypes: ProductType[];
   allProducts: any[];
   fabricsList: any[];
@@ -604,7 +397,6 @@ interface WizardStep2Props {
   onBack: () => void;
   onNext: () => void;
   isManualItemsValid: () => boolean;
-  quotationType?: string;
   organizations?: any[];
   selectedOrgId?: string;
 }
@@ -616,12 +408,8 @@ export default function WizardStep2({
   setTemplateLineItems,
   manualItems,
   setManualItems,
-  separateFabrics,
-  setSeparateFabrics,
   orgDepartments = [],
   setOrgDepartments,
-  departmentItems = {},
-  setDepartmentItems,
   productTypes,
   allProducts,
   fabricsList,
@@ -641,10 +429,17 @@ export default function WizardStep2({
   onBack,
   onNext,
   isManualItemsValid,
-  quotationType = 'STANDARD',
   organizations = [],
   selectedOrgId = '',
 }: WizardStep2Props) {
+
+  // Master Items (Garment Items & Specifications from Art Number Hub)
+  const [masterItems, setMasterItems] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    api.get('/art-number-hub/master-data')
+      .then(res => setMasterItems(res.data?.items || res.data?.dresses || []))
+      .catch(() => {});
+  }, []);
 
   // Group all trims from database by category
   const trimsByCategory = React.useMemo(() => {
@@ -697,16 +492,6 @@ export default function WizardStep2({
     return Array.from(set);
   }, [trimCategories, trimsList]);
 
-  const [isLoadingEntities, setIsLoadingEntities] = useState(false);
-  const [globalSets, setGlobalSets] = useState('2');
-  const [entityAuditSummary, setEntityAuditSummary] = useState<{
-    totalEntities: number;
-    measuredCount: number;
-    pendingCount: number;
-    missingCount: number;
-    classesCount: number;
-  } | null>(null);
-
   const selectedOrg = organizations?.find((org: any) => String(org.id) === String(selectedOrgId));
   const isSchool = Boolean(
     selectedOrg?.industries?.name?.toLowerCase().includes('school') ||
@@ -717,23 +502,17 @@ export default function WizardStep2({
     orgDepartments?.some((d: any) => /class|grade|std|standard|lkg|ukg|nursery|kg/i.test(d.name || d.baseDeptName || ''))
   );
 
-  const isAccessoryType = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
-
   const isAccessoryProductType = React.useCallback((pt: any): boolean => {
     if (!pt) return false;
     const name = (pt.name || '').toLowerCase().trim();
     return name === 'accessories' || name === 'accessory' || name.includes('accessor');
   }, []);
 
-  const displayProductTypes = React.useMemo(() => {
-    return (productTypes || []).filter((pt: any) => {
-      const isAcc = isAccessoryProductType(pt);
-      if (isAccessoryType) {
-        return isAcc;
-      }
-      return !isAcc;
-    });
-  }, [productTypes, isAccessoryType, isAccessoryProductType]);
+  // Product types offered in the item modal: accessory lines only see accessory types, readymades the rest
+  const productTypesByKind = React.useMemo(() => ({
+    accessory: (productTypes || []).filter((pt: any) => isAccessoryProductType(pt)),
+    garment: (productTypes || []).filter((pt: any) => !isAccessoryProductType(pt)),
+  }), [productTypes, isAccessoryProductType]);
 
   const isAccessoryProduct = React.useCallback((p: any): boolean => {
     if (!p) return false;
@@ -761,322 +540,6 @@ export default function WizardStep2({
     const accPrefixes = ['TIE-', 'BLT-', 'SCK-', 'BDG-', 'CAP-', 'SCF-', 'EPL-', 'LNY-', 'BOW-', 'PKS-', 'CRST-', 'ACC-'];
     return accPrefixes.some(pref => art.startsWith(pref));
   }, [productTypes, isAccessoryProductType]);
-
-  // Auto-split departments into gender divisions (Boys & Girls or Men & Women)
-  const autoSplitDepartments = React.useCallback((depts: any[]) => {
-    const maleSuffix = isSchool ? 'Boys' : 'Men';
-    const femaleSuffix = isSchool ? 'Girls' : 'Women';
-    const result: any[] = [];
-
-    depts.forEach((d) => {
-      const idStr = String(d.id);
-      const isAlreadySplit = idStr.endsWith('_boys') || idStr.endsWith('_girls') || (d.gender && d.gender !== 'unisex');
-      if (isAlreadySplit) {
-        result.push(d);
-      } else {
-        const rawId = idStr;
-        result.push({
-          ...d,
-          id: `${rawId}_boys`,
-          name: d.name,
-          baseDeptName: d.baseDeptName || d.name,
-          gender: 'male',
-          division: d.division ? `${d.division} - ${maleSuffix}` : maleSuffix,
-          selected: d.selected !== undefined ? d.selected : true,
-          persons: d.persons || '0',
-          sets: d.sets || '2',
-          qty_mode: d.qty_mode || 'members_sets',
-          direct_qty: d.direct_qty || ''
-        });
-        result.push({
-          ...d,
-          id: `${rawId}_girls`,
-          name: d.name,
-          baseDeptName: d.baseDeptName || d.name,
-          gender: 'female',
-          division: d.division ? `${d.division} - ${femaleSuffix}` : femaleSuffix,
-          selected: d.selected !== undefined ? d.selected : true,
-          persons: d.persons || '0',
-          sets: d.sets || '2',
-          qty_mode: d.qty_mode || 'members_sets',
-          direct_qty: d.direct_qty || ''
-        });
-      }
-    });
-    return result;
-  }, [isSchool]);
-
-
-
-  const handleAutoLoadEntitiesAndMeasurements = async () => {
-    if (!selectedOrgId) {
-      toast.error('No customer organization selected. Please return to Step 1 and select an organization.');
-      return;
-    }
-
-    setIsLoadingEntities(true);
-    const loadingToast = toast.loading('Loading student & sizing data...');
-
-    try {
-      const res = await api.get(`/quotations/calculate/${selectedOrgId}`);
-      const data = res.data;
-
-      const members: any[] = data.entities || [];
-      const dbDepts: any[] = data.departments || [];
-      const totalEntities = data.total_entities !== undefined ? data.total_entities : members.length;
-      const measuredCount = data.measured_count || 0;
-      const pendingCount = data.pending_count || 0;
-      const missingCount = data.missing_count || 0;
-
-      // Dynamic gender suffixes based on industry sector (School vs Corporate/Dealership)
-      const maleSuffix = isSchool ? 'Boys' : 'Men';
-      const femaleSuffix = isSchool ? 'Girls' : 'Women';
-
-      // Group members by department and separate by gender
-      const deptBoys: Record<string, any[]> = {};
-      const deptGirls: Record<string, any[]> = {};
-      const deptOthers: Record<string, any[]> = {};
-
-      // If an organization has only 1 department, map unassigned members to that department
-      const soleDeptId = dbDepts.length === 1 ? String(dbDepts[0].id) : null;
-
-      members.forEach((m: any) => {
-        let dId = String(m.department_id || '');
-        if (!dId && soleDeptId) {
-          dId = soleDeptId;
-        } else if (!dId) {
-          dId = 'unassigned';
-        }
-
-        const g = (m.gender || '').toLowerCase().trim();
-        if (g === 'male' || g === 'boy' || g === 'm' || g === 'men') {
-          if (!deptBoys[dId]) deptBoys[dId] = [];
-          deptBoys[dId].push(m);
-        } else if (g === 'female' || g === 'girl' || g === 'f' || g === 'women') {
-          if (!deptGirls[dId]) deptGirls[dId] = [];
-          deptGirls[dId].push(m);
-        } else {
-          if (!deptOthers[dId]) deptOthers[dId] = [];
-          deptOthers[dId].push(m);
-        }
-      });
-
-      // Split into gender-separated department rows
-      const updatedDepts: any[] = [];
-      const effectiveDepts = [...dbDepts];
-      if ((deptBoys['unassigned']?.length || 0) > 0 || (deptGirls['unassigned']?.length || 0) > 0) {
-        effectiveDepts.push({
-          id: 'unassigned',
-          name: isSchool ? 'General / Unassigned' : 'General Staff',
-          division: 'General'
-        });
-      }
-
-      effectiveDepts.forEach((d: any) => {
-        const rawId = String(d.id);
-        const boys = deptBoys[rawId] || [];
-        const girls = deptGirls[rawId] || [];
-
-        if (boys.length > 0 && girls.length > 0) {
-          // Both genders present -> create 2 separate rows
-          updatedDepts.push({
-            id: `${rawId}_boys`,
-            name: `${d.name} (${maleSuffix})`,
-            baseDeptName: d.name,
-            gender: 'male',
-            division: d.division ? `${d.division} - ${maleSuffix}` : maleSuffix,
-            selected: true,
-            persons: String(boys.length),
-            sets: globalSets || '2',
-            _memberCount: boys.length,
-            _measuredCount: boys.filter(m => m.measurement_status === 'Completed').length,
-            _members: boys
-          });
-          updatedDepts.push({
-            id: `${rawId}_girls`,
-            name: `${d.name} (${femaleSuffix})`,
-            baseDeptName: d.name,
-            gender: 'female',
-            division: d.division ? `${d.division} - ${femaleSuffix}` : femaleSuffix,
-            selected: true,
-            persons: String(girls.length),
-            sets: globalSets || '2',
-            _memberCount: girls.length,
-            _measuredCount: girls.filter(m => m.measurement_status === 'Completed').length,
-            _members: girls
-          });
-        } else if (boys.length > 0) {
-          updatedDepts.push({
-            id: `${rawId}_boys`,
-            name: `${d.name} (${maleSuffix})`,
-            baseDeptName: d.name,
-            gender: 'male',
-            division: d.division || maleSuffix,
-            selected: true,
-            persons: String(boys.length),
-            sets: globalSets || '2',
-            _memberCount: boys.length,
-            _measuredCount: boys.filter(m => m.measurement_status === 'Completed').length,
-            _members: boys
-          });
-        } else if (girls.length > 0) {
-          updatedDepts.push({
-            id: `${rawId}_girls`,
-            name: `${d.name} (${femaleSuffix})`,
-            baseDeptName: d.name,
-            gender: 'female',
-            division: d.division || femaleSuffix,
-            selected: true,
-            persons: String(girls.length),
-            sets: globalSets || '2',
-            _memberCount: girls.length,
-            _measuredCount: girls.filter(m => m.measurement_status === 'Completed').length,
-            _members: girls
-          });
-        } else {
-          // If no members uploaded yet or unassigned
-          updatedDepts.push({
-            id: `${rawId}_boys`,
-            name: `${d.name} (${maleSuffix})`,
-            baseDeptName: d.name,
-            gender: 'male',
-            division: d.division ? `${d.division} - ${maleSuffix}` : maleSuffix,
-            selected: false,
-            persons: '0',
-            sets: globalSets || '2',
-            _memberCount: 0,
-            _measuredCount: 0
-          });
-          updatedDepts.push({
-            id: `${rawId}_girls`,
-            name: `${d.name} (${femaleSuffix})`,
-            baseDeptName: d.name,
-            gender: 'female',
-            division: d.division ? `${d.division} - ${femaleSuffix}` : femaleSuffix,
-            selected: false,
-            persons: '0',
-            sets: globalSets || '2',
-            _memberCount: 0,
-            _measuredCount: 0
-          });
-        }
-      });
-
-      if (setOrgDepartments) {
-        setOrgDepartments(updatedDepts);
-      }
-
-      // Re-apply class-wise measurements/BOM and scale quantities
-      if (setDepartmentItems) {
-        const updatedDeptItems: Record<string, ManualItem[]> = {};
-
-        updatedDepts.forEach((dept: any) => {
-          const deptId = String(dept.id);
-          const currentItems = (departmentItems || {})[deptId] || [];
-          const personsNum = parseInt(dept.persons, 10) || 0;
-          const setsNum = parseInt(dept.sets, 10) || 0;
-          const totalUnits = personsNum * setsNum;
-
-          if (currentItems.length > 0) {
-            updatedDeptItems[deptId] = currentItems.map((item) => {
-              const updatedItem = { ...item, quantity: String(totalUnits || 1) };
-
-              if (item.product_id) {
-                const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
-                if (prod) {
-                  const autoDefaults = getAutoProductDefaults({
-                    prod,
-                    isSchool,
-                    deptName: dept.baseDeptName || dept.name || '',
-                    fabricsList,
-                    buttonsList,
-                    threadsList,
-                    trimsList,
-                    trimCategories
-                  });
-                  if (autoDefaults) {
-                    if (autoDefaults.main_fabric_meters) {
-                      updatedItem.base_main_fabric_meters = autoDefaults.base_main_fabric_meters || autoDefaults.main_fabric_meters;
-                      updatedItem.main_fabric_meters = autoDefaults.main_fabric_meters;
-                    }
-                    if (autoDefaults.attachment_fabric1_meters) {
-                      updatedItem.base_attachment_fabric1_meters = autoDefaults.base_attachment_fabric1_meters || autoDefaults.attachment_fabric1_meters;
-                      updatedItem.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
-                    }
-                    if (autoDefaults.attachment_fabric2_meters) {
-                      updatedItem.base_attachment_fabric2_meters = autoDefaults.base_attachment_fabric2_meters || autoDefaults.attachment_fabric2_meters;
-                      updatedItem.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
-                    }
-                    if (autoDefaults.button_count) updatedItem.button_count = autoDefaults.button_count;
-                    if (autoDefaults.thread_count) updatedItem.thread_count = autoDefaults.thread_count;
-                    if (!updatedItem.fabric_id && autoDefaults.fabric_id) updatedItem.fabric_id = autoDefaults.fabric_id;
-                    if (!updatedItem.button_id && autoDefaults.button_id) updatedItem.button_id = autoDefaults.button_id;
-                    if (!updatedItem.thread_id && autoDefaults.thread_id) updatedItem.thread_id = autoDefaults.thread_id;
-                    if (autoDefaults.trims && autoDefaults.trims.length > 0) updatedItem.trims = autoDefaults.trims;
-                  }
-                }
-              }
-
-              return updatedItem;
-            });
-          }
-        });
-
-        setDepartmentItems({ ...(departmentItems || {}), ...updatedDeptItems });
-      }
-
-      const activeCount = updatedDepts.filter((d: any) => d.selected).length;
-      setEntityAuditSummary({
-        totalEntities,
-        measuredCount,
-        pendingCount,
-        missingCount,
-        classesCount: activeCount
-      });
-
-      toast.success(
-        `⚡ Auto-loaded ${totalEntities} students across ${activeCount} gender-separated divisions! (${measuredCount} verified measurements)`,
-        { id: loadingToast, duration: 6000 }
-      );
-    } catch (err: any) {
-      console.error('Failed to load organization entities and measurements', err);
-      toast.error('Failed to load entity measurement records.', { id: loadingToast });
-    } finally {
-      setIsLoadingEntities(false);
-    }
-  };
-
-  const handleApplySetsGlobally = (setsValue: string) => {
-    setGlobalSets(setsValue);
-    const setsNum = parseInt(setsValue, 10) || 1;
-
-    if (setOrgDepartments) {
-      const updatedDepts = (orgDepartments || []).map((dept: any) => ({
-        ...dept,
-        sets: setsValue
-      }));
-      setOrgDepartments(updatedDepts);
-
-      if (setDepartmentItems) {
-        const updatedDeptItems: Record<string, ManualItem[]> = {};
-        updatedDepts.forEach((dept: any) => {
-          const deptId = String(dept.id);
-          const currentItems = (departmentItems || {})[deptId] || [];
-          const personsNum = parseInt(dept.persons, 10) || 0;
-          const totalUnits = personsNum * setsNum;
-          if (currentItems.length > 0) {
-            updatedDeptItems[deptId] = currentItems.map(item => ({
-              ...item,
-              quantity: String(totalUnits || 1)
-            }));
-          }
-        });
-        setDepartmentItems({ ...(departmentItems || {}), ...updatedDeptItems });
-      }
-
-      toast.success(`Applied ${setsValue} sets per person to all classes! Total units updated.`);
-    }
-  };
 
   // Deduplicate template line items by product_id
   const mergedMap = new Map<number, TemplateLineItem & { _indices: number[] }>();
@@ -1444,6 +907,14 @@ export default function WizardStep2({
 
   // Compute costs for a single item
   const getItemCosts = (item: ManualItem) => {
+    if (getItemKind(item) === 'CUSTOM') {
+      const rate = parseFloat(item.price) || 0;
+      return {
+        mainFabricCost: 0, att1Cost: 0, att2Cost: 0, buttonCost: 0, threadCost: 0, samCost: 0,
+        unitTotal: rate, btnPrice: 0, thrPrice: 0,
+        calcMainFabricCost: 0, calcAtt1Cost: 0, calcAtt2Cost: 0, calcSamCost: 0
+      };
+    }
     const calcMainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
     const calcAtt1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
     const calcAtt2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
@@ -1568,8 +1039,11 @@ export default function WizardStep2({
         : String(changes.attachment_fabric2_meters || '');
     }
 
-    const costs = getItemCosts(newItem);
-    newItem.price = costs.unitTotal.toFixed(2);
+    // Readymade rate follows the calculated cost until the user types a rate by hand.
+    // Accessory / fabric rates are always entered (or prefilled) directly.
+    if (getItemKind(newItem) === 'READYMADE' && !newItem.rate_manual) {
+      newItem.price = getItemCosts(newItem).unitTotal.toFixed(2);
+    }
     updated[index] = newItem;
     setManualItems(updated);
 
@@ -1596,32 +1070,32 @@ export default function WizardStep2({
   };
 
   // Pre-index available ART Numbers from allProducts for quick auto-loading & autocomplete
-  const availableArtNumbers = React.useMemo(() => {
-    const list: { art_number: string; product_name: string; product_id: number; product_type_id: number }[] = [];
-    const seen = new Set<string>();
+  const artNumbersByKind = React.useMemo(() => {
+    type ArtEntry = { art_number: string; product_name: string; product_id: number; product_type_id: number };
+    const accessory: ArtEntry[] = [];
+    const garment: ArtEntry[] = [];
+    const seenAcc = new Set<string>();
+    const seenGar = new Set<string>();
     (allProducts || []).forEach((p: any) => {
+      if (!p.art_number || !String(p.art_number).trim()) return;
       const isAcc = isAccessoryProduct(p);
-      if (isAccessoryType && !isAcc) return;
-      if (!isAccessoryType && isAcc) return;
-
-      if (p.art_number && String(p.art_number).trim()) {
-        const art = String(p.art_number).trim();
-        const lower = art.toLowerCase();
-        if (!seen.has(lower)) {
-          seen.add(lower);
-          list.push({
-            art_number: art,
-            product_name: p.name || 'Unnamed Product',
-            product_id: p.id,
-            product_type_id: p.product_type_id
-          });
-        }
-      }
+      const art = String(p.art_number).trim();
+      const lower = art.toLowerCase();
+      const seen = isAcc ? seenAcc : seenGar;
+      if (seen.has(lower)) return;
+      seen.add(lower);
+      (isAcc ? accessory : garment).push({
+        art_number: art,
+        product_name: formatProductDisplayName(p, masterItems) || p.name || 'Uniform Item',
+        product_id: p.id,
+        product_type_id: p.product_type_id
+      });
     });
-    return list;
-  }, [allProducts, isAccessoryType, isAccessoryProduct]);
+    return { accessory, garment };
+  }, [allProducts, isAccessoryProduct, masterItems]);
 
-  const handleApplyArtNumber = React.useCallback((artVal: string, currentItem: ManualItem, deptName?: string): Partial<ManualItem> => {
+  // Plain function (not memoised) so it always uses the current costing inputs
+  const handleApplyArtNumber = (artVal: string, currentItem: ManualItem, deptName?: string): Partial<ManualItem> => {
     const clean = (artVal || '').trim();
     if (!clean) {
       return { art_number: '' };
@@ -1629,6 +1103,7 @@ export default function WizardStep2({
 
     const cleanLower = clean.toLowerCase();
     const cleanNoDash = cleanLower.replace(/[-\s]/g, '');
+    const isAccessoryType = getItemKind(currentItem) === 'ACCESSORY';
 
     // Try finding matching product in allProducts: exact match first, then normalized (ignoring hyphens/spaces)
     const matchedProd = (allProducts || []).find((p: any) => {
@@ -1672,12 +1147,13 @@ export default function WizardStep2({
         trimCategories
       });
 
+      const formattedProdName = formatProductDisplayName(matchedProd, masterItems);
       const updates: Partial<ManualItem> = {
         art_number: matchedProd.art_number || clean,
         product_id: String(matchedProd.id),
         product_type_id: String(matchedProd.product_type_id || currentItem.product_type_id || ''),
-        product_name: matchedProd.name || '',
-        name: matchedProd.name || '',
+        product_name: formattedProdName || matchedProd.name || '',
+        name: formattedProdName || matchedProd.name || '',
         design_number: '',
         final_sam_price: undefined,
         main_fabric_cost: undefined,
@@ -1713,7 +1189,7 @@ export default function WizardStep2({
         updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
       }
 
-      if (quotationType !== 'READYMADE') {
+      if (!currentItem.rate_manual) {
         const costs = getItemCosts({ ...currentItem, ...updates });
         updates.price = costs.unitTotal.toFixed(2);
       }
@@ -1723,19 +1199,15 @@ export default function WizardStep2({
 
     // No matching product in database yet - update art_number so user can keep typing freely
     return { art_number: artVal };
-  }, [allProducts, isSchool, fabricsList, buttonsList, threadsList, trimsList, trimCategories, quotationType]);
+  };
 
   const updateItemTrim = (itemIndex: number, trimIndex: number, changes: any) => {
     const updated = [...manualItems];
     const item = { ...updated[itemIndex] };
-    const defaultTrims = [
-      { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
-    ];
-    const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    const curTrims = (item.trims && Array.isArray(item.trims)) ? [...item.trims] : [];
     while (curTrims.length <= trimIndex) {
       curTrims.push({
-        id: Date.now() + Math.random(),
+        id: newLocalId(),
         trim_id: '',
         category: 'Trim',
         name: '',
@@ -1758,8 +1230,7 @@ export default function WizardStep2({
       item.thread_count = thr.count || '1';
     }
 
-    const costs = getItemCosts(item);
-    item.price = costs.unitTotal.toFixed(2);
+    if (!item.rate_manual) item.price = getItemCosts(item).unitTotal.toFixed(2);
     updated[itemIndex] = item;
     setManualItems(updated);
 
@@ -1777,11 +1248,7 @@ export default function WizardStep2({
   const addItemTrim = (itemIndex: number, category = 'Trim') => {
     const updated = [...manualItems];
     const item = { ...updated[itemIndex] };
-    const defaultTrims = [
-      { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
-    ];
-    const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    const curTrims = (item.trims && Array.isArray(item.trims)) ? [...item.trims] : [];
     const meta = getTrimCategoryMeta(category);
     curTrims.push({
       id: Date.now() + Math.random(),
@@ -1800,69 +1267,87 @@ export default function WizardStep2({
   const removeItemTrim = (itemIndex: number, trimIndex: number) => {
     const updated = [...manualItems];
     const item = { ...updated[itemIndex] };
-    const defaultTrims = [
-      { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-      { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '', uom: 'spools', unit_price: 0 }
-    ];
-    const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
+    const curTrims = (item.trims && Array.isArray(item.trims)) ? [...item.trims] : [];
     curTrims.splice(trimIndex, 1);
     item.trims = curTrims;
-    const costs = getItemCosts(item);
-    item.price = costs.unitTotal.toFixed(2);
+    if (!item.rate_manual) item.price = getItemCosts(item).unitTotal.toFixed(2);
     updated[itemIndex] = item;
     setManualItems(updated);
   };
 
-  const addNewItem = () => {
-    setManualItems([
-      ...manualItems,
-      {
-        id: Date.now(), product_type_id: '', product_id: '',
-        fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-        attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-        attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-        button_id: '', button_count: '', thread_id: '', thread_count: '',
-        trims: [
-          { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-          { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'spools', unit_price: 0 }
-        ],
-        sam_value: '', design_number: '', quantity: '2', price: '',
-        qty_mode: 'members_sets',
-        no_of_members: '1',
-        no_of_sets: '2',
-        gender: ''
-      }
-    ]);
+  // ── Item lines: every line is added/edited in a modal, then shown in the item table ──
+  // The modal edits the line in place inside manualItems so all existing readymade logic
+  // (ART auto-load, trims, DNS resolution, costing) keeps working unchanged.
+  const [modalLine, setModalLine] = useState<{ id: number; isNew: boolean; snapshot: ManualItem | null } | null>(null);
+  const modalIndex = modalLine ? manualItems.findIndex(it => it.id === modalLine.id) : -1;
+  const modalItem = modalIndex >= 0 ? manualItems[modalIndex] : null;
+
+  const patchLine = (index: number, changes: Partial<ManualItem>) => {
+    const updated = [...manualItems];
+    if (!updated[index]) return;
+    updated[index] = { ...updated[index], ...changes };
+    setManualItems(updated);
   };
 
-  const addSeparateFabric = () => {
-    setSeparateFabrics([
-      ...separateFabrics,
-      {
-        id: Date.now() + Math.random(),
-        fabric_id: '',
-        meters: '1',
-        rate: '0.00'
-      }
-    ]);
+  const openAddLine = (kind: ItemKind) => {
+    const line = createBlankLine(kind);
+    setManualItems([...manualItems, line]);
+    setModalLine({ id: line.id, isNew: true, snapshot: null });
   };
 
-  const updateSeparateFabric = (idx: number, changes: Partial<SeparateFabricItem>) => {
-    const updated = [...separateFabrics];
-    const item = { ...updated[idx], ...changes };
-    if (changes.fabric_id) {
-      const fabric = fabricsList.find((f: any) => String(f.id) === String(changes.fabric_id));
-      if (fabric) {
-        const calculatedRate = calculateFabricCost(fabric.id, '1', '6.777', '');
-        item.rate = calculatedRate > 0 ? calculatedRate.toFixed(2) : (parseFloat(fabric.cost_per_meter) || 0).toFixed(2);
-      }
+  const openEditLine = (index: number) => {
+    const item = manualItems[index];
+    if (!item) return;
+    setModalLine({ id: item.id, isNew: false, snapshot: JSON.parse(JSON.stringify(item)) });
+  };
+
+  const cancelModal = () => {
+    if (!modalLine) return;
+    const { id, isNew, snapshot } = modalLine;
+    if (isNew) {
+      setManualItems((curr: ManualItem[]) => curr.filter(it => it.id !== id));
+    } else if (snapshot) {
+      setManualItems((curr: ManualItem[]) => curr.map(it => (it.id === id ? snapshot : it)));
     }
-    updated[idx] = item;
-    setSeparateFabrics(updated);
+    setModalLine(null);
   };
 
-  const removeSeparateFabric = (idx: number) => {
-    setSeparateFabrics(separateFabrics.filter((_, i) => i !== idx));
+  const saveModal = () => {
+    if (!modalItem || getLineError(modalItem)) return;
+    setModalLine(null);
+  };
+
+  const deleteLine = (index: number) => {
+    setManualItems(manualItems.filter((_, i) => i !== index));
+  };
+
+  const changeLineQty = (index: number, value: string) => {
+    const item = manualItems[index];
+    if (!item) return;
+    const next: ManualItem = { ...item, quantity: value, qty_mode: 'direct_products' };
+    // SAM cost depends on quantity slabs, so a readymade's calculated rate follows the quantity
+    if (getItemKind(next) === 'READYMADE' && !next.rate_manual) {
+      next.price = getItemCosts(next).unitTotal.toFixed(2);
+    }
+    const updated = [...manualItems];
+    updated[index] = next;
+    setManualItems(updated);
+  };
+
+  const changeLineRate = (index: number, value: string) => {
+    patchLine(index, { price: value, rate_manual: true });
+  };
+
+  const getDefaultFabricRate = (fabricId: string): string => {
+    const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
+    if (!fabric) return '';
+    const calculatedRate = calculateFabricCost(fabric.id, '1', '6.777', '');
+    return calculatedRate > 0 ? calculatedRate.toFixed(2) : (parseFloat(fabric.cost_per_meter) || 0).toFixed(2);
+  };
+
+  const getLineView = (item: ManualItem, index: number): ItemLineView => {
+    const line = getLineDisplayView(item, allProducts, fabricsList, masterItems);
+    return { item, index, title: line.title, subtitle: line.subtitle };
   };
 
   // Shared select style
@@ -1875,7 +1360,12 @@ export default function WizardStep2({
       unitTotal: calculatedUnitTotal, btnPrice, thrPrice,
       calcMainFabricCost, calcAtt1Cost, calcAtt2Cost, calcSamCost
     } = getItemCosts(item);
-    const unitTotal = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
+    // The card is driven by the line's own kind (readymade or accessory); fabric lines use renderFabricLineForm.
+    const isAccessoryType = getItemKind(item) === 'ACCESSORY';
+    const quotationType: string = isAccessoryType ? 'ACCESSORIES' : 'STANDARD';
+    const displayProductTypes = isAccessoryType ? productTypesByKind.accessory : productTypesByKind.garment;
+    const availableArtNumbers = isAccessoryType ? artNumbersByKind.accessory : artNumbersByKind.garment;
+    const unitTotal = (isAccessoryType || item.rate_manual) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
 
     const matchedProduct = (allProducts || []).find((p: any) => {
       if (item.product_id && String(p.id) === String(item.product_id)) return true;
@@ -1899,13 +1389,12 @@ export default function WizardStep2({
       if (isAcc) return false;
 
       const isCorrectCategory = String(p.product_type_id) === String(item.product_type_id);
-      if (quotationType === 'READYMADE') {
-        const parsed = parseMaterialsField(p.materials);
-        if (parsed.type?.toLowerCase() !== 'trade_readymade') return false;
-      }
       if (quotationType === 'STANDARD') {
-        const parsed = parseMaterialsField(p.materials);
-        if (parsed.type?.toLowerCase() !== 'readymade') return false;
+        // In-house garments only. The Items form saves readymade products WITHOUT a
+        // [ProductType: ...] tag, so an untagged product counts as in-house readymade;
+        // only explicitly tagged non-in-house products (e.g. trade readymades) are excluded.
+        const parsedType = (parseMaterialsField(p.materials).type || '').toLowerCase();
+        if (parsedType && parsedType !== 'readymade' && parsedType !== 'custom_manufactured') return false;
       }
       if (!isCorrectCategory) return false;
 
@@ -1921,186 +1410,18 @@ export default function WizardStep2({
       return true;
     });
 
-    const totalItemCost = unitTotal * (parseInt(item.quantity) || 0);
 
     const mainFabric = fabricsList.find((f: any) => String(f.id) === item.fabric_id);
     const att1Fabric = fabricsList.find((f: any) => String(f.id) === item.attachment_fabric1_id);
     const att2Fabric = fabricsList.find((f: any) => String(f.id) === item.attachment_fabric2_id);
 
     return (
-      <div key={item.id} className="bg-white border border-zinc-200 rounded-3xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
+      <div key={item.id} className="bg-white">
 
         {/* ── Card Header ── */}
-        {quotationType === 'FABRIC' ? (
-          <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Department Dropdown if available */}
-              {orgDepartments && orgDepartments.length > 0 && (
-                <div className="min-w-[150px]">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Department</p>
-                  <Select
-                    className={selectCls}
-                    value={item.department_id || ''}
-                    onChange={(e) => {
-                      const deptId = e.target.value;
-                      const selectedD = orgDepartments.find((d: any) => String(d.id) === deptId);
-                      updateItem(index, {
-                        department_id: deptId,
-                        department_name: selectedD ? (selectedD.division ? `${selectedD.name} (${selectedD.division})` : selectedD.name) : ''
-                      });
-                    }}
-                  >
-                    <option value="">General / None</option>
-                    {orgDepartments.map((d: any) => (
-                      <option key={d.id} value={String(d.id)}>
-                        {d.name}{d.division ? ` (${d.division})` : ''}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              )}
-
-              {/* Quantity Selection Mode (Radio) */}
-              <div className="min-w-[270px] bg-zinc-50 p-2.5 rounded-2xl border border-zinc-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Qty Selection</span>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`qty_mode_manual_fabric_${item.id || index}`}
-                        checked={item.qty_mode !== 'direct_products'}
-                        onChange={() => {
-                          const m = parseInt(item.no_of_members || '') || 1;
-                          const s = parseInt(item.no_of_sets || '2') || 2;
-                          updateItem(index, {
-                            qty_mode: 'members_sets',
-                            no_of_members: String(m),
-                            no_of_sets: String(s),
-                            quantity: String(m * s)
-                          });
-                        }}
-                        className="text-[#C82A2B] focus:ring-[#C82A2B]"
-                      />
-                      <span>Members &amp; Sets</span>
-                    </label>
-                    <span className="text-zinc-300 font-bold">|</span>
-                    <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`qty_mode_manual_fabric_${item.id || index}`}
-                        checked={item.qty_mode === 'direct_products'}
-                        onChange={() => {
-                          updateItem(index, {
-                            qty_mode: 'direct_products',
-                            quantity: item.quantity || '1'
-                          });
-                        }}
-                        className="text-[#C82A2B] focus:ring-[#C82A2B]"
-                      />
-                      <span>No. of Products</span>
-                    </label>
-                  </div>
-                </div>
-
-                {item.qty_mode !== 'direct_products' ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">Members</p>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 50"
-                        value={item.no_of_members || ''}
-                        onChange={(e) => {
-                          const m = e.target.value;
-                          const s = item.no_of_sets || '2';
-                          const total = (parseInt(m) || 0) * (parseInt(s) || 0);
-                          updateItem(index, {
-                            no_of_members: m,
-                            quantity: String(total || 1)
-                          });
-                        }}
-                        className={inputCls}
-                      />
-                    </div>
-                    <span className="text-zinc-400 font-black text-xs pt-3">×</span>
-                    <div className="w-16">
-                      <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">Sets</p>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="2"
-                        value={item.no_of_sets || '2'}
-                        onChange={(e) => {
-                          const s = e.target.value;
-                          const m = item.no_of_members || '1';
-                          const total = (parseInt(m) || 0) * (parseInt(s) || 0);
-                          updateItem(index, {
-                            no_of_sets: s,
-                            quantity: String(total || 1)
-                          });
-                        }}
-                        className={inputCls}
-                      />
-                    </div>
-                    <span className="text-zinc-400 font-black text-xs pt-3">=</span>
-                    <div className="text-right pl-1 pt-3 min-w-[55px]">
-                      <span className="text-xs font-mono font-black text-[#C82A2B]">{item.quantity || 0} Units</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-[8px] font-black uppercase text-zinc-400 mb-0.5">No. of Products</p>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Total units"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, { quantity: e.target.value })}
-                      className={inputCls}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4 ml-auto">
-                {/* Unit Cost Display */}
-                <div className="text-right self-center">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</p>
-                  <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
-                    ₹{unitTotal.toFixed(2)}
-                  </p>
-                </div>
-
-                {/* Highlighted Total Product Price */}
-                <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
-                    Total Product Price
-                  </p>
-                  <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
-                    ₹{totalItemCost.toFixed(2)}
-                  </p>
-                  <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
-                    ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
-                  </p>
-                </div>
-
-                {/* Delete */}
-                <button
-                  onClick={() => setManualItems(manualItems.filter((_, i) => i !== index))}
-                  disabled={manualItems.length === 1}
-                  className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-center disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="p-5 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-100">
+          <div className="pb-6 border-b border-zinc-100">
             {/* ── TOP SECTION: ART NUMBER & QUICK SPEC IDENTIFIER ── */}
-            <div className="mb-4 pb-3 border-b border-zinc-150 bg-sky-50/40 -mx-5 -mt-5 p-4 rounded-t-3xl flex items-center justify-between gap-4 flex-wrap">
+            <div className="mb-5 p-4 bg-sky-50/50 border border-sky-100 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap flex-1">
                 <div className="min-w-[240px] max-w-[340px] flex-1">
                   <div className="flex items-center justify-between mb-1">
@@ -2110,7 +1431,7 @@ export default function WizardStep2({
                     </label>
                     {matchedProduct && (
                       <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
-                        <CheckCircle2 size={10} className="text-emerald-600" /> Auto-loaded: {matchedProduct.name}
+                        <CheckCircle2 size={10} className="text-emerald-600" /> Auto-loaded: {formatProductDisplayName(matchedProduct, masterItems) || matchedProduct.name}
                       </span>
                     )}
                   </div>
@@ -2221,9 +1542,11 @@ export default function WizardStep2({
                 </Select>
               </div>
 
-              {/* Product */}
+              {/* Specification (Replaces Product for readymades) */}
               <div className="flex-1 min-w-[200px]">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">
+                  {isAccessoryType ? 'Product' : 'Specification'}
+                </p>
                 <Select
                   className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
                   value={item.product_id || ''}
@@ -2231,11 +1554,12 @@ export default function WizardStep2({
                   onChange={(e) => {
                     const val = e.target.value;
                     const prod = allProducts.find(p => String(p.id) === val);
+                    const formattedTitle = formatProductDisplayName(prod, masterItems);
                     const updates: Partial<ManualItem> = {
                       product_id: val,
                       product_type_id: String(prod?.product_type_id || item.product_type_id || ''),
-                      product_name: prod?.name || '',
-                      name: prod?.name || ''
+                      product_name: formattedTitle || prod?.name || '',
+                      name: formattedTitle || prod?.name || ''
                     };
                     if (isAccessoryType) {
                       if (prod) {
@@ -2327,12 +1651,17 @@ export default function WizardStep2({
                     updateItem(index, updates);
                   }}
                 >
-                  <option value="">{isAccessoryType ? 'Select accessory...' : (item.product_type_id ? 'Select product...' : 'Select type first')}</option>
-                  {filteredProducts.map(p => (
-                    <option key={p.id} value={String(p.id)}>
-                      {p.name}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
-                    </option>
-                  ))}
+                  <option value="">{isAccessoryType ? 'Select accessory...' : (item.product_type_id ? 'Select specification...' : 'Select type first')}</option>
+                  {filteredProducts.map(p => {
+                    const specLabel = !isAccessoryType
+                      ? (formatSpecificationDisplayName(p, masterItems) || formatProductDisplayName(p, masterItems) || p.name)
+                      : (formatProductDisplayName(p, masterItems) || p.name);
+                    return (
+                      <option key={p.id} value={String(p.id)}>
+                        {specLabel}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
+                      </option>
+                    );
+                  })}
                 </Select>
               </div>
 
@@ -2528,44 +1857,13 @@ export default function WizardStep2({
                 )}
               </div>
 
-              {/* Highlighted Total Product Price (Unit Price * No of Products) */}
-              <div className="ml-auto flex items-center gap-3">
-                <div className="text-right self-center">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                    {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
-                  </p>
-                  <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
-                    ₹{unitTotal.toFixed(2)}
-                  </p>
-                </div>
-                <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
-                    Total Product Price
-                  </p>
-                  <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
-                    ₹{totalItemCost.toFixed(2)}
-                  </p>
-                  <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
-                    ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
-                  </p>
-                </div>
-              </div>
 
-              {/* Delete */}
-              <button
-                onClick={() => setManualItems(manualItems.filter((_, i) => i !== index))}
-                disabled={manualItems.length === 1}
-                className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-start mt-5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-50 disabled:hover:text-red-400"
-              >
-                <Trash2 size={14} />
-              </button>
             </div>
 
           </div>
-        )}
 
         {/* ── Costing Breakdown Table ── */}
-        <div className="p-5" style={{ display: (quotationType === 'READYMADE' || isAccessoryType) ? 'none' : 'block' }}>
+        <div className="pt-6" style={{ display: (quotationType === 'READYMADE' || isAccessoryType) ? 'none' : 'block' }}>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Material Cost Breakdown</p>
             <span className="text-[10px] text-amber-700 font-bold bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
@@ -2592,7 +1890,7 @@ export default function WizardStep2({
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#C82A2B] flex-shrink-0"></span>
                       <span className="font-black text-zinc-900">Main Fabric</span>
-                      <span className="text-red-400 font-black text-[10px]">*</span>
+                      <span className="text-zinc-400 font-bold text-[9px]">(Optional)</span>
                     </div>
                   </td>
                   <td className="p-3">
@@ -2606,8 +1904,17 @@ export default function WizardStep2({
                           main_fabric_rate: '0.00',
                           main_fabric_cost: undefined
                         };
-                        if (val && !item.main_fabric_sam) {
-                          updates.main_fabric_sam = '6.777';
+                        if (val) {
+                          if (!item.main_fabric_meters || item.main_fabric_meters === '0') {
+                            updates.main_fabric_meters = item.base_main_fabric_meters || '1.5';
+                          }
+                          if (!item.main_fabric_sam) {
+                            updates.main_fabric_sam = '6.777';
+                          }
+                        } else {
+                          updates.main_fabric_meters = '';
+                          updates.main_fabric_sam = '';
+                          updates.main_fabric_cost = '0';
                         }
                         updateItem(index, updates);
                       }}
@@ -2834,10 +2141,14 @@ export default function WizardStep2({
                 </tr>
 
                 {/* ── Dynamic Database Trims ── */}
-                {((item.trims && item.trims.length > 0) ? item.trims : [
-                  { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
-                  { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '1', uom: 'spools' }
-                ]).map((trimItem: any, trimIdx: number) => {
+                {(!item.trims || item.trims.length === 0) && (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-center text-xs text-zinc-400 italic">
+                      No trims selected. Click &quot;+ Add Trim&quot; below if required.
+                    </td>
+                  </tr>
+                )}
+                {((item.trims && item.trims.length > 0) ? item.trims : []).map((trimItem: any, trimIdx: number) => {
                   const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
                                  threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
                                  buttonsList.find((b: any) => String(b.id) === String(trimItem.trim_id));
@@ -3055,358 +2366,217 @@ export default function WizardStep2({
     );
   };
 
-  const renderSetsBuilder = () => {
+  const renderDepartmentSelect = (item: ManualItem, index: number) => {
+    if (!orgDepartments || orgDepartments.length === 0) return null;
     return (
-      <div className="space-y-8 animate-in fade-in duration-500">
-        {/* Header */}
-        <div className="border-b border-zinc-100 pb-6 flex justify-between items-center flex-wrap gap-4">
-          <div>
-            <h3 className="text-2xl font-black italic text-zinc-900">Custom Sets Builder</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
-              Configure custom sets and package-level pricing
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/15">
-              {manualItems.length} Sets
-            </span>
-          </div>
-        </div>
-
-        {/* Sets Cards List */}
-        <div className="space-y-6">
-          {manualItems.map((set, setIdx) => {
-            const setName = set.size_breakdown?.set_name || '';
-            const setProducts = set.size_breakdown?.products || [];
-
-            return (
-              <div key={set.id} className="bg-white border border-zinc-200 rounded-[2rem] shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
-                {/* Set Header */}
-                <div className="p-6 bg-gradient-to-r from-zinc-50/80 to-white border-b border-zinc-150 flex items-center gap-4 flex-wrap">
-                  {/* Set Icon */}
-                  <div className="w-10 h-10 rounded-xl bg-[#FFF1F1] flex items-center justify-center text-[#C82A2B]">
-                    <Package size={20} />
-                  </div>
-
-                  {/* Set Name Input */}
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Set Name</label>
-                    <input
-                      type="text"
-                      value={setName}
-                      onChange={(e) => {
-                        const updated = [...manualItems];
-                        updated[setIdx] = {
-                          ...updated[setIdx],
-                          size_breakdown: {
-                            ...(updated[setIdx].size_breakdown || {}),
-                            is_set: true,
-                            set_name: e.target.value
-                          }
-                        };
-                        setManualItems(updated);
-                      }}
-                      className="w-full px-3 py-2 text-xs font-semibold border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white transition-all"
-                      placeholder="e.g. Office Uniform Set, Security Kit"
-                    />
-                  </div>
-
-                  {/* Set Price Input */}
-                  <div className="w-32">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Set Price (₹)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={set.price}
-                      onChange={(e) => {
-                        const updated = [...manualItems];
-                        updated[setIdx] = {
-                          ...updated[setIdx],
-                          price: e.target.value
-                        };
-                        setManualItems(updated);
-                      }}
-                      className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-[#C82A2B] text-center focus:outline-none focus:border-[#C82A2B] bg-white transition-all font-mono"
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  {/* Quantity Input */}
-                  <div className="w-24">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={set.quantity}
-                      onChange={(e) => {
-                        const updated = [...manualItems];
-                        updated[setIdx] = {
-                          ...updated[setIdx],
-                          quantity: e.target.value
-                        };
-                        setManualItems(updated);
-                      }}
-                      className="w-full px-3 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-zinc-900 text-center focus:outline-none focus:border-[#C82A2B] bg-white transition-all"
-                      placeholder="1"
-                    />
-                  </div>
-
-                  {/* Delete Set Button */}
-                  <button
-                    onClick={() => {
-                      setManualItems(manualItems.filter((_, i) => i !== setIdx));
-                    }}
-                    className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-150 self-end"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-
-                {/* Nested Products */}
-                <div className="p-6 bg-zinc-50/20 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Included Garments</span>
-                    <button
-                      onClick={() => {
-                        const updated = [...manualItems];
-                        const currentProds = updated[setIdx].size_breakdown?.products || [];
-                        updated[setIdx] = {
-                          ...updated[setIdx],
-                          size_breakdown: {
-                            ...(updated[setIdx].size_breakdown || {}),
-                            is_set: true,
-                            products: [
-                              ...currentProds,
-                              { product_type_id: '', product_type_name: '', product_id: '', product_name: '', gender: '' }
-                            ]
-                          }
-                        };
-                        setManualItems(updated);
-                      }}
-                      className="px-3 py-1.5 bg-[#FFF1F1] text-[#C82A2B] hover:bg-[#C82A2B] hover:text-white text-[9px] font-black uppercase tracking-widest rounded-lg flex items-center gap-1.5 transition-all"
-                    >
-                      <Plus size={12} /> Add Garment to Set
-                    </button>
-                  </div>
-
-                  {setProducts.length === 0 ? (
-                    <div className="text-center py-6 text-zinc-400 text-xs italic">
-                      No garments added to this set yet. Click "Add Garment to Set" above.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {setProducts.map((prod: any, prodIdx: number) => {
-                        return (
-                          <div key={prodIdx} className="flex items-center gap-4 bg-white p-3 border border-zinc-150 rounded-xl">
-                            {/* Product Category / Type Select */}
-                            <div className="flex-1 min-w-[150px]">
-                              <Select
-                                value={prod.product_type_id}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const pTypeName = productTypes.find(pt => String(pt.id) === String(val))?.name || '';
-                                  const updated = [...manualItems];
-                                  const prods = [...(updated[setIdx].size_breakdown?.products || [])];
-                                  prods[prodIdx] = {
-                                    ...prods[prodIdx],
-                                    product_type_id: val,
-                                    product_type_name: pTypeName,
-                                    product_id: '',
-                                    product_name: ''
-                                  };
-                                  updated[setIdx] = {
-                                    ...updated[setIdx],
-                                    size_breakdown: {
-                                      ...updated[setIdx].size_breakdown,
-                                      products: prods
-                                    }
-                                  };
-                                  setManualItems(updated);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 bg-white focus:outline-none"
-                              >
-                                <option value="">Select Category...</option>
-                                {displayProductTypes.map(pt => (
-                                  <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
-                                ))}
-                              </Select>
-                            </div>
-
-                            {/* Manual Gender Select */}
-                            <div className="w-[140px]">
-                              <Select
-                                value={prod.gender || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const updated = [...manualItems];
-                                  const prods = [...(updated[setIdx].size_breakdown?.products || [])];
-                                  prods[prodIdx] = {
-                                    ...prods[prodIdx],
-                                    gender: val
-                                  };
-                                  updated[setIdx] = {
-                                    ...updated[setIdx],
-                                    size_breakdown: {
-                                      ...updated[setIdx].size_breakdown,
-                                      products: prods
-                                    }
-                                  };
-                                  setManualItems(updated);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 bg-white focus:outline-none cursor-pointer"
-                              >
-                                <option value="">Select Gender...</option>
-                                <option value="male">{isSchool ? 'Boys / Male' : 'Men / Male'}</option>
-                                <option value="female">{isSchool ? 'Girls / Female' : 'Women / Female'}</option>
-                                <option value="unisex">Unisex / All</option>
-                              </Select>
-                            </div>
-
-                            {/* Product Select */}
-                            <div className="flex-1 min-w-[200px]">
-                              <Select
-                                value={prod.product_id}
-                                disabled={!prod.product_type_id}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const pName = allProducts.find(p => String(p.id) === String(val))?.name || '';
-                                  const updated = [...manualItems];
-                                  const prods = [...(updated[setIdx].size_breakdown?.products || [])];
-                                  prods[prodIdx] = {
-                                    ...prods[prodIdx],
-                                    product_id: val,
-                                    product_name: pName
-                                  };
-                                  updated[setIdx] = {
-                                    ...updated[setIdx],
-                                    size_breakdown: {
-                                      ...updated[setIdx].size_breakdown,
-                                      products: prods
-                                    }
-                                  };
-                                  setManualItems(updated);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 bg-white focus:outline-none"
-                              >
-                                <option value="">Select Garment...</option>
-                                {allProducts
-                                  .filter(p => {
-                                    const isCat = String(p.product_type_id) === String(prod.product_type_id);
-                                    if (!isCat) return false;
-                                    if (!prod.gender) return true;
-                                    const prodGen = (p.gender || '').toLowerCase();
-                                    const g = prod.gender.toLowerCase();
-                                    if (g === 'male' || g === 'boy' || g === 'boys') {
-                                      return prodGen === 'male' || prodGen === 'boys' || prodGen === 'boy' || prodGen === 'unisex' || !prodGen;
-                                    }
-                                    if (g === 'female' || g === 'girl' || g === 'girls') {
-                                      return prodGen === 'female' || prodGen === 'girls' || prodGen === 'girl' || prodGen === 'unisex' || !prodGen;
-                                    }
-                                    return true;
-                                  })
-                                  .map(p => (
-                                    <option key={p.id} value={String(p.id)}>
-                                      {p.name}{p.art_number ? ` (${p.art_number})` : ''}
-                                    </option>
-                                  ))}
-                              </Select>
-                            </div>
-
-                            {/* Delete Product from Set */}
-                            <button
-                              onClick={() => {
-                                const updated = [...manualItems];
-                                const prods = (updated[setIdx].size_breakdown?.products || []).filter((_: any, i: number) => i !== prodIdx);
-                                updated[setIdx] = {
-                                  ...updated[setIdx],
-                                  size_breakdown: {
-                                    ...updated[setIdx].size_breakdown,
-                                    products: prods
-                                  }
-                                };
-                                setManualItems(updated);
-                              }}
-                              className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-all"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Add Set Button */}
-        <Button
-          onClick={() => {
-            const newSet: ManualItem = {
-              id: Date.now(),
-              product_type_id: '',
-              product_id: '',
-              fabric_id: '',
-              main_fabric_meters: '',
-              main_fabric_rate: '',
-              main_fabric_sam: '',
-              attachment_fabric1_id: '',
-              attachment_fabric1_meters: '',
-              attachment_fabric1_rate: '',
-              attachment_fabric1_sam: '',
-              attachment_fabric2_id: '',
-              attachment_fabric2_meters: '',
-              attachment_fabric2_rate: '',
-              attachment_fabric2_sam: '',
-              button_id: '',
-              button_count: '',
-              thread_id: '',
-              thread_count: '',
-              sam_value: '',
-              design_number: '',
-              quantity: '1',
-              price: '0',
-              size_breakdown: {
-                is_set: true,
-                set_name: '',
-                products: []
-              }
-            };
-            setManualItems([...manualItems, newSet]);
+      <div className="space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Department (optional)</p>
+        <Select
+          className={selectCls}
+          value={item.department_id || ''}
+          onChange={(e) => {
+            const deptId = e.target.value;
+            const selectedD = orgDepartments.find((d: any) => String(d.id) === deptId);
+            patchLine(index, {
+              department_id: deptId,
+              department_name: selectedD ? (selectedD.division ? `${selectedD.name} (${selectedD.division})` : selectedD.name) : ''
+            });
           }}
-          className="h-12 px-6 bg-zinc-100 hover:bg-zinc-200 !text-black rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-zinc-200"
         >
-          <Plus size={14} strokeWidth={3} /> Create New Set
-        </Button>
-
-        {/* Navigation */}
-        <div className="flex justify-between pt-6 border-t border-zinc-100 mt-10">
-          <Button
-            disabled={isAnalyzing}
-            variant="secondary"
-            onClick={onBack}
-            className="h-16 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest"
-          >
-            Back
-          </Button>
-          <Button
-            disabled={!isManualItemsValid()}
-            onClick={onNext}
-            className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Expenses Setup <ArrowRight size={16} />
-          </Button>
-        </div>
+          <option value="">General / None</option>
+          {orgDepartments.map((d: any) => (
+            <option key={d.id} value={String(d.id)}>
+              {d.name}{d.division ? ` (${d.division})` : ''}
+            </option>
+          ))}
+        </Select>
       </div>
     );
   };
 
-  if (quotationType === 'SET_TYPE') {
-    return renderSetsBuilder();
-  }
+  const renderFabricLineForm = (item: ManualItem, index: number) => (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="md:col-span-2 space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Fabric</p>
+        <Select
+          className={selectCls}
+          value={item.fabric_id}
+          onChange={(e) => {
+            const fabricId = e.target.value;
+            patchLine(index, {
+              fabric_id: fabricId,
+              price: item.rate_manual && item.price !== '' ? item.price : getDefaultFabricRate(fabricId),
+            });
+          }}
+        >
+          <option value="">Select fabric...</option>
+          {fabricsList.map((f: any) => (
+            <option key={f.id} value={String(f.id)}>{formatFabricDisplayName(f)}</option>
+          ))}
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Meters</p>
+        <input
+          type="number" step="any" min="0"
+          value={item.quantity}
+          onChange={(e) => patchLine(index, { quantity: e.target.value })}
+          className={inputCls}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B]">Rate / Meter (₹)</p>
+        <input
+          type="number" step="any" min="0"
+          value={item.price}
+          onChange={(e) => patchLine(index, { price: e.target.value, rate_manual: true })}
+          className={`${inputCls} font-mono text-[#C82A2B]`}
+        />
+        {item.fabric_id && item.rate_manual && (
+          <button
+            type="button"
+            onClick={() => patchLine(index, { price: getDefaultFabricRate(item.fabric_id), rate_manual: false })}
+            className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-[#C82A2B]"
+          >
+            Use standard rate ₹{getDefaultFabricRate(item.fabric_id)}
+          </button>
+        )}
+      </div>
+      <div className="md:col-span-2">{renderDepartmentSelect(item, index)}</div>
+    </div>
+  );
+
+  const handleAddCustomLine = ({ name, quantity, price }: { name: string; quantity: string; price: string }) => {
+    const line: ManualItem = {
+      ...createBlankLine('CUSTOM'),
+      name: name.trim(),
+      product_name: name.trim(),
+      quantity: quantity || '1',
+      price: price || '0',
+      rate_manual: true,
+    };
+    setManualItems((prev: any) => [...prev, line]);
+  };
+
+  const changeLineName = (index: number, name: string) => {
+    patchLine(index, { name, product_name: name });
+  };
+
+  const renderCustomLineForm = (item: ManualItem, index: number) => (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-2">
+      <div className="md:col-span-2 space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Item Name / Description</p>
+        <input
+          type="text"
+          value={item.name || item.product_name || ''}
+          onChange={(e) => patchLine(index, { name: e.target.value, product_name: e.target.value })}
+          placeholder="e.g. Custom Garment, Logo Embroidery..."
+          className={inputCls}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Quantity</p>
+        <input
+          type="number" min="1" step="1"
+          value={item.quantity}
+          onChange={(e) => patchLine(index, { quantity: e.target.value })}
+          className={inputCls}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B]">Rate (₹)</p>
+        <input
+          type="number" step="0.01" min="0"
+          value={item.price}
+          onChange={(e) => patchLine(index, { price: e.target.value, rate_manual: true })}
+          className={`${inputCls} font-mono text-[#C82A2B]`}
+        />
+      </div>
+      <div className="md:col-span-4">{renderDepartmentSelect(item, index)}</div>
+    </div>
+  );
+
+  const renderItemLines = () => (
+    <ItemLinesTable
+      lines={manualItems
+        .map((it, i) => ({ it, i }))
+        .filter(({ it }) => !(modalLine?.isNew && it.id === modalLine.id))
+        .map(({ it, i }) => getLineView(it, i))}
+      onAdd={openAddLine}
+      onEdit={openEditLine}
+      onDelete={deleteLine}
+      onChangeQty={changeLineQty}
+      onChangeRate={changeLineRate}
+      onChangeName={changeLineName}
+      onAddCustom={handleAddCustomLine}
+    />
+  );
+
+  const renderItemModal = () => {
+    if (!modalLine || !modalItem) return null;
+    const kind = getItemKind(modalItem);
+    const error = getLineError(modalItem);
+    const qty = parseQty(modalItem);
+    const rate = parseFloat(modalItem.price) || 0;
+    const calculated = kind === 'READYMADE' ? getItemCosts(modalItem).unitTotal : null;
+    const subtitles: Record<ItemKind, string> = {
+      CUSTOM: 'Custom line · direct item, quantity & rate entry',
+      READYMADE: 'In-house garment · fabric, trims & SAM costing',
+      FABRIC: 'Fabric sold by the meter',
+      ACCESSORY: 'Accessories & trade readymades',
+    };
+
+    const footer = (
+      <div className="flex items-center gap-5 flex-wrap text-[11px] font-bold text-zinc-500">
+        <span>Qty <b className="font-mono text-zinc-900">{modalItem.quantity || 0}{kind === 'FABRIC' ? ' m' : ''}</b></span>
+        {kind === 'READYMADE' && calculated !== null && (
+          <span>Calculated cost <b className="font-mono text-zinc-900">₹{calculated.toFixed(2)}</b></span>
+        )}
+        {kind === 'READYMADE' ? (
+          <label className="flex items-center gap-2">
+            Rate ₹
+            <input
+              type="number" step="0.01" min="0"
+              placeholder={calculated !== null ? calculated.toFixed(2) : '0.00'}
+              value={modalItem.price}
+              onChange={(e) => patchLine(modalIndex, { price: e.target.value, rate_manual: e.target.value !== '' })}
+              className="w-28 px-2.5 py-1.5 text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 text-right focus:outline-none focus:border-[#C82A2B] bg-white"
+            />
+          </label>
+        ) : (
+          <span>Rate <b className="font-mono text-zinc-900">₹{rate.toFixed(2)}</b></span>
+        )}
+        {kind === 'READYMADE' && modalItem.rate_manual && calculated !== null && Math.abs(calculated - rate) > 0.005 && (
+          <button
+            type="button"
+            onClick={() => patchLine(modalIndex, { price: calculated.toFixed(2), rate_manual: false })}
+            className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-[#C82A2B]"
+          >
+            Use calculated ₹{calculated.toFixed(2)}
+          </button>
+        )}
+        <span>Amount <b className="font-mono text-[#C82A2B] text-sm">₹{(qty * rate).toFixed(2)}</b></span>
+      </div>
+    );
+
+    return (
+      <ItemLineModal
+        title={`${modalLine.isNew ? 'Add' : 'Edit'} ${ITEM_KIND_LABELS[kind]} Line`}
+        subtitle={subtitles[kind]}
+        footer={footer}
+        error={error}
+        saveLabel={modalLine.isNew ? 'Save Item Line' : 'Update Item Line'}
+        onSave={saveModal}
+        onCancel={cancelModal}
+      >
+        {kind === 'FABRIC'
+          ? renderFabricLineForm(modalItem, modalIndex)
+          : kind === 'CUSTOM'
+          ? renderCustomLineForm(modalItem, modalIndex)
+          : renderManualItemCard(modalItem, modalIndex)}
+      </ItemLineModal>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -3414,16 +2584,21 @@ export default function WizardStep2({
       {/* Header */}
       <div className="border-b border-zinc-100 pb-6 flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h3 className="text-2xl font-black italic text-zinc-900">Sizing & Measurement Audits</h3>
+          <h3 className="text-2xl font-black italic text-zinc-900">
+            {hasMeasurements ? 'Sizing & Measurement Audits' : 'Quotation Items'}
+          </h3>
           <p className="text-[10px] font-black uppercase tracking-widest text-[#C82A2B] mt-1 opacity-70">
-            Live verification of measurements profiles
+            {hasMeasurements ? 'Live verification of measurements profiles' : 'Add readymades, fabrics and accessories as item lines'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/15">
             {hasMeasurements
               ? `${orgAnalysis.total_entities} Entities`
-              : `${manualItems.reduce((acc, it) => acc + (parseInt(it.quantity) || 0), 0)} Custom Units`}
+              : (() => {
+                  const saved = manualItems.filter(it => !(modalLine?.isNew && it.id === modalLine.id)).length;
+                  return `${saved} Item Line${saved === 1 ? '' : 's'}`;
+                })()}
           </span>
         </div>
       </div>
@@ -3571,9 +2746,10 @@ export default function WizardStep2({
                                       onChange={(e) => {
                                         const pid = e.target.value;
                                         const matched = uniqueTemplateProducts.find((u: any) => String(u.product_id) === String(pid));
+                                        const formattedTitle = formatProductDisplayName(matched, masterItems);
                                         updateDeptAuditRow(deptId, rIdx, {
                                           product_id: pid,
-                                          product_name: matched?.product_name || rowItem.product_name,
+                                          product_name: formattedTitle || matched?.product_name || rowItem.product_name,
                                           art_number: matched?.art_number || rowItem.art_number,
                                           materials: matched?.materials || rowItem.materials,
                                           sam_value: matched?.sam_value ?? rowItem.sam_value
@@ -3582,11 +2758,11 @@ export default function WizardStep2({
                                       className="text-xs font-bold text-zinc-800 bg-transparent border border-zinc-200 rounded px-1.5 py-1 focus:outline-none focus:border-[#C82A2B]"
                                     >
                                       {uniqueTemplateProducts.map((u: any) => (
-                                        <option key={u.product_id} value={u.product_id}>{u.product_name}</option>
+                                        <option key={u.product_id} value={u.product_id}>{formatProductDisplayName(u, masterItems) || u.product_name}</option>
                                       ))}
                                     </Select>
                                   ) : (
-                                    rowItem.product_name
+                                    formatProductDisplayName(rowItem, masterItems) || rowItem.product_name
                                   )}
                                 </td>
                                 <td className="p-2 align-middle">
@@ -3707,7 +2883,7 @@ export default function WizardStep2({
                       return (
                         <tr key={mi} className="hover:bg-zinc-50/50 bg-white">
                           <td className="p-3 font-black text-[#C82A2B] align-middle">{item.art_number || '—'}</td>
-                          <td className="p-3 text-zinc-800 align-middle">{item.product_name}</td>
+                          <td className="p-3 text-zinc-800 align-middle">{formatProductDisplayName(item, masterItems) || item.product_name}</td>
                                                     <td className="p-2 align-middle min-w-[130px]">
                             <Select
                               value={normalizeGender(item.gender || '')}
@@ -3790,1732 +2966,21 @@ export default function WizardStep2({
             </div>
           )}
 
-          {/* ADDITIONAL CUSTOM GARMENTS (for template mode) */}
+          {/* ADDITIONAL ITEMS (for measurement-based quotations) */}
           <div className="space-y-4 mt-8 pt-8 border-t border-zinc-100">
             <div className="flex items-center gap-2 mb-2">
               <Plus size={14} className="text-[#C82A2B]" />
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Additional Custom Garments</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Additional Items</h4>
               <span className="ml-auto text-[9px] font-bold text-[#C82A2B] uppercase tracking-widest opacity-70">Optional manual additions</span>
             </div>
-            <div className="space-y-4">
-              {manualItems.map((item, idx) => renderManualItemCard(item, idx))}
-            </div>
-            <Button
-              onClick={addNewItem}
-              className="h-12 px-6 bg-zinc-100 hover:bg-zinc-200 !text-black rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-zinc-200"
-            >
-              <Plus size={14} strokeWidth={3} /> Add Product Item Line
-            </Button>
+            {renderItemLines()}
           </div>
         </>
       ) : (
-        <>
-          {/* ═══ DEPARTMENT-WISE PRODUCT ITEMS ═══ */}
-          {(() => {
-            const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-            const hasDepartments = selectedDepts.length > 0;
-
-            if (hasDepartments) {
-              // Department-aware mode: show per-department item cards
-              return (
-                <div className="space-y-6">
-                  {/* Department mode banner */}
-                  <div className="flex items-center gap-3 px-4 py-3 bg-[#FFF1F1] border border-[#C82A2B]/15 rounded-2xl flex-wrap">
-                    <div className="w-8 h-8 rounded-lg bg-[#FFF1F1] flex items-center justify-center flex-shrink-0">
-                      <Layers size={16} className="text-[#C82A2B]" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Department-Wise Quotation Mode</p>
-                      <p className="text-[9px] font-bold text-[#C82A2B] mt-0.5">
-                        {selectedDepts.length} department division{selectedDepts.length !== 1 ? 's' : ''} active · Consumption &amp; sizing managed per division
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-
-                      <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 tracking-widest font-mono">
-                        {selectedDepts.reduce((sum: number, d: any) => {
-                          const isDirect = d.qty_mode === 'direct_products';
-                          const units = isDirect
-                            ? (parseInt(d.direct_qty || d.persons) || 0)
-                            : (parseInt(d.persons) || 0) * (parseInt(d.sets) || 0);
-                          return sum + units;
-                        }, 0)} Total Units
-                      </span>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const grouped: Record<string, any[]> = {};
-                    selectedDepts.forEach((d: any) => {
-                      const name = d.baseDeptName || d.name?.replace(/\s*\((Boys|Girls|Men|Women)\)/i, '') || 'General';
-                      if (!grouped[name]) {
-                        grouped[name] = [];
-                      }
-                      grouped[name].push(d);
-                    });
-
-                    return Object.entries(grouped).map(([deptName, deptsInGroup]) => (
-                      <div key={deptName} className="rounded-[2rem] overflow-hidden border-2 border-zinc-200 hover:border-[#C82A2B]/30 transition-all shadow-sm bg-white p-6 space-y-6">
-                        <div className="flex items-center justify-between gap-4 border-b border-zinc-100 pb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0">
-                              <Layers size={18} className="text-zinc-900" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-zinc-900">{deptName}</p>
-                              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                                {deptsInGroup.length} Division{deptsInGroup.length !== 1 ? 's' : ''} under this Department
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!setOrgDepartments) return;
-                              const base = deptsInGroup[0];
-                              const newDivId = `${base.id}_div_${Date.now()}`;
-                              const newDept = {
-                                ...base,
-                                id: newDivId,
-                                division: `Division ${deptsInGroup.length + 1}`,
-                                gender: '',
-                                persons: '0',
-                                sets: '2',
-                                qty_mode: 'members_sets',
-                                direct_qty: '',
-                                selected: true
-                              };
-                              setOrgDepartments([...orgDepartments, newDept]);
-                            }}
-                            className="px-3 py-1.5 bg-zinc-100 hover:bg-[#C82A2B] text-zinc-700 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                          >
-                            <Plus size={12} />
-                            <span>Add Division</span>
-                          </button>
-                        </div>
-
-                        <div className="space-y-8 divide-y divide-zinc-200 pt-2">
-                          {deptsInGroup.map((dept: any) => {
-                            const deptId = String(dept.id);
-                            const deptItems = (departmentItems || {})[deptId] || [];
-                            const isDirectMode = dept.qty_mode === 'direct_products';
-                            const personsCount = parseInt(dept.persons) || 0;
-                            const setsCount = parseInt(dept.sets) || 0;
-                            const directUnits = parseInt(dept.direct_qty || dept.persons) || 0;
-                            const totalUnits = isDirectMode ? directUnits : personsCount * setsCount;
-
-                            const addDeptItem = () => {
-                              const newItem: ManualItem = {
-                                id: Date.now() + Math.random(),
-                                product_type_id: '', product_id: '',
-                                fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-                                attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-                                attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-                                button_id: '', button_count: '', thread_id: '', thread_count: '',
-                                trims: [
-                                  { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-                                  { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '1', uom: 'spools', unit_price: 0 }
-                                ],
-                                sam_value: '', design_number: '', quantity: String(totalUnits || 1), price: ''
-                              };
-                              if (setDepartmentItems) {
-                                setDepartmentItems({
-                                  ...(departmentItems || {}),
-                                  [deptId]: [...deptItems, newItem]
-                                });
-                              }
-                            };
-
-                            const updateDeptItem = (index: number, changes: Partial<ManualItem>) => {
-                              const updated = [...deptItems];
-                              const prevItem = updated[index] || {};
-                              const newItem = { ...prevItem, ...changes };
-
-                              // Auto-convert main fabric meters if fabric changed to a non-58" width
-                              if ('fabric_id' in changes && !('main_fabric_meters' in changes)) {
-                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.fabric_id));
-                                const prod = allProducts.find((p: any) => String(p.id) === String(newItem.product_id));
-                                const baseMeters = newItem.base_main_fabric_meters || (prod ? String(prod.main_fabric || prod.main_fabric_meters || '') : '') || newItem.main_fabric_meters;
-                                if (baseMeters) {
-                                  newItem.base_main_fabric_meters = baseMeters;
-                                  if (selFab?.width && Number(selFab.width) !== 58) {
-                                    newItem.main_fabric_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
-                                  } else {
-                                    newItem.main_fabric_meters = baseMeters;
-                                  }
-                                }
-                              } else if ('main_fabric_meters' in changes && !('base_main_fabric_meters' in changes)) {
-                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.fabric_id));
-                                const fabWidth = selFab?.width ? Number(selFab.width) : 58;
-                                newItem.base_main_fabric_meters = (fabWidth && fabWidth !== 58 && Number(changes.main_fabric_meters) > 0)
-                                  ? String(Number(changes.main_fabric_meters) * fabWidth / 58)
-                                  : String(changes.main_fabric_meters || '');
-                              }
-
-                              // Auto-convert attachment fabric 1 meters if fabric changed to a non-58" width
-                              if ('attachment_fabric1_id' in changes && !('attachment_fabric1_meters' in changes)) {
-                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric1_id));
-                                const baseMeters = newItem.base_attachment_fabric1_meters || newItem.attachment_fabric1_meters;
-                                if (baseMeters) {
-                                  newItem.base_attachment_fabric1_meters = baseMeters;
-                                  if (selFab?.width && Number(selFab.width) !== 58) {
-                                    newItem.attachment_fabric1_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
-                                  } else {
-                                    newItem.attachment_fabric1_meters = baseMeters;
-                                  }
-                                }
-                              } else if ('attachment_fabric1_meters' in changes && !('base_attachment_fabric1_meters' in changes)) {
-                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric1_id));
-                                const fabWidth = selFab?.width ? Number(selFab.width) : 58;
-                                newItem.base_attachment_fabric1_meters = (fabWidth && fabWidth !== 58 && Number(changes.attachment_fabric1_meters) > 0)
-                                  ? String(Number(changes.attachment_fabric1_meters) * fabWidth / 58)
-                                  : String(changes.attachment_fabric1_meters || '');
-                              }
-
-                              // Auto-convert attachment fabric 2 meters if fabric changed to a non-58" width
-                              if ('attachment_fabric2_id' in changes && !('attachment_fabric2_meters' in changes)) {
-                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric2_id));
-                                const baseMeters = newItem.base_attachment_fabric2_meters || newItem.attachment_fabric2_meters;
-                                if (baseMeters) {
-                                  newItem.base_attachment_fabric2_meters = baseMeters;
-                                  if (selFab?.width && Number(selFab.width) !== 58) {
-                                    newItem.attachment_fabric2_meters = convertFabricMetersByWidth(baseMeters, selFab.width);
-                                  } else {
-                                    newItem.attachment_fabric2_meters = baseMeters;
-                                  }
-                                }
-                              } else if ('attachment_fabric2_meters' in changes && !('base_attachment_fabric2_meters' in changes)) {
-                                const selFab = fabricsList.find((f: any) => String(f.id) === String(newItem.attachment_fabric2_id));
-                                const fabWidth = selFab?.width ? Number(selFab.width) : 58;
-                                newItem.base_attachment_fabric2_meters = (fabWidth && fabWidth !== 58 && Number(changes.attachment_fabric2_meters) > 0)
-                                  ? String(Number(changes.attachment_fabric2_meters) * fabWidth / 58)
-                                  : String(changes.attachment_fabric2_meters || '');
-                              }
-
-                              // For STANDARD (Readymade) auto-calc price from fabric/SAM
-                              if (quotationType !== 'READYMADE') {
-                                const costs = getItemCosts(newItem);
-                                newItem.price = costs.unitTotal.toFixed(2);
-                              }
-                              updated[index] = newItem;
-                              if (setDepartmentItems) {
-                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
-                              }
-
-                              if (
-                                'art_number' in changes ||
-                                'product_id' in changes ||
-                                'fabric_id' in changes ||
-                                'attachment_fabric1_id' in changes ||
-                                'attachment_fabric2_id' in changes ||
-                                'button_id' in changes ||
-                                'thread_id' in changes ||
-                                'trims' in changes
-                              ) {
-                                resolveCandidateDns(newItem).then((matched) => {
-                                  if (setDepartmentItems) {
-                                    setDepartmentItems((prev: any) => {
-                                      const prevList = prev?.[deptId] || [];
-                                      const fresh = [...prevList];
-                                      if (fresh[index] && fresh[index].id === newItem.id) {
-                                        fresh[index] = { ...fresh[index], design_number: matched || '' };
-                                      }
-                                      return { ...(prev || {}), [deptId]: fresh };
-                                    });
-                                  }
-                                });
-                              }
-                            };
-
-                            const updateDeptItemTrim = (itemIndex: number, trimIndex: number, changes: any) => {
-                              const updated = [...deptItems];
-                              const item = { ...updated[itemIndex] };
-                              const defaultTrims = [
-                                { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
-                              ];
-                              const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
-                              while (curTrims.length <= trimIndex) {
-                                curTrims.push({
-                                  id: Date.now() + Math.random(),
-                                  trim_id: '',
-                                  category: 'Trim',
-                                  name: '',
-                                  count: '1',
-                                  uom: 'pcs',
-                                  unit_price: 0
-                                });
-                              }
-                              curTrims[trimIndex] = { ...curTrims[trimIndex], ...changes };
-                              item.trims = curTrims;
-
-                              const btn = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('button') || (t.name || '').toLowerCase().includes('button') || String(t.id).startsWith('btn'));
-                              if (btn) {
-                                item.button_id = btn.trim_id || '';
-                                item.button_count = btn.count || '';
-                              }
-                              const thr = curTrims.find((t: any) => (t.category || '').toLowerCase().includes('thread') || (t.name || '').toLowerCase().includes('thread') || String(t.id).startsWith('thr'));
-                              if (thr) {
-                                item.thread_id = thr.trim_id || '';
-                                item.thread_count = thr.count || '1';
-                              }
-
-                              if (quotationType !== 'READYMADE') {
-                                const costs = getItemCosts(item);
-                                item.price = costs.unitTotal.toFixed(2);
-                              }
-                              updated[itemIndex] = item;
-                              if (setDepartmentItems) {
-                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
-                              }
-
-                              resolveCandidateDns(item).then((matched) => {
-                                if (setDepartmentItems) {
-                                  setDepartmentItems((prev: any) => {
-                                    const prevList = prev?.[deptId] || [];
-                                    const fresh = [...prevList];
-                                    if (fresh[itemIndex] && fresh[itemIndex].id === item.id) {
-                                      fresh[itemIndex] = { ...fresh[itemIndex], design_number: matched || '' };
-                                    }
-                                    return { ...(prev || {}), [deptId]: fresh };
-                                  });
-                                }
-                              });
-                            };
-
-                            const addDeptItemTrim = (itemIndex: number, category = 'Trim') => {
-                              const updated = [...deptItems];
-                              const item = { ...updated[itemIndex] };
-                              const defaultTrims = [
-                                { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
-                              ];
-                              const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
-                              const meta = getTrimCategoryMeta(category);
-                              curTrims.push({
-                                id: Date.now() + Math.random(),
-                                trim_id: '',
-                                category: category,
-                                name: '',
-                                count: meta.isThr ? (item.thread_count || '1') : '1',
-                                uom: meta.defaultUom,
-                                unit_price: 0
-                              });
-                              item.trims = curTrims;
-                              updated[itemIndex] = item;
-                              if (setDepartmentItems) {
-                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
-                              }
-                            };
-
-                            const removeDeptItemTrim = (itemIndex: number, trimIndex: number) => {
-                              const updated = [...deptItems];
-                              const item = { ...updated[itemIndex] };
-                              const defaultTrims = [
-                                { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', name: 'Buttons', count: item.button_count || '10', uom: 'pcs', unit_price: 0 },
-                                { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', name: 'Thread', count: item.thread_count || '1', uom: 'spools', unit_price: 0 }
-                              ];
-                              const curTrims = (item.trims && item.trims.length > 0) ? [...item.trims] : [...defaultTrims];
-                              curTrims.splice(trimIndex, 1);
-                              item.trims = curTrims;
-                              if (quotationType !== 'READYMADE') {
-                                const costs = getItemCosts(item);
-                                item.price = costs.unitTotal.toFixed(2);
-                              }
-                              updated[itemIndex] = item;
-                              if (setDepartmentItems) {
-                                setDepartmentItems({ ...(departmentItems || {}), [deptId]: updated });
-                              }
-                            };
-
-                            const removeDeptItem = (index: number) => {
-                              if (setDepartmentItems) {
-                                setDepartmentItems({
-                                  ...(departmentItems || {}),
-                                  [deptId]: deptItems.filter((_: any, i: number) => i !== index)
-                                });
-                              }
-                            };
-
-                            return (
-                              <div key={dept.id} className="pt-6 first:pt-0 space-y-4">
-                                {/* Division Header with Sizing & Persons config */}
-                                <div className="flex items-center justify-between gap-4 flex-wrap bg-zinc-50 p-4 rounded-2xl border border-zinc-150">
-                                  <div className="flex items-center gap-3 flex-wrap">
-                                    <span className="text-xs font-black text-zinc-900 uppercase tracking-wider bg-zinc-200/50 px-3 py-1 rounded-lg">
-                                      {dept.division ? `Division: ${dept.division}` : 'Main Division'}
-                                    </span>
-                                    {deptsInGroup.length > 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (setOrgDepartments) {
-                                            setOrgDepartments(orgDepartments.filter((d: any) => d.id !== dept.id));
-                                          }
-                                        }}
-                                        className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                        title="Remove this division"
-                                      >
-                                        <Trash2 size={13} />
-                                      </button>
-                                    )}
-                                    {(() => {
-                                      const deptEntities = (orgAnalysis?.entities || []).filter((e: any) => {
-                                        const eid = String(e.department_id || '');
-                                        const cleanId = String(dept.id || '').replace(/_.*$/, '');
-                                        return eid === String(dept.id) || eid === cleanId || (dept.name && e.department_name === dept.name);
-                                      });
-                                      const mCount = deptEntities.length || dept._memberCount || parseInt(dept.persons || '0') || 0;
-                                      const measCount = deptEntities.filter((e: any) => e.measurement_status === 'Completed').length || dept._measuredCount || 0;
-                                      if (mCount > 0) {
-                                        return (
-                                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1 font-mono">
-                                            <Users size={12} /> {mCount} Members ({measCount} Measured)
-                                          </span>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-
-                                    {/* Gender Dropdown */}
-                                    <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
-                                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Gender:</label>
-                                      <Select
-                                        value={normalizeGender(dept.gender || '')}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          if (setOrgDepartments) {
-                                            setOrgDepartments(orgDepartments.map((d: any) => d.id === dept.id ? { ...d, gender: val } : d));
-                                          }
-                                        }}
-                                        className="text-xs font-bold text-zinc-900 bg-transparent border-none focus:outline-none cursor-pointer"
-                                      >
-                                        <option value="">Select Gender...</option>
-                                        {availableGenders.map((g: any) => (
-                                          <option key={g.id || g.code || g.value} value={g.value}>
-                                            {g.label}
-                                          </option>
-                                        ))}
-                                      </Select>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-4 flex-wrap">
-                                    {/* Radio mode: By Members & Sets VS No. of Products */}
-                                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-zinc-200 shadow-2xs">
-                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-zinc-900">
-                                        <input
-                                          type="radio"
-                                          name={`qty_mode_${dept.id}`}
-                                          checked={dept.qty_mode !== 'direct_products'}
-                                          onChange={() => {
-                                            if (setOrgDepartments) {
-                                              const updatedDepts = orgDepartments.map((d: any) => {
-                                                if (d.id === dept.id) {
-                                                  const m = parseInt(d.persons) || 0;
-                                                  const s = parseInt(d.sets) || 2;
-                                                  const newUnits = m * s;
-                                                  if (setDepartmentItems && departmentItems[deptId]) {
-                                                    setDepartmentItems({
-                                                      ...departmentItems,
-                                                      [deptId]: departmentItems[deptId].map((it: any) => ({ ...it, quantity: String(newUnits || 1) }))
-                                                    });
-                                                  }
-                                                  return { ...d, qty_mode: 'members_sets' };
-                                                }
-                                                return d;
-                                              });
-                                              setOrgDepartments(updatedDepts);
-                                            }
-                                          }}
-                                          className="text-[#C82A2B] focus:ring-[#C82A2B]"
-                                        />
-                                        <span>Members &amp; Sets</span>
-                                      </label>
-
-                                      <span className="text-zinc-300 font-bold">|</span>
-
-                                      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider text-zinc-900">
-                                        <input
-                                          type="radio"
-                                          name={`qty_mode_${dept.id}`}
-                                          checked={dept.qty_mode === 'direct_products'}
-                                          onChange={() => {
-                                            if (setOrgDepartments) {
-                                              const updatedDepts = orgDepartments.map((d: any) => {
-                                                if (d.id === dept.id) {
-                                                  const directQty = d.direct_qty || d.persons || '10';
-                                                  const newUnits = parseInt(directQty) || 0;
-                                                  if (setDepartmentItems && departmentItems[deptId]) {
-                                                    setDepartmentItems({
-                                                      ...departmentItems,
-                                                      [deptId]: departmentItems[deptId].map((it: any) => ({ ...it, quantity: String(newUnits || 1) }))
-                                                    });
-                                                  }
-                                                  return { ...d, qty_mode: 'direct_products', direct_qty: directQty };
-                                                }
-                                                return d;
-                                              });
-                                              setOrgDepartments(updatedDepts);
-                                            }
-                                          }}
-                                          className="text-[#C82A2B] focus:ring-[#C82A2B]"
-                                        />
-                                        <span>No. of Products</span>
-                                      </label>
-                                    </div>
-
-                                    {dept.qty_mode !== 'direct_products' ? (
-                                      <>
-                                        <div className="flex items-center gap-2">
-                                          <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">No. of Members</label>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="0"
-                                            value={dept.persons}
-                                            onChange={(e) => {
-                                              const val = e.target.value;
-                                              if (setOrgDepartments) {
-                                                const updatedDepts = orgDepartments.map((d: any) => {
-                                                  if (d.id === dept.id) {
-                                                    const newTotal = (parseInt(val) || 0) * (parseInt(d.sets) || 0);
-                                                    if (setDepartmentItems && departmentItems[deptId]) {
-                                                      const updatedItems = departmentItems[deptId].map((item: any) => ({
-                                                        ...item,
-                                                        quantity: String(newTotal || 1)
-                                                      }));
-                                                      setDepartmentItems({
-                                                        ...departmentItems,
-                                                        [deptId]: updatedItems
-                                                      });
-                                                    }
-                                                    return { ...d, persons: val };
-                                                  }
-                                                  return d;
-                                                });
-                                                setOrgDepartments(updatedDepts);
-                                              }
-                                            }}
-                                            className="w-20 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#C82A2B]"
-                                          />
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Sets per Person</label>
-                                          <input
-                                            type="number"
-                                            min="1"
-                                            placeholder="2"
-                                            value={dept.sets}
-                                            onChange={(e) => {
-                                              const val = e.target.value;
-                                              if (setOrgDepartments) {
-                                                const updatedDepts = orgDepartments.map((d: any) => {
-                                                  if (d.id === dept.id) {
-                                                    const newTotal = (parseInt(d.persons) || 0) * (parseInt(val) || 0);
-                                                    if (setDepartmentItems && departmentItems[deptId]) {
-                                                      const updatedItems = departmentItems[deptId].map((item: any) => ({
-                                                        ...item,
-                                                        quantity: String(newTotal || 1)
-                                                      }));
-                                                      setDepartmentItems({
-                                                        ...departmentItems,
-                                                        [deptId]: updatedItems
-                                                      });
-                                                    }
-                                                    return { ...d, sets: val };
-                                                  }
-                                                  return d;
-                                                });
-                                                setOrgDepartments(updatedDepts);
-                                              }
-                                            }}
-                                            className="w-16 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#C82A2B]"
-                                          />
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex items-center gap-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-zinc-900">No. of Products</label>
-                                        <input
-                                          type="number"
-                                          min="1"
-                                          placeholder="0"
-                                          value={dept.direct_qty || dept.persons || ''}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (setOrgDepartments) {
-                                              const updatedDepts = orgDepartments.map((d: any) => {
-                                                if (d.id === dept.id) {
-                                                  const newTotal = parseInt(val) || 0;
-                                                  if (setDepartmentItems && departmentItems[deptId]) {
-                                                    const updatedItems = departmentItems[deptId].map((item: any) => ({
-                                                      ...item,
-                                                      quantity: String(newTotal || 1)
-                                                    }));
-                                                    setDepartmentItems({
-                                                      ...departmentItems,
-                                                      [deptId]: updatedItems
-                                                    });
-                                                  }
-                                                  return { ...d, direct_qty: val };
-                                                }
-                                                return d;
-                                              });
-                                              setOrgDepartments(updatedDepts);
-                                            }
-                                          }}
-                                          className="w-24 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#C82A2B]"
-                                        />
-                                      </div>
-                                    )}
-
-                                    {(() => {
-                                      const deptTotalPrice = (deptItems || []).reduce((acc: number, it: ManualItem) => {
-                                        const costs = getItemCosts(it);
-                                        const uPrice = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(it.price) || 0) : costs.unitTotal;
-                                        return acc + (uPrice * (parseInt(it.quantity) || 0));
-                                      }, 0);
-                                      return (
-                                        <>
-                                          <div className="text-right min-w-[90px] border-l border-zinc-200 pl-4">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Total Units</p>
-                                            <p className="text-xs font-mono font-black text-[#C82A2B]">{totalUnits} Units</p>
-                                          </div>
-                                          <div className="text-right min-w-[130px] border-l border-zinc-200 pl-4 bg-emerald-50/90 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">Total Dept Price</p>
-                                            <p className="text-base font-mono font-black text-emerald-700">₹{deptTotalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                            <p className="text-[9px] text-emerald-600 font-bold">{totalUnits} Products total</p>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
-
-                                {/* Department Product Items */}
-                                <div className="space-y-4">
-                                  {deptItems.length === 0 ? (
-                                    <div className="text-center py-8 border-2 border-dashed border-zinc-200 rounded-2xl">
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">No product lines added yet</p>
-                                      <p className="text-[9px] font-semibold text-zinc-300 mt-1">Click "Add Product Line" below to add items for this department</p>
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-4">
-                                      {deptItems.map((item: ManualItem, idx: number) => {
-                                        // Inline render adapted for department items
-                                        const {
-                                          mainFabricCost, att1Cost, att2Cost, samCost, unitTotal: calculatedUnitTotal,
-                                          calcMainFabricCost, calcAtt1Cost, calcAtt2Cost, calcSamCost
-                                        } = getItemCosts(item);
-                                        const unitTotal = (quotationType === 'READYMADE' || isAccessoryType) ? (parseFloat(item.price) || 0) : calculatedUnitTotal;
-                                        const totalItemCost = unitTotal * (parseInt(item.quantity) || 0);
-
-                                        const matchedDeptProduct = (allProducts || []).find((p: any) => {
-                                          if (item.product_id && String(p.id) === String(item.product_id)) return true;
-                                          if (!item.art_number) return false;
-                                          const clean = item.art_number.trim().toLowerCase();
-                                          const cleanNoDash = clean.replace(/[-\s]/g, '');
-                                          const pArt = (p.art_number || '').trim().toLowerCase();
-                                          const pArtNoDash = pArt.replace(/[-\s]/g, '');
-                                          return pArt === clean || (cleanNoDash.length >= 3 && pArtNoDash === cleanNoDash);
-                                        });
-
-                                        const deptFilteredProducts = allProducts.filter((p: any) => {
-                                          const isAcc = isAccessoryProduct(p);
-                                          if (isAccessoryType) {
-                                            if (!isAcc) return false;
-                                            if (item.product_type_id && String(p.product_type_id) !== String(item.product_type_id)) {
-                                              return false;
-                                            }
-                                            return true;
-                                          }
-                                          if (isAcc) return false;
-
-                                          const isCorrectCategory = String(p.product_type_id) === String(item.product_type_id);
-                                          
-                                          // Filter by gender: boys/girls/unisex
-                                          const deptGender = (dept.gender || '').toLowerCase();
-                                          const prodGender = (p.gender || '').toLowerCase();
-                                          let matchesGender = true;
-                                          if (deptGender === 'male' || deptGender === 'boy' || deptGender === 'boys' || deptGender === '1' || deptGender === 'm') {
-                                            matchesGender = prodGender === 'male' || prodGender === 'boys' || prodGender === 'boy' || prodGender === 'unisex' || prodGender === 'all' || prodGender === '1' || !prodGender;
-                                          } else if (deptGender === 'female' || deptGender === 'girl' || deptGender === 'girls' || deptGender === '2' || deptGender === 'f') {
-                                            matchesGender = prodGender === 'female' || prodGender === 'girls' || prodGender === 'girl' || prodGender === 'unisex' || prodGender === 'all' || prodGender === '2' || !prodGender;
-                                          } else if (deptGender && deptGender !== 'unisex' && deptGender !== 'all') {
-                                            matchesGender = prodGender === deptGender || prodGender === 'unisex' || prodGender === 'all' || !prodGender;
-                                          }
-
-                                          if (quotationType === 'READYMADE') {
-                                            const parsed = parseMaterialsField(p.materials);
-                                            return isCorrectCategory && matchesGender && parsed.type?.toLowerCase() === 'trade_readymade';
-                                          }
-                                          if (quotationType === 'STANDARD') {
-                                            const parsed = parseMaterialsField(p.materials);
-                                            return isCorrectCategory && matchesGender && parsed.type?.toLowerCase() === 'readymade';
-                                          }
-                                          return isCorrectCategory && matchesGender;
-                                        });
-
-                                        return (
-                                          <div key={item.id || idx} className="bg-zinc-50/50 border border-zinc-200 rounded-2xl overflow-hidden hover:shadow-sm transition-all">
-                                            {quotationType === 'FABRIC_SET' ? (
-                                              <div className="p-4 bg-white border-b border-zinc-100">
-                                                <div className="flex items-center justify-between gap-4 flex-wrap">
-                                                  {/* Quantity */}
-                                                  <div className="w-24">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
-                                                    <input
-                                                      type="number" min="1" placeholder="1"
-                                                      value={item.quantity}
-                                                      onChange={(e) => updateDeptItem(idx, { quantity: e.target.value })}
-                                                      className={inputCls}
-                                                    />
-                                                  </div>
-
-                                                  <div className="flex items-center gap-6 ml-auto">
-                                                    <div className="text-right self-center">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</p>
-                                                      <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
-                                                        ₹{unitTotal.toFixed(2)}
-                                                      </p>
-                                                    </div>
-
-                                                    {/* Highlighted Total Product Price */}
-                                                    <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
-                                                        Total Product Price
-                                                      </p>
-                                                      <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
-                                                        ₹{totalItemCost.toFixed(2)}
-                                                      </p>
-                                                      <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
-                                                        ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
-                                                      </p>
-                                                    </div>
-
-                                                    {/* Delete */}
-                                                    <button
-                                                      onClick={() => removeDeptItem(idx)}
-                                                      className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-center"
-                                                    >
-                                                      <Trash2 size={14} />
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <div className="p-5 bg-white border-b border-zinc-100">
-                                                {/* ── TOP SECTION: ART NUMBER & QUICK SPEC IDENTIFIER ── */}
-                                                <div className="mb-4 pb-3 border-b border-zinc-150 bg-sky-50/40 -mx-5 -mt-5 p-4 rounded-t-2xl flex items-center justify-between gap-4 flex-wrap">
-                                                  <div className="flex items-center gap-3 flex-wrap flex-1">
-                                                    <div className="min-w-[240px] max-w-[340px] flex-1">
-                                                      <div className="flex items-center justify-between mb-1">
-                                                        <label className="text-[10px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
-                                                          <Hash size={13} className="text-sky-600" />
-                                                          ART Number
-                                                        </label>
-                                                        {matchedDeptProduct && (
-                                                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
-                                                            <CheckCircle2 size={10} className="text-emerald-600" /> Auto-loaded: {matchedDeptProduct.name}
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                      <div className="relative">
-                                                        <input
-                                                          type="text"
-                                                          list={`art-list-dept-${deptId}-${idx}`}
-                                                          value={item.art_number || ''}
-                                                          onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            const updates = handleApplyArtNumber(val, item, dept?.baseDeptName || dept?.name || '');
-                                                            updateDeptItem(idx, updates);
-                                                          }}
-                                                          placeholder="Enter ART # to auto-load product..."
-                                                          className="w-full px-3 py-2 text-xs font-mono font-black border border-sky-300 rounded-xl text-sky-950 bg-white placeholder:text-zinc-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-2xs"
-                                                        />
-                                                        <datalist id={`art-list-dept-${deptId}-${idx}`}>
-                                                          {availableArtNumbers.map(a => (
-                                                            <option key={a.art_number} value={a.art_number}>
-                                                              {a.product_name}
-                                                            </option>
-                                                          ))}
-                                                        </datalist>
-                                                      </div>
-                                                    </div>
-
-                                                    <div className="min-w-[170px]">
-                                                      <label className="block text-[10px] font-black uppercase tracking-wider text-indigo-700 mb-1">
-                                                        Design # (DNS Code)
-                                                      </label>
-                                                      <div className="h-[38px] px-3 py-1.5 border border-indigo-200 rounded-xl bg-indigo-50/70 flex items-center justify-between gap-2 shadow-inner">
-                                                        <span className="text-xs font-mono font-black text-indigo-950 truncate">
-                                                          {item.design_number && !item.design_number.startsWith('Auto') ? item.design_number : 'Auto (BOM Mint)'}
-                                                        </span>
-                                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0 ${
-                                                          item.design_number && !item.design_number.startsWith('Auto')
-                                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                                            : 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                                                        }`}>
-                                                          {item.design_number && !item.design_number.startsWith('Auto') ? 'Matched' : 'Auto on Save'}
-                                                        </span>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                </div>
-
-                                                <div className="flex items-start gap-4 flex-wrap">
-                                                  {/* Gender Dropdown */}
-                                                  <div className="min-w-[130px]">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900 mb-1.5 font-bold">Gender</p>
-                                                    <Select
-                                                      className={selectCls}
-                                                      value={normalizeGender(item.gender || dept.gender || '')}
-                                                      onChange={(e) => updateDeptItem(idx, { gender: e.target.value })}
-                                                    >
-                                                      <option value="">Select Gender...</option>
-                                                      {availableGenders.map((g: any) => (
-                                                        <option key={g.id || g.code || g.value} value={g.value}>
-                                                          {g.label}
-                                                        </option>
-                                                      ))}
-                                                    </Select>
-                                                  </div>
-
-                                                  {/* Product Type */}
-                                                  <div className="min-w-[140px]">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
-                                                    <Select
-                                                      className={selectCls}
-                                                      value={item.product_type_id}
-                                                      onChange={(e) => updateDeptItem(idx, { product_type_id: e.target.value, product_id: '', sam_value: '', design_number: '' })}
-                                                    >
-                                                      <option value="">Select type...</option>
-                                                      {displayProductTypes.map((pt: any) => (
-                                                        <option key={pt.id} value={String(pt.id)}>{pt.name}</option>
-                                                      ))}
-                                                    </Select>
-                                                  </div>
-
-                                                  {/* Product */}
-                                                  <div className="flex-1 min-w-[180px]">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product</p>
-                                                    <Select
-                                                      className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                      value={item.product_id || ''}
-                                                      disabled={!item.product_type_id}
-                                                      onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        const prod = allProducts.find((p: any) => String(p.id) === val);
-                                                        const updates: Partial<ManualItem> = {
-                                                          product_id: val,
-                                                          product_type_id: String(prod?.product_type_id || item.product_type_id || ''),
-                                                          product_name: prod?.name || '',
-                                                          name: prod?.name || ''
-                                                        };
-                                                        if (isAccessoryType) {
-                                                          if (prod) {
-                                                            const basePrice = parseFloat(prod.base_price || prod.retail_sam_value || '0') || 0;
-                                                            updateDeptItem(idx, {
-                                                              product_id: val,
-                                                              product_type_id: String(prod.product_type_id || item.product_type_id || ''),
-                                                              art_number: prod.art_number || item.art_number || '',
-                                                              gender: normalizeGender(prod.gender) || item.gender || dept.gender || 'unisex',
-                                                              price: basePrice > 0 ? basePrice.toFixed(2) : (item.price || '0.00'),
-                                                              size_breakdown: {
-                                                                ...(item.size_breakdown || {}),
-                                                                selected_size: prod.base_size || 'Free Size',
-                                                                is_accessory: true
-                                                              }
-                                                            });
-                                                          } else {
-                                                            updateDeptItem(idx, { product_id: '', art_number: '', price: '' });
-                                                          }
-                                                          return;
-                                                        }
-                                                        if (prod) {
-                                                          updates.sam_value = prod.sam_value !== null ? String(prod.sam_value) : '';
-
-                                                          // Automatically resolve class/grade fabric and trim consumption
-                                                          const autoDefaults = getAutoProductDefaults({
-                                                            prod,
-                                                            isSchool,
-                                                            deptName: dept?.baseDeptName || dept?.name || '',
-                                                            fabricsList,
-                                                            buttonsList,
-                                                            threadsList,
-                                                            trimsList,
-                                                            trimCategories
-                                                          });
-                                                          if (autoDefaults) {
-                                                            updates.base_main_fabric_meters = autoDefaults.base_main_fabric_meters || autoDefaults.main_fabric_meters;
-                                                            updates.main_fabric_meters = autoDefaults.main_fabric_meters;
-                                                            updates.base_attachment_fabric1_meters = autoDefaults.base_attachment_fabric1_meters || autoDefaults.attachment_fabric1_meters;
-                                                            updates.attachment_fabric1_meters = autoDefaults.attachment_fabric1_meters;
-                                                            updates.base_attachment_fabric2_meters = autoDefaults.base_attachment_fabric2_meters || autoDefaults.attachment_fabric2_meters;
-                                                            updates.attachment_fabric2_meters = autoDefaults.attachment_fabric2_meters;
-                                                            updates.button_count = autoDefaults.button_count;
-                                                            updates.thread_count = autoDefaults.thread_count;
-                                                            if (autoDefaults.fabric_id) updates.fabric_id = autoDefaults.fabric_id;
-                                                            if (autoDefaults.attachment_fabric1_id) updates.attachment_fabric1_id = autoDefaults.attachment_fabric1_id;
-                                                            if (autoDefaults.attachment_fabric2_id) updates.attachment_fabric2_id = autoDefaults.attachment_fabric2_id;
-                                                            if (autoDefaults.button_id) updates.button_id = autoDefaults.button_id;
-                                                            if (autoDefaults.thread_id) updates.thread_id = autoDefaults.thread_id;
-                                                            if (autoDefaults.trims) updates.trims = autoDefaults.trims;
-                                                            updates.main_fabric_sam = autoDefaults.main_fabric_sam;
-                                                            updates.attachment_fabric1_sam = autoDefaults.attachment_fabric1_sam;
-                                                            updates.attachment_fabric2_sam = autoDefaults.attachment_fabric2_sam;
-                                                            updates.design_number = '';
-                                                            updates.art_number = prod.art_number || autoDefaults.art_number || item.art_number || '';
-                                                            updates.final_sam_price = undefined;
-                                                            updates.main_fabric_cost = undefined;
-                                                            updates.attachment_fabric1_cost = undefined;
-                                                            updates.attachment_fabric2_cost = undefined;
-                                                          } else {
-                                                            updates.art_number = prod.art_number || item.art_number || '';
-                                                            updates.final_sam_price = undefined;
-                                                            updates.main_fabric_cost = undefined;
-                                                            updates.attachment_fabric1_cost = undefined;
-                                                            updates.attachment_fabric2_cost = undefined;
-                                                          }
-                                                          updates.materials = prod.materials || '';
-                                                          if (prod.gender) {
-                                                            const normG = normalizeGender(prod.gender);
-                                                            if (!item.gender || (normG && normG !== 'unisex')) {
-                                                              updates.gender = normG;
-                                                            }
-                                                          }
-                                                        } else {
-                                                          updates.sam_value = '';
-                                                          updates.main_fabric_meters = '';
-                                                          updates.attachment_fabric1_meters = '';
-                                                          updates.attachment_fabric2_meters = '';
-                                                          updates.button_count = '';
-                                                          updates.thread_count = '';
-                                                          updates.trims = [];
-                                                          updates.main_fabric_sam = '';
-                                                          updates.attachment_fabric1_sam = '';
-                                                          updates.attachment_fabric2_sam = '';
-                                                          updates.design_number = '';
-                                                          updates.art_number = '';
-                                                          updates.final_sam_price = undefined;
-                                                          updates.main_fabric_cost = undefined;
-                                                          updates.attachment_fabric1_cost = undefined;
-                                                          updates.attachment_fabric2_cost = undefined;
-                                                        }
-                                                        updateDeptItem(idx, updates);
-                                                      }}
-                                                    >
-                                                      <option value="">{isAccessoryType ? 'Select accessory...' : (item.product_type_id ? 'Select product...' : 'Select type first')}</option>
-                                                      {deptFilteredProducts.map((p: any) => (
-                                                        <option key={p.id} value={String(p.id)}>
-                                                          {p.name}{p.art_number ? ` (${p.art_number})` : ''}{isAccessoryType && p.base_price ? ` — ₹${parseFloat(p.base_price).toFixed(2)}` : ''}
-                                                        </option>
-                                                      ))}
-                                                    </Select>
-                                                  </div>
-
-                                                  {/* Selected Size (for MANUAL and ACCESSORIES type) */}
-                                                  {(quotationType === 'MANUAL' || isAccessoryType) && (
-                                                    <div className="w-32">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">
-                                                        Size
-                                                      </p>
-                                                      {isAccessoryType ? (
-                                                        <input
-                                                          type="text"
-                                                          placeholder="Free Size"
-                                                          value={item.size_breakdown?.selected_size || ''}
-                                                          onChange={(e) => updateDeptItem(idx, {
-                                                            size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value, is_accessory: true }
-                                                          })}
-                                                          className={inputCls}
-                                                        />
-                                                      ) : (
-                                                        <Select
-                                                          className={selectCls}
-                                                          value={item.size_breakdown?.selected_size || ''}
-                                                          onChange={(e) => updateDeptItem(idx, {
-                                                            size_breakdown: { ...(item.size_breakdown || {}), selected_size: e.target.value }
-                                                          })}
-                                                        >
-                                                          <option value="">Select size...</option>
-                                                          {(() => {
-                                                            const prod = allProducts.find((p: any) => String(p.id) === String(item.product_id));
-                                                            const sizes = prod?.other_sizes
-                                                              ? prod.other_sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
-                                                              : [];
-                                                            return sizes.map((sz: string) => (
-                                                              <option key={sz} value={sz}>{sz}</option>
-                                                            ));
-                                                          })()}
-                                                        </Select>
-                                                      )}
-                                                    </div>
-                                                  )}
-
-                                                  {/* SAM / Unit Price */}
-                                                  {(quotationType === 'READYMADE' || isAccessoryType) ? (
-                                                    <div className="w-28">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B] mb-1.5 font-bold">Unit Price (₹)</p>
-                                                      <input
-                                                        type="number" step="0.01" min="0" placeholder="0.00"
-                                                        value={item.price}
-                                                        onChange={(e) => updateDeptItem(idx, { price: e.target.value })}
-                                                        className={inputCls}
-                                                      />
-                                                    </div>
-                                                  ) : (
-                                                    <>
-                                                      <div className="w-24">
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product SAM</p>
-                                                        <input
-                                                          type="text"
-                                                          readOnly
-                                                          value={item.sam_value || '0'}
-                                                          className={`${inputCls} bg-zinc-100/90 text-zinc-500 cursor-not-allowed font-mono select-none`}
-                                                          title="Product SAM is read-only. Edit Final SAM Price to override calculation."
-                                                        />
-                                                      </div>
-                                                      <div className="w-32">
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#8b6b5a] mb-1.5 font-bold">Final SAM Price (₹)</p>
-                                                        <input
-                                                          type="number"
-                                                          step="0.01"
-                                                          min="0"
-                                                          placeholder={calcSamCost.toFixed(2)}
-                                                          value={item.final_sam_price !== undefined ? item.final_sam_price : ((item.product_id || item.sam_value) ? calcSamCost.toFixed(2) : '')}
-                                                          onChange={(e) => updateDeptItem(idx, { final_sam_price: e.target.value })}
-                                                          onBlur={() => {
-                                                            if (item.final_sam_price === '') {
-                                                              updateDeptItem(idx, { final_sam_price: undefined });
-                                                            }
-                                                          }}
-                                                          className={`${inputCls} font-mono font-bold text-[#8b6b5a] border-[#8b6b5a]/30 focus:border-[#8b6b5a] focus:ring-[#8b6b5a]/20`}
-                                                          title="Enter custom final SAM price or leave empty to use auto-calculated SAM cost"
-                                                        />
-                                                      </div>
-                                                    </>
-                                                  )}
-
-                                                  {/* Quantity */}
-                                                  <div className="w-20">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Quantity</p>
-                                                    <input
-                                                      type="number" min="1" placeholder="1"
-                                                      value={item.quantity}
-                                                      onChange={(e) => updateDeptItem(idx, { quantity: e.target.value })}
-                                                      className={inputCls}
-                                                    />
-                                                  </div>
-
-                                                  {/* Highlighted Total Product Price (Unit Price * No of Products) */}
-                                                  <div className="ml-auto flex items-center gap-3">
-                                                    <div className="text-right self-center">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                                                        {(quotationType === 'READYMADE' || isAccessoryType) ? 'Unit Price' : 'Unit Cost'}
-                                                      </p>
-                                                      <p className="text-base font-bold text-zinc-700 font-mono mt-0.5">
-                                                        ₹{unitTotal.toFixed(2)}
-                                                      </p>
-                                                    </div>
-                                                    <div className="text-right self-center bg-gradient-to-r from-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
-                                                      <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800">
-                                                        Total Product Price
-                                                      </p>
-                                                      <p className="text-xl font-black italic tracking-tight text-emerald-700 font-mono">
-                                                        ₹{totalItemCost.toFixed(2)}
-                                                      </p>
-                                                      <p className="text-[9px] font-bold text-emerald-600/90 font-mono">
-                                                        ₹{unitTotal.toFixed(2)} × {item.quantity || 1} units
-                                                      </p>
-                                                    </div>
-                                                  </div>
-
-                                                  {/* Delete */}
-                                                  <button
-                                                    onClick={() => removeDeptItem(idx)}
-                                                    className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 self-start mt-5"
-                                                  >
-                                                    <Trash2 size={14} />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            )}
-
-                                            {/* Material Cost Breakdown (STANDARD only) */}
-                                            {quotationType !== 'READYMADE' && !isAccessoryType && (
-                                              <div className="p-5" style={{ display: 'block' }}>
-                                                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-                                                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Material Cost Breakdown</p>
-                                                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
-                                                    ℹ️ Base fabric length is calibrated for 58" width
-                                                  </span>
-                                                </div>
-                                                <div className="rounded-2xl border border-zinc-100 overflow-hidden">
-                                                  <table className="w-full text-xs border-collapse">
-                                                    <thead>
-                                                      <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-100">
-                                                        <th className="p-3 text-center w-32">Component</th>
-                                                        <th className="p-3 text-center">Item Selection</th>
-                                                        <th className="p-3 text-center w-24">Meters / Qty</th>
-                                                        <th className="p-3 text-center w-24">Fabric Width</th>
-                                                        <th className="p-3 text-center w-36">Fabric SAM</th>
-                                                        <th className="p-3 text-center w-24">Cost (₹)</th>
-                                                      </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-zinc-50">
-
-                                                      {/* ── Main Fabric (MANDATORY) ── */}
-                                                      {(() => {
-                                                        const mainFab = fabricsList.find((f: any) => String(f.id) === item.fabric_id);
-                                                        return (
-                                                          <tr className="hover:bg-zinc-50/50">
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-2">
-                                                                <span className="w-2 h-2 rounded-full bg-[#C82A2B] flex-shrink-0"></span>
-                                                                <span className="font-black text-zinc-900">Main Fabric</span>
-                                                                <span className="text-red-400 font-black text-[10px]">*</span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <Select
-                                                                className={selectCls}
-                                                                value={item.fabric_id}
-                                                                onChange={(e) => {
-                                                                  const val = e.target.value;
-                                                                  const updates: Partial<ManualItem> = {
-                                                                    fabric_id: val,
-                                                                    main_fabric_rate: '0.00',
-                                                                    main_fabric_cost: undefined
-                                                                  };
-                                                                  if (val && !item.main_fabric_sam) updates.main_fabric_sam = '6.777';
-                                                                  updateDeptItem(idx, updates);
-                                                                }}
-                                                              >
-                                                                <option value="">Select fabric...</option>
-                                                                {fabricsList.map((f: any) => (
-                                                                  <option key={f.id} value={String(f.id)}>
-                                                                    {formatFabricDisplayName(f)}
-                                                                  </option>
-                                                                ))}
-                                                              </Select>
-                                                              {item.fabric_id && (
-                                                                <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
-                                                                  Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id)}%
-                                                                </div>
-                                                              )}
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-1.5">
-                                                                <input
-                                                                  type="number" step="0.1" min="0" placeholder="0.0"
-                                                                  value={item.main_fabric_meters}
-                                                                  onChange={(e) => updateDeptItem(idx, { main_fabric_meters: e.target.value })}
-                                                                  className={`${inputCls} w-20`}
-                                                                />
-                                                                <span className="text-zinc-400 font-bold text-[10px]">m</span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <span className="font-semibold text-zinc-600">
-                                                                {mainFab?.width ? `${mainFab.width}"` : '—'}
-                                                              </span>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              {item.fabric_id ? (
-                                                                <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
-                                                                  {item.main_fabric_sam ? `₹${parseFloat(item.main_fabric_sam).toFixed(2)}` : '—'}
-                                                                </span>
-                                                              ) : (
-                                                                <span className="text-zinc-300 italic text-[10px]">—</span>
-                                                              )}
-                                                            </td>
-                                                            <td className="p-3 text-right">
-                                                              <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                min="0"
-                                                                placeholder={calcMainFabricCost.toFixed(2)}
-                                                                value={item.main_fabric_cost !== undefined ? item.main_fabric_cost : (item.fabric_id ? calcMainFabricCost.toFixed(2) : '')}
-                                                                onChange={(e) => updateDeptItem(idx, { main_fabric_cost: e.target.value })}
-                                                                onBlur={() => {
-                                                                  if (item.main_fabric_cost === '') {
-                                                                    updateDeptItem(idx, { main_fabric_cost: undefined });
-                                                                  }
-                                                                }}
-                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
-                                                                title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
-                                                              />
-                                                            </td>
-                                                          </tr>
-                                                        );
-                                                      })()}
-
-                                                      {/* ── Attachment Fabric 1 (OPTIONAL) ── */}
-                                                      {(() => {
-                                                        const att1Fab = fabricsList.find((f: any) => String(f.id) === item.attachment_fabric1_id);
-                                                        return (
-                                                          <tr className="hover:bg-zinc-50/50">
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-2">
-                                                                <span className="w-2 h-2 rounded-full bg-zinc-300 flex-shrink-0"></span>
-                                                                <span className="font-semibold text-zinc-500">Att. Fabric 1</span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <Select
-                                                                className={selectCls}
-                                                                value={item.attachment_fabric1_id}
-                                                                onChange={(e) => {
-                                                                  const val = e.target.value;
-                                                                  const updates: Partial<ManualItem> = {
-                                                                    attachment_fabric1_id: val,
-                                                                    attachment_fabric1_rate: '0.00',
-                                                                    attachment_fabric1_cost: undefined
-                                                                  };
-                                                                  if (val && !item.attachment_fabric1_sam) updates.attachment_fabric1_sam = '6.777';
-                                                                  updateDeptItem(idx, updates);
-                                                                }}
-                                                              >
-                                                                <option value="">Select Att. Fabric 1 (Optional)...</option>
-                                                                {fabricsList.map((f: any) => (
-                                                                  <option key={f.id} value={String(f.id)}>
-                                                                    {formatFabricDisplayName(f)}
-                                                                  </option>
-                                                                ))}
-                                                              </Select>
-                                                              {item.attachment_fabric1_id && (
-                                                                <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
-                                                                  Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id)}%
-                                                                </div>
-                                                              )}
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-1.5">
-                                                                <input
-                                                                  type="number" step="0.1" min="0" placeholder="0.0"
-                                                                  value={item.attachment_fabric1_meters}
-                                                                  onChange={(e) => updateDeptItem(idx, { attachment_fabric1_meters: e.target.value })}
-                                                                  className={`${inputCls} w-20`}
-                                                                />
-                                                                <span className="text-zinc-400 font-bold text-[10px]">m</span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <span className="font-semibold text-zinc-600">
-                                                                {att1Fab?.width ? `${att1Fab.width}"` : '—'}
-                                                              </span>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              {item.attachment_fabric1_id ? (
-                                                                <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
-                                                                  {item.attachment_fabric1_sam ? `₹${parseFloat(item.attachment_fabric1_sam).toFixed(2)}` : '—'}
-                                                                </span>
-                                                              ) : (
-                                                                <span className="text-zinc-300 italic text-[10px]">—</span>
-                                                              )}
-                                                            </td>
-                                                            <td className="p-3 text-right">
-                                                              <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                min="0"
-                                                                placeholder={calcAtt1Cost.toFixed(2)}
-                                                                value={item.attachment_fabric1_cost !== undefined ? item.attachment_fabric1_cost : (item.attachment_fabric1_id ? calcAtt1Cost.toFixed(2) : '')}
-                                                                onChange={(e) => updateDeptItem(idx, { attachment_fabric1_cost: e.target.value })}
-                                                                onBlur={() => {
-                                                                  if (item.attachment_fabric1_cost === '') {
-                                                                    updateDeptItem(idx, { attachment_fabric1_cost: undefined });
-                                                                  }
-                                                                }}
-                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
-                                                                title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
-                                                              />
-                                                            </td>
-                                                          </tr>
-                                                        );
-                                                      })()}
-
-                                                      {/* ── Attachment Fabric 2 (OPTIONAL) ── */}
-                                                      {(() => {
-                                                        const att2Fab = fabricsList.find((f: any) => String(f.id) === item.attachment_fabric2_id);
-                                                        return (
-                                                          <tr className="hover:bg-zinc-50/50">
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-2">
-                                                                <span className="w-2 h-2 rounded-full bg-zinc-200 flex-shrink-0"></span>
-                                                                <span className="font-semibold text-zinc-450">Att. Fabric 2</span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <Select
-                                                                className={selectCls}
-                                                                value={item.attachment_fabric2_id}
-                                                                onChange={(e) => {
-                                                                  const val = e.target.value;
-                                                                  const updates: Partial<ManualItem> = {
-                                                                    attachment_fabric2_id: val,
-                                                                    attachment_fabric2_rate: '0.00',
-                                                                    attachment_fabric2_cost: undefined
-                                                                  };
-                                                                  if (val && !item.attachment_fabric2_sam) updates.attachment_fabric2_sam = '6.777';
-                                                                  updateDeptItem(idx, updates);
-                                                                }}
-                                                              >
-                                                                <option value="">Select Att. Fabric 2 (Optional)...</option>
-                                                                {fabricsList.map((f: any) => (
-                                                                  <option key={f.id} value={String(f.id)}>
-                                                                    {formatFabricDisplayName(f)}
-                                                                  </option>
-                                                                ))}
-                                                              </Select>
-                                                              {item.attachment_fabric2_id && (
-                                                                <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
-                                                                  Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id)}%
-                                                                </div>
-                                                              )}
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-1.5">
-                                                                <input
-                                                                  type="number" step="0.1" min="0" placeholder="0.0"
-                                                                  value={item.attachment_fabric2_meters}
-                                                                  onChange={(e) => updateDeptItem(idx, { attachment_fabric2_meters: e.target.value })}
-                                                                  className={`${inputCls} w-20`}
-                                                                />
-                                                                <span className="text-zinc-400 font-bold text-[10px]">m</span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <span className="font-semibold text-zinc-600">
-                                                                {att2Fab?.width ? `${att2Fab.width}"` : '—'}
-                                                              </span>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              {item.attachment_fabric2_id ? (
-                                                                <span className="font-mono font-bold text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 block text-right" title="Fabric SAM is read-only">
-                                                                  {item.attachment_fabric2_sam ? `₹${parseFloat(item.attachment_fabric2_sam).toFixed(2)}` : '—'}
-                                                                </span>
-                                                              ) : (
-                                                                <span className="text-zinc-300 italic text-[10px]">—</span>
-                                                              )}
-                                                            </td>
-                                                            <td className="p-3 text-right">
-                                                              <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                min="0"
-                                                                placeholder={calcAtt2Cost.toFixed(2)}
-                                                                value={item.attachment_fabric2_cost !== undefined ? item.attachment_fabric2_cost : (item.attachment_fabric2_id ? calcAtt2Cost.toFixed(2) : '')}
-                                                                onChange={(e) => updateDeptItem(idx, { attachment_fabric2_cost: e.target.value })}
-                                                                onBlur={() => {
-                                                                  if (item.attachment_fabric2_cost === '') {
-                                                                    updateDeptItem(idx, { attachment_fabric2_cost: undefined });
-                                                                  }
-                                                                }}
-                                                                className="w-24 px-2 py-1 text-right text-xs font-mono font-black border border-zinc-200 rounded-lg text-zinc-900 focus:border-[#C82A2B] focus:outline-none bg-white shadow-2xs"
-                                                                title="Enter custom cost of fabric or leave empty to use auto-calculated cost"
-                                                              />
-                                                            </td>
-                                                          </tr>
-                                                        );
-                                                      })()}
-
-                                                      {/* ── Dynamic Database Trims ── */}
-                                                      {((item.trims && item.trims.length > 0) ? item.trims : [
-                                                        { id: 'btn', trim_id: item.button_id || '', category: 'Buttons', count: item.button_count || '0', uom: 'pcs' },
-                                                        { id: 'thr', trim_id: item.thread_id || '', category: 'Thread', count: item.thread_count || '1', uom: 'spools' }
-                                                      ]).map((trimItem: any, trimIdx: number) => {
-                                                        const dbTrim = trimsList.find((t: any) => String(t.id) === String(trimItem.trim_id)) ||
-                                                                       threadsList.find((th: any) => String(th.id) === String(trimItem.trim_id)) ||
-                                                                       buttonsList.find((b: any) => String(b.id) === String(trimItem.trim_id));
-                                                        const trimCat = trimItem.category || dbTrim?.category?.name || dbTrim?.trim_categories?.name || 'Trim';
-                                                        const catMeta = getTrimCategoryMeta(trimCat, dbTrim?.code);
-                                                        const isThr = catMeta.isThr;
-
-                                                        return (
-                                                          <tr key={trimItem.id || trimIdx} className="hover:bg-zinc-50/50">
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-1.5">
-                                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catMeta.color}`}></span>
-                                                                <Select
-                                                                  className="text-[11px] font-bold text-zinc-700 bg-transparent border-0 border-b border-dashed border-zinc-300 hover:border-zinc-500 focus:outline-none focus:border-[#C82A2B] py-0.5 pr-2 cursor-pointer max-w-[110px]"
-                                                                  value={trimCat}
-                                                                  onChange={(e) => {
-                                                                    const newCat = e.target.value;
-                                                                    const newMeta = getTrimCategoryMeta(newCat);
-                                                                    updateDeptItemTrim(idx, trimIdx, {
-                                                                      category: newCat,
-                                                                      uom: newMeta.defaultUom
-                                                                    });
-                                                                  }}
-                                                                >
-                                                                  {allTrimCategories.map((c: string) => (
-                                                                    <option key={c} value={c}>{c}</option>
-                                                                  ))}
-                                                                </Select>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <Select
-                                                                className={selectCls}
-                                                                value={trimItem.trim_id || ''}
-                                                                onChange={(e) => {
-                                                                  const selectedTrimId = e.target.value;
-                                                                  const found = trimsList.find((t: any) => String(t.id) === selectedTrimId) ||
-                                                                                buttonsList.find((b: any) => String(b.id) === selectedTrimId) ||
-                                                                                threadsList.find((th: any) => String(th.id) === selectedTrimId);
-                                                                  const itemMeta = getTrimCategoryMeta(found?.category?.name || found?.trim_categories?.name || trimCat, found?.code);
-                                                                  const resolvedCategory = found?.category?.name || found?.trim_categories?.name || (itemMeta.isThr ? 'Thread' : trimCat);
-                                                                  const resolvedUom = itemMeta.isThr ? 'spools' : (found?.uom || found?.category?.default_uom || itemMeta.defaultUom);
-
-                                                                  let newCount = trimItem.count;
-                                                                  if (itemMeta.isThr && (!newCount || newCount === '0' || newCount === '')) {
-                                                                    newCount = item.thread_count || '1';
-                                                                  }
-
-                                                                  updateDeptItemTrim(idx, trimIdx, {
-                                                                    trim_id: selectedTrimId,
-                                                                    name: found?.name || '',
-                                                                    category: resolvedCategory,
-                                                                    uom: resolvedUom,
-                                                                    count: newCount,
-                                                                    unit_price: parseFloat(found?.unit_price || '0') || 0
-                                                                  });
-                                                                }}
-                                                              >
-                                                                <option value="">Select {trimCat} (Optional)...</option>
-                                                                {Object.entries(trimsByCategory).map(([catName, items]) => (
-                                                                  <optgroup key={catName} label={catName}>
-                                                                    {items.map((t: any) => {
-                                                                      const itemUom = t.uom || (catName.toLowerCase().includes('thread') ? 'spool' : 'pc');
-                                                                      return (
-                                                                        <option key={t.id} value={String(t.id)}>
-                                                                          {t.name} {t.code ? `(${t.code})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/${itemUom}` : ''}
-                                                                        </option>
-                                                                      );
-                                                                    })}
-                                                                  </optgroup>
-                                                                ))}
-                                                                {Object.keys(trimsByCategory).length === 0 && (
-                                                                  <>
-                                                                    <optgroup label="Buttons">
-                                                                      {buttonsList.map((b: any) => (
-                                                                        <option key={b.id} value={String(b.id)}>
-                                                                          {b.name}{b.unit_price ? ` — ₹${Number(b.unit_price).toFixed(2)}/pc` : ''}
-                                                                        </option>
-                                                                      ))}
-                                                                    </optgroup>
-                                                                    <optgroup label="Threads">
-                                                                      {threadsList.map((t: any) => (
-                                                                        <option key={t.id} value={String(t.id)}>
-                                                                          {t.name}{t.type ? ` (${t.type})` : ''}{t.unit_price ? ` — ₹${Number(t.unit_price).toFixed(2)}/spool` : ''}
-                                                                        </option>
-                                                                      ))}
-                                                                    </optgroup>
-                                                                  </>
-                                                                )}
-                                                              </Select>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <div className="flex items-center gap-1.5">
-                                                                <input
-                                                                  type="number" step="0.5" min="0" placeholder="0"
-                                                                  value={isThr ? (trimItem.count || item.thread_count || '1') : (trimItem.count || '')}
-                                                                  onChange={(e) => updateDeptItemTrim(idx, trimIdx, { count: e.target.value })}
-                                                                  className={`${inputCls} w-20`}
-                                                                />
-                                                                <span className="text-zinc-400 font-bold text-[10px]">
-                                                                  {isThr ? 'spools' : (trimItem.uom || dbTrim?.uom || catMeta.defaultUom)}
-                                                                </span>
-                                                              </div>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <span className="text-zinc-300 font-semibold text-[10px]">—</span>
-                                                            </td>
-                                                            <td className="p-3">
-                                                              <span className="text-[#C82A2B] font-black uppercase text-[10px] tracking-wider italic">Included</span>
-                                                            </td>
-                                                            <td className="p-3 text-right">
-                                                              <div className="flex items-center justify-end gap-2">
-                                                                <span className="font-mono font-black text-zinc-300">₹0.00</span>
-                                                                <button
-                                                                  type="button"
-                                                                  onClick={() => removeDeptItemTrim(idx, trimIdx)}
-                                                                  className="text-zinc-300 hover:text-red-500 transition-colors p-1"
-                                                                  title="Remove trim"
-                                                                >
-                                                                  <Trash2 size={13} />
-                                                                </button>
-                                                              </div>
-                                                            </td>
-                                                          </tr>
-                                                        );
-                                                      })}
-
-                                                      {/* ── Add Trim Button & Quick Presets ── */}
-                                                      <tr className="bg-zinc-50/40">
-                                                        <td colSpan={6} className="px-3 py-2 border-t border-zinc-100">
-                                                          <div className="flex items-center justify-between flex-wrap gap-2">
-                                                            <button
-                                                              type="button"
-                                                              onClick={() => addDeptItemTrim(idx, 'Trim')}
-                                                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C82A2B] hover:text-[#9E1B1D] uppercase tracking-wider transition-colors"
-                                                            >
-                                                              <Plus size={13} strokeWidth={2.5} /> Add Trim
-                                                            </button>
-                                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Quick:</span>
-                                                              {['Zipper', 'Elastic', 'Label', 'Interlining', 'Velcro'].map(cat => (
-                                                                <button
-                                                                  key={cat}
-                                                                  type="button"
-                                                                  onClick={() => addDeptItemTrim(idx, cat)}
-                                                                  className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white hover:bg-zinc-100 text-zinc-600 border border-zinc-200 transition-colors"
-                                                                >
-                                                                  + {cat}
-                                                                </button>
-                                                              ))}
-                                                            </div>
-                                                          </div>
-                                                        </td>
-                                                      </tr>
-
-                                                    </tbody>
-                                                    {/* ── Total Footer ── */}
-                                                    <tfoot>
-                                                      <tr className="border-t-2 border-[#C82A2B]/20 bg-[#FFF1F1]">
-                                                        <td colSpan={5} className="p-4 font-black text-[10px] uppercase tracking-widest text-zinc-900">
-                                                          Total Unit Cost
-                                                        </td>
-                                                        <td className="p-4 text-right">
-                                                          <span className="font-black text-lg text-[#C82A2B] font-mono">
-                                                            ₹{unitTotal.toFixed(2)}
-                                                          </span>
-                                                        </td>
-                                                      </tr>
-                                                    </tfoot>
-                                                  </table>
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="flex gap-3 items-center mt-4 flex-wrap">
-                                  <Button
-                                    onClick={addDeptItem}
-                                    className="h-10 px-5 bg-zinc-100 hover:bg-[#C82A2B] hover:!text-white !text-zinc-900 rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-zinc-200 transition-all"
-                                  >
-                                    <Plus size={13} strokeWidth={3} /> Add Product Line for {dept.division ? `${deptName} (${dept.division})` : deptName}
-                                  </Button>
-
-                                  {(() => {
-                                    const otherDepts = selectedDepts.filter((d: any) => String(d.id) !== deptId);
-                                    if (otherDepts.length === 0) return null;
-                                    return (
-                                      <div className="relative">
-                                        <Select
-                                          value=""
-                                          onChange={(e) => {
-                                            const fromDeptId = e.target.value;
-                                            if (!fromDeptId) return;
-                                            const fromItems = (departmentItems || {})[fromDeptId] || [];
-                                            if (fromItems.length === 0) {
-                                              toast.error('The selected department has no product lines to copy');
-                                              return;
-                                            }
-                                            // Clone items with new random IDs and adjust quantity
-                                            const clonedItems = fromItems.map((item: any) => ({
-                                              ...item,
-                                              id: Date.now() + Math.random(),
-                                              quantity: String(totalUnits || 1)
-                                            }));
-                                            if (setDepartmentItems) {
-                                              setDepartmentItems({
-                                                ...(departmentItems || {}),
-                                                [deptId]: clonedItems
-                                              });
-                                              toast.success(`Copied ${clonedItems.length} product lines successfully!`);
-                                            }
-                                          }}
-                                          className="h-10 px-4 pr-8 text-[10px] font-black uppercase tracking-widest bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-xl transition-all cursor-pointer appearance-none focus:outline-none"
-                                        >
-                                          <option value="" disabled>Copy Config From...</option>
-                                          {otherDepts.map((od: any) => {
-                                            const odItemsCount = ((departmentItems || {})[String(od.id)] || []).length;
-                                            const nameOption = od.grade || od.name || 'Dept';
-                                            return (
-                                              <option key={od.id} value={String(od.id)}>
-                                                {od.division ? `${nameOption} (${od.division})` : nameOption} ({odItemsCount} item{odItemsCount !== 1 ? 's' : ''})
-                                              </option>
-                                            );
-                                          })}
-                                        </Select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-indigo-500">
-                                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                                          </svg>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              );
-            }
-
-            // No departments selected — flat manualItems mode
-            return (
-              <>
-                <div className="space-y-4">
-                  {manualItems.map((item, idx) => renderManualItemCard(item, idx))}
-                </div>
-
-                <Button
-                  onClick={addNewItem}
-                  className="h-12 px-6 bg-zinc-100 hover:bg-zinc-200 !text-black rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-zinc-200"
-                >
-                  <Plus size={14} strokeWidth={3} /> Add Product Item Line
-                </Button>
-              </>
-            );
-          })()}
-        </>
+        renderItemLines()
       )}
 
-
-      {/* ═══ RAW FABRICS — SOLD SEPARATELY ═══ */}
-      {/* This section is for customers who want to PURCHASE FABRICS alongside their garment/product order */}
-      {/* Visible for STANDARD (Readymade) and READYMADE (Trade Readymade) quotation types */}
-      {quotationType !== 'FABRIC' && quotationType !== 'FABRIC_SET' && !isAccessoryType && (
-        <div className="mt-10 rounded-[2rem] overflow-hidden border-2 border-[#C82A2B]/20 shadow-lg shadow-[#C82A2B]/5">
-          {/* Section Banner Header */}
-          <div className="bg-gradient-to-r from-[#FFF1F1] via-[#FFF1F1]/50 to-transparent px-6 py-4 border-b border-[#C82A2B]/15 flex items-center gap-4 flex-wrap">
-            <div className="w-10 h-10 rounded-xl bg-[#FFF1F1] flex items-center justify-center flex-shrink-0">
-              <Package size={20} className="text-[#C82A2B]" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-black text-zinc-900 tracking-tight">Raw Fabrics — Sold Separately</h4>
-              <p className="text-[10px] font-bold text-[#C82A2B] uppercase tracking-widest opacity-80 mt-0.5">
-                Optional · Customer purchases fabric rolls in addition to products
-              </p>
-            </div>
-            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/20 tracking-widest">
-              {separateFabrics.length} Line{separateFabrics.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          <div className="p-5 bg-white space-y-4">
-            {separateFabrics.length > 0 ? (
-              <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white shadow-sm">
-                <table className="w-full text-left border-collapse text-xs align-middle">
-                  <thead>
-                    <tr className="bg-[#FFF1F1] text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
-                      <th className="p-3 text-center">Fabric Item Selection</th>
-                      <th className="p-3 text-center w-32">Meters</th>
-                      <th className="p-3 text-center w-36">Rate/Meter (₹)</th>
-                      <th className="p-3 text-center w-36">Total Cost (₹)</th>
-                      <th className="p-3 text-center w-16">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-650">
-                    {separateFabrics.map((sf, idx) => {
-                      const meters = parseFloat(sf.meters) || 0;
-                      const rate = parseFloat(sf.rate) || 0;
-                      const totalCost = meters * rate;
-
-                      return (
-                        <tr key={sf.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-2">
-                            <Select
-                              className="w-full px-2.5 py-1.5 text-xs font-semibold border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white"
-                              value={sf.fabric_id}
-                              onChange={(e) => updateSeparateFabric(idx, { fabric_id: e.target.value })}
-                            >
-                              <option value="">Select fabric...</option>
-                              {fabricsList.map((f: any) => (
-                                <option key={f.id} value={String(f.id)}>
-                                  {formatFabricDisplayName(f)}
-                                </option>
-                              ))}
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              className="px-2.5 py-2 text-xs font-bold border border-zinc-200 rounded-xl text-zinc-900 text-center transition-all w-full"
-                              value={sf.meters}
-                              onChange={(e) => updateSeparateFabric(idx, { meters: e.target.value })}
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              className="px-2.5 py-2 text-xs font-mono font-bold border border-zinc-200 rounded-xl text-[#C82A2B] text-center transition-all w-full"
-                              value={sf.rate}
-                              onChange={(e) => updateSeparateFabric(idx, { rate: e.target.value })}
-                            />
-                          </td>
-                          <td className="p-2 text-right font-mono font-black text-[#C82A2B] pr-4">
-                            ₹{totalCost.toFixed(2)}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => removeSeparateFabric(idx)}
-                              className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-100 mx-auto"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-[#C82A2B]/15 bg-[#FFF1F1]">
-                      <td colSpan={3} className="p-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Raw Fabric Cost</td>
-                      <td className="p-3 text-right font-black text-lg text-[#C82A2B] font-mono">
-                        ₹{separateFabrics.reduce((sum, sf) => sum + (parseFloat(sf.meters) || 0) * (parseFloat(sf.rate) || 0), 0).toFixed(2)}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 border-2 border-dashed border-[#C82A2B]/20 rounded-2xl bg-[#FFF1F1]">
-                <Package size={28} className="text-[#C82A2B]/40 mx-auto mb-2" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">No fabric lines added yet</p>
-                <p className="text-[10px] font-semibold text-zinc-350 mt-1">Click the button below to add fabric selling lines</p>
-              </div>
-            )}
-
-            <Button
-              onClick={addSeparateFabric}
-              className="h-12 px-6 bg-[#FFF1F1] hover:bg-[#C82A2B] hover:!text-white !text-[#C82A2B] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 border border-[#C82A2B]/25 transition-all"
-            >
-              <Plus size={14} strokeWidth={3} /> Add Fabric Selling Line
-            </Button>
-          </div>
-        </div>
-      )}
+      {renderItemModal()}
 
       {/* Navigation */}
       <div className="flex justify-between pt-6 border-t border-zinc-100 mt-10">
