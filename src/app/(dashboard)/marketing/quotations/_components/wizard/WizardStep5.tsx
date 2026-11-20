@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle } from 'lucide-react';
+import api from '@/lib/api';
 import { Organization, ProductType, ManualItem } from '../../page';
+import { getItemKind, getLineDisplayView, KIND_BADGE, ITEM_KIND_LABELS, lineAmount, parseQty } from '../../_lib/itemLines';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
 export function formatProductTypeAndName(pTypeName?: string | null, prodName?: string | null): string {
@@ -83,6 +85,107 @@ export default function WizardStep5({
   const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
   const isAccessory = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
 
+  const [masterItems, setMasterItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/art-number-hub/master-data')
+      .then((res) => {
+        setMasterItems(res.data?.items || res.data?.dresses || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const renderItemLinesTable = (items: ManualItem[]) => {
+    const totalQty = items.reduce((s, it) => s + parseQty(it), 0);
+    const totalAmount = items.reduce((s, it) => s + lineAmount(it), 0);
+
+    return (
+      <div className="overflow-x-auto border border-zinc-200 rounded-2xl bg-white shadow-sm">
+        <table className="w-full text-left border-collapse min-w-[620px]">
+          <thead>
+            <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-500 tracking-wider">
+              <th className="p-3 w-16 text-center">SL No.</th>
+              <th className="p-3">Item</th>
+              <th className="p-3 w-28 text-right">Quantity</th>
+              <th className="p-3 w-32 text-right">Rate (₹)</th>
+              <th className="p-3 w-36 text-right">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-xs font-semibold text-zinc-400">
+                  No items listed
+                </td>
+              </tr>
+            ) : (
+              items.map((item, idx) => {
+                const line = getLineDisplayView(item, allProducts, fabricsList, masterItems);
+                const qty = parseQty(item);
+                const rate = parseFloat(item.price || '0');
+                const amount = lineAmount(item);
+                const kind = line.kind;
+
+                return (
+                  <tr key={item.id || idx} className="hover:bg-zinc-50/60 transition-colors">
+                    <td className="p-3 text-center text-xs font-black text-zinc-500">
+                      #{idx + 1}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-start gap-2">
+                        <span className={`mt-0.5 px-1.5 py-0.5 rounded border text-[8px] font-black uppercase tracking-wider shrink-0 ${KIND_BADGE[kind]}`}>
+                          {ITEM_KIND_LABELS[kind]}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-zinc-900 truncate">
+                            {line.title}
+                          </p>
+                          {line.subtitle && (
+                            <p className="text-[10px] font-semibold text-zinc-400 truncate">
+                              {line.subtitle}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <span className="font-mono font-black text-xs text-zinc-900">
+                        {qty} {kind === 'FABRIC' ? 'm' : ''}
+                      </span>
+                    </td>
+                    <td className="p-3 text-right font-mono font-bold text-xs text-zinc-800">
+                      ₹{rate.toFixed(2)}
+                    </td>
+                    <td className="p-3 text-right font-mono font-black text-xs text-[#C82A2B]">
+                      ₹{amount.toFixed(2)}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+          {items.length > 0 && (
+            <tfoot className="bg-zinc-50/80 border-t border-zinc-200">
+              <tr className="font-black text-xs text-zinc-900">
+                <td className="p-3 text-center text-[10px] uppercase text-zinc-400">Total</td>
+                <td className="p-3 text-xs text-zinc-600">
+                  {items.length} {items.length === 1 ? 'Line' : 'Lines'}
+                </td>
+                <td className="p-3 text-right font-mono font-black">
+                  {totalQty}
+                </td>
+                <td className="p-3 text-right text-[10px] uppercase text-zinc-400 font-bold">Subtotal</td>
+                <td className="p-3 text-right font-mono font-black text-[#C82A2B]">
+                  ₹{totalAmount.toFixed(2)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    );
+  };
+
   const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
   const hasDepartments = selectedDepts.length > 0;
 
@@ -137,9 +240,7 @@ export default function WizardStep5({
                         const prod = allProducts?.find((p) => String(p.product_type_id) === String(selectedProductTypeId));
                         return formatProductTypeAndName(pt?.name, prod?.name);
                       })()
-                    : isAccessory
-                    ? 'Accessories Product Lines'
-                    : 'Multiple Manual Garment Lines'}
+                    : 'Item Lines (Readymades / Fabrics / Accessories)'}
                 </p>
               </div>
             </div>
@@ -198,79 +299,7 @@ export default function WizardStep5({
                                   {dept.persons} Persons × {dept.sets} Sets ({(parseInt(dept.persons) || 0) * (parseInt(dept.sets) || 0)} Units)
                                 </span>
                               </div>
-                              <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
-                                <table className="w-full text-left border-collapse">
-                                  <thead>
-                                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
-                                      <th className="p-3 text-center">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
-                                      <th className="p-3 text-center">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
-                                      {isAccessory ? (
-                                        <>
-                                          <th className="p-3 text-center">ART #</th>
-                                          <th className="p-3 text-center">Size</th>
-                                        </>
-                                      ) : (
-                                        <>
-                                          {!isFabric && <th className="p-3 text-center">SAM Cost</th>}
-                                          <th className="p-3 text-center">Design Number</th>
-                                        </>
-                                      )}
-                                      <th className="p-3 text-center">Quantity</th>
-                                      <th className="p-3 text-center">Unit Price</th>
-                                      <th className="p-3 text-center">Total Price</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
-                                    {items.map((item, idx) => {
-                                      const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
-                                      const product = (allProducts || []).find((p) => String(p.id) === String(item.product_id)) ||
-                                                      (allProducts || []).find((p) => p.art_number && item.art_number && String(p.art_number).trim().toLowerCase() === String(item.art_number).trim().toLowerCase());
-                                      const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || product?.product_types?.name || (item as any).product_type_name || '';
-                                      const prodName = product?.name || (item as any).product_name || (item as any).name || (item.size_breakdown && item.size_breakdown.product_name) || '';
-                                      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
-
-                                      const unifiedProductDisplay = isFabric
-                                        ? (fabric?.garment_category || 'Garment')
-                                        : isAccessory
-                                        ? formatProductTypeAndName((item as any).category || pTypeName, prodName || item.design_number)
-                                        : formatProductTypeAndName(pTypeName, prodName);
-
-                                      return (
-                                        <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                                          <td className="p-3 font-black text-zinc-900">{unifiedProductDisplay}</td>
-                                          <td className="p-3 text-zinc-600 text-xs font-semibold">
-                                            {isAccessory ? (
-                                              item.size_breakdown?.selected_size || 'Free Size'
-                                            ) : (
-                                              item.fabric_id ? fabricName : '—'
-                                            )}
-                                          </td>
-                                          {isAccessory ? (
-                                            <>
-                                              <td className="p-3 font-mono font-bold text-sky-900">{item.art_number || '—'}</td>
-                                              <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
-                                            </>
-                                          ) : (
-                                            <>
-                                              {!isFabric && (
-                                                <td className="p-3 font-mono">
-                                                  {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
-                                                </td>
-                                              )}
-                                              <td className="p-3">{item.design_number || 'N/A'}</td>
-                                            </>
-                                          )}
-                                          <td className="p-3 text-right font-black">{item.quantity}</td>
-                                          <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
-                                          <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
-                                            ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
+                              {renderItemLinesTable(items)}
                             </div>
                           );
                         })}
@@ -283,114 +312,9 @@ export default function WizardStep5({
           ) : (
             <Card className="p-8 border border-zinc-100 rounded-3xl space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-100 pb-2">
-                Product Items Details
+                Quotation Item Lines
               </h4>
-              <div className="border border-zinc-150 rounded-2xl overflow-hidden text-xs bg-white shadow-sm">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-900 border-b border-zinc-150">
-                      <th className="p-3 text-center">{isAccessory ? 'Category - Accessory' : isFabric ? 'Fabric Option' : 'Product (Type - Name)'}</th>
-                      <th className="p-3 text-center">{isAccessory ? 'Fabric / Option' : 'Fabric Option'}</th>
-                      {isAccessory ? (
-                        <>
-                          <th className="p-3 text-center">ART #</th>
-                          <th className="p-3 text-center">Size</th>
-                        </>
-                      ) : (
-                        <>
-                          {!isFabric && <th className="p-3 text-center">SAM Cost</th>}
-                          <th className="p-3 text-center">Design Number</th>
-                        </>
-                      )}
-                      <th className="p-3 text-center">Quantity</th>
-                      <th className="p-3 text-center">Unit Price</th>
-                      <th className="p-3 text-center">Total Price</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100 font-semibold text-zinc-600">
-                    {manualItems.map((item, idx) => {
-                      const isSet = item.size_breakdown?.is_set;
-
-                      if (isSet) {
-                        const setName = item.size_breakdown?.set_name || 'Custom Set';
-                        const products = item.size_breakdown?.products || [];
-                        return (
-                          <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                            <td className="p-3">
-                              <div className="space-y-1">
-                                <div className="font-black text-[#C82A2B] uppercase text-[11px]">🎁 SET: {setName}</div>
-                                <ul className="list-disc list-inside pl-2 text-zinc-500 text-[10px] space-y-0.5 font-bold">
-                                  {products.map((p: any, pIdx: number) => (
-                                    <li key={pIdx}>
-                                      {formatProductTypeAndName(p.product_type_name, p.product_name)}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </td>
-                            <td className="p-3 text-zinc-400 font-bold">—</td>
-                            {!isFabric && <td className="p-3 font-mono text-zinc-400">—</td>}
-                            <td className="p-3 text-zinc-500">{item.design_number || 'N/A'}</td>
-                            <td className="p-3 text-right font-black">{item.quantity}</td>
-                            <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
-                            <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
-                              ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      const fabric = fabricsList.find((f) => String(f.id) === String(item.fabric_id));
-                      const product = (allProducts || []).find((p) => String(p.id) === String(item.product_id)) ||
-                                      (allProducts || []).find((p) => p.art_number && item.art_number && String(p.art_number).trim().toLowerCase() === String(item.art_number).trim().toLowerCase());
-                      const pTypeName = productTypes.find((pt) => String(pt.id) === String(item.product_type_id))?.name || product?.product_types?.name || (item as any).product_type_name || '';
-                      const prodName = product?.name || (item as any).product_name || (item as any).name || (item.size_breakdown && item.size_breakdown.product_name) || '';
-                      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
-
-                      const unifiedProductDisplay = isFabric
-                        ? (fabric?.garment_category || 'Garment')
-                        : isAccessory
-                        ? formatProductTypeAndName((item as any).category || pTypeName, prodName || item.design_number)
-                        : formatProductTypeAndName(pTypeName, prodName);
-
-                      return (
-                        <tr key={item.id || idx} className="hover:bg-zinc-50/50 bg-white">
-                          <td className="p-3 font-black text-zinc-900">{unifiedProductDisplay}</td>
-                          <td className="p-3 text-zinc-600 text-xs font-semibold">
-                            {isAccessory ? (
-                              item.size_breakdown?.selected_size || 'Free Size'
-                            ) : isFabric ? (
-                              fabricName
-                            ) : (
-                              item.fabric_id ? fabricName : '—'
-                            )}
-                          </td>
-                          {isAccessory ? (
-                            <>
-                              <td className="p-3 font-mono font-bold text-sky-900">{item.art_number || '—'}</td>
-                              <td className="p-3 font-semibold text-zinc-600">{item.size_breakdown?.selected_size || 'Free Size'}</td>
-                            </>
-                          ) : (
-                            <>
-                              {!isFabric && (
-                                <td className="p-3 font-mono">
-                                  {item.sam_value ? `₹${parseFloat(item.sam_value).toFixed(2)}` : '—'}
-                                </td>
-                              )}
-                              <td className="p-3">{item.design_number || 'N/A'}</td>
-                            </>
-                          )}
-                          <td className="p-3 text-right font-black">{item.quantity}</td>
-                          <td className="p-3 text-right font-mono">₹{parseFloat(item.price || '0').toFixed(2)}</td>
-                          <td className="p-3 text-right font-black text-[#C82A2B] font-mono">
-                            ₹{((parseInt(item.quantity) || 0) * parseFloat(item.price || '0')).toFixed(2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {renderItemLinesTable(manualItems)}
             </Card>
           )}
 

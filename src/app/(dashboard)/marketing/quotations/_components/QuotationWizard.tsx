@@ -1,17 +1,91 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Check, ChevronRight } from 'lucide-react';
 import { Organization, ProductType, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
+import { getItemKind, getLineError, parseQty, toSeparateFabrics, fabricLineFromSeparate, formatProductDisplayName } from '../_lib/itemLines';
+
+// Map a saved quotation item back into an editable item line.
+// legacyType is the old metrics_summary.quotation_type, used to infer the kind of older items.
+const savedItemToLine = (item: any, legacyType?: string): ManualItem => {
+  const sb = item.size_breakdown || {};
+  const kind = getItemKind(item, legacyType);
+  return {
+    id: item.id || Date.now() + Math.random(),
+    item_kind: kind,
+    product_type_id: String(item.product_type_id || ''),
+    product_id: String(sb.product_id || item.product_id || ''),
+    product_name: kind === 'CUSTOM' ? (item.product_name || item.name || sb.product_name || item.manual_item_name || 'Custom Item') : (formatProductDisplayName(item) || sb.product_name || item.product_name || ''),
+    name: kind === 'CUSTOM' ? (item.name || item.product_name || sb.name || item.manual_item_name || 'Custom Item') : (formatProductDisplayName(item) || item.name || sb.product_name || item.product_name || ''),
+    art_number: sb.art_number || item.art_number || '',
+    fabric_id: String(sb.fabric_id || ''),
+    main_fabric_meters: String(sb.main_fabric_meters || ''),
+    main_fabric_rate: String(sb.main_fabric_rate || ''),
+    main_fabric_sam: String(sb.main_fabric_sam || ''),
+    attachment_fabric1_id: String(sb.attachment_fabric1_id || ''),
+    attachment_fabric1_meters: String(sb.attachment_fabric1_meters || ''),
+    attachment_fabric1_rate: String(sb.attachment_fabric1_rate || ''),
+    attachment_fabric1_sam: String(sb.attachment_fabric1_sam || ''),
+    attachment_fabric2_id: String(sb.attachment_fabric2_id || ''),
+    attachment_fabric2_meters: String(sb.attachment_fabric2_meters || ''),
+    attachment_fabric2_rate: String(sb.attachment_fabric2_rate || ''),
+    attachment_fabric2_sam: String(sb.attachment_fabric2_sam || ''),
+    button_id: String(sb.button_id || ''),
+    button_count: String(sb.button_count || ''),
+    thread_id: String(sb.thread_id || ''),
+    thread_count: String(sb.thread_count || ''),
+    trims: kind === 'READYMADE'
+      ? (sb.trims || [
+          { id: 'btn', trim_id: String(sb.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(sb.button_count || '10'), uom: 'pcs', unit_price: 0 },
+          { id: 'thr', trim_id: String(sb.thread_id || ''), category: 'Thread', name: 'Thread', count: String(sb.thread_count || ''), uom: 'spools', unit_price: 0 }
+        ])
+      : (sb.trims || []),
+    sam_value: String(sb.sam_value || ''),
+    design_number: String(sb.design_number || ''),
+    quantity: String(item.quantity ?? ''),
+    price: String(item.unit_price ?? ''),
+    // Keep the saved rate as-is; the user can switch back to the calculated rate in the item modal
+    rate_manual: true,
+    qty_mode: 'direct_products',
+    department_id: sb.department_id ? String(sb.department_id) : '',
+    department_name: sb.department_name || '',
+    gender: sb.gender || '',
+    size_breakdown: sb
+  };
+};
+
+// Saved separate-fabric items become fabric lines
+const savedQuoteToLines = (fullQuote: any): ManualItem[] => {
+  const legacyType = fullQuote.metrics_summary?.quotation_type;
+  const rawItems: any[] = fullQuote.items || [];
+  const lines: ManualItem[] = [];
+  rawItems.forEach((item: any) => {
+    if (item.size_breakdown?.is_separate_fabric) {
+      lines.push(fabricLineFromSeparate({
+        id: item.id || Date.now() + Math.random(),
+        fabric_id: String(item.size_breakdown?.fabric_id || ''),
+        meters: String(item.size_breakdown?.meters || item.quantity || ''),
+        rate: String(item.size_breakdown?.rate || item.unit_price || '')
+      }));
+    } else {
+      lines.push(savedItemToLine(item, legacyType));
+    }
+  });
+  // Very old quotations kept separate fabrics only in metrics_summary
+  const hasFabricItems = rawItems.some((it: any) => it.size_breakdown?.is_separate_fabric);
+  if (!hasFabricItems && Array.isArray(fullQuote.metrics_summary?.separate_fabrics)) {
+    fullQuote.metrics_summary.separate_fabrics.forEach((sf: SeparateFabricItem) => lines.push(fabricLineFromSeparate(sf)));
+  }
+  return lines;
+};
 
 // Steps imports
 import WizardStep1 from './wizard/WizardStep1';
 import WizardStep2 from './wizard/WizardStep2';
-import WizardStep3 from './wizard/WizardStep3';
 import WizardStep4 from './wizard/WizardStep4';
 import WizardStep5 from './wizard/WizardStep5';
 
@@ -70,10 +144,6 @@ export default function QuotationWizard({
   const [gstPercent, setGstPercent] = useState('5');
   const [salesType, setSalesType] = useState<string>('WHOLESALE');
   const [customerType, setCustomerType] = useState<string>('DIRECT');
-  const [quotationType, setQuotationType] = useState<string>('STANDARD');
-  const isFabric = quotationType === 'FABRIC' || quotationType === 'FABRIC_SET';
-  const isAccessory = quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORY';
-  const isSetType = quotationType === 'READYMADE_SET' || quotationType === 'FABRIC_SET' || quotationType === 'ACCESSORIES_SET' || quotationType === 'MANUAL';
   const [orgDepartments, setOrgDepartments] = useState<any[]>([]);
   const [orgClasses, setOrgClasses] = useState<any[]>([
     { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
@@ -92,31 +162,17 @@ export default function QuotationWizard({
     { id: 'C2', name: 'C2', selected: false, persons: '', sets: '2' },
     { id: 'Corporate', name: 'Corporate', selected: false, persons: '', sets: '2' }
   ]);
-  const [departmentItems, setDepartmentItems] = useState<Record<string, ManualItem[]>>({});
 
   // Dynamic Branching & Manual Data states
   const [hasMeasurements, setHasMeasurements] = useState(false);
-  const [manualItems, setManualItems] = useState<ManualItem[]>([
-    {
-      id: Date.now(), product_type_id: '', product_id: '',
-      fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-      attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-      attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-      button_id: '', button_count: '', thread_id: '', thread_count: '',
-      trims: [
-        { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '', uom: 'spools', unit_price: 0 }
-      ],
-      sam_value: '', design_number: '', quantity: '1', price: ''
-    }
-  ]);
-  const [separateFabrics, setSeparateFabrics] = useState<SeparateFabricItem[]>([]);
+  // All item lines of the quotation (readymades, fabrics and accessories mixed). Starts empty.
+  const [manualItems, setManualItems] = useState<ManualItem[]>([]);
+  // Fabric lines live in manualItems; steps 3/5 and the payload still consume them in the
+  // "separate fabric" shape, and the other lines as product lines.
+  const separateFabrics = toSeparateFabrics(manualItems);
+  const productLines = manualItems.filter(it => getItemKind(it) !== 'FABRIC');
   const [templateLineItems, setTemplateLineItems] = useState<TemplateLineItem[]>([]);
   const [isInitializingEdit, setIsInitializingEdit] = useState(false);
-  // Ref to prevent the quotationType change effect from resetting items during edit initialization
-  const isLoadingForEditRef = useRef(false);
-  // Track the quotationType that was set DURING initialization so we don't reset on it
-  const editLoadedQuotationTypeRef = useRef<string | null>(null);
 
   // Organization analysis data
   const [orgAnalysis, setOrgAnalysis] = useState<any>({
@@ -148,38 +204,11 @@ export default function QuotationWizard({
 
   // Profit variables
   const [profitMargin, setProfitMargin] = useState('0');
-  const [status, setStatus] = useState<string>('Pending Branch Approval');
+  const [status, setStatus] = useState<string>('Draft');
   const [extraCharges, setExtraCharges] = useState<{ label: string; quantity: string; rate: string }[]>([
     { label: '', quantity: '1', rate: '0' }
   ]);
   const [isTaxInclusive, setIsTaxInclusive] = useState<boolean>(false);
-
-  // Reset items when quotation type changes — but NOT during edit initialization
-  useEffect(() => {
-    // Skip reset if we are in the middle of loading data for editing
-    if (isLoadingForEditRef.current) return;
-    // Skip reset if this quotationType was the one loaded from the edit data
-    if (editLoadedQuotationTypeRef.current !== null && editLoadedQuotationTypeRef.current === quotationType) {
-      editLoadedQuotationTypeRef.current = null; // Clear the guard after first skip
-      return;
-    }
-
-    // Reset manual items when quotation type changes
-    setManualItems([{
-      id: Date.now(), product_type_id: '', product_id: '',
-      fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-      attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-      attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-      button_id: '', button_count: '', thread_id: '', thread_count: '',
-      trims: [
-        { id: 'btn', trim_id: '', category: 'Buttons', name: 'Buttons', count: '10', uom: 'pcs', unit_price: 0 },
-        { id: 'thr', trim_id: '', category: 'Thread', name: 'Thread', count: '', uom: 'spools', unit_price: 0 }
-      ],
-      sam_value: '', design_number: '', quantity: '1', price: '',
-      size_breakdown: {}
-    }]);
-    setDepartmentItems({});
-  }, [quotationType]);
 
   // If in edit mode, fetch detailed quotation data and initialize state
   useEffect(() => {
@@ -189,7 +218,6 @@ export default function QuotationWizard({
     }
 
     const loadQuotationForEditing = async () => {
-      isLoadingForEditRef.current = true;
       setIsInitializingEdit(true);
       try {
         const res = await api.get(`/quotations/${editingQuotationId}`);
@@ -298,42 +326,14 @@ export default function QuotationWizard({
         if (fullQuote.metrics_summary?.customer_type) {
           setCustomerType(fullQuote.metrics_summary.customer_type);
         }
-        if (fullQuote.metrics_summary?.quotation_type) {
-          // Store the type being loaded so the reset effect skips it
-          editLoadedQuotationTypeRef.current = fullQuote.metrics_summary.quotation_type;
-          setQuotationType(fullQuote.metrics_summary.quotation_type);
-        } else {
-          editLoadedQuotationTypeRef.current = 'STANDARD';
-          setQuotationType('STANDARD');
-        }
-
         if (fullQuote.metrics_summary?.extra_charges && Array.isArray(fullQuote.metrics_summary.extra_charges)) {
           setExtraCharges(fullQuote.metrics_summary.extra_charges);
         } else {
           setExtraCharges([{ label: '', quantity: '1', rate: '0' }]);
         }
 
-        // Filter out separate fabric items from standard quotation items
-        const rawQuoteItems = fullQuote.items || [];
-        const standardQuoteItems = rawQuoteItems.filter((item: any) => !item.size_breakdown?.is_separate_fabric);
-
-        // Extract separate fabrics from the items array as a primary/fallback source
-        const separateFabricsFromItems = rawQuoteItems
-          .filter((item: any) => item.size_breakdown?.is_separate_fabric === true)
-          .map((item: any) => ({
-            id: item.id || Date.now() + Math.random(),
-            fabric_id: String(item.size_breakdown?.fabric_id || ''),
-            meters: String(item.size_breakdown?.meters || item.quantity || ''),
-            rate: String(item.size_breakdown?.rate || item.unit_price || '')
-          }));
-
-        if (separateFabricsFromItems.length > 0) {
-          setSeparateFabrics(separateFabricsFromItems);
-        } else if (fullQuote.metrics_summary?.separate_fabrics && Array.isArray(fullQuote.metrics_summary.separate_fabrics)) {
-          setSeparateFabrics(fullQuote.metrics_summary.separate_fabrics);
-        } else {
-          setSeparateFabrics([]);
-        }
+        const allLines = savedQuoteToLines(fullQuote);
+        const standardQuoteItems = (fullQuote.items || []).filter((item: any) => !item.size_breakdown?.is_separate_fabric);
 
         const firstItem = standardQuoteItems?.[0];
         if (firstItem) {
@@ -342,79 +342,17 @@ export default function QuotationWizard({
           setLaborCost(String(firstItem.labor_cost_per_item || '8.50'));
         }
 
-        const hasManual = standardQuoteItems.some((it: any) => it.size_breakdown?.is_manual === true || it.size_breakdown?.is_set === true);
+        // Legacy measurement-based quotations have a single non-manual (template) item
+        const isMeasurementQuote = standardQuoteItems.length > 0 &&
+          !standardQuoteItems.some((it: any) => it.size_breakdown?.is_manual === true || it.size_breakdown?.is_set === true);
 
-        if (hasManual) {
+        if (!isMeasurementQuote) {
           setHasMeasurements(false);
-          const deptItemsMap: Record<string, ManualItem[]> = {};
-          const nonDeptItems: ManualItem[] = [];
-
-          standardQuoteItems.forEach((item: any) => {
-            const mappedItem: ManualItem = {
-              id: item.id || Date.now() + Math.random(),
-              product_type_id: String(item.product_type_id),
-              product_id: String(item.size_breakdown?.product_id || ''),
-              fabric_id: String(item.size_breakdown?.fabric_id || ''),
-              main_fabric_meters: String(item.size_breakdown?.main_fabric_meters || ''),
-              main_fabric_rate: String(item.size_breakdown?.main_fabric_rate || ''),
-              main_fabric_sam: String(item.size_breakdown?.main_fabric_sam || ''),
-              attachment_fabric1_id: String(item.size_breakdown?.attachment_fabric1_id || ''),
-              attachment_fabric1_meters: String(item.size_breakdown?.attachment_fabric1_meters || ''),
-              attachment_fabric1_rate: String(item.size_breakdown?.attachment_fabric1_rate || ''),
-              attachment_fabric1_sam: String(item.size_breakdown?.attachment_fabric1_sam || ''),
-              attachment_fabric2_id: String(item.size_breakdown?.attachment_fabric2_id || ''),
-              attachment_fabric2_meters: String(item.size_breakdown?.attachment_fabric2_meters || ''),
-              attachment_fabric2_rate: String(item.size_breakdown?.attachment_fabric2_rate || ''),
-              attachment_fabric2_sam: String(item.size_breakdown?.attachment_fabric2_sam || ''),
-              button_id: String(item.size_breakdown?.button_id || ''),
-              button_count: String(item.size_breakdown?.button_count || ''),
-              thread_id: String(item.size_breakdown?.thread_id || ''),
-              thread_count: String(item.size_breakdown?.thread_count || ''),
-              trims: item.size_breakdown?.trims || [
-                { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
-                { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || ''), uom: 'spools', unit_price: 0 }
-              ],
-              sam_value: String(item.size_breakdown?.sam_value || ''),
-              design_number: String(item.size_breakdown?.design_number || ''),
-              quantity: String(item.quantity),
-              price: String(item.unit_price),
-              size_breakdown: item.size_breakdown
-            };
-
-            const deptId = item.size_breakdown?.department_id;
-            if (deptId) {
-              const deptIdStr = String(deptId);
-              if (!deptItemsMap[deptIdStr]) {
-                deptItemsMap[deptIdStr] = [];
-              }
-              deptItemsMap[deptIdStr].push(mappedItem);
-            } else {
-              nonDeptItems.push(mappedItem);
-            }
-          });
-
-          if (Object.keys(deptItemsMap).length > 0) {
-            setDepartmentItems(deptItemsMap);
-          } else {
-            setDepartmentItems({});
-          }
-
-          if (nonDeptItems.length > 0) {
-            setManualItems(nonDeptItems);
-          } else {
-            setManualItems([
-              {
-                id: Date.now(), product_type_id: '', product_id: '',
-                fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-                attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-                attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-                button_id: '', button_count: '', thread_id: '', thread_count: '',
-                sam_value: '', design_number: '', quantity: '1', price: ''
-              }
-            ]);
-          }
+          setManualItems(allLines);
         } else {
           setHasMeasurements(true);
+          // Keep any fabric lines alongside the measurement template
+          setManualItems(allLines.filter(l => getItemKind(l) === 'FABRIC'));
           const calcRes = await api.get(`/quotations/calculate/${fullQuote.organization_id}`);
           setOrgAnalysis(calcRes.data);
 
@@ -437,8 +375,6 @@ export default function QuotationWizard({
         console.error(err);
       } finally {
         setIsInitializingEdit(false);
-        // Allow quotationType effect to reset items for future manual type changes
-        isLoadingForEditRef.current = false;
       }
     };
 
@@ -503,6 +439,7 @@ export default function QuotationWizard({
         ],
         sam_value: String(prod.sam_value || ''),
         design_number: String(prod.design_number || 'DNS-STANDARD'),
+        item_kind: 'READYMADE' as const,
         art_number: String(prod.art_number || ''),
         quantity: '1',
         price: ''
@@ -526,55 +463,13 @@ export default function QuotationWizard({
         toast.error("This order has no products to copy.", { id: loadingToast });
         return;
       }
-      const rawQuoteItems = fullQuote.items || [];
-      const standardItems = rawQuoteItems.filter((item: any) => !item.size_breakdown?.is_separate_fabric);
-      
-      const mapped = standardItems.map((item: any) => ({
-        id: item.id || Date.now() + Math.random(),
-        product_type_id: String(item.product_type_id || ''),
-        product_id: String(item.size_breakdown?.product_id || ''),
-        fabric_id: String(item.size_breakdown?.fabric_id || ''),
-        main_fabric_meters: String(item.size_breakdown?.main_fabric_meters || ''),
-        main_fabric_rate: String(item.size_breakdown?.main_fabric_rate || '0.00'),
-        main_fabric_sam: String(item.size_breakdown?.main_fabric_sam || ''),
-        attachment_fabric1_id: String(item.size_breakdown?.attachment_fabric1_id || ''),
-        attachment_fabric1_meters: String(item.size_breakdown?.attachment_fabric1_meters || ''),
-        attachment_fabric1_rate: String(item.size_breakdown?.attachment_fabric1_rate || '0.00'),
-        attachment_fabric1_sam: String(item.size_breakdown?.attachment_fabric1_sam || ''),
-        attachment_fabric2_id: String(item.size_breakdown?.attachment_fabric2_id || ''),
-        attachment_fabric2_meters: String(item.size_breakdown?.attachment_fabric2_meters || ''),
-        attachment_fabric2_rate: String(item.size_breakdown?.attachment_fabric2_rate || '0.00'),
-        attachment_fabric2_sam: String(item.size_breakdown?.attachment_fabric2_sam || ''),
-        button_id: String(item.size_breakdown?.button_id || ''),
-        button_count: String(item.size_breakdown?.button_count || ''),
-        thread_id: String(item.size_breakdown?.thread_id || ''),
-        thread_count: String(item.size_breakdown?.thread_count || ''),
-        trims: item.size_breakdown?.trims || [
-          { id: 'btn', trim_id: String(item.size_breakdown?.button_id || ''), category: 'Buttons', name: 'Buttons', count: String(item.size_breakdown?.button_count || '10'), uom: 'pcs', unit_price: 0 },
-          { id: 'thr', trim_id: String(item.size_breakdown?.thread_id || ''), category: 'Thread', name: 'Thread', count: String(item.size_breakdown?.thread_count || ''), uom: 'spools', unit_price: 0 }
-        ],
-        sam_value: String(item.size_breakdown?.sam_value || ''),
-        design_number: String(item.size_breakdown?.design_number || ''),
-        quantity: String(item.quantity || '1'),
-        price: String(item.unit_price || '')
-      }));
-
-      // Map separate fabrics from previous order
-      const separateFabricsFromItems = rawQuoteItems
-        .filter((item: any) => item.size_breakdown?.is_separate_fabric === true)
-        .map((item: any) => ({
-          id: item.id || Date.now() + Math.random(),
-          fabric_id: String(item.size_breakdown?.fabric_id || ''),
-          meters: String(item.size_breakdown?.meters || item.quantity || ''),
-          rate: String(item.size_breakdown?.rate || item.unit_price || '')
-        }));
-
-      if (separateFabricsFromItems.length > 0) {
-        setSeparateFabrics(separateFabricsFromItems);
-      } else if (fullQuote.metrics_summary?.separate_fabrics && Array.isArray(fullQuote.metrics_summary.separate_fabrics)) {
-        setSeparateFabrics(fullQuote.metrics_summary.separate_fabrics);
-      } else {
-        setSeparateFabrics([]);
+      // Copy the manual item lines (and fabric lines) of the previous quotation as fresh lines
+      const mapped = savedQuoteToLines(fullQuote)
+        .filter(l => getItemKind(l) === 'FABRIC' || l.size_breakdown?.is_manual)
+        .map((l, i) => ({ ...l, id: Date.now() + i + Math.random() }));
+      if (mapped.length === 0) {
+        toast.error('This order has no item lines that can be copied.', { id: loadingToast });
+        return;
       }
 
       setManualItems(mapped);
@@ -596,7 +491,6 @@ export default function QuotationWizard({
     setSelectedOrgId(orgId);
     if (!orgId) {
       setOrgDepartments([]);
-      setDepartmentItems({});
       return;
     }
 
@@ -658,128 +552,11 @@ export default function QuotationWizard({
   }, [editingQuotationId, initialOrgId, organizations.length]);
 
   const handleStep1Next = () => {
-    if (!isSetType) {
-      // Clear selected departments for Normal/Flat types
-      const cleared = orgDepartments.map(d => ({ ...d, selected: false }));
-      setOrgDepartments(cleared);
-      setCurrentStep(2);
-      return;
-    }
-
-    // Validate selected departments if any
-    const selectedDepts = orgDepartments.filter(d => d.selected);
-    if (selectedDepts.length > 0) {
-      // Auto-calculate total quantity from selected departments
-      const totalSets = selectedDepts.reduce((sum, d) => sum + (parseInt(d.persons, 10) * parseInt(d.sets, 10)), 0);
-      if (totalSets > 0) {
-        const updated = manualItems.map(item => ({
-          ...item,
-          quantity: String(totalSets)
-        }));
-        setManualItems(updated);
-      }
-    }
     setCurrentStep(2);
   };
 
-  const isManualItemsValid = () => {
-    // ACCESSORIES and ACCESSORIES_SET: accessories with product_id + price + quantity
-    if (quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORY') {
-      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepts = selectedDepts.length > 0 && quotationType === 'ACCESSORIES_SET';
-      if (hasDepts) {
-        return selectedDepts.every(dept => {
-          const items = departmentItems[String(dept.id)] || [];
-          if (items.length === 0) return false;
-          return items.every(item =>
-            item.product_id !== '' &&
-            item.price !== '' &&
-            parseFloat(item.price) >= 0 &&
-            parseInt(item.quantity) > 0
-          );
-        });
-      }
-      if (manualItems.length === 0) return false;
-      return manualItems.every(item =>
-        item.product_id !== '' &&
-        item.price !== '' &&
-        parseFloat(item.price) >= 0 &&
-        parseInt(item.quantity) > 0
-      );
-    }
-
-    // READYMADE_SET and MANUAL: department items with product + manually entered price
-    if (quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') {
-      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepts = selectedDepts.length > 0;
-      if (hasDepts) {
-        return selectedDepts.every(dept => {
-          const items = departmentItems[String(dept.id)] || [];
-          if (items.length === 0) return false;
-          return items.every(item =>
-            item.product_type_id !== '' &&
-            item.product_id !== '' &&
-            item.price !== '' &&
-            parseFloat(item.price) >= 0 &&
-            parseInt(item.quantity) > 0 &&
-            (quotationType !== 'MANUAL' || (item.size_breakdown?.selected_size && item.size_breakdown.selected_size !== ''))
-          );
-        });
-      }
-      if (manualItems.length === 0) return false;
-      return manualItems.every(item =>
-        item.product_type_id !== '' &&
-        item.product_id !== '' &&
-        item.price !== '' &&
-        parseFloat(item.price) >= 0 &&
-        parseInt(item.quantity) > 0 &&
-        (quotationType !== 'MANUAL' || (item.size_breakdown?.selected_size && item.size_breakdown.selected_size !== ''))
-      );
-    }
-
-    // FABRIC_SET: department or flat items with fabric + meters (no SAM)
-    if (quotationType === 'FABRIC_SET') {
-      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepts = selectedDepts.length > 0;
-      if (hasDepts) {
-        return selectedDepts.every(dept => {
-          const items = departmentItems[String(dept.id)] || [];
-          if (items.length === 0) return false;
-          return items.every(item =>
-            item.fabric_id !== '' &&
-            parseFloat(item.main_fabric_meters) > 0 &&
-            parseInt(item.quantity) > 0
-          );
-        });
-      }
-      if (manualItems.length === 0) return false;
-      return manualItems.every(item =>
-        item.fabric_id !== '' &&
-        parseFloat(item.main_fabric_meters) > 0 &&
-        parseInt(item.quantity) > 0
-      );
-    }
-
-    // FABRIC (normal): flat items with fabric + meters (no SAM, no departments)
-    if (quotationType === 'FABRIC') {
-      if (manualItems.length === 0) return false;
-      return manualItems.every(item =>
-        item.fabric_id !== '' &&
-        parseFloat(item.main_fabric_meters) > 0 &&
-        parseInt(item.quantity) > 0
-      );
-    }
-
-    // STANDARD (Readymade Normal): flat items requiring product type + product + main fabric + meters
-    if (manualItems.length === 0) return false;
-    return manualItems.every(item =>
-      item.product_type_id !== '' &&
-      item.product_id !== '' &&
-      item.fabric_id !== '' &&
-      parseFloat(item.main_fabric_meters) > 0 &&
-      parseInt(item.quantity) > 0
-    );
-  };
+  // Every item line must be complete for its kind; a quotation needs at least one line
+  const isManualItemsValid = () => manualItems.length > 0 && manualItems.every(item => !getLineError(item));
 
   const calculateProductSAMCost = (samValueStr: string, quantityStr: string) => {
     const baseValue = parseFloat(samValueStr) || 0;
@@ -872,7 +649,7 @@ export default function QuotationWizard({
   };
 
   const computeItemUnitCost = (item: ManualItem) => {
-    const productSAMCost = isFabric ? 0 : (
+    const productSAMCost = (
       (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
         ? parseFloat(item.final_sam_price)
         : calculateProductSAMCost(item.sam_value, item.quantity)
@@ -911,29 +688,13 @@ export default function QuotationWizard({
 
       // Total production hours required
       totalHours = (totalEntities * baseHrs) + (customSizeCount * extraHrs);
-    } else {
-      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepartments = selectedDepts.length > 0;
-
-      if (hasDepartments) {
-        selectedDepts.forEach(dept => {
-          const deptId = String(dept.id);
-          const items = departmentItems[deptId] || [];
-          items.forEach(item => {
-            const sam = parseFloat(item.sam_value) || 0;
-            const qty = parseInt(item.quantity) || 0;
-            totalHours += (sam * qty) / 60;
-          });
-        });
-      } else {
-        // Calculate from manual entry inputs
-        manualItems.forEach(item => {
-          const sam = isFabric ? 0 : (parseFloat(item.sam_value) || 0);
-          const qty = parseInt(item.quantity) || 0;
-          totalHours += (sam * qty) / 60;
-        });
-      }
     }
+
+    // Readymade lines are produced in-house: their SAM drives production hours
+    manualItems.forEach(item => {
+      if (getItemKind(item) !== 'READYMADE') return;
+      totalHours += ((parseFloat(item.sam_value) || 0) * parseQty(item)) / 60;
+    });
 
     // Total production working days
     const totalWorkingDays = Math.ceil(totalHours / (tailors * dailyHrs)) || 0;
@@ -963,128 +724,60 @@ export default function QuotationWizard({
     }
 
     setDeliveryDate(current.toISOString().split('T')[0]);
-  }, [baseProductionHours, extraCustomizationHours, tailorsCount, dailyShiftHours, projectStartDate, orgAnalysis, manualItems, departmentItems, orgDepartments, hasMeasurements]);
+  }, [baseProductionHours, extraCustomizationHours, tailorsCount, dailyShiftHours, projectStartDate, orgAnalysis, manualItems, hasMeasurements]);
 
-  // Run dynamic expense calculations based on active sizes
+  // Run dynamic expense calculations per item line
+  const getItemFabricCost = (item: ManualItem) => {
+    const pick = (override: string | undefined, fabricId: string, meters: string, sam: string) =>
+      (override !== undefined && override !== '' && !isNaN(parseFloat(override)))
+        ? parseFloat(override)
+        : calculateFabricCost(fabricId, meters, sam, item.product_type_id);
+    return pick(item.main_fabric_cost, item.fabric_id, item.main_fabric_meters, item.main_fabric_sam) +
+      pick(item.attachment_fabric1_cost, item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam) +
+      pick(item.attachment_fabric2_cost, item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam);
+  };
+
+  const getItemSamCost = (item: ManualItem) =>
+    (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
+      ? parseFloat(item.final_sam_price)
+      : calculateProductSAMCost(item.sam_value, item.quantity);
+
   const getCalculatedExpenses = () => {
-    // For Accessories: sum price * qty directly under accessories expense
-    if (quotationType === 'ACCESSORIES_SET' || quotationType === 'ACCESSORIES' || quotationType === 'ACCESSORY') {
-      let totalCost = 0;
-      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepts = selectedDepts.length > 0 && quotationType === 'ACCESSORIES_SET';
-      if (hasDepts) {
-        selectedDepts.forEach((dept: any) => {
-          const items = departmentItems[String(dept.id)] || [];
-          items.forEach((item: any) => {
-            totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
-          });
-        });
-      } else {
-        manualItems.forEach(item => {
-          totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
-        });
-      }
-      return { fabric: 0, accessories: Math.round(totalCost * 100) / 100, labor: 0, total: Math.round(totalCost * 100) / 100 };
-    }
-
-    // For department price-entry types (READYMADE_SET, MANUAL): sum price * qty directly
-    if (quotationType === 'READYMADE_SET' || quotationType === 'MANUAL') {
-      let totalCost = 0;
-      const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-      const hasDepts = selectedDepts.length > 0;
-      if (hasDepts) {
-        selectedDepts.forEach((dept: any) => {
-          const items = departmentItems[String(dept.id)] || [];
-          items.forEach((item: any) => {
-            totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
-          });
-        });
-      } else {
-        manualItems.forEach(item => {
-          totalCost += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
-        });
-      }
-      return { fabric: 0, accessories: 0, labor: totalCost, total: totalCost };
-    }
-
-    const baseFabric = parseFloat(baseFabricCost) || 0;
-    const baseAcc = parseFloat(accCost) || 0;
-    const baseLabor = parseFloat(laborCost) || 0;
-
     let totalFabricExpense = 0;
     let totalAccExpense = 0;
     let totalLaborExpense = 0;
+    let measurementTemplate = 0;
 
-    const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-    const hasDepartments = selectedDepts.length > 0;
-
-    if (hasDepartments) {
-      selectedDepts.forEach(dept => {
-        const deptId = String(dept.id);
-        const items = departmentItems[deptId] || [];
-        items.forEach(item => {
-          const qty = parseInt(item.quantity) || 0;
-          const mainCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
-            ? parseFloat(item.main_fabric_cost)
-            : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-          const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
-            ? parseFloat(item.attachment_fabric1_cost)
-            : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-          const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
-            ? parseFloat(item.attachment_fabric2_cost)
-            : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
-          totalFabricExpense += (mainCost + att1Cost + att2Cost) * qty;
-
-          totalAccExpense += 0;
-
-          const productSAMCost = isFabric ? 0 : (
-            (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
-              ? parseFloat(item.final_sam_price)
-              : calculateProductSAMCost(item.sam_value, item.quantity)
-          );
-          totalLaborExpense += productSAMCost * qty;
-        });
-      });
-    } else if (hasMeasurements) {
-      // Sum details based on sizing distribution
+    if (hasMeasurements) {
+      // Legacy measurement quotations: sum details based on sizing distribution
+      const baseFabric = parseFloat(baseFabricCost) || 0;
+      const baseAcc = parseFloat(accCost) || 0;
+      const baseLabor = parseFloat(laborCost) || 0;
       orgAnalysis.entities.forEach((entity: any) => {
         const size = (entity.suggested_size || 'M').toUpperCase();
         const mult = SIZE_FABRIC_MULTIPLIERS[size] !== undefined ? SIZE_FABRIC_MULTIPLIERS[size] : 1.00;
-
         totalFabricExpense += (baseFabric * mult);
         totalAccExpense += baseAcc;
         totalLaborExpense += baseLabor;
       });
-    } else {
-      // Manual items: sum per-item computed costs
-      manualItems.forEach(item => {
-        const qty = parseInt(item.quantity) || 0;
-        const mainCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
-          ? parseFloat(item.main_fabric_cost)
-          : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-        const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
-          ? parseFloat(item.attachment_fabric1_cost)
-          : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-        const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
-          ? parseFloat(item.attachment_fabric2_cost)
-          : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
-        totalFabricExpense += (mainCost + att1Cost + att2Cost) * qty;
-
-        totalAccExpense += 0;
-
-        const productSAMCost = isFabric ? 0 : (
-          (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
-            ? parseFloat(item.final_sam_price)
-            : calculateProductSAMCost(item.sam_value, item.quantity)
-        );
-        totalLaborExpense += productSAMCost * qty;
-      });
+      measurementTemplate = totalFabricExpense + totalAccExpense + totalLaborExpense;
     }
 
-    // Add separate fabrics expenses using calculateFabricCost to correctly compute marked up fabric expense
-    separateFabrics.forEach(sf => {
-      const cost = calculateFabricCost(sf.fabric_id, sf.meters, '6.777', '');
-      totalFabricExpense += cost;
+    manualItems.forEach(item => {
+      const kind = getItemKind(item);
+      const qty = parseQty(item);
+      if (kind === 'FABRIC') {
+        // Marked-up fabric cost for the meters sold
+        totalFabricExpense += calculateFabricCost(item.fabric_id, item.quantity, '6.777', '');
+      } else if (kind === 'ACCESSORY') {
+        // Accessories / trade readymades are bought in: their rate is the expense
+        totalAccExpense += (parseFloat(item.price) || 0) * qty;
+      } else if (kind === 'CUSTOM') {
+        totalAccExpense += 0;
+      } else {
+        totalFabricExpense += getItemFabricCost(item) * qty;
+        totalLaborExpense += getItemSamCost(item) * qty;
+      }
     });
 
     const totalExpenses = totalFabricExpense + totalAccExpense + totalLaborExpense;
@@ -1092,7 +785,8 @@ export default function QuotationWizard({
       fabric: Math.round(totalFabricExpense * 100) / 100,
       accessories: Math.round(totalAccExpense * 100) / 100,
       labor: Math.round(totalLaborExpense * 100) / 100,
-      total: Math.round(totalExpenses * 100) / 100
+      total: Math.round(totalExpenses * 100) / 100,
+      measurementTemplate: Math.round(measurementTemplate * 100) / 100
     };
   };
 
@@ -1104,42 +798,19 @@ export default function QuotationWizard({
     let preTaxSubtotal = 0;
     let qty = 0;
 
-    const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-    const hasDepartments = selectedDepts.length > 0;
-
-    if (hasDepartments) {
-      selectedDepts.forEach(dept => {
-        const deptId = String(dept.id);
-        const items = departmentItems[deptId] || [];
-        items.forEach(item => {
-          const q = parseInt(item.quantity) || 0;
-          const p = parseFloat(item.price) || 0;
-          preTaxSubtotal += q * p;
-          qty += q;
-        });
-      });
-      if (qty === 0) qty = 1;
-    } else if (hasMeasurements) {
-      const markupPrice = expenses.total * (1 + marginPercent / 100);
-      preTaxSubtotal = markupPrice;
-      qty = orgAnalysis.total_entities || 1;
-    } else {
-      // For manual entries, preTaxSubtotal is the sum of entered product quantities * entered prices
-      manualItems.forEach(item => {
-        const q = parseInt(item.quantity) || 0;
-        const p = parseFloat(item.price) || 0;
-        preTaxSubtotal += q * p;
-        qty += q;
-      });
-      if (qty === 0) qty = 1;
+    // Legacy measurement-based quotations price the sizing template at cost + margin
+    if (hasMeasurements) {
+      preTaxSubtotal = expenses.measurementTemplate * (1 + marginPercent / 100);
+      qty = orgAnalysis.total_entities || 0;
     }
 
-    // Add separate fabrics to subtotal
-    separateFabrics.forEach(sf => {
-      const q = parseFloat(sf.meters) || 0;
-      const r = parseFloat(sf.rate) || 0;
-      preTaxSubtotal += q * r;
+    // Item lines are priced at their own rate: Amount = Qty x Rate
+    manualItems.forEach(item => {
+      const q = parseQty(item);
+      preTaxSubtotal += q * (parseFloat(item.price) || 0);
+      if (getItemKind(item) !== 'FABRIC') qty += q; // fabric meters are not garment units
     });
+    if (qty === 0) qty = 1;
 
     // Add extra charges to the subtotal
     let totalExtraCharges = 0;
@@ -1190,230 +861,212 @@ export default function QuotationWizard({
     const expenses = getCalculatedExpenses();
     const timeMetrics = getCalculatedTimeMetrics();
 
-    let payloadItems: any[] = [];
+    const payloadItems: any[] = [];
     let totalQty = 0;
 
-    const selectedDepts = (orgDepartments || []).filter((d: any) => d.selected);
-    const hasDepartments = selectedDepts.length > 0;
-
-    if (hasDepartments) {
-      selectedDepts.forEach(dept => {
-        const deptId = String(dept.id);
-        const items = departmentItems[deptId] || [];
-        items.forEach(item => {
-          const qty = parseInt(item.quantity) || 0;
-          const price = parseFloat(item.price) || 0;
-          const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
-          const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
-          const resolvedProductName = actualProduct?.name || selectedProduct?.name || 'Uniform Item';
-          totalQty += qty;
-          payloadItems.push({
-            product_type_id: parseInt(item.product_type_id),
-            product_type_name: selectedProduct?.name || 'Uniform Item',
-            product_name: resolvedProductName,
-            name: resolvedProductName,
-            quantity: qty,
-            unit_price: price,
-            total_price: qty * price,
-            is_manual: true,
-            product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
-            art_number: item.art_number || actualProduct?.art_number || null,
-            fabric_id: item.fabric_id || null,
-            attachment_fabric1_id: item.attachment_fabric1_id || null,
-            attachment_fabric2_id: item.attachment_fabric2_id || null,
-            button_id: item.button_id || null,
-            thread_id: item.thread_id || null,
-            trims: item.trims || [],
-            design_number: item.design_number || null,
-            materials: item.materials || actualProduct?.materials || null,
-            size_breakdown: {
-              is_manual: true,
-              department_id: dept.id,
-              department_name: dept.name,
-              product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
-              product_name: resolvedProductName,
-              fabric_id: item.fabric_id || null,
-              main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
-              main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
-              main_fabric_sam: parseFloat(item.main_fabric_sam) || null,
-              attachment_fabric1_id: item.attachment_fabric1_id || null,
-              attachment_fabric1_meters: parseFloat(item.attachment_fabric1_meters) || null,
-              attachment_fabric1_rate: parseFloat(item.attachment_fabric1_rate) || null,
-              attachment_fabric1_sam: parseFloat(item.attachment_fabric1_sam) || null,
-              attachment_fabric2_id: item.attachment_fabric2_id || null,
-              attachment_fabric2_meters: parseFloat(item.attachment_fabric2_meters) || null,
-              attachment_fabric2_rate: parseFloat(item.attachment_fabric2_rate) || null,
-              attachment_fabric2_sam: parseFloat(item.attachment_fabric2_sam) || null,
-              button_id: item.button_id || null,
-              button_count: parseFloat(item.button_count) || null,
-              thread_id: item.thread_id || null,
-              thread_count: parseFloat(item.thread_count) || null,
-              trims: item.trims || [],
-              sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
-              design_number: item.design_number || null,
-              art_number: item.art_number || actualProduct?.art_number || null,
-              computed_unit_cost: price,
-              selected_size: item.size_breakdown?.selected_size || null,
-              is_accessory: isAccessory,
-              materials: item.materials || actualProduct?.materials || null
-            },
-            fabric_cost_per_item: isAccessory ? 0 : (
-              ((item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost))) ? parseFloat(item.main_fabric_cost) : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id)) +
-              ((item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost))) ? parseFloat(item.attachment_fabric1_cost) : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id)) +
-              ((item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost))) ? parseFloat(item.attachment_fabric2_cost) : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id))
-            ),
-            accessories_cost_per_item: isAccessory ? price : 0,
-            labor_cost_per_item: isAccessory ? 0 : (
-              (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
-                ? parseFloat(item.final_sam_price)
-                : calculateProductSAMCost(item.sam_value, item.quantity)
-            )
-          });
-        });
-      });
-    } else if (hasMeasurements) {
+    if (hasMeasurements) {
+      // Legacy measurement-based quotation: one sizing-template item
       const selectedProduct = productTypes.find(p => String(p.id) === String(selectedProductTypeId));
-      totalQty = orgAnalysis.total_entities;
-      payloadItems = [{
+      const templateQty = orgAnalysis.total_entities || 0;
+      const hasExtraLines = manualItems.length > 0;
+      const templateTotal = Math.round(expenses.measurementTemplate * (1 + (parseFloat(profitMargin) || 0) / 100) * 100) / 100;
+      totalQty += templateQty;
+      payloadItems.push({
         product_type_id: parseInt(selectedProductTypeId),
         product_type_name: selectedProduct?.name || 'Uniform Item',
         product_name: selectedProduct?.name || 'Uniform Item',
-        quantity: totalQty,
-        unit_price: totals.avgSellingPrice,
-        total_price: totals.finalValue,
+        quantity: templateQty,
+        // Without extra lines keep the previous behaviour; with lines, price the template on its own
+        unit_price: hasExtraLines ? (templateQty > 0 ? Math.round((templateTotal / templateQty) * 100) / 100 : 0) : totals.avgSellingPrice,
+        total_price: hasExtraLines ? templateTotal : totals.finalValue,
         size_breakdown: orgAnalysis.size_distribution,
-        fabric_cost_per_item: totalQty > 0 ? (expenses.fabric / totalQty) : 0,
+        fabric_cost_per_item: hasExtraLines ? (parseFloat(baseFabricCost) || 0) : (templateQty > 0 ? (expenses.fabric / templateQty) : 0),
         accessories_cost_per_item: parseFloat(accCost) || 0,
         labor_cost_per_item: parseFloat(laborCost) || 0
-      }];
-    } else {
-      // Map manual items with extended material breakdown
-      payloadItems = manualItems
-        .map(item => {
-          const qty = parseInt(item.quantity) || 0;
-          // Price-based types use entered price; all others use computeItemUnitCost
-          const isPriceBased = quotationType === 'READYMADE_SET' || quotationType === 'MANUAL' || isAccessory;
-          const unitCost = isPriceBased ? (parseFloat(item.price) || 0) : computeItemUnitCost(item);
-          const selectedProduct = productTypes.find(p => String(p.id) === String(item.product_type_id));
-          const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
-          const resolvedProductName = actualProduct?.name || selectedProduct?.name || (isPriceBased ? 'Item' : 'Uniform Item');
-          totalQty += qty;
-
-          if (isPriceBased) {
-            return {
-              product_type_id: parseInt(item.product_type_id) || null,
-              product_type_name: selectedProduct?.name || (isAccessory ? 'Accessory' : 'Item'),
-              product_name: resolvedProductName,
-              name: resolvedProductName,
-              quantity: qty,
-              unit_price: unitCost,
-              total_price: qty * unitCost,
-              is_manual: true,
-              size_breakdown: {
-                is_manual: true,
-                product_id: item.product_id || null,
-                product_name: resolvedProductName,
-                design_number: item.design_number || null,
-                art_number: item.art_number || actualProduct?.art_number || null,
-                computed_unit_cost: unitCost,
-                is_readymade: true,
-                is_accessory: isAccessory,
-                selected_size: item.size_breakdown?.selected_size || null,
-                materials: item.materials || actualProduct?.materials || null
-              },
-              materials: item.materials || actualProduct?.materials || null,
-              fabric_cost_per_item: 0,
-              accessories_cost_per_item: isAccessory ? unitCost : 0,
-              labor_cost_per_item: 0
-            };
-          }
-
-          return {
-            product_type_id: parseInt(item.product_type_id),
-            product_type_name: selectedProduct?.name || 'Uniform Item',
-            product_name: resolvedProductName,
-            name: resolvedProductName,
-            quantity: qty,
-            unit_price: unitCost,
-            total_price: qty * unitCost,
-            is_manual: true,
-            product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
-            art_number: item.art_number || actualProduct?.art_number || null,
-            fabric_id: item.fabric_id || null,
-            attachment_fabric1_id: item.attachment_fabric1_id || null,
-            attachment_fabric2_id: item.attachment_fabric2_id || null,
-            button_id: item.button_id || null,
-            thread_id: item.thread_id || null,
-            trims: item.trims || [],
-            design_number: item.design_number || null,
-            size_breakdown: {
-              is_manual: true,
-              product_id: item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null),
-              product_name: resolvedProductName,
-              fabric_id: item.fabric_id || null,
-              main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
-              main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
-              main_fabric_sam: parseFloat(item.main_fabric_sam) || null,
-              attachment_fabric1_id: item.attachment_fabric1_id || null,
-              attachment_fabric1_meters: parseFloat(item.attachment_fabric1_meters) || null,
-              attachment_fabric1_rate: parseFloat(item.attachment_fabric1_rate) || null,
-              attachment_fabric1_sam: parseFloat(item.attachment_fabric1_sam) || null,
-              attachment_fabric2_id: item.attachment_fabric2_id || null,
-              attachment_fabric2_meters: parseFloat(item.attachment_fabric2_meters) || null,
-              attachment_fabric2_rate: parseFloat(item.attachment_fabric2_rate) || null,
-              attachment_fabric2_sam: parseFloat(item.attachment_fabric2_sam) || null,
-              button_id: item.button_id || null,
-              button_count: parseFloat(item.button_count) || null,
-              thread_id: item.thread_id || null,
-              thread_count: parseFloat(item.thread_count) || null,
-              trims: item.trims || [],
-              sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
-              design_number: item.design_number || null,
-              art_number: item.art_number || actualProduct?.art_number || null,
-              computed_unit_cost: unitCost,
-              class_name: item.size_breakdown?.class_name || null
-            },
-            fabric_cost_per_item: isFabric ? 0 : (
-              ((item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost))) ? parseFloat(item.main_fabric_cost) : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id)) +
-              ((item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost))) ? parseFloat(item.attachment_fabric1_cost) : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id)) +
-              ((item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost))) ? parseFloat(item.attachment_fabric2_cost) : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id))
-            ),
-            accessories_cost_per_item: 0,
-            labor_cost_per_item: isFabric ? 0 : (
-              (item.final_sam_price !== undefined && item.final_sam_price !== '' && !isNaN(parseFloat(item.final_sam_price)))
-                ? parseFloat(item.final_sam_price)
-                : calculateProductSAMCost(item.sam_value, item.quantity)
-            )
-          };
-        });
+      });
     }
 
-    // Append separate fabrics as standard items in the quotation payload
-    separateFabrics.forEach(sf => {
-      const fabric = fabricsList.find((f: any) => String(f.id) === String(sf.fabric_id));
-      const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
-      const qty = parseFloat(sf.meters) || 0;
-      const rate = parseFloat(sf.rate) || 0;
+    // Item lines, in the order shown in the item table. Each kind keeps the item shape
+    // that quotation details, job cards and the PDF already understand.
+    manualItems.forEach(item => {
+      const kind = getItemKind(item);
+      const qty = parseQty(item);
+      const rate = parseFloat(item.price) || 0;
+      const dept = item.department_id
+        ? { department_id: item.department_id, department_name: item.department_name || null }
+        : {};
 
+      if (kind === 'FABRIC') {
+        const fabric = fabricsList.find((f: any) => String(f.id) === String(item.fabric_id));
+        const fabricName = formatFabricDisplayName(fabric) || 'Custom Fabric';
+        payloadItems.push({
+          product_type_id: null,
+          product_type_name: `Fabric: ${fabricName}`,
+          quantity: qty,
+          unit_price: rate,
+          total_price: qty * rate,
+          is_manual: true,
+          size_breakdown: {
+            is_separate_fabric: true,
+            item_kind: 'FABRIC',
+            fabric_id: item.fabric_id,
+            meters: qty,
+            rate: rate,
+            ...dept
+          },
+          fabric_cost_per_item: calculateFabricCost(item.fabric_id, '1', '6.777', ''),
+          accessories_cost_per_item: 0,
+          labor_cost_per_item: 0
+        });
+        return;
+      }
+
+      if (kind === 'CUSTOM') {
+        const customName = (item.name || item.product_name || 'Custom Item').trim();
+        totalQty += qty;
+        payloadItems.push({
+          product_type_id: null,
+          product_type_name: customName,
+          product_name: customName,
+          name: customName,
+          quantity: qty,
+          unit_price: rate,
+          total_price: qty * rate,
+          is_manual: true,
+          manual_item_name: customName,
+          size_breakdown: {
+            is_manual: true,
+            is_custom: true,
+            item_kind: 'CUSTOM',
+            product_name: customName,
+            name: customName,
+            quantity: qty,
+            rate: rate,
+            computed_unit_cost: rate,
+            ...dept
+          },
+          fabric_cost_per_item: 0,
+          accessories_cost_per_item: 0,
+          labor_cost_per_item: 0
+        });
+        return;
+      }
+
+      totalQty += qty;
+      const productType = productTypes.find(p => String(p.id) === String(item.product_type_id));
+      const actualProduct = allProducts.find(p => String(p.id) === String(item.product_id));
+      const resolvedProductName = formatProductDisplayName(actualProduct || item)
+        || item.product_name || item.name || productType?.name
+        || (kind === 'ACCESSORY' ? 'Accessory' : 'Uniform Item');
+      const productId = item.product_id ? parseInt(item.product_id, 10) : (actualProduct?.id || null);
+      const artNumber = item.art_number || actualProduct?.art_number || null;
+      const materials = item.materials || actualProduct?.materials || null;
+
+      if (kind === 'ACCESSORY') {
+        payloadItems.push({
+          product_type_id: parseInt(item.product_type_id) || null,
+          product_type_name: productType?.name || 'Accessory',
+          product_name: resolvedProductName,
+          name: resolvedProductName,
+          quantity: qty,
+          unit_price: rate,
+          total_price: qty * rate,
+          is_manual: true,
+          product_id: productId,
+          art_number: artNumber,
+          design_number: item.design_number || null,
+          materials,
+          size_breakdown: {
+            is_manual: true,
+            item_kind: 'ACCESSORY',
+            is_accessory: true,
+            product_id: productId,
+            product_name: resolvedProductName,
+            design_number: item.design_number || null,
+            art_number: artNumber,
+            computed_unit_cost: rate,
+            selected_size: item.size_breakdown?.selected_size || null,
+            gender: item.gender || null,
+            materials,
+            ...dept
+          },
+          fabric_cost_per_item: 0,
+          accessories_cost_per_item: rate,
+          labor_cost_per_item: 0
+        });
+        return;
+      }
+
+      // READYMADE (in-house): the line rate is what the customer is quoted
+      const unitCost = item.price !== '' && !isNaN(parseFloat(item.price)) ? rate : computeItemUnitCost(item);
       payloadItems.push({
-        product_type_id: null,
-        product_type_name: `Fabric: ${fabricName}`,
+        product_type_id: parseInt(item.product_type_id),
+        product_type_name: productType?.name || 'Uniform Item',
+        product_name: resolvedProductName,
+        name: resolvedProductName,
         quantity: qty,
-        unit_price: rate,
-        total_price: qty * rate,
+        unit_price: unitCost,
+        total_price: qty * unitCost,
         is_manual: true,
+        product_id: productId,
+        art_number: artNumber,
+        fabric_id: item.fabric_id || null,
+        attachment_fabric1_id: item.attachment_fabric1_id || null,
+        attachment_fabric2_id: item.attachment_fabric2_id || null,
+        button_id: item.button_id || null,
+        thread_id: item.thread_id || null,
+        trims: item.trims || [],
+        design_number: item.design_number || null,
+        materials,
         size_breakdown: {
-          is_separate_fabric: true,
-          fabric_id: sf.fabric_id,
-          meters: qty,
-          rate: rate
+          is_manual: true,
+          item_kind: 'READYMADE',
+          product_id: productId,
+          product_name: resolvedProductName,
+          fabric_id: item.fabric_id || null,
+          main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
+          main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
+          main_fabric_sam: parseFloat(item.main_fabric_sam) || null,
+          attachment_fabric1_id: item.attachment_fabric1_id || null,
+          attachment_fabric1_meters: parseFloat(item.attachment_fabric1_meters) || null,
+          attachment_fabric1_rate: parseFloat(item.attachment_fabric1_rate) || null,
+          attachment_fabric1_sam: parseFloat(item.attachment_fabric1_sam) || null,
+          attachment_fabric2_id: item.attachment_fabric2_id || null,
+          attachment_fabric2_meters: parseFloat(item.attachment_fabric2_meters) || null,
+          attachment_fabric2_rate: parseFloat(item.attachment_fabric2_rate) || null,
+          attachment_fabric2_sam: parseFloat(item.attachment_fabric2_sam) || null,
+          button_id: item.button_id || null,
+          button_count: parseFloat(item.button_count) || null,
+          thread_id: item.thread_id || null,
+          thread_count: parseFloat(item.thread_count) || null,
+          trims: item.trims || [],
+          sam_value: item.sam_value ? parseFloat(item.sam_value) : null,
+          design_number: item.design_number || null,
+          art_number: artNumber,
+          computed_unit_cost: unitCost,
+          selected_size: item.size_breakdown?.selected_size || null,
+          class_name: item.size_breakdown?.class_name || null,
+          gender: item.gender || null,
+          materials,
+          ...dept
         },
-        fabric_cost_per_item: calculateFabricCost(sf.fabric_id, '1', '6.777', ''),
+        fabric_cost_per_item: getItemFabricCost(item),
         accessories_cost_per_item: 0,
-        labor_cost_per_item: 0
+        labor_cost_per_item: getItemSamCost(item)
       });
     });
 
+    // Departments referenced by the item lines (department is now chosen per line)
+    const lineDepartments = Array.from(
+      new Map(
+        manualItems
+          .filter(it => it.department_id)
+          .map(it => {
+            const d = (orgDepartments || []).find((od: any) => String(od.id) === String(it.department_id));
+            return [String(it.department_id), { id: it.department_id, name: d?.name || it.department_name || '', division: d?.division || '' }] as const;
+          })
+      ).values()
+    );
       const selectedOrg = organizations.find(o => String(o.id) === String(selectedOrgId));
       const isB2bOrder = salesType === 'B2B' || Boolean(selectedOrg?.is_b2b || selectedOrg?.gst_number);
 
@@ -1446,7 +1099,9 @@ export default function QuotationWizard({
           },
           sales_type: salesType,
           customer_type: customerType,
-          quotation_type: quotationType,
+          // Item kinds are stored per line; the quotation itself can mix all kinds
+          quotation_type: 'CUSTOM',
+          item_kinds: Array.from(new Set(manualItems.map(it => getItemKind(it)))),
           is_b2b: isB2bOrder,
           customer_gstin: selectedOrg?.gst_number || null,
           customer_pan: selectedOrg?.pan_number || null,
@@ -1459,13 +1114,7 @@ export default function QuotationWizard({
           extra_charges: extraCharges,
           separate_fabrics: separateFabrics,
           project_start_date: projectStartDate,
-          departments: selectedDepts.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            division: d.division,
-            persons: parseInt(d.persons, 10) || 0,
-            sets: parseInt(d.sets, 10) || 0
-          })),
+          departments: lineDepartments,
           classes: []
         },
         items: payloadItems
@@ -1477,15 +1126,15 @@ export default function QuotationWizard({
       if (editingQuotationId) {
         response = await api.put(`/quotations/${editingQuotationId}`, {
           ...payload,
-          status: status || 'Pending Branch Approval'
+          status: status || 'Draft'
         });
         toast.success('Formal Quotation updated successfully!', { id: loadingToast });
       } else {
         response = await api.post('/quotations', {
           ...payload,
-          status: 'Pending Branch Approval'
+          status: 'Draft'
         });
-        toast.success('Formal Quotation compiled and saved to registry!', { id: loadingToast });
+        toast.success('Formal Quotation compiled and saved to registry as Draft!', { id: loadingToast });
       }
 
       if (response && response.data && response.data.designNumberAlreadyExists) {
@@ -1545,7 +1194,6 @@ Forma Apparels Co.`;
       { id: 'C2', name: 'C2', selected: false, persons: '', sets: '2' },
       { id: 'Corporate', name: 'Corporate', selected: false, persons: '', sets: '2' }
     ]);
-    setDepartmentItems({});
     setSelectedProductTypeId('');
     setBaseFabricCost('15.00');
     setAccCost('3.00');
@@ -1561,7 +1209,6 @@ Forma Apparels Co.`;
     ]);
     setSalesType('WHOLESALE');
     setCustomerType('DIRECT');
-    setQuotationType('STANDARD');
     setTemplateLineItems([]);
     setCoverLetter('');
     setGstPercent('5');
@@ -1576,17 +1223,7 @@ Forma Apparels Co.`;
       entities: [],
       template_line_items: []
     });
-    setManualItems([
-      {
-        id: Date.now(), product_type_id: '', product_id: '',
-        fabric_id: '', main_fabric_meters: '', main_fabric_rate: '', main_fabric_sam: '',
-        attachment_fabric1_id: '', attachment_fabric1_meters: '', attachment_fabric1_rate: '', attachment_fabric1_sam: '',
-        attachment_fabric2_id: '', attachment_fabric2_meters: '', attachment_fabric2_rate: '', attachment_fabric2_sam: '',
-        button_id: '', button_count: '', thread_id: '', thread_count: '',
-        sam_value: '', design_number: '', quantity: '1', price: ''
-      }
-    ]);
-    setSeparateFabrics([]);
+    setManualItems([]);
     setStatus('Pending Branch Approval');
   };
 
@@ -1605,10 +1242,9 @@ Forma Apparels Co.`;
       <div className="bg-[#FFF1F1] p-6 rounded-[2rem] border border-[#C82A2B]/15 flex justify-between items-center max-w-4xl mx-auto">
         {[
           { idx: 1, label: 'Customer' },
-          { idx: 2, label: 'Sizing Audit' },
-          { idx: 3, label: 'Expenses' },
-          { idx: 4, label: 'Timeline & Profit' },
-          { idx: 5, label: 'Review' }
+          { idx: 2, label: 'Items' },
+          { idx: 3, label: 'Timeline & Charges' },
+          { idx: 4, label: 'Review' }
         ].map(step => (
           <div key={step.idx} className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 ${currentStep === step.idx
@@ -1623,7 +1259,7 @@ Forma Apparels Co.`;
               }`}>
               {step.label}
             </span>
-            {step.idx < 5 && <ChevronRight size={16} className="text-zinc-300 hidden md:block" />}
+            {step.idx < 4 && <ChevronRight size={16} className="text-zinc-300 hidden md:block" />}
           </div>
         ))}
       </div>
@@ -1645,8 +1281,6 @@ Forma Apparels Co.`;
             setSalesType={setSalesType}
             customerType={customerType}
             setCustomerType={setCustomerType}
-            quotationType={quotationType}
-            setQuotationType={setQuotationType}
             isAnalyzing={isAnalyzing}
             onNext={handleStep1Next}
             generateAutoCoverLetter={generateAutoCoverLetter}
@@ -1655,8 +1289,6 @@ Forma Apparels Co.`;
             groupDesignCombinations={groupDesignCombinations}
             selectedGroupDesignId={selectedGroupDesignId}
             onSelectGroupDesign={handleSelectGroupDesign}
-            orgDepartments={orgDepartments}
-            setOrgDepartments={setOrgDepartments}
           />
         )}
 
@@ -1669,12 +1301,8 @@ Forma Apparels Co.`;
             setTemplateLineItems={setTemplateLineItems}
             manualItems={manualItems}
             setManualItems={setManualItems}
-            separateFabrics={separateFabrics}
-            setSeparateFabrics={setSeparateFabrics}
             orgDepartments={orgDepartments}
             setOrgDepartments={setOrgDepartments}
-            departmentItems={departmentItems}
-            setDepartmentItems={setDepartmentItems}
             productTypes={productTypes}
             allProducts={allProducts}
             fabricsList={fabricsList}
@@ -1694,46 +1322,13 @@ Forma Apparels Co.`;
             onBack={() => setCurrentStep(1)}
             onNext={() => setCurrentStep(3)}
             isManualItemsValid={isManualItemsValid}
-            quotationType={quotationType}
             organizations={organizations}
             selectedOrgId={selectedOrgId}
           />
         )}
 
-        {/* STEP 3: INTERACTIVE EXPENSES & COST SCALING */}
+        {/* STEP 3: TIMELINE, CAPACITY & PROFIT ANALYSIS */}
         {currentStep === 3 && (
-          <WizardStep3
-            hasMeasurements={hasMeasurements}
-            productTypes={productTypes}
-            selectedProductTypeId={selectedProductTypeId}
-            setSelectedProductTypeId={setSelectedProductTypeId}
-            baseFabricCost={baseFabricCost}
-            setBaseFabricCost={setBaseFabricCost}
-            accCost={accCost}
-            setAccCost={setAccCost}
-            laborCost={laborCost}
-            setLaborCost={setLaborCost}
-            gstPercent={gstPercent}
-            setGstPercent={setGstPercent}
-            laborRatePerHour={laborRatePerHour}
-            setLaborRatePerHour={setLaborRatePerHour}
-            manualItems={manualItems}
-            separateFabrics={separateFabrics}
-            fabricsList={fabricsList}
-            calculatedExpenses={getCalculatedExpenses()}
-            calculateFabricCost={calculateFabricCost}
-            calculateProductSAMCost={calculateProductSAMCost}
-            onBack={() => setCurrentStep(2)}
-            onNext={() => setCurrentStep(4)}
-            orgDepartments={orgDepartments}
-            departmentItems={departmentItems}
-            quotationType={quotationType}
-            allProducts={allProducts}
-          />
-        )}
-
-        {/* STEP 4: TIMELINE, CAPACITY & PROFIT ANALYSIS */}
-        {currentStep === 4 && (
           <WizardStep4
             hasMeasurements={hasMeasurements}
             baseProductionHours={baseProductionHours}
@@ -1757,14 +1352,14 @@ Forma Apparels Co.`;
             setExtraCharges={setExtraCharges}
             status={status}
             setStatus={setStatus}
-            onBack={() => setCurrentStep(3)}
-            onNext={() => setCurrentStep(5)}
+            onBack={() => setCurrentStep(2)}
+            onNext={() => setCurrentStep(4)}
             fabricsList={fabricsList}
           />
         )}
 
-        {/* STEP 5: COMPILE PROPOSAL & FINAL REVIEW */}
-        {currentStep === 5 && (
+        {/* STEP 4: COMPILE PROPOSAL & FINAL REVIEW */}
+        {currentStep === 4 && (
           <WizardStep5
             hasMeasurements={hasMeasurements}
             quoteTitle={quoteTitle}
@@ -1774,7 +1369,7 @@ Forma Apparels Co.`;
             productTypes={productTypes}
             selectedProductTypeId={selectedProductTypeId}
             orgAnalysis={orgAnalysis}
-            manualItems={manualItems}
+            manualItems={productLines}
             separateFabrics={separateFabrics}
             fabricsList={fabricsList}
             profitMargin={profitMargin}
@@ -1782,11 +1377,11 @@ Forma Apparels Co.`;
             quoteTotals={getCalculatedQuoteTotals()}
             gstPercent={gstPercent}
             editingQuotationId={editingQuotationId}
-            onBack={() => setCurrentStep(4)}
+            onBack={() => setCurrentStep(3)}
             onSave={handleSaveQuotation}
-            orgDepartments={orgDepartments}
-            departmentItems={departmentItems}
-            quotationType={quotationType}
+            orgDepartments={[]}
+            departmentItems={{}}
+            quotationType="CUSTOM"
             allProducts={allProducts}
           />
         )}

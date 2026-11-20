@@ -182,7 +182,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   icon={getFieldIcon(field.name)}
                   defaultValue={field.defaultValue}
                   value={field.value}
-                  onChange={(val) => field.onChange && field.onChange(val)}
+                  onChange={(val: any) => {
+                    const cleanVal = (val && typeof val === 'object' && 'target' in val && val.target) ? val.target.value : val;
+                    if (field.onChange) field.onChange(cleanVal);
+                  }}
                   disabled={field.disabled}
                 />
               ) : field.type === 'checkbox-group' ? (

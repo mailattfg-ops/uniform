@@ -24,7 +24,9 @@ import {
   History,
   FileText,
   Layers,
-  Plus
+  Plus,
+  Check,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -73,7 +75,14 @@ export default function QuotationList({
   onUserReportTrigger,
 }: QuotationListProps) {
   const router = useRouter();
-  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'pending_ops' | 'approved' | 'rejected' | 'held'>('all');
+  const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const isAdmin = ['admin', 'super admin', 'superadmin', 'corporate'].includes(userRole) || userPermissions.includes('all');
+  const isBranchManager = userRole === 'branch manager';
+  const canApproveAsBm = isAdmin || isBranchManager || userPermissions.includes('submit_quotations_ops') || userPermissions.includes('corporate_approver');
+  const canSubmitToBm = isAdmin || isBranchManager || userPermissions.includes('submit_quotations_bm') || userPermissions.includes('manage_quotations') || userPermissions.includes('branch_sales');
+
+  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'bm_approved' | 'approved' | 'rejected' | 'held'>('all');
   const [followUpQuotation, setFollowUpQuotation] = useState<Quotation | null>(null);
   const [advancePaymentQuotation, setAdvancePaymentQuotation] = useState<Quotation | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('ALL');
@@ -131,9 +140,9 @@ export default function QuotationList({
         case 'drafts':
           return q.status === 'Draft';
         case 'pending_bm':
-          return q.status === 'Pending Branch Approval' || q.status === 'Draft';
-        case 'pending_ops':
-          return q.status === 'Pending';
+          return q.status === 'Pending Branch Approval';
+        case 'bm_approved':
+          return q.status === 'BM Approved';
         case 'approved':
           return q.status === 'Approved';
         case 'rejected':
@@ -150,12 +159,12 @@ export default function QuotationList({
   const counts = useMemo(() => {
     return {
       all: quotations.length,
+      drafts: quotations.filter(q => q.status === 'Draft').length,
+      pending_bm: quotations.filter(q => q.status === 'Pending Branch Approval').length,
+      bm_approved: quotations.filter(q => q.status === 'BM Approved').length,
       approved: quotations.filter(q => q.status === 'Approved').length,
       held: quotations.filter(q => q.status === 'Held').length,
       rejected: quotations.filter(q => q.status === 'Rejected').length,
-      drafts: quotations.filter(q => q.status === 'Draft').length,
-      pending_bm: quotations.filter(q => q.status === 'Pending Branch Approval' || q.status === 'Draft').length,
-      pending_ops: quotations.filter(q => q.status === 'Pending').length,
     };
   }, [quotations]);
 
@@ -382,42 +391,120 @@ export default function QuotationList({
     },
     {
       header: 'QUOTE STATUS',
-      className: 'w-[140px] whitespace-nowrap',
+      className: 'w-[170px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.status,
       accessor: (q) => {
-        let badge;
-        if (q.status === 'Pending Branch Approval' || q.status === 'Draft') {
-          if (q.metrics_summary?.needs_revision) {
-            badge = (
-              <span 
-                className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center gap-1 w-fit shadow-2xs"
-                title={q.metrics_summary.bm_rejection_reason ? `Feedback: ${q.metrics_summary.bm_rejection_reason}` : 'Revision requested'}
-              >
-                <AlertTriangle size={10} className="shrink-0 text-rose-600" />
-                Revision Needed
-              </span>
-            );
-          } else {
-            badge = (
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 flex items-center gap-1.5 w-fit shadow-2xs">
+        const isBmForThisQuote = isAdmin || !currentUser?.branchId || String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(currentUser.branchId);
+        const canDirectApprove = canApproveAsBm && isBmForThisQuote;
+
+        if (q.status === 'Draft') {
+          const isRevision = Boolean(q.metrics_summary?.needs_revision);
+          return (
+            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
+              {isRevision ? (
+                <span 
+                  className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto"
+                  title={q.metrics_summary.bm_rejection_reason ? `Feedback: ${q.metrics_summary.bm_rejection_reason}` : 'Revision requested'}
+                >
+                  <AlertTriangle size={10} className="shrink-0 text-rose-600" />
+                  Revision Needed
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-700 border-zinc-200 shadow-2xs mx-auto">
+                  Draft
+                </span>
+              )}
+              {canSubmitToBm && onSubmitToBm && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSubmitToBm(q);
+                  }}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-sky-600 hover:bg-sky-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                  title="Submit quotation to Branch Manager for approval"
+                >
+                  <Send size={10} />
+                  <span>Send to BM</span>
+                </button>
+              )}
+            </div>
+          );
+        }
+
+        if (q.status === 'Pending Branch Approval') {
+          return (
+            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 flex items-center justify-center gap-1.5 w-fit shadow-2xs mx-auto">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
                 Waiting for BM
               </span>
-            );
-          }
-        } else if (q.status === 'Pending') {
-          badge = (
-            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-sky-50 text-sky-700 border-sky-200 shadow-2xs">
-              Under Ops Review
-            </span>
+              {canDirectApprove && (
+                <div className="flex items-center justify-center gap-1.5 mx-auto">
+                  {onBmApprove && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBmApprove(q);
+                      }}
+                      className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                      title="Approve as Branch Manager"
+                    >
+                      <Check size={10} strokeWidth={3} />
+                      <span>Approve</span>
+                    </button>
+                  )}
+                  {onBmReject && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBmReject(q);
+                      }}
+                      className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                      title="Request revision with notes back to Draft"
+                    >
+                      <RotateCcw size={10} />
+                      <span>Revise</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           );
-        } else if (q.status === 'Approved') {
+        }
+
+        if (q.status === 'BM Approved') {
+          return (
+            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
+                <CheckCircle2 size={10} className="shrink-0 text-indigo-600" />
+                BM Approved
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFollowUpQuotation(q);
+                }}
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                title="Log customer decision (Approved, Held, Rejected)"
+              >
+                <MessageSquare size={10} />
+                <span>Log Decision</span>
+              </button>
+            </div>
+          );
+        }
+
+        if (q.status === 'Approved') {
           const paid = parseFloat(String(q.paid_amount || 0));
-          badge = (
-            <div className="flex flex-col items-start gap-1">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 w-fit shadow-2xs">
+          return (
+            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
                 <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
-                Approved
+                Customer Approved
               </span>
               {paid <= 0 ? (
                 <button
@@ -426,23 +513,25 @@ export default function QuotationList({
                     e.stopPropagation();
                     setAdvancePaymentQuotation(q);
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
                   title="Record Advance Payment for this approved quotation"
                 >
                   <CreditCard size={10} />
                   <span>Advance Payment</span>
                 </button>
               ) : (
-                <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mx-auto">
                   Adv: ₹{paid.toLocaleString('en-IN')}
                 </span>
               )}
             </div>
           );
-        } else if (q.status === 'Rejected') {
-          badge = (
-            <div className="flex flex-col items-start gap-1">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center gap-1 w-fit shadow-2xs">
+        }
+
+        if (q.status === 'Rejected') {
+          return (
+            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
                 <XCircle size={10} className="shrink-0 text-rose-600" />
                 Rejected
               </span>
@@ -452,7 +541,7 @@ export default function QuotationList({
                   e.stopPropagation();
                   onStartEdit(q);
                 }}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer"
+                className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer mx-auto"
                 title="Directly edit/revise this rejected quote"
               >
                 <Edit3 size={10} />
@@ -460,45 +549,47 @@ export default function QuotationList({
               </button>
             </div>
           );
-        } else if (q.status === 'Held') {
-          badge = (
-            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1 w-fit shadow-2xs">
-              <Clock size={10} className="shrink-0 text-amber-600" />
-              Held
-            </span>
-          );
-        } else {
-          badge = (
-            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-600 border-zinc-200 shadow-2xs">
-              {q.status || 'Draft'}
-            </span>
-          );
         }
 
-        const isApprovedAndPaid = q.status === 'Approved' && parseFloat(String(q.paid_amount || 0)) > 0;
-
-        if (isApprovedAndPaid) {
+        if (q.status === 'Held') {
           return (
-            <div className="inline-flex items-center text-left">
-              {badge}
+            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-700 border-amber-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
+                <Clock size={10} className="shrink-0 text-amber-600" />
+                Held
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFollowUpQuotation(q);
+                }}
+                className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all cursor-pointer mx-auto"
+                title="Log customer follow-up"
+              >
+                <MessageSquare size={10} />
+                <span>Follow-up</span>
+              </button>
             </div>
           );
         }
 
         return (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setFollowUpQuotation(q);
-            }}
-            className="group/status inline-flex items-center cursor-pointer text-left transition-all active:scale-95 focus:outline-none"
-            title="Click to log follow-up"
-          >
-            <div className="transition-all group-hover/status:ring-2 group-hover/status:ring-[#C82A2B]/50 group-hover/status:shadow-sm rounded-lg inline-flex items-center">
-              {badge}
-            </div>
-          </button>
+          <div className="flex items-center justify-center text-center w-full">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setFollowUpQuotation(q);
+              }}
+              className="group/status inline-flex items-center justify-center cursor-pointer text-center transition-all active:scale-95 focus:outline-none mx-auto"
+              title="Click to log follow-up"
+            >
+              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-600 border-zinc-200 shadow-2xs">
+                {q.status || 'Draft'}
+              </span>
+            </button>
+          </div>
         );
       }
     }
@@ -660,12 +751,12 @@ export default function QuotationList({
               value={activeFilter === 'all' ? 'ALL' : activeFilter}
               onChange={(val) => setActiveFilter(val === 'ALL' ? 'all' : val as any)}
               options={[
-                { label: 'Approved Quotes', value: 'approved', badge: counts.approved },
-                { label: 'Held Quotes', value: 'held', badge: counts.held },
-                { label: 'Rejected Quotes', value: 'rejected', badge: counts.rejected },
+                { label: 'Drafts Only', value: 'drafts', badge: counts.drafts },
                 { label: "Waiting for BM's Approval", value: 'pending_bm', badge: counts.pending_bm },
-                { label: 'Under Ops Review', value: 'pending_ops', badge: counts.pending_ops },
-                { label: 'Drafts Only', value: 'drafts', badge: counts.drafts }
+                { label: 'BM Approved', value: 'bm_approved', badge: counts.bm_approved },
+                { label: 'Customer Approved Quotes', value: 'approved', badge: counts.approved },
+                { label: 'Held Quotes', value: 'held', badge: counts.held },
+                { label: 'Rejected Quotes', value: 'rejected', badge: counts.rejected }
               ]}
               maxWidth="max-w-[240px]"
             />

@@ -20,9 +20,16 @@ export interface SortInfo<T> {
   headerLabel: string;
 }
 
+export interface HeaderGroupItem {
+  header: React.ReactNode;
+  colSpan?: number;
+  className?: string;
+}
+
 export interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
+  headerGroups?: HeaderGroupItem[];
   title?: string;
   subtitle?: string;
   searchPlaceholder?: string;
@@ -178,6 +185,7 @@ function isStatusColumn<T>(col: Column<T>): boolean {
 export function DataTable<T extends { id: string | number }>({ 
   columns, 
   data, 
+  headerGroups,
   title, 
   subtitle, 
   searchPlaceholder = "Search...", 
@@ -597,8 +605,8 @@ export function DataTable<T extends { id: string | number }>({
       <div className="overflow-x-auto relative flex-1 flex flex-col justify-between">
         <table className="w-full text-left border-collapse min-w-full">
           <thead>
-            <tr className="bg-zinc-100/70 border-b border-zinc-200">
-              {columns.map((col, idx) => {
+            {(() => {
+              const renderHeaderCell = (col: Column<T>, idx: number, rowSpan?: number) => {
                 const isAction = typeof col.header === 'string' && (col.header.toLowerCase() === 'actions' || col.header.toLowerCase() === 'action');
                 const isLast = idx === columns.length - 1;
                 const isCollapsed = col.className?.includes('!w-0');
@@ -607,7 +615,6 @@ export function DataTable<T extends { id: string | number }>({
                 const isSorted = sortColumnIndex === idx;
                 const isDateCol = isDateColumn(col);
                 const isStatusCol = isStatusColumn(col);
-                const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
                 const isRightAligned = !isDateCol && !isStatusCol && col.className?.includes('text-right');
                 const isLeftAligned = !isDateCol && !isStatusCol && col.className?.includes('text-left');
                 const cleanedHeaderClass = (isDateCol || isStatusCol)
@@ -617,6 +624,7 @@ export function DataTable<T extends { id: string | number }>({
                 return (
                   <th 
                     key={idx} 
+                    rowSpan={rowSpan}
                     onClick={() => isSortable && handleSort(idx)}
                     aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                     title={isSortable ? `Click to sort by ${typeof col.header === 'string' ? col.header : 'column'} (${isSorted && sortDirection === 'asc' ? 'Descending' : 'Ascending'})` : undefined}
@@ -652,8 +660,67 @@ export function DataTable<T extends { id: string | number }>({
                     </div>
                   </th>
                 );
-              })}
-            </tr>
+              };
+
+              if (headerGroups && headerGroups.length > 0) {
+                let colIdxTop = 0;
+                let colIdxSub = 0;
+                return (
+                  <>
+                    <tr className="bg-zinc-100/70 border-b border-zinc-200">
+                      {headerGroups.map((grp, gIdx) => {
+                        const span = grp.colSpan || 1;
+                        if (span === 1) {
+                          const col = columns[colIdxTop];
+                          const el = col ? renderHeaderCell(col, colIdxTop, 2) : null;
+                          colIdxTop += 1;
+                          return el;
+                        } else {
+                          colIdxTop += span;
+                          return (
+                            <th
+                              key={`grp-${gIdx}`}
+                              colSpan={span}
+                              className={`px-4 py-2 text-[10px] md:text-[11px] font-black tracking-[0.14em] uppercase text-center border-r border-b border-zinc-200/80 select-none bg-zinc-200/50 text-zinc-800 ${grp.className || ''}`}
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <span>{grp.header}</span>
+                              </div>
+                            </th>
+                          );
+                        }
+                      })}
+                    </tr>
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      {headerGroups.flatMap((grp) => {
+                        const span = grp.colSpan || 1;
+                        if (span === 1) {
+                          colIdxSub += 1;
+                          return [];
+                        } else {
+                          const cells = [];
+                          for (let i = 0; i < span; i++) {
+                            const cIndex = colIdxSub;
+                            const col = columns[cIndex];
+                            if (col) {
+                              cells.push(renderHeaderCell(col, cIndex, 1));
+                            }
+                            colIdxSub += 1;
+                          }
+                          return cells;
+                        }
+                      })}
+                    </tr>
+                  </>
+                );
+              }
+
+              return (
+                <tr className="bg-zinc-100/70 border-b border-zinc-200">
+                  {columns.map((col, idx) => renderHeaderCell(col, idx))}
+                </tr>
+              );
+            })()}
           </thead>
           <tbody className="divide-y divide-zinc-200/50">
             {isLoading ? (

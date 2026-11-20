@@ -22,8 +22,6 @@ interface WizardStep1Props {
   setSalesType: (type: string) => void;
   customerType: string;
   setCustomerType: (type: string) => void;
-  quotationType?: string;
-  setQuotationType?: (type: string) => void;
   isAnalyzing: boolean;
   onNext: () => void;
   generateAutoCoverLetter: () => void;
@@ -32,8 +30,6 @@ interface WizardStep1Props {
   groupDesignCombinations: any[];
   selectedGroupDesignId: string;
   onSelectGroupDesign: (gdnId: string) => void;
-  orgDepartments?: any[];
-  setOrgDepartments?: (depts: any[]) => void;
 }
 
 export default function WizardStep1({
@@ -48,15 +44,11 @@ export default function WizardStep1({
   setSalesType,
   customerType,
   setCustomerType,
-  quotationType = 'STANDARD',
-  setQuotationType,
   isAnalyzing,
   onNext,
   generateAutoCoverLetter,
   previousOrders,
   onSelectPreviousOrder,
-  orgDepartments = [],
-  setOrgDepartments,
 }: WizardStep1Props) {
   const selectedOrg = organizations.find(o => String(o.id) === String(selectedOrgId));
 
@@ -156,101 +148,8 @@ export default function WizardStep1({
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Quotation Type</label>
-          <Select
-            options={[
-              { label: 'Readymades', value: 'STANDARD' },
-              { label: 'fabrics', value: 'FABRIC' },
-              { label: 'accessories', value: 'ACCESSORIES' },
-              { label: 'Readymades ( with departments)', value: 'READYMADE_SET' },
-              { label: 'fabrics ( with departments)', value: 'FABRIC_SET' },
-              { label: 'accessories ( with departments)', value: 'ACCESSORIES_SET' },
-              { label: 'Custom quotation', value: 'MANUAL' }
-            ]}
-            value={quotationType}
-            onChange={setQuotationType}
-            placeholder="Select Quotation Type..."
-          />
-        </div>
-
       </div>
 
-      {selectedOrgId && (
-        <>
-          {orgDepartments && orgDepartments.length > 0 && (quotationType === 'FABRIC_SET' || quotationType === 'READYMADE_SET' || quotationType === 'ACCESSORIES_SET' || quotationType === 'MANUAL') && (
-            <div className="space-y-4 border-t border-zinc-100 pt-6">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Select Departments / Classes for Quotation</h4>
-                  <p className="text-[9px] text-[#C82A2B] font-bold mt-0.5">Select departments to include — each department can be auto-split by gender divisions with manual quantity and sets</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (setOrgDepartments) {
-                        setOrgDepartments(orgDepartments.map(d => ({ ...d, selected: true })));
-                      }
-                    }}
-                    className="px-3 py-1 bg-[#FFF1F1] hover:bg-[#C82A2B] text-[#C82A2B] hover:text-white border border-[#C82A2B]/20 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                  >
-                    Select All Classes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (setOrgDepartments) {
-                        setOrgDepartments(orgDepartments.map(d => ({ ...d, selected: false })));
-                      }
-                    }}
-                    className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                  >
-                    Deselect All
-                  </button>
-                </div>
-              </div>
-              <div className="overflow-hidden border border-zinc-200 rounded-3xl bg-white shadow-sm">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50 border-b border-zinc-200">
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider w-16 text-center">Select</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider text-center">Department Name</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-wider text-center">Division / Section</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-150/70">
-                    {orgDepartments.map((dept) => (
-                      <tr key={dept.id} className={`hover:bg-zinc-50/50 transition-colors ${dept.selected ? 'bg-[#FFF1F1]' : ''}`}>
-                        <td className="p-4 text-center">
-                          <input
-                            type="checkbox"
-                            checked={dept.selected}
-                            onChange={(e) => {
-                              if (setOrgDepartments) {
-                                const updated = orgDepartments.map(d => d.id === dept.id ? { ...d, selected: e.target.checked } : d);
-                                setOrgDepartments(updated);
-                              }
-                            }}
-                            className="w-4 h-4 rounded text-[#C82A2B] accent-[#C82A2B] border-zinc-300 focus:ring-[#C82A2B]/25"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <span className="text-xs font-black text-zinc-900">{dept.name}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-xs font-bold text-zinc-400">{dept.division || '—'}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-        </>
-      )}
       {/* PREVIOUS ORDERS - always visible, all orders */}
       <div className="space-y-4 border-t border-zinc-100 pt-6">
         <div className="relative">
@@ -320,7 +219,7 @@ export default function WizardStep1({
           onClick={onNext}
           className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          {isAnalyzing ? 'Analyzing Sizing...' : 'Sizing Audit & Next'} <ArrowRight size={16} />
+          {isAnalyzing ? 'Loading...' : 'Add Items & Next'} <ArrowRight size={16} />
         </Button>
       </div>
     </div>
