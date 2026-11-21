@@ -642,44 +642,51 @@ export default function DealsRegistryPage() {
         const { dealStage } = getDealFinancials(l);
 
         return (
-          <div className="flex items-center justify-center">
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewingLead(l);
+            }}
+            className="flex items-center justify-center cursor-pointer group"
+            title="Click to view deal stage pipeline log"
+          >
             {dealStage === 'NEW_DEALS' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-teal-50 text-teal-800 border-teal-200 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-teal-50 text-teal-800 border-teal-200 shadow-2xs transition-transform group-hover:scale-105">
                 <Sparkles size={12} className="text-teal-600 shrink-0" />
                 <span>New Deals</span>
               </span>
             )}
 
             {dealStage === 'SO_DRAFT' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 shadow-2xs transition-transform group-hover:scale-105">
                 <FileText size={12} className="text-amber-600 shrink-0" />
                 <span>SO Draft</span>
               </span>
             )}
 
             {dealStage === 'PENDING_BM_APPROVAL' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-orange-50 text-orange-800 border-orange-300 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-orange-50 text-orange-800 border-orange-300 shadow-2xs transition-transform group-hover:scale-105">
                 <Lock size={10} />
                 <span>Pending BM Approval</span>
               </span>
             )}
 
             {dealStage === 'SO_APPROVED' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-800 border-indigo-200 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-800 border-indigo-200 shadow-2xs transition-transform group-hover:scale-105">
                 <CheckCircle2 size={12} className="text-indigo-600 shrink-0" />
                 <span>BM Approved Deals</span>
               </span>
             )}
 
             {dealStage === 'PENDING_CORP_APPROVAL' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-purple-50 text-purple-800 border-purple-200 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-purple-50 text-purple-800 border-purple-200 shadow-2xs transition-transform group-hover:scale-105">
                 <ShieldCheck size={10} />
                 <span>Pending HQ Approval</span>
               </span>
             )}
 
             {dealStage === 'CORP_APPROVED' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-800 border-emerald-200 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-800 border-emerald-200 shadow-2xs transition-transform group-hover:scale-105">
                 <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
                 <span>Corporate Approved</span>
               </span>
@@ -811,20 +818,6 @@ export default function DealsRegistryPage() {
                 </span>
               )
             )}
-
-            {/* Edit / View Remarks Icon Button in Brand Red */}
-            <button
-              type="button"
-              onClick={() => {
-                setRemarksModalDeal(l);
-                setRemarksModalQuotation(quote);
-                setIsRemarksReadOnly(stage !== 'NEW_DEALS' && stage !== 'SO_DRAFT');
-              }}
-              className="p-1.5 rounded-lg border border-[#C82A2B]/30 bg-[#FFF1F1] text-[#C82A2B] hover:bg-[#C82A2B] hover:text-white transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
-              title={stage === 'NEW_DEALS' ? 'Add Remarks' : stage === 'SO_DRAFT' ? 'Edit Remarks' : 'View Remarks'}
-            >
-              <Edit3 size={13} strokeWidth={2.5} />
-            </button>
           </div>
         );
       }
@@ -866,7 +859,12 @@ export default function DealsRegistryPage() {
         data={filteredDeals}
         isLoading={isLoading}
         searchPlaceholder="Search"
-        onRowClick={(deal) => setViewingLead(deal)}
+        onRowClick={(deal) => {
+          const fin = getDealFinancials(deal);
+          setRemarksModalDeal(deal);
+          setRemarksModalQuotation(fin.approvedQuote);
+          setIsRemarksReadOnly(fin.dealStage !== 'NEW_DEALS' && fin.dealStage !== 'SO_DRAFT');
+        }}
         onPrint={handlePrintDeals}
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}

@@ -46,6 +46,7 @@ interface QuotationListProps {
   onCompileQuotation: () => void;
   onViewDetails: (q: Quotation) => void;
   onStartEdit: (q: Quotation) => void;
+  onStartRevision?: (q: Quotation) => void;
   onDeleteCandidate: (q: Quotation) => void;
   onSubmitToOps?: (q: Quotation) => void;
   onSubmitToBm?: (q: Quotation) => void;
@@ -64,6 +65,7 @@ export default function QuotationList({
   onCompileQuotation,
   onViewDetails,
   onStartEdit,
+  onStartRevision,
   onDeleteCandidate,
   onSubmitToOps,
   onSubmitToBm,
@@ -343,25 +345,25 @@ export default function QuotationList({
     },
     {
       header: 'SALES PERSON',
-      className: 'min-w-[140px] whitespace-nowrap',
+      className: 'min-w-[140px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => getSalesPerson(q)?.name || '',
       accessor: (q) => {
         const sp = getSalesPerson(q);
         return sp ? (
-          <div className="flex items-center gap-1.5 min-w-0 max-w-[180px]">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-zinc-800 truncate block" title={sp.name}>
-                {sp.name}
+          <div className="flex flex-col items-center justify-center text-center mx-auto min-w-0 max-w-[180px]">
+            <p className="text-xs font-bold text-zinc-800 truncate block text-center" title={sp.name}>
+              {sp.name}
+            </p>
+            {sp.code && (
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block text-center">
+                {sp.code}
               </p>
-              {sp.code && (
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider truncate block">
-                  {sp.code}
-                </p>
-              )}
-            </div>
+            )}
           </div>
         ) : (
-          <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          <div className="text-center">
+            <span className="text-zinc-400 text-xs italic font-medium">Unassigned</span>
+          </div>
         );
       }
     },
@@ -391,97 +393,181 @@ export default function QuotationList({
     },
     {
       header: 'QUOTE STATUS',
-      className: 'w-[170px] whitespace-nowrap text-center align-middle',
+      className: 'w-[145px] whitespace-nowrap text-center align-middle',
       sortValue: (q) => q.status,
+      accessor: (q) => {
+        const isRevision = Boolean(q.metrics_summary?.needs_revision);
+        const statusText = q.status || 'Draft';
+
+        let badge = (
+          <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-700 border-zinc-200 shadow-2xs">
+            {statusText}
+          </span>
+        );
+
+        if (q.status === 'Draft') {
+          badge = isRevision ? (
+            <span 
+              className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 shadow-2xs"
+              title={q.metrics_summary?.bm_rejection_reason ? `Feedback: ${q.metrics_summary.bm_rejection_reason}` : 'Revision requested'}
+            >
+              <AlertTriangle size={10} className="shrink-0 text-rose-600" />
+              Revision Needed
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-700 border-zinc-200 shadow-2xs">
+              Draft
+            </span>
+          );
+        } else if (q.status === 'Pending Branch Approval') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 flex items-center justify-center gap-1.5 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              Waiting for BM
+            </span>
+          );
+        } else if (q.status === 'BM Approved') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center justify-center gap-1 shadow-2xs">
+              <CheckCircle2 size={10} className="shrink-0 text-indigo-600" />
+              BM Approved
+            </span>
+          );
+        } else if (q.status === 'Approved') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center justify-center gap-1 shadow-2xs">
+              <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
+              Customer Approved
+            </span>
+          );
+        } else if (q.status === 'Rejected') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 shadow-2xs">
+              <XCircle size={10} className="shrink-0 text-rose-600" />
+              Rejected
+            </span>
+          );
+        } else if (q.status === 'Held') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-700 border-amber-200 flex items-center justify-center gap-1 shadow-2xs">
+              <Clock size={10} className="shrink-0 text-amber-600" />
+              Held
+            </span>
+          );
+        } else if (q.status === 'Revision Requested') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200 flex items-center justify-center gap-1 shadow-2xs">
+              <RotateCcw size={10} className="shrink-0 text-purple-600" />
+              Revision Requested
+            </span>
+          );
+        } else if (q.status === 'Revised') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-blue-50 text-blue-700 border-blue-200 flex items-center justify-center gap-1 shadow-2xs">
+              Revised
+            </span>
+          );
+        }
+
+        return (
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              setFollowUpQuotation(q);
+            }}
+            className="flex items-center justify-center cursor-pointer group/status"
+            title="Click to view quotation pipeline log & history"
+          >
+            <div className="transition-transform group-hover/status:scale-105">
+              {badge}
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'NEXT STEP',
+      className: 'w-[155px] min-w-[145px] whitespace-nowrap text-center align-middle',
+      sortable: false,
       accessor: (q) => {
         const isBmForThisQuote = isAdmin || !currentUser?.branchId || String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(currentUser.branchId);
         const canDirectApprove = canApproveAsBm && isBmForThisQuote;
 
         if (q.status === 'Draft') {
-          const isRevision = Boolean(q.metrics_summary?.needs_revision);
-          return (
-            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
-              {isRevision ? (
-                <span 
-                  className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto"
-                  title={q.metrics_summary.bm_rejection_reason ? `Feedback: ${q.metrics_summary.bm_rejection_reason}` : 'Revision requested'}
-                >
-                  <AlertTriangle size={10} className="shrink-0 text-rose-600" />
-                  Revision Needed
-                </span>
-              ) : (
-                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-700 border-zinc-200 shadow-2xs mx-auto">
-                  Draft
-                </span>
-              )}
-              {canSubmitToBm && onSubmitToBm && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSubmitToBm(q);
-                  }}
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-sky-600 hover:bg-sky-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
-                  title="Submit quotation to Branch Manager for approval"
-                >
-                  <Send size={10} />
-                  <span>Send to BM</span>
-                </button>
-              )}
+          return canSubmitToBm && onSubmitToBm ? (
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSubmitToBm(q);
+                }}
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-sky-600 hover:bg-sky-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                title="Submit quotation to Branch Manager for approval"
+              >
+                <Send size={10} />
+                <span>Send to BM</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartEdit(q);
+                }}
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-200 hover:bg-zinc-300 text-zinc-800 shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+              >
+                <Edit3 size={10} />
+                <span>Edit</span>
+              </button>
             </div>
           );
         }
 
         if (q.status === 'Pending Branch Approval') {
-          return (
-            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-300 flex items-center justify-center gap-1.5 w-fit shadow-2xs mx-auto">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                Waiting for BM
-              </span>
-              {canDirectApprove && (
-                <div className="flex items-center justify-center gap-1.5 mx-auto">
-                  {onBmApprove && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onBmApprove(q);
-                      }}
-                      className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                      title="Approve as Branch Manager"
-                    >
-                      <Check size={10} strokeWidth={3} />
-                      <span>Approve</span>
-                    </button>
-                  )}
-                  {onBmReject && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onBmReject(q);
-                      }}
-                      className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                      title="Request revision with notes back to Draft"
-                    >
-                      <RotateCcw size={10} />
-                      <span>Revise</span>
-                    </button>
-                  )}
-                </div>
+          return canDirectApprove ? (
+            <div className="flex items-center justify-center gap-1.5 mx-auto">
+              {onBmApprove && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBmApprove(q);
+                  }}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  title="Approve as Branch Manager"
+                >
+                  <Check size={10} strokeWidth={3} />
+                  <span>Approve</span>
+                </button>
               )}
+              {onBmReject && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBmReject(q);
+                  }}
+                  className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  title="Request revision with notes back to Draft"
+                >
+                  <RotateCcw size={10} />
+                  <span>Revise</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center">
+              <span className="text-[10px] font-bold text-zinc-400 italic">Waiting for BM</span>
             </div>
           );
         }
 
         if (q.status === 'BM Approved') {
           return (
-            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
-                <CheckCircle2 size={10} className="shrink-0 text-indigo-600" />
-                BM Approved
-              </span>
+            <div className="flex items-center justify-center">
               <button
                 type="button"
                 onClick={(e) => {
@@ -500,49 +586,45 @@ export default function QuotationList({
 
         if (q.status === 'Approved') {
           const paid = parseFloat(String(q.paid_amount || 0));
-          return (
-            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
-                <CheckCircle2 size={10} className="shrink-0 text-emerald-600" />
-                Customer Approved
-              </span>
-              {paid <= 0 ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAdvancePaymentQuotation(q);
-                  }}
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
-                  title="Record Advance Payment for this approved quotation"
-                >
-                  <CreditCard size={10} />
-                  <span>Advance Payment</span>
-                </button>
-              ) : (
-                <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mx-auto">
-                  Adv: ₹{paid.toLocaleString('en-IN')}
-                </span>
-              )}
-            </div>
-          );
-        }
-
-        if (q.status === 'Rejected') {
-          return (
-            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
-                <XCircle size={10} className="shrink-0 text-rose-600" />
-                Rejected
-              </span>
+          return paid <= 0 ? (
+            <div className="flex items-center justify-center">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStartEdit(q);
+                  setAdvancePaymentQuotation(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer mx-auto"
-                title="Directly edit/revise this rejected quote"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                title="Record Advance Payment for this approved quotation"
+              >
+                <CreditCard size={10} />
+                <span>Advance Payment</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mx-auto">
+                Adv: ₹{paid.toLocaleString('en-IN')}
+              </span>
+            </div>
+          );
+        }
+
+        if (q.status === 'Rejected' || q.status === 'Revision Requested') {
+          return (
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onStartRevision) {
+                    onStartRevision(q);
+                  } else {
+                    onStartEdit(q);
+                  }
+                }}
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer mx-auto"
+                title="Create a revised quotation proposal"
               >
                 <Edit3 size={10} />
                 <span>Revise Quote</span>
@@ -553,18 +635,14 @@ export default function QuotationList({
 
         if (q.status === 'Held') {
           return (
-            <div className="flex flex-col items-center justify-center gap-1 text-center w-full">
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-700 border-amber-200 flex items-center justify-center gap-1 w-fit shadow-2xs mx-auto">
-                <Clock size={10} className="shrink-0 text-amber-600" />
-                Held
-              </span>
+            <div className="flex items-center justify-center">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setFollowUpQuotation(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all cursor-pointer mx-auto"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all cursor-pointer mx-auto"
                 title="Log customer follow-up"
               >
                 <MessageSquare size={10} />
@@ -575,19 +653,17 @@ export default function QuotationList({
         }
 
         return (
-          <div className="flex items-center justify-center text-center w-full">
+          <div className="flex items-center justify-center text-center">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setFollowUpQuotation(q);
               }}
-              className="group/status inline-flex items-center justify-center cursor-pointer text-center transition-all active:scale-95 focus:outline-none mx-auto"
-              title="Click to log follow-up"
+              className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 shadow-2xs transition-all cursor-pointer"
+              title="Log communication note"
             >
-              <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-600 border-zinc-200 shadow-2xs">
-                {q.status || 'Draft'}
-              </span>
+              Follow-up
             </button>
           </div>
         );
@@ -819,6 +895,7 @@ export default function QuotationList({
           allQuotations={quotations}
           currentUser={currentUser}
           onStartEdit={onStartEdit}
+          onStartRevision={onStartRevision}
           onRecordPayment={(q) => setAdvancePaymentQuotation(q)}
           onClose={() => setFollowUpQuotation(null)}
           onSuccess={() => {
@@ -853,6 +930,7 @@ interface QuotationFollowUpModalProps {
   onSuccess: () => void;
   currentUser?: any;
   onStartEdit?: (q: Quotation) => void;
+  onStartRevision?: (q: Quotation) => void;
   onRecordPayment?: (q: Quotation) => void;
 }
 
@@ -863,20 +941,48 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
   onSuccess,
   currentUser,
   onStartEdit,
+  onStartRevision,
   onRecordPayment
 }) => {
-  const [activeModalTab, setActiveModalTab] = useState<'record' | 'log'>('record');
-  const [responseType, setResponseType] = useState<'rejected' | 'held' | 'approved'>('held');
+  const [activeModalTab, setActiveModalTab] = useState<'record' | 'log'>('log');
+  const [responseType, setResponseType] = useState<'rejected' | 'held' | 'approved' | 'revision_requested'>('held');
   const [remarks, setRemarks] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [manualLogText, setManualLogText] = useState('');
+  const [manualLogType, setManualLogType] = useState('Manual Note');
+  const [isSavingManualLog, setIsSavingManualLog] = useState(false);
+
+  const handleSaveManualLog = async () => {
+    if (!manualLogText.trim() || !quotation) return;
+    setIsSavingManualLog(true);
+    const toastId = toast.loading('Recording log entry...');
+    try {
+      await api.post(`/quotations/${quotation.id}/follow-up`, {
+        outcome: manualLogType || 'Manual Note',
+        response_type: 'held',
+        status: quotation.status,
+        remarks: manualLogText.trim(),
+        text: manualLogText.trim()
+      });
+      toast.success('Log entry recorded successfully', { id: toastId });
+      setManualLogText('');
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to save log entry', { id: toastId });
+    } finally {
+      setIsSavingManualLog(false);
+    }
+  };
 
   const handleEditRevise = (qToEdit: Quotation) => {
     onClose();
-    if (onStartEdit) {
+    if (onStartRevision) {
+      onStartRevision(qToEdit);
+    } else if (onStartEdit) {
       onStartEdit(qToEdit);
     } else {
-      window.location.href = `/marketing/quotations?id=${qToEdit.id}&action=edit`;
+      window.location.href = `/marketing/quotations?id=${qToEdit.id}&action=revise`;
     }
   };
 
@@ -964,16 +1070,35 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
         });
       }
 
+      // Customer Revision Request
+      if (q.metrics_summary?.customer_revision_reason || q.status === 'Revision Requested') {
+        activities.push({
+          id: `cust_rev_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'revision_request',
+          title: `Revision Requested by Customer (#${q.quotation_no})`,
+          badge: 'Revision Requested',
+          badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+          date: q.metrics_summary?.customer_revision_requested_at || q.updated_at || q.created_at,
+          author: q.metrics_summary?.customer_revision_requested_by || 'Customer',
+          remarks: `Customer revision request notes: "${q.metrics_summary?.customer_revision_reason || 'Changes requested by client'}"`
+        });
+      }
+
       // Follow-up entries
       if (Array.isArray(q.metrics_summary?.followups)) {
         q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
+          const outcomeLower = String(f.outcome || f.response_type || '').toLowerCase();
+          const isRev = outcomeLower.includes('revision');
           activities.push({
             id: f.id || `f_${q.id}_${fIdx}`,
             quotation_id: q.id,
             quotation_no: q.quotation_no,
-            type: 'followup',
-            title: `Follow-up on Quote #${q.quotation_no}`,
-            badge: f.outcome || f.response_type || 'Follow-up',
+            type: isRev ? 'revision_request' : 'followup',
+            title: isRev ? `Customer Revision Requested (#${q.quotation_no})` : `Follow-up on Quote #${q.quotation_no}`,
+            badge: isRev ? 'Revision Requested' : (f.outcome || f.response_type || 'Follow-up'),
+            badgeColor: isRev ? 'bg-purple-50 text-purple-700 border-purple-200' : undefined,
             outcome: f.outcome || f.response_type,
             date: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at),
             author: f.author?.name || 'Sales Representative',
@@ -1004,7 +1129,14 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
       return;
     }
     setIsSubmitting(true);
-    const targetStatus = responseType === 'rejected' ? 'Rejected' : responseType === 'held' ? 'Held' : 'Approved';
+    const isRevReq = responseType === 'revision_requested';
+    const targetStatus = responseType === 'rejected' 
+      ? 'Rejected' 
+      : responseType === 'held' 
+      ? 'Held' 
+      : isRevReq 
+      ? 'Revision Requested' 
+      : 'Approved';
     const toastId = toast.loading(`Saving quotation follow-up as ${targetStatus}...`);
 
     try {
@@ -1455,60 +1587,85 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                     </button>
                   </div>
                 )}
+
+                {/* Manual Log Entry Composer at Bottom of Quotation Timeline */}
+                <div className="mt-4 pt-3.5 border-t border-zinc-200/80 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200/60 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare size={13} className="text-[#801416]" />
+                      <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                        Add Manual / Custom Log
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-zinc-400">
+                      System records user, date &amp; time automatically
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <textarea
+                      value={manualLogText}
+                      onChange={(e) => setManualLogText(e.target.value)}
+                      placeholder="Type a manual log, customer note, or call summary here..."
+                      className="w-full text-xs font-medium text-zinc-800 bg-white border border-zinc-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#801416]/20 focus:border-[#801416] resize-none h-20 placeholder:text-zinc-400 shadow-2xs"
+                    />
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                          Log Type:
+                        </label>
+                        <select
+                          value={manualLogType}
+                          onChange={(e) => setManualLogType(e.target.value)}
+                          className="text-xs font-bold text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#801416]/20"
+                        >
+                          <option value="Manual Note">Manual Note</option>
+                          <option value="Phone Call">Phone Call</option>
+                          <option value="Client Discussion">Client Discussion</option>
+                          <option value="Commercial Note">Commercial Note</option>
+                          <option value="Pricing Query">Pricing Query</option>
+                          <option value="Customer Feedback">Customer Feedback</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!manualLogText.trim() || isSavingManualLog}
+                        onClick={handleSaveManualLog}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] disabled:opacity-50 text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed active:scale-95"
+                      >
+                        {isSavingManualLog ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Recording...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={12} strokeWidth={3} />
+                            <span>Add Log Entry</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
             /* Follow-up Logging Form */
             <div className="space-y-4">
-              {/* Outcome Selection: 3 Options (Rejected, Held, Approved) */}
+              {/* Outcome Selection: 4 Options (Approved, Held, Revision Requested, Rejected) */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                   Customer Decision / Outcome *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Rejected */}
-                  <button
-                    type="button"
-                    onClick={() => setResponseType('rejected')}
-                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      responseType === 'rejected'
-                        ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-sm ring-2 ring-rose-500/20'
-                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
-                    }`}
-                  >
-                    <span className="text-xs font-black block flex items-center gap-1.5 text-rose-700">
-                      <XCircle size={15} className="text-rose-600 shrink-0" />
-                      Rejected
-                    </span>
-                    <span className="text-[10px] text-rose-700/85 font-medium mt-1 block">
-                      Customer rejected quotation
-                    </span>
-                  </button>
-
-                  {/* Held / Pending */}
-                  <button
-                    type="button"
-                    onClick={() => setResponseType('held')}
-                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      responseType === 'held'
-                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
-                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
-                    }`}
-                  >
-                    <span className="text-xs font-black block flex items-center gap-1.5 text-amber-700">
-                      <Clock size={15} className="text-amber-600 shrink-0" />
-                      Held
-                    </span>
-                    <span className="text-[10px] text-amber-700/85 font-medium mt-1 block">
-                      Decision pending / Not confirmed
-                    </span>
-                  </button>
-
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {/* Approved */}
                   <button
                     type="button"
                     onClick={() => setResponseType('approved')}
-                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       responseType === 'approved'
                         ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm ring-2 ring-emerald-500/20'
                         : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
@@ -1519,11 +1676,83 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                       Approved
                     </span>
                     <span className="text-[10px] text-emerald-700/85 font-medium mt-1 block">
-                      Customer approved quotation
+                      Customer confirmed quote
+                    </span>
+                  </button>
+
+                  {/* Held / Pending */}
+                  <button
+                    type="button"
+                    onClick={() => setResponseType('held')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'held'
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black block flex items-center gap-1.5 text-amber-700">
+                      <Clock size={15} className="text-amber-600 shrink-0" />
+                      Held
+                    </span>
+                    <span className="text-[10px] text-amber-700/85 font-medium mt-1 block">
+                      Decision pending
+                    </span>
+                  </button>
+
+                  {/* Revision Requested */}
+                  <button
+                    type="button"
+                    onClick={() => setResponseType('revision_requested')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'revision_requested'
+                        ? 'border-purple-500 bg-purple-50 text-purple-900 shadow-sm ring-2 ring-purple-500/20'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black block flex items-center gap-1.5 text-purple-700">
+                      <RotateCcw size={15} className="text-purple-600 shrink-0" />
+                      Revise Quote
+                    </span>
+                    <span className="text-[10px] text-purple-700/85 font-medium mt-1 block">
+                      Revision requested
+                    </span>
+                  </button>
+
+                  {/* Rejected */}
+                  <button
+                    type="button"
+                    onClick={() => setResponseType('rejected')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      responseType === 'rejected'
+                        ? 'border-rose-500 bg-rose-50 text-rose-900 shadow-sm ring-2 ring-rose-500/20'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 bg-zinc-50/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black block flex items-center gap-1.5 text-rose-700">
+                      <XCircle size={15} className="text-rose-600 shrink-0" />
+                      Rejected
+                    </span>
+                    <span className="text-[10px] text-rose-700/85 font-medium mt-1 block">
+                      Customer rejected
                     </span>
                   </button>
                 </div>
 
+                {responseType === 'revision_requested' && (
+                  <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 flex items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                      <RotateCcw size={15} className="text-purple-600 shrink-0" />
+                      <span>Customer requested revisions. Both initial and revised quotes will remain viewable in logs.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEditRevise(quotation)}
+                      className="px-3 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-xs"
+                    >
+                      Create Revised Quote &rarr;
+                    </button>
+                  </div>
+                )}
                 {responseType === 'rejected' && (
                   <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 flex items-center gap-2 animate-in fade-in">
                     <AlertCircle size={14} className="text-rose-600 shrink-0" />
@@ -1595,6 +1824,8 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
                   : responseType === 'rejected'
                   ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                  : responseType === 'revision_requested'
+                  ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
                   : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
               }`}
             >
@@ -1604,6 +1835,8 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 ? 'Mark as Rejected & Save'
                 : responseType === 'approved'
                 ? 'Mark as Approved & Save'
+                : responseType === 'revision_requested'
+                ? 'Record Revision Request & Save'
                 : 'Mark as Held & Save'}
             </Button>
           ) : (

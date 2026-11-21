@@ -101,6 +101,8 @@ const SIZE_FABRIC_MULTIPLIERS: Record<string, number> = {
 
 interface QuotationWizardProps {
   editingQuotationId: number | null;
+  isRevisionMode?: boolean;
+  revisedFromQuotationId?: number | null;
   initialOrgId?: number | string | null;
   organizations: Organization[];
   productTypes: ProductType[];
@@ -119,6 +121,8 @@ interface QuotationWizardProps {
 
 export default function QuotationWizard({
   editingQuotationId,
+  isRevisionMode = false,
+  revisedFromQuotationId = null,
   initialOrgId,
   organizations,
   productTypes,
@@ -209,10 +213,12 @@ export default function QuotationWizard({
     { label: '', quantity: '1', rate: '0' }
   ]);
   const [isTaxInclusive, setIsTaxInclusive] = useState<boolean>(false);
+  const [parentBaseQuoteNo, setParentBaseQuoteNo] = useState<string>('');
 
-  // If in edit mode, fetch detailed quotation data and initialize state
+  // If in edit or revision mode, fetch detailed quotation data and initialize state
   useEffect(() => {
-    if (!editingQuotationId) {
+    const targetId = editingQuotationId || revisedFromQuotationId;
+    if (!targetId) {
       resetWizard();
       return;
     }
@@ -220,15 +226,32 @@ export default function QuotationWizard({
     const loadQuotationForEditing = async () => {
       setIsInitializingEdit(true);
       try {
-        const res = await api.get(`/quotations/${editingQuotationId}`);
+        const res = await api.get(`/quotations/${targetId}`);
         const fullQuote = res.data;
 
-        setQuoteTitle(fullQuote.title);
-        setQuoteNo(fullQuote.quotation_no || '');
-        setSelectedOrgId(String(fullQuote.organization_id));
-        if (fullQuote.status) {
-          setStatus(fullQuote.status);
+        if (isRevisionMode) {
+          setQuoteTitle(fullQuote.title ? `${fullQuote.title} (Revised)` : 'Uniform Quotation (Revised)');
+          const baseNo = fullQuote.quotation_no || `QT-${fullQuote.id}`;
+          setParentBaseQuoteNo(baseNo);
+          const revMatch = baseNo.match(/^(.*)-R(\d+)$/i);
+          let nextNo = '';
+          if (revMatch) {
+            const prefix = revMatch[1];
+            const nextRevNum = parseInt(revMatch[2], 10) + 1;
+            nextNo = `${prefix}-R${nextRevNum}`;
+          } else {
+            nextNo = `${baseNo}-R1`;
+          }
+          setQuoteNo(nextNo);
+          setStatus('Draft');
+        } else {
+          setQuoteTitle(fullQuote.title);
+          setQuoteNo(fullQuote.quotation_no || '');
+          if (fullQuote.status) {
+            setStatus(fullQuote.status);
+          }
         }
+        setSelectedOrgId(String(fullQuote.organization_id));
 
         // Fetch organization departments
         try {
@@ -379,7 +402,7 @@ export default function QuotationWizard({
     };
 
     loadQuotationForEditing();
-  }, [editingQuotationId]);
+  }, [editingQuotationId, revisedFromQuotationId, isRevisionMode]);
 
   const [allQuotations, setAllQuotations] = useState<any[]>([]);
 
@@ -1120,10 +1143,29 @@ export default function QuotationWizard({
         items: payloadItems
       };
 
-    const loadingToast = toast.loading(editingQuotationId ? 'Updating Formal Quotation...' : 'Compiling and saving Formal Quotation...');
+    const loadingToast = toast.loading(
+      isRevisionMode 
+        ? 'Compiling Revised Quotation...' 
+        : editingQuotationId 
+        ? 'Updating Formal Quotation...' 
+        : 'Compiling and saving Formal Quotation...'
+    );
     try {
       let response;
-      if (editingQuotationId) {
+      if (isRevisionMode && revisedFromQuotationId) {
+        payload.metrics_summary = {
+          ...(payload.metrics_summary as any),
+          revised_from_id: revisedFromQuotationId,
+          revised_from_quotation_no: parentBaseQuoteNo || quoteNo,
+          is_revision: true
+        } as any;
+        response = await api.post('/quotations', {
+          ...payload,
+          quotation_no: quoteNo,
+          status: 'Draft'
+        });
+        toast.success(`Revised Quotation #${quoteNo} compiled and saved successfully!`, { id: loadingToast });
+      } else if (editingQuotationId) {
         response = await api.put(`/quotations/${editingQuotationId}`, {
           ...payload,
           status: status || 'Draft'

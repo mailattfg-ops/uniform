@@ -42,6 +42,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [contactTitle, setContactTitle] = useState('Mr.');
   const [contactPerson, setContactPerson] = useState('');
   const [contactDesignation, setContactDesignation] = useState('');
+  const [altContactTitle, setAltContactTitle] = useState('Mr.');
+  const [altContactPerson, setAltContactPerson] = useState('');
+  const [altContactDesignation, setAltContactDesignation] = useState('');
+  const [altPhone, setAltPhone] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [industryId, setIndustryId] = useState('');
@@ -90,6 +94,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setContactTitle(editingCustomer.contact_title || 'Mr.');
       setContactPerson(editingCustomer.contact_person || '');
       setContactDesignation(editingCustomer.contact_designation || '');
+      setAltContactTitle(editingCustomer.alt_contact_title || 'Mr.');
+      setAltContactPerson(editingCustomer.alt_contact_person || '');
+      setAltContactDesignation(editingCustomer.alt_contact_designation || '');
+      setAltPhone(editingCustomer.alt_contact_number || editingCustomer.alt_phone || '');
       setPhone(editingCustomer.contact_number || editingCustomer.phone || '');
       setEmail(editingCustomer.email || editingCustomer.contact_email || '');
       setIndustryId(editingCustomer.industry_id ? String(editingCustomer.industry_id) : '');
@@ -124,6 +132,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setContactTitle('Mr.');
       setContactPerson('');
       setContactDesignation('');
+      setAltContactTitle('Mr.');
+      setAltContactPerson('');
+      setAltContactDesignation('');
+      setAltPhone('');
       setPhone('');
       setEmail('');
       setIndustryId(industries.length > 0 ? String(industries[0].id) : '');
@@ -174,6 +186,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         contact_title: contactTitle,
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
+        alt_contact_title: altContactTitle,
+        alt_contact_person: altContactPerson.trim() || null,
+        alt_contact_designation: altContactDesignation.trim() || null,
+        alt_contact_number: altPhone.trim() || null,
+        alt_phone: altPhone.trim() || null,
         phone: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
         industry_id: industryId || null,
@@ -308,6 +325,58 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. billing@institution.com"
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+          </div>
+
+          {/* Alternative Contact Person Details (Optional) */}
+          <div className="space-y-3 pt-3 border-t border-zinc-100">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <User size={13} className="text-[#9E1B1D]" />
+                Alternative Contact Person Details
+              </span>
+              <span className="text-[9px] text-zinc-400 font-bold lowercase tracking-normal">
+                (optional)
+              </span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-3">
+                <Select
+                  value={altContactTitle}
+                  onChange={setAltContactTitle}
+                  options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                  className="rounded-2xl py-3"
+                />
+              </div>
+              <div className="sm:col-span-5">
+                <input
+                  type="text"
+                  value={altContactPerson}
+                  onChange={(e) => setAltContactPerson(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="Alt Contact Person Name"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <div className="sm:col-span-4">
+                <input
+                  type="text"
+                  value={altContactDesignation}
+                  onChange={(e) => setAltContactDesignation(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="Alt Designation"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+            <div className="pt-1">
+              <PhoneInput
+                label="Alternative Contact Phone Number"
+                value={altPhone}
+                onChange={setAltPhone}
+                country={country}
+                onCountryChange={setCountry}
               />
             </div>
           </div>

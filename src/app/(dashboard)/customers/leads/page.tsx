@@ -25,6 +25,7 @@ import { PhoneInput } from '@/components/ui/PhoneInput';
 import { formatDate, capitalizeFirstLetter, capitalizeWords, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { supabase } from '@/lib/supabase';
 import { useLayout } from '@/hooks/useLayout';
+import QuotationDetails from '@/app/(dashboard)/marketing/quotations/_components/QuotationDetails';
 
 export const PIPELINE_STAGES = [
   { key: 'Feeds', label: 'Feeds', desc: 'Raw field prospect data' },
@@ -659,8 +660,15 @@ export default function LeadsRegistryPage() {
     const isOtherInactive = l.status === 'New Leads' && daysInactive >= 3;
 
     return (
-      <div className="flex flex-col items-center gap-1 mx-auto">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${cls}`}>
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          setViewingLead(l);
+        }}
+        className="flex flex-col items-center gap-1 mx-auto cursor-pointer group"
+        title="Click to view stage pipeline log"
+      >
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-transform group-hover:scale-105 ${cls}`}>
           {l.status === 'Hot Leads' && <Flame size={11} className="text-orange-500" />}
           {l.status}
         </span>
@@ -2854,6 +2862,34 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
   const [stageActivities, setStageActivities] = useState<LeadActivity[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [leadQuotations, setLeadQuotations] = useState<any[]>([]);
+  const [showRevertModal, setShowRevertModal] = useState<boolean>(false);
+  const [selectedQuoteForModal, setSelectedQuoteForModal] = useState<any | null>(null);
+  const [customLogText, setCustomLogText] = useState('');
+  const [customLogType, setCustomLogType] = useState('Manual Note');
+  const [isSavingCustomLog, setIsSavingCustomLog] = useState(false);
+
+  const handleViewQuotation = useCallback(async (qId?: any, qNo?: string) => {
+    let target = leadQuotations.find((q: any) => 
+      (qId && String(q.id) === String(qId)) ||
+      (qNo && q.quotation_no === qNo)
+    );
+
+    if (!target && qId) {
+      try {
+        const res = await api.get(`/quotations/${qId}`);
+        target = res.data?.quotation || res.data;
+      } catch {}
+    }
+
+    if (target) {
+      setSelectedQuoteForModal(target);
+    } else if (qId || qNo) {
+      const url = qId
+        ? `/marketing/quotations?id=${qId}&action=view`
+        : `/marketing/quotations?quote_no=${encodeURIComponent(qNo || '')}&action=view`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, [leadQuotations]);
 
   useEffect(() => {
     if (lead) {
@@ -2886,7 +2922,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(`/marketing/quotations?quote_no=${encodeURIComponent(part)}&action=view`, '_blank');
+              handleViewQuotation(undefined, part);
             }}
             className="inline-flex items-center gap-1 font-mono font-black text-[#2d8d9b] hover:text-[#C82A2B] hover:underline bg-[#2d8d9b]/10 hover:bg-[#2d8d9b]/20 px-1.5 py-0.5 rounded cursor-pointer mx-0.5 align-baseline transition-colors"
             title={`Click to view quotation ${part}`}
@@ -2999,8 +3035,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         mapped = derived;
       }
 
-      // If Quotations stage is selected and has quotations, include them (First quote, Revised quotes, follow-ups)
-      if (selectedStageTab === 'Quotations' && leadQuotations.length > 0) {
+      // Include all quotations (Initial quote, Revised quotes, revision requests, follow-ups) whenever quotations exist
+      const shouldIncludeQuotations = (selectedStageTab === 'Quotations' || selectedStageTab === 'ALL' || selectedStageTab === 'Leads' || selectedStageTab === 'Deals' || selectedStageTab === 'SO Converted') && leadQuotations.length > 0;
+      if (shouldIncludeQuotations) {
         // Sort chronologically ascending
         const sortedQuotes = [...leadQuotations].sort((a, b) => {
           const tA = new Date(a.created_at || a.quotation_date || 0).getTime();
@@ -3228,6 +3265,44 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
       fetchLogs();
     }
   }, [isOpen, lead, selectedStageTab, fetchLogs]);
+
+  const handleSaveCustomLog = async () => {
+    if (!customLogText.trim() || !lead) return;
+    setIsSavingCustomLog(true);
+    const toastId = toast.loading('Recording log entry...');
+    try {
+      let storedUser: any = null;
+      try {
+        const u = localStorage.getItem('user');
+        if (u) storedUser = JSON.parse(u);
+      } catch {}
+
+      const effectiveStage = selectedStageTab === 'ALL' ? (lead.status || 'Leads') : selectedStageTab;
+
+      await api.post(`/leads/${lead.id}/activity`, {
+        stage: effectiveStage,
+        activity_type: customLogType || 'Manual Note',
+        notes: customLogText.trim(),
+        text: customLogText.trim(),
+        remarks: customLogText.trim(),
+        response_type: 'hold',
+        staff_name: storedUser?.name || storedUser?.full_name || 'Staff Member',
+        staff_employee_id: storedUser?.employee_id || storedUser?.id || 'STAFF',
+        staff_designation: storedUser?.designation || storedUser?.role || 'Executive',
+        staff_department: storedUser?.department || 'Operations',
+        staff_branch: storedUser?.branch_name || (lead as any).branches?.name || null
+      });
+
+      toast.success('Log entry recorded successfully', { id: toastId });
+      setCustomLogText('');
+      await fetchLogs();
+      if (onReload) onReload();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to save log entry', { id: toastId });
+    } finally {
+      setIsSavingCustomLog(false);
+    }
+  };
 
   if (!isOpen || !lead) return null;
 
@@ -3815,7 +3890,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
             {/* Right Column: Stage-Specific Activity Log Section (Zoho Style Timeline) */}
             <div className="lg:col-span-8 p-6 bg-white rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col h-full">
-              <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100">
+              <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100 flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-lg bg-red-50 border border-red-200/60 flex items-center justify-center text-[#9E1B1D]">
                     <FileText size={15} />
@@ -3825,14 +3900,28 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       Stage Timeline &amp; Activity History
                     </h4>
                     <p className="text-[10px] text-zinc-400 font-medium">
-                      Showing logs for: <strong className="text-zinc-800">{selectedStageTab}</strong> stage
+                      Showing logs for: <strong className="text-zinc-800">{selectedStageTab === 'ALL' ? 'Complete Timeline (All Stages)' : `${selectedStageTab} Stage`}</strong>
                     </p>
                   </div>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-xl bg-zinc-100 text-zinc-600 text-[10px] font-bold font-mono">
-                  {stageActivities.length} {stageActivities.length === 1 ? 'entry' : 'entries'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStageTab(selectedStageTab === 'ALL' ? (lead.status === 'Quotations' ? 'Quotations' : 'Leads') : 'ALL')}
+                    className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                      selectedStageTab === 'ALL'
+                        ? 'bg-[#801416] text-white border-[#801416] shadow-xs'
+                        : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-zinc-200'
+                    }`}
+                    title="Toggle between stage-specific logs and full end-to-end timeline"
+                  >
+                    {selectedStageTab === 'ALL' ? '✓ Showing All Stages' : 'Show All Stages'}
+                  </button>
+                  <span className="px-2.5 py-1 rounded-xl bg-zinc-100 text-zinc-600 text-[10px] font-bold font-mono">
+                    {stageActivities.length} {stageActivities.length === 1 ? 'entry' : 'entries'}
+                  </span>
+                </div>
               </div>
 
               {/* Feed & Commercial Stage Summary Banner */}
@@ -3933,10 +4022,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                               const qId = (act as any).quotation_id;
                               const qNo = (act as any).quotation_no;
                               if (qId || qNo) {
-                                const url = qId
-                                  ? `/marketing/quotations?id=${qId}&action=view`
-                                  : `/marketing/quotations?quote_no=${encodeURIComponent(qNo)}&action=view`;
-                                window.open(url, '_blank', 'noopener,noreferrer');
+                                handleViewQuotation(qId, qNo);
                               }
                             }}
                             className={`border rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0 ${
@@ -3979,12 +4065,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      const qId = (act as any).quotation_id;
-                                      const qNo = (act as any).quotation_no;
-                                      const url = qId
-                                        ? `/marketing/quotations?id=${qId}&action=view`
-                                        : `/marketing/quotations?quote_no=${encodeURIComponent(qNo)}&action=view`;
-                                      window.open(url, '_blank', 'noopener,noreferrer');
+                                      handleViewQuotation((act as any).quotation_id, (act as any).quotation_no);
                                     }}
                                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all cursor-pointer"
                                   >
@@ -4052,6 +4133,69 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     </p>
                   </div>
                 )}
+
+                {/* Manual Log / Custom Activity Composer at Bottom of Log Pipeline */}
+                <div className="mt-4 pt-4 border-t border-zinc-200/80 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200/90 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                    <div className="flex items-center gap-1.5 font-black text-zinc-900 tracking-tight">
+                      <MessageSquarePlus size={14} className="text-[#C82A2B]" />
+                      <span>Add Custom Log / Manual Activity</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} className="text-zinc-400" />
+                        <span>System auto-records your user identity, date &amp; time</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <textarea
+                      value={customLogText}
+                      onChange={(e) => setCustomLogText(e.target.value)}
+                      placeholder={`Enter custom communication log or activity note for ${lead.name} (e.g. phone call notes, customer discussion, site visit notes)...`}
+                      rows={2}
+                      className="w-full text-xs p-3 rounded-xl border border-zinc-300 focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B] bg-white resize-none outline-none font-medium text-zinc-800 placeholder:text-zinc-400 leading-relaxed shadow-2xs"
+                    />
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Log Type:</span>
+                        <select
+                          value={customLogType}
+                          onChange={(e) => setCustomLogType(e.target.value)}
+                          className="text-[10px] font-bold bg-white border border-zinc-300 rounded-lg px-2.5 py-1 text-zinc-700 outline-none focus:border-[#C82A2B] cursor-pointer"
+                        >
+                          <option value="Manual Note">Manual Note</option>
+                          <option value="Phone Call Note">Phone Call Note</option>
+                          <option value="Client Discussion">Client Discussion</option>
+                          <option value="Site Visit Note">Site Visit Note</option>
+                          <option value="Commercial Note">Commercial Note</option>
+                          <option value="Customer Feedback">Customer Feedback</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!customLogText.trim() || isSavingCustomLog}
+                        onClick={handleSaveCustomLog}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] disabled:opacity-50 text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed active:scale-95"
+                      >
+                        {isSavingCustomLog ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Recording...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={12} strokeWidth={3} />
+                            <span>Add Log Entry</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -4089,6 +4233,76 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Quotation Proposal Modal Preview (Initial & Revised versions in-place) */}
+      {selectedQuoteForModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-5 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-zinc-200 w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-zinc-900 text-white flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-[#801416] flex items-center justify-center text-white font-bold shrink-0">
+                  <FileText size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-black tracking-tight truncate">
+                      Quotation #{selectedQuoteForModal.quotation_no || selectedQuoteForModal.id}
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                      selectedQuoteForModal.quotation_no?.includes('-R') || selectedQuoteForModal.metrics_summary?.is_revision
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                    }`}>
+                      {selectedQuoteForModal.quotation_no?.includes('-R') || selectedQuoteForModal.metrics_summary?.is_revision
+                        ? 'Revised Quotation'
+                        : 'Initial Quotation'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 font-medium truncate">
+                    Client: {lead.name} • Total Value: ₹{Number(selectedQuoteForModal.final_quote_value || selectedQuoteForModal.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `/marketing/quotations?id=${selectedQuoteForModal.id}&action=view`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Open in new window"
+                >
+                  <span>Open in Tab</span>
+                  <ExternalLink size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedQuoteForModal(null)}
+                  className="p-1.5 rounded-xl hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+                  title="Close preview"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body with QuotationDetails */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-zinc-50/60 custom-scrollbar">
+              <QuotationDetails
+                selectedQuotation={selectedQuoteForModal}
+                allQuotations={leadQuotations}
+                onSelectQuotation={(q) => setSelectedQuoteForModal(q)}
+                fabricsList={[]}
+                onBack={() => setSelectedQuoteForModal(null)}
+                readOnly={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
