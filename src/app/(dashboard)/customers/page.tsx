@@ -41,6 +41,11 @@ interface Customer {
   contact_title?: string | null;
   contact_person?: string | null;
   contact_designation?: string | null;
+  alt_contact_title?: string | null;
+  alt_contact_person?: string | null;
+  alt_contact_designation?: string | null;
+  alt_contact_number?: string | null;
+  alt_phone?: string | null;
   origin?: string | null;
   phone?: string | null;
   contact_number?: string | null;
@@ -63,6 +68,7 @@ interface Customer {
   is_active?: boolean | null;
   is_special?: boolean | null;
   is_risk?: boolean | null;
+  client_tag?: string | null;
   receivables?: number | null;
   credits?: number | null;
   credit_period_days?: number | null;
@@ -699,6 +705,11 @@ export default function CustomersRegistry() {
       contact_title: formData.contact_title || 'Mr.',
       contact_person: formData.contact_person?.trim() || null,
       contact_designation: formData.contact_designation?.trim() || null,
+      alt_contact_title: formData.alt_contact_title || 'Mr.',
+      alt_contact_person: formData.alt_contact_person?.trim() || null,
+      alt_contact_designation: formData.alt_contact_designation?.trim() || null,
+      alt_contact_number: formData.alt_contact_number?.trim() || formData.alt_phone?.trim() || null,
+      alt_phone: formData.alt_contact_number?.trim() || formData.alt_phone?.trim() || null,
       phone: formData.phone.trim(),
       contact_number: formData.phone.trim(),
       email: formData.email?.trim() || null,
@@ -741,6 +752,11 @@ export default function CustomersRegistry() {
                   contact_title: updatedData?.contact_title || payload.contact_title,
                   contact_person: updatedData?.contact_person || payload.contact_person,
                   contact_designation: updatedData?.contact_designation || payload.contact_designation,
+                  alt_contact_title: updatedData?.alt_contact_title || payload.alt_contact_title,
+                  alt_contact_person: updatedData?.alt_contact_person || payload.alt_contact_person,
+                  alt_contact_designation: updatedData?.alt_contact_designation || payload.alt_contact_designation,
+                  alt_contact_number: updatedData?.alt_contact_number || updatedData?.alt_phone || payload.alt_contact_number,
+                  alt_phone: updatedData?.alt_phone || updatedData?.alt_contact_number || payload.alt_phone,
                   industries: industries.find((ind) => ind.id === (updatedData?.industry_id || payload.industry_id)) || c.industries
                 }
               : c
@@ -1075,16 +1091,12 @@ export default function CustomersRegistry() {
               >
                 {c.name}
               </span>
-              {isRisk && (
-                <span title="Risk Client" className="shrink-0 text-rose-500 transition-transform hover:scale-110">
-                  <AlertTriangle size={18} className="stroke-[2.5]" />
-                </span>
-              )}
-              {isSpecial && (
-                <span title="Favourite Client" className="shrink-0 text-amber-500 transition-transform hover:scale-110">
-                  <Star size={18} className="fill-amber-400 text-amber-400" />
-                </span>
-              )}
+              <CustomerRiskFavBadge 
+                isRisk={isRisk} 
+                isSpecial={isSpecial} 
+                clientTag={c.client_tag} 
+                size={18} 
+              />
             </div>
             {(() => {
               const industryName = c.industries?.name || industries.find(ind => ind.id === c.industry_id)?.name;

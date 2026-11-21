@@ -33,6 +33,7 @@ import {
   ReceiptText,
   Printer,
   CreditCard,
+  ExternalLink,
   ArrowDownLeft,
   ArrowUpRight,
   CheckCircle2,
@@ -79,6 +80,7 @@ import TaxInvoiceModal from '@/components/documents/TaxInvoiceModal';
 import QuotationDetails from '@/app/(dashboard)/marketing/quotations/_components/QuotationDetails';
 import CustomJournalModal from '@/components/finance/CustomJournalModal';
 import { formatDocumentNumber } from '@/lib/documentNumberGenerator';
+import { CustomerClassificationDropdown } from '@/components/ui/CustomerClassificationDropdown';
 
 interface Organization {
   id: number;
@@ -90,6 +92,11 @@ interface Organization {
   contact_title?: string | null;
   contact_person?: string | null;
   contact_designation?: string | null;
+  alt_contact_title?: string | null;
+  alt_contact_person?: string | null;
+  alt_contact_designation?: string | null;
+  alt_contact_number?: string | null;
+  alt_phone?: string | null;
   phone?: string | null;
   contact_number?: string | null;
   email?: string | null;
@@ -1335,6 +1342,11 @@ function OrganizationDetailsPageContent() {
       contact_title: formData.contact_title || 'Mr.',
       contact_person: formData.contact_person?.trim() || null,
       contact_designation: formData.contact_designation?.trim() || null,
+      alt_contact_title: formData.alt_contact_title || 'Mr.',
+      alt_contact_person: formData.alt_contact_person?.trim() || null,
+      alt_contact_designation: formData.alt_contact_designation?.trim() || null,
+      alt_contact_number: formData.alt_contact_number?.trim() || formData.alt_phone?.trim() || null,
+      alt_phone: formData.alt_contact_number?.trim() || formData.alt_phone?.trim() || null,
       phone: formData.phone.trim(),
       contact_number: formData.phone.trim(),
       email: formData.email?.trim() || null,
@@ -1375,6 +1387,11 @@ function OrganizationDetailsPageContent() {
           contact_title: updatedData.contact_title || payload.contact_title,
           contact_person: updatedData.contact_person || payload.contact_person,
           contact_designation: updatedData.contact_designation || payload.contact_designation,
+          alt_contact_title: updatedData.alt_contact_title || payload.alt_contact_title,
+          alt_contact_person: updatedData.alt_contact_person || payload.alt_contact_person,
+          alt_contact_designation: updatedData.alt_contact_designation || payload.alt_contact_designation,
+          alt_contact_number: updatedData.alt_contact_number || updatedData.alt_phone || payload.alt_contact_number,
+          alt_phone: updatedData.alt_phone || updatedData.alt_contact_number || payload.alt_phone,
           industries: industries.find(ind => ind.id === (updatedData.industry_id || payload.industry_id)) || prev?.industries
         }));
       } else {
@@ -2770,16 +2787,23 @@ function OrganizationDetailsPageContent() {
               B2B
             </span>
           )}
-          {org.is_special && (
-            <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
-              ★ Favourite
-            </span>
-          )}
-          {org.is_risk && (
-            <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-300 shrink-0">
-              ⚠ Risk
-            </span>
-          )}
+          <CustomerClassificationDropdown
+            customerId={org.id}
+            initialTag={org.client_tag}
+            initialIsSpecial={org.is_special}
+            initialIsRisk={org.is_risk}
+            customerName={org.name}
+            size="sm"
+            readOnly={isClientUser}
+            onClassificationChange={(newTag) => {
+              setOrg((prev: any) => ({
+                ...prev,
+                client_tag: newTag,
+                is_special: newTag === 'special',
+                is_risk: newTag === 'risk'
+              }));
+            }}
+          />
           {org.is_active === false && (
             <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-zinc-100 text-zinc-500 border border-zinc-200 shrink-0">
               Inactive
@@ -3062,6 +3086,11 @@ function OrganizationDetailsPageContent() {
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-zinc-900">
                       {formatContactPerson(org.contact_person, org.contact_title)}
+                      {org.contact_designation && (
+                        <span className="text-xs font-semibold text-zinc-500 ml-2">
+                          ({org.contact_designation})
+                        </span>
+                      )}
                     </p>
                     <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-zinc-600">
                       {(org.contact_number || org.phone) && (
@@ -3083,6 +3112,32 @@ function OrganizationDetailsPageContent() {
                         </a>
                       )}
                     </div>
+                    {(org.alt_contact_person || org.alt_contact_number || org.alt_phone) && (
+                      <div className="mt-3 pt-2.5 border-t border-zinc-200/60">
+                        <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                          <User size={11} /> Alternative Contact Person
+                        </span>
+                        <p className="text-xs font-bold text-zinc-900">
+                          {formatContactPerson(org.alt_contact_person, org.alt_contact_title)}
+                          {org.alt_contact_designation && (
+                            <span className="text-[11px] font-semibold text-zinc-500 ml-1.5">
+                              ({org.alt_contact_designation})
+                            </span>
+                          )}
+                        </p>
+                        {(org.alt_contact_number || org.alt_phone) && (
+                          <div className="pt-1">
+                            <a
+                              href={`tel:${org.alt_contact_number || org.alt_phone}`}
+                              className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-zinc-800 hover:text-[#C82A2B] transition-colors"
+                            >
+                              <Phone size={11} className="text-[#C82A2B]" />
+                              <span>{formatPhoneNumber(org.alt_contact_number || org.alt_phone, org.country || 'India')}</span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3340,6 +3395,134 @@ function OrganizationDetailsPageContent() {
                 <p className="text-xs text-zinc-500 font-medium mt-1">
                   Invoices are marked as <span className="font-bold text-amber-600">Due</span> on the last day, and <span className="font-bold text-rose-600">Overdue</span> next day onwards.
                 </p>
+              </div>
+
+              {/* 8. Quotation Proposals & Revision History Log Card */}
+              <div className="p-5 bg-white rounded-2xl border border-zinc-200/90 md:col-span-2 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-zinc-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center">
+                      <FileText size={15} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-2">
+                        <span>Quotation Proposals &amp; Revision History</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-700 font-mono">
+                          {customerQuotes.length}
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-zinc-500 font-medium">
+                        View initial proposals, client revision requests, and revised quotations
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isClientUser && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/marketing/quotations?orgId=${orgId}&action=create`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#801416] hover:bg-[#681012] text-white shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Plus size={13} />
+                      <span>New Quotation</span>
+                    </button>
+                  )}
+                </div>
+
+                {customerQuotes.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {(() => {
+                      const sorted = [...customerQuotes].sort((a: any, b: any) => {
+                        const tA = new Date(a.quotation_date || a.created_at || 0).getTime();
+                        const tB = new Date(b.quotation_date || b.created_at || 0).getTime();
+                        return tA - tB;
+                      });
+
+                      return sorted.map((q: any, idx: number) => {
+                        const isFirst = idx === 0;
+                        const verLabel = isFirst ? 'Initial Quote' : `Revised (R${idx})`;
+                        const qVal = Number(q.final_quote_value || q.total_amount || 0);
+
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => setSelectedQuoteForModal(q)}
+                            className="p-4 rounded-2xl border border-zinc-200/90 bg-zinc-50/50 hover:bg-white hover:border-[#C82A2B]/60 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between space-y-3"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border inline-block ${
+                                    isFirst
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {verLabel}
+                                  </span>
+                                  <p className="font-mono font-bold text-sm text-zinc-900 mt-1 flex items-center gap-1.5">
+                                    <span>#{q.quotation_no || `QT-${q.id}`}</span>
+                                  </p>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedQuoteForModal(q);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] text-white shadow-xs transition-all shrink-0 cursor-pointer"
+                                >
+                                  <span>View Quote</span>
+                                  <ExternalLink size={10} className="shrink-0" />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-200/70">
+                                <span className="text-zinc-500 font-medium">
+                                  {formatDate(q.quotation_date || q.created_at)}
+                                </span>
+                                <span className="font-mono font-black text-[#C82A2B]">
+                                  ₹{qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+
+                              {q.metrics_summary?.customer_revision_reason && (
+                                <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-[11px] text-purple-900 font-medium leading-relaxed">
+                                  <strong className="text-purple-950 block text-[10px] font-black uppercase tracking-wider">
+                                    Customer Revision Request:
+                                  </strong>
+                                  {q.metrics_summary.customer_revision_reason}
+                                </div>
+                              )}
+
+                              {q.metrics_summary?.bm_rejection_reason && (
+                                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-900 font-medium leading-relaxed">
+                                  <strong className="text-rose-950 block text-[10px] font-black uppercase tracking-wider">
+                                    BM Revision Instructions:
+                                  </strong>
+                                  {q.metrics_summary.bm_rejection_reason}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 pt-1 border-t border-zinc-100">
+                              <span className="uppercase">Status: <strong className="text-zinc-700">{q.status || 'Draft'}</strong></span>
+                              <span className="text-[#C82A2B] group-hover:underline flex items-center gap-0.5">
+                                Inspect Proposal <ChevronRight size={11} />
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 p-6 flex flex-col items-center justify-center">
+                    <FileText size={24} className="text-zinc-400 mb-2" />
+                    <p className="text-xs text-zinc-600 font-bold">No quotation proposals on file for this customer</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Quotations generated from the CRM leads pipeline or marketing wizard will appear here.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -4100,12 +4283,37 @@ function OrganizationDetailsPageContent() {
                   {
                     header: 'Quotation No.',
                     className: 'text-center align-middle',
-                    accessor: (q) => (
+                    accessor: (q: any) => (
                       <div className="font-mono font-bold text-zinc-900 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap text-center">
                         <FileText size={14} className="text-[#C82A2B] shrink-0" />
                         <span>{q.quotation_no}</span>
                       </div>
                     )
+                  },
+                  {
+                    header: 'Version',
+                    className: 'text-center whitespace-nowrap',
+                    accessor: (q: any) => {
+                      // Determine version order chronologically among customerQuotes
+                      const sorted = [...customerQuotes].sort((a: any, b: any) => {
+                        const tA = new Date(a.created_at || a.quotation_date || 0).getTime();
+                        const tB = new Date(b.created_at || b.quotation_date || 0).getTime();
+                        if (tA !== tB) return tA - tB;
+                        return a.id - b.id;
+                      });
+                      const idx = sorted.findIndex((sq: any) => sq.id === q.id);
+                      const isFirst = idx <= 0;
+                      const verLabel = isFirst ? 'Initial Quote' : `Revised (R${idx})`;
+                      return (
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                          isFirst 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                            : 'bg-purple-50 text-purple-700 border-purple-200'
+                        }`}>
+                          {verLabel}
+                        </span>
+                      );
+                    }
                   },
                   {
                     header: 'Title / Description',
@@ -4173,6 +4381,21 @@ function OrganizationDetailsPageContent() {
                         </span>
                       );
                     }
+                  },
+                  {
+                    header: 'Actions',
+                    className: 'text-center whitespace-nowrap',
+                    accessor: (q: any) => (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenQuoteModal(q.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] text-white shadow-2xs transition-all cursor-pointer"
+                        title="View quotation details & commercial versions"
+                      >
+                        <Eye size={11} />
+                        <span>View Quote</span>
+                      </button>
+                    )
                   }
                 ]}
                 data={customerQuotes.filter(q => matchesDateFilter(q.quotation_date || q.created_at, quoteDateFilter))}
@@ -7733,6 +7956,8 @@ function OrganizationDetailsPageContent() {
             <div className="p-6 md:p-8 overflow-y-auto flex-1 custom-scrollbar bg-zinc-50/50">
               <QuotationDetails
                 selectedQuotation={selectedQuoteForModal}
+                allQuotations={customerQuotes}
+                onSelectQuotation={(q) => setSelectedQuoteForModal(q)}
                 fabricsList={[]}
                 onBack={() => setSelectedQuoteForModal(null)}
                 readOnly={true}

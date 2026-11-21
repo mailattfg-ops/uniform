@@ -43,6 +43,8 @@ interface QuotationDetailsProps {
   fabricsList: any[];
   onBack: () => void;
   onStartEdit?: (q: Quotation) => void;
+  onStartRevision?: (q: Quotation) => void;
+  onSelectQuotation?: (q: Quotation) => void;
   onSubmitToOps?: (q: Quotation) => void;
   onSubmitToBm?: (q: Quotation) => void;
   onBmApprove?: (q: Quotation) => void;
@@ -72,6 +74,8 @@ export default function QuotationDetails({
   fabricsList,
   onBack,
   onStartEdit,
+  onStartRevision,
+  onSelectQuotation,
   onSubmitToOps,
   onSubmitToBm,
   onBmApprove,
@@ -165,15 +169,33 @@ export default function QuotationDetails({
         });
       }
 
+      if (q.metrics_summary?.customer_revision_reason || q.status === 'Revision Requested') {
+        activities.push({
+          id: `qd_cust_rev_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'revision_request',
+          title: `Revision Requested by Customer (#${q.quotation_no})`,
+          badge: 'Revision Requested',
+          badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+          date: q.metrics_summary?.customer_revision_requested_at || q.updated_at || q.created_at,
+          author: q.metrics_summary?.customer_revision_requested_by || 'Customer',
+          remarks: `Customer revision instructions: "${q.metrics_summary?.customer_revision_reason || 'Changes requested by client'}"`
+        });
+      }
+
       if (Array.isArray(q.metrics_summary?.followups)) {
         q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
+          const outcomeLower = String(f.outcome || f.response_type || '').toLowerCase();
+          const isRev = outcomeLower.includes('revision');
           activities.push({
             id: f.id || `qd_f_${q.id}_${fIdx}`,
             quotation_id: q.id,
             quotation_no: q.quotation_no,
-            type: 'followup',
-            title: `Follow-up on Quote #${q.quotation_no}`,
-            badge: f.outcome || f.response_type || 'Follow-up',
+            type: isRev ? 'revision_request' : 'followup',
+            title: isRev ? `Customer Revision Requested (#${q.quotation_no})` : `Follow-up on Quote #${q.quotation_no}`,
+            badge: isRev ? 'Revision Requested' : (f.outcome || f.response_type || 'Follow-up'),
+            badgeColor: isRev ? 'bg-purple-50 text-purple-700 border-purple-200' : undefined,
             outcome: f.outcome || f.response_type,
             date: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at),
             author: f.author?.name || 'Sales Representative',
@@ -196,6 +218,32 @@ export default function QuotationDetails({
       ? `/marketing/quotations?id=${qId}&action=view`
       : `/marketing/quotations?quote_no=${encodeURIComponent(qNo || '')}&action=view`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const [manualLogText, setManualLogText] = useState('');
+  const [manualLogType, setManualLogType] = useState('Manual Note');
+  const [isSavingManualLog, setIsSavingManualLog] = useState(false);
+
+  const handleSaveManualLog = async () => {
+    if (!manualLogText.trim() || !selectedQuotation) return;
+    setIsSavingManualLog(true);
+    const toastId = toast.loading('Recording log entry...');
+    try {
+      await api.post(`/quotations/${selectedQuotation.id}/follow-up`, {
+        outcome: manualLogType || 'Manual Note',
+        response_type: 'held',
+        status: selectedQuotation.status,
+        remarks: manualLogText.trim(),
+        text: manualLogText.trim()
+      });
+      toast.success('Log entry recorded successfully', { id: toastId });
+      setManualLogText('');
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to save log entry', { id: toastId });
+    } finally {
+      setIsSavingManualLog(false);
+    }
   };
 
   const [companySettings, setCompanySettings] = useState<any>({
@@ -915,18 +963,25 @@ export default function QuotationDetails({
             )}
 
             {/* Edit / Revise button */}
-            {!readOnly && onStartEdit && selectedQuotation.status !== 'Approved' && (
+            {!readOnly && (onStartRevision || onStartEdit) && selectedQuotation.status !== 'Approved' && (
               <Button
-                variant={selectedQuotation.status === 'Rejected' ? 'primary' : 'outline'}
-                onClick={() => onStartEdit(selectedQuotation)}
+                variant={selectedQuotation.status === 'Rejected' || selectedQuotation.status === 'Revision Requested' || selectedQuotation.metrics_summary?.needs_revision ? 'primary' : 'outline'}
+                onClick={() => {
+                  if (selectedQuotation.status === 'Rejected' || selectedQuotation.status === 'Revision Requested' || selectedQuotation.metrics_summary?.needs_revision) {
+                    if (onStartRevision) onStartRevision(selectedQuotation);
+                    else if (onStartEdit) onStartEdit(selectedQuotation);
+                  } else {
+                    if (onStartEdit) onStartEdit(selectedQuotation);
+                  }
+                }}
                 className={`flex items-center gap-1.5 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest h-9 ${
-                  selectedQuotation.status === 'Rejected'
+                  selectedQuotation.status === 'Rejected' || selectedQuotation.status === 'Revision Requested' || selectedQuotation.metrics_summary?.needs_revision
                     ? 'bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-md'
                     : 'border border-amber-500 hover:bg-amber-50 text-amber-600 bg-white'
                 }`}
               >
-                {selectedQuotation.status === 'Rejected' ? <Edit3 size={14} /> : <Edit size={14} />}
-                {selectedQuotation.status === 'Rejected' ? 'Revise Quote' : 'Edit'}
+                {selectedQuotation.status === 'Rejected' || selectedQuotation.status === 'Revision Requested' || selectedQuotation.metrics_summary?.needs_revision ? <Edit3 size={14} /> : <Edit size={14} />}
+                {selectedQuotation.status === 'Rejected' || selectedQuotation.status === 'Revision Requested' || selectedQuotation.metrics_summary?.needs_revision ? 'Revise Quote' : 'Edit'}
               </Button>
             )}
 
@@ -1739,7 +1794,13 @@ export default function QuotationDetails({
                 return (
                   <div
                     key={q.id}
-                    onClick={() => openQuotationTab(q.id, q.quotation_no)}
+                    onClick={() => {
+                      if (onSelectQuotation) {
+                        onSelectQuotation(q);
+                      } else {
+                        openQuotationTab(q.id, q.quotation_no);
+                      }
+                    }}
                     className={`p-4 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between ${
                       isCurrent
                         ? 'bg-[#FFF1F1] border-[#C82A2B]/50 shadow-xs ring-1 ring-[#C82A2B]/30'
@@ -1903,6 +1964,71 @@ export default function QuotationDetails({
                   )}
                 </div>
               )}
+
+              {/* Manual Log Entry Form at Bottom of Timeline */}
+              {!readOnly && (
+                <div className="mt-4 pt-3.5 border-t border-zinc-200/80 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200/60 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare size={13} className="text-[#801416]" />
+                      <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                        Add Manual / Custom Log
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-zinc-400">
+                      System records user, date &amp; time automatically
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <textarea
+                      value={manualLogText}
+                      onChange={(e) => setManualLogText(e.target.value)}
+                      placeholder="Type a manual log, customer note, or call summary here..."
+                      className="w-full text-xs font-medium text-zinc-800 bg-white border border-zinc-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#801416]/20 focus:border-[#801416] resize-none h-20 placeholder:text-zinc-400 shadow-2xs"
+                    />
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                          Log Type:
+                        </label>
+                        <select
+                          value={manualLogType}
+                          onChange={(e) => setManualLogType(e.target.value)}
+                          className="text-xs font-bold text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#801416]/20"
+                        >
+                          <option value="Manual Note">Manual Note</option>
+                          <option value="Phone Call">Phone Call</option>
+                          <option value="Client Discussion">Client Discussion</option>
+                          <option value="Commercial Note">Commercial Note</option>
+                          <option value="Pricing Query">Pricing Query</option>
+                          <option value="Customer Feedback">Customer Feedback</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!manualLogText.trim() || isSavingManualLog}
+                        onClick={handleSaveManualLog}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] disabled:opacity-50 text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed active:scale-95"
+                      >
+                        {isSavingManualLog ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Recording...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={12} strokeWidth={3} />
+                            <span>Add Log Entry</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -1914,6 +2040,7 @@ export default function QuotationDetails({
             allQuotations={allQuotations}
             currentUser={currentUser}
             onStartEdit={onStartEdit}
+            onStartRevision={onStartRevision}
             onRecordPayment={() => setShowAdvancePaymentModal(true)}
             onClose={() => setShowFollowUpModal(false)}
             onSuccess={() => {

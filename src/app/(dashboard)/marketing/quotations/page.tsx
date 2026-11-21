@@ -239,6 +239,8 @@ export default function QuotationsPage() {
   const [isRejecting, setIsRejecting] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
+  const [isRevisionMode, setIsRevisionMode] = useState<boolean>(false);
+  const [revisedFromQuotationId, setRevisedFromQuotationId] = useState<number | null>(null);
   const printTriggerRef = useRef<(() => void) | null>(null);
   const userReportTriggerRef = useRef<(() => void) | null>(null);
   const [buttonsList, setButtonsList] = useState<any[]>([]);
@@ -300,7 +302,9 @@ export default function QuotationsPage() {
           if (quotations.length > 0) {
             const match = quotations.find(q => q.id === id);
             if (match) {
-              if (actionParam === 'edit') {
+              if (actionParam === 'revise') {
+                handleStartRevision(match);
+              } else if (actionParam === 'edit') {
                 handleStartEdit(match);
               } else {
                 handleViewDetails(match);
@@ -311,7 +315,9 @@ export default function QuotationsPage() {
           // Direct API fetch for opening in a new tab immediately
           api.get(`/quotations/${id}`).then(res => {
             if (res.data) {
-              if (actionParam === 'edit') {
+              if (actionParam === 'revise') {
+                handleStartRevision(res.data);
+              } else if (actionParam === 'edit') {
                 handleStartEdit(res.data);
               } else {
                 setSelectedQuotation(res.data);
@@ -541,12 +547,23 @@ export default function QuotationsPage() {
   };
 
   const handleStartEdit = (quote: Quotation) => {
+    setIsRevisionMode(false);
+    setRevisedFromQuotationId(null);
     setEditingQuotationId(quote.id);
+    setActiveTab('create');
+  };
+
+  const handleStartRevision = (quote: Quotation) => {
+    setEditingQuotationId(null);
+    setIsRevisionMode(true);
+    setRevisedFromQuotationId(quote.id);
     setActiveTab('create');
   };
 
   const handleSaveSuccess = () => {
     setEditingQuotationId(null);
+    setIsRevisionMode(false);
+    setRevisedFromQuotationId(null);
     setActiveTab('list');
     fetchQuotations();
   };
@@ -696,6 +713,7 @@ export default function QuotationsPage() {
           onCompileQuotation={() => setActiveTab('create')}
           onViewDetails={handleViewDetails}
           onStartEdit={handleStartEdit}
+          onStartRevision={handleStartRevision}
           onDeleteCandidate={setDeleteCandidate}
           onSubmitToOps={setSubmitCandidate}
           onSubmitToBm={setSubmitToBmCandidate}
@@ -712,6 +730,8 @@ export default function QuotationsPage() {
       {activeTab === 'create' && (
         <QuotationWizard
           editingQuotationId={editingQuotationId}
+          isRevisionMode={isRevisionMode}
+          revisedFromQuotationId={revisedFromQuotationId}
           initialOrgId={preselectedOrgId}
           organizations={organizations}
           productTypes={productTypes}
@@ -726,6 +746,8 @@ export default function QuotationsPage() {
           samConfigurations={samConfigurations}
           onClose={() => {
             setEditingQuotationId(null);
+            setIsRevisionMode(false);
+            setRevisedFromQuotationId(null);
             setPreselectedOrgId(null);
             setActiveTab('list');
           }}
@@ -744,6 +766,8 @@ export default function QuotationsPage() {
             setActiveTab('list');
           }}
           onStartEdit={handleStartEdit}
+          onStartRevision={handleStartRevision}
+          onSelectQuotation={setSelectedQuotation}
           onSubmitToOps={setSubmitCandidate}
           onSubmitToBm={setSubmitToBmCandidate}
           onBmApprove={setBmApproveCandidate}

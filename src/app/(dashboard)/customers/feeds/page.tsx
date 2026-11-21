@@ -525,16 +525,27 @@ export default function FeedsRegistryPage() {
       sortValue: (l) => isFeedContacted(l) ? 'Contacted' : 'Open',
       accessor: (l) => {
         const contacted = isFeedContacted(l);
-        return contacted ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            Contacted
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] shrink-0 animate-pulse" />
-            Open
-          </span>
+        return (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewingLead(l);
+            }}
+            className="inline-block cursor-pointer group"
+            title="Click to view feed pipeline & contact log"
+          >
+            {contacted ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs transition-transform group-hover:scale-105">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                Contacted
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 shadow-2xs transition-transform group-hover:scale-105">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] shrink-0 animate-pulse" />
+                Open
+              </span>
+            )}
+          </div>
         );
       }
     },
