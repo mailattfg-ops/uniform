@@ -1676,7 +1676,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         pincode: pincode.trim() || null,
         country: country.trim() || 'India',
         google_maps_link: googleMapsLink.trim() || null,
-        remarks: remarks.trim() || null,
+        ...(editingFeed ? {} : { remarks: remarks.trim() || null }),
         origin: effectiveOrigin,
         branch_id: effectiveBranchId,
         zone_id: zoneId ? parseInt(zoneId, 10) : null
@@ -2123,20 +2123,22 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Remarks */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              Agent Remarks & Contact Notes
-            </label>
-            <textarea
-              rows={2}
-              value={remarks}
-              onChange={(e) => setRemarks(capitalizeFirstLetter(e.target.value))}
-              autoCapitalize="sentences"
-              placeholder="e.g. Visited institution reception, collected brochure, interested in staff uniforms..."
-              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-semibold text-zinc-800 transition-all placeholder:text-zinc-400 resize-none"
-            />
-          </div>
+          {/* Remarks: Only in Create Mode for initial field scouting, NOT in Edit Mode */}
+          {!editingFeed && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                Agent Remarks & Contact Notes
+              </label>
+              <textarea
+                rows={2}
+                value={remarks}
+                onChange={(e) => setRemarks(capitalizeFirstLetter(e.target.value))}
+                autoCapitalize="sentences"
+                placeholder="e.g. Visited institution reception, collected brochure, interested in staff uniforms..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-semibold text-zinc-800 transition-all placeholder:text-zinc-400 resize-none"
+              />
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
@@ -2387,7 +2389,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           ? (assignedStaffId || null)
           : null,
         status: isEditing ? (editingLead?.status || 'New Leads') : derivedIntakeStage,
-        remarks: remarks.trim() || null
+        ...(isEditing ? {} : { remarks: remarks.trim() || null })
       });
     } finally {
       setIsSubmitting(false);
@@ -2661,43 +2663,25 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             )}
           </div>
 
-          {/* Requirements */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <FileSpreadsheet size={13} className="text-[#9E1B1D]" />
-                Inquired Uniform Requirements
-              </span>
-              {hasSavedRequirements && (
-                <span className="text-[9px] text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  Locked (Saved)
+          {/* Requirements: Available ONLY when no requirements have been added yet */}
+          {!hasSavedRequirements && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <FileSpreadsheet size={13} className="text-[#9E1B1D]" />
+                  Inquired Uniform Requirements
                 </span>
-              )}
-            </label>
-            <textarea
-              rows={2}
-              value={requirements}
-              disabled={hasSavedRequirements}
-              readOnly={hasSavedRequirements}
-              onChange={(e) => {
-                if (!hasSavedRequirements) {
-                  setRequirements(capitalizeFirstLetter(e.target.value));
-                }
-              }}
-              autoCapitalize="sentences"
-              placeholder={hasSavedRequirements ? "Requirements cannot be edited once saved." : "e.g. 500 sets corporate blazers, 1200 sets industrial coveralls..."}
-              className={`w-full px-4 py-3 rounded-2xl border text-xs font-semibold transition-all resize-none ${
-                hasSavedRequirements
-                  ? "bg-zinc-100/80 border-zinc-200 text-zinc-600 cursor-not-allowed select-none"
-                  : "border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-zinc-800 placeholder:text-zinc-400"
-              }`}
-            />
-            {hasSavedRequirements && (
-              <p className="text-[10px] text-zinc-500 italic">
-                Requirements cannot be edited once saved.
-              </p>
-            )}
-          </div>
+              </label>
+              <textarea
+                rows={2}
+                value={requirements}
+                onChange={(e) => setRequirements(capitalizeFirstLetter(e.target.value))}
+                autoCapitalize="sentences"
+                placeholder="e.g. 500 sets corporate blazers, 1200 sets industrial coveralls..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-semibold text-zinc-800 transition-all placeholder:text-zinc-400 resize-none"
+              />
+            </div>
+          )}
 
           {/* Address & City */}
           <div className="space-y-4">
@@ -3104,36 +3088,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         }
       }
 
-      // Always include enquiry requirements as the first contact log when viewing lead / feed contact logs
-      if (lead.requirements && (selectedStageTab === 'Leads' || selectedStageTab === 'Feeds')) {
-        const hasEnquiryLog = mapped.some(m => 
-          m.id === 'enquiry_requirements_log' || 
-          m.activity_type === 'Enquiry Requirements' || 
-          m.activity_type === 'First Contact Log' ||
-          m.remarks === lead.requirements ||
-          m.remarks === `Inquired Feed Requirements: ${lead.requirements}` ||
-          m.remarks === `Inquired Requirements: ${lead.requirements}`
-        );
-
-        if (!hasEnquiryLog) {
-          mapped.push({
-            id: 'enquiry_requirements_log',
-            lead_id: lead.id,
-            stage: selectedStageTab,
-            activity_type: 'Enquiry Requirements',
-            response_type: 'Initial Enquiry',
-            version_label: 'First Contact Log',
-            remarks: lead.requirements,
-            staff_name: lead.employees?.full_name || 'Customer / Intake',
-            staff_employee_id: lead.employees?.employee_id || 'ORIGIN',
-            staff_designation: 'Customer Intake',
-            staff_department: 'Field Scouting & Intake',
-            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
-            created_at: lead.created_at
-          } as any);
-        }
-      }
-
       // Stage milestones when no activities recorded yet
       if (mapped.length === 0) {
         if (selectedStageTab === 'Deals' && (lead.status === 'Deals' || lead.status === 'SO Converted Deals')) {
@@ -3170,6 +3124,26 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
       }
 
       mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // In the pipeline the bottom one should be the requirement of the feed or lead or customer
+      if (lead.requirements && lead.requirements.trim()) {
+        const filtered = mapped.filter(m => 
+          m.id !== 'enquiry_requirements_log' && 
+          m.activity_type !== 'Requirements' &&
+          m.activity_type !== 'Enquiry Requirements' &&
+          m.activity_type !== 'First Contact Log'
+        );
+        filtered.push({
+          id: 'enquiry_requirements_log',
+          lead_id: lead.id,
+          stage: lead.status || 'Origin',
+          activity_type: 'Requirements',
+          remarks: lead.requirements.trim(),
+          created_at: lead.created_at || new Date().toISOString()
+        } as any);
+        mapped = filtered;
+      }
+
       setStageActivities(mapped);
     } catch (e) {
       console.error('Failed to load stage-specific activities', e);
@@ -3224,36 +3198,27 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           .reverse();
       }
 
-      if (lead.requirements && (selectedStageTab === 'Leads' || selectedStageTab === 'Feeds')) {
-        const hasEnquiryLog = derived.some(m => 
-          m.id === 'enquiry_requirements_log' || 
-          m.activity_type === 'Enquiry Requirements' || 
-          m.activity_type === 'First Contact Log' ||
-          m.remarks === lead.requirements ||
-          m.remarks === `Inquired Feed Requirements: ${lead.requirements}` ||
-          m.remarks === `Inquired Requirements: ${lead.requirements}`
-        );
+      derived.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-        if (!hasEnquiryLog) {
-          derived.push({
-            id: 'enquiry_requirements_log',
-            lead_id: lead.id,
-            stage: selectedStageTab,
-            activity_type: 'Enquiry Requirements',
-            response_type: 'Initial Enquiry',
-            version_label: 'First Contact Log',
-            remarks: lead.requirements,
-            staff_name: lead.employees?.full_name || 'Customer / Intake',
-            staff_employee_id: lead.employees?.employee_id || 'ORIGIN',
-            staff_designation: 'Customer Intake',
-            staff_department: 'Field Scouting & Intake',
-            staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
-            created_at: lead.created_at
-          } as any);
-        }
+      // In the pipeline the bottom one should be the requirement of the feed or lead or customer
+      if (lead.requirements && lead.requirements.trim()) {
+        const filtered = derived.filter(m => 
+          m.id !== 'enquiry_requirements_log' && 
+          m.activity_type !== 'Requirements' &&
+          m.activity_type !== 'Enquiry Requirements' &&
+          m.activity_type !== 'First Contact Log'
+        );
+        filtered.push({
+          id: 'enquiry_requirements_log',
+          lead_id: lead.id,
+          stage: lead.status || 'Origin',
+          activity_type: 'Requirements',
+          remarks: lead.requirements.trim(),
+          created_at: lead.created_at || new Date().toISOString()
+        } as any);
+        derived = filtered;
       }
 
-      derived.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setStageActivities(derived);
     } finally {
       setIsLoadingLogs(false);
@@ -3957,7 +3922,10 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       let IconComponent = MessageSquare;
                       let iconColor = 'bg-blue-50 text-blue-600 border-blue-200';
 
-                      if (typeLower.includes('phone') || typeLower.includes('call') || typeLower.includes('follow-up')) {
+                      if (typeLower === 'requirements' || typeLower.includes('requirement')) {
+                        IconComponent = FileSpreadsheet;
+                        iconColor = 'bg-rose-50 text-[#C82A2B] border-rose-200';
+                      } else if (typeLower.includes('phone') || typeLower.includes('call') || typeLower.includes('follow-up')) {
                         IconComponent = Phone;
                         iconColor = 'bg-sky-50 text-sky-600 border-sky-200';
                       } else if (typeLower.includes('meeting')) {
@@ -4036,7 +4004,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                                 <span className="text-xs font-bold text-zinc-900 tracking-tight">
                                   {act.activity_type || 'Activity Note'}
                                 </span>
-                                {(act as any).version_label && (
+                                {(act as any).version_label && act.activity_type !== 'Requirements' && (
                                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                                     (act as any).version_label.includes('First')
                                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -4048,7 +4016,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                               </div>
 
                               <div className="flex items-center gap-2">
-                                {act.response_type && (
+                                {act.response_type && act.activity_type !== 'Requirements' && (
                                   <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
                                     respLower === 'positive' || respLower === 'hot_lead' || respLower === 'deal_won' || respLower === 'so_converted'
                                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -4088,33 +4056,35 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                             )}
 
                             {/* Staff Attribution Footer: Staff Name, Employee ID, Designation, Branch */}
-                            <div className="pt-2.5 mt-2 border-t border-zinc-100 flex items-center justify-between gap-2 flex-wrap text-[11px]">
-                              <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                <div className="flex items-center gap-1.5 font-bold text-zinc-900">
-                                  <div className="w-5 h-5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 flex items-center justify-center text-[9px] font-black shrink-0">
-                                    {initials}
+                            {act.activity_type !== 'Requirements' && (
+                              <div className="pt-2.5 mt-2 border-t border-zinc-100 flex items-center justify-between gap-2 flex-wrap text-[11px]">
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <div className="flex items-center gap-1.5 font-bold text-zinc-900">
+                                    <div className="w-5 h-5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 flex items-center justify-center text-[9px] font-black shrink-0">
+                                      {initials}
+                                    </div>
+                                    <span className="truncate" title={staffName}>{staffName}</span>
                                   </div>
-                                  <span className="truncate" title={staffName}>{staffName}</span>
+
+                                  {act.staff_employee_id && (
+                                    <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 font-mono font-bold text-[9px] border border-zinc-200 shrink-0">
+                                      {act.staff_employee_id}
+                                    </span>
+                                  )}
+
+                                  {act.staff_designation && (
+                                    <span className="text-zinc-500 font-medium text-[10px] truncate" title={act.staff_designation}>
+                                      • {act.staff_designation}
+                                    </span>
+                                  )}
                                 </div>
 
-                                {act.staff_employee_id && (
-                                  <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 font-mono font-bold text-[9px] border border-zinc-200 shrink-0">
-                                    {act.staff_employee_id}
-                                  </span>
-                                )}
-
-                                {act.staff_designation && (
-                                  <span className="text-zinc-500 font-medium text-[10px] truncate" title={act.staff_designation}>
-                                    • {act.staff_designation}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200/80 text-[10px] font-semibold text-zinc-700 shrink-0">
+                                  <Building2 size={11} className="text-[#9E1B1D] shrink-0" />
+                                  <span>{act.staff_branch || (lead as any).branches?.name || (lead as any).branch_name || 'Main Branch'}</span>
+                                </div>
                               </div>
-
-                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200/80 text-[10px] font-semibold text-zinc-700 shrink-0">
-                                <Building2 size={11} className="text-[#9E1B1D] shrink-0" />
-                                <span>{act.staff_branch || (lead as any).branches?.name || (lead as any).branch_name || 'Main Branch'}</span>
-                              </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       );
