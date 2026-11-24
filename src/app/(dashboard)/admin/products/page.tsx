@@ -13,6 +13,7 @@ import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { splitSpecificationLines, formatSpecificationDisplay, formatDate } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 
 interface RemarkEntry {
   title: string;
@@ -2534,23 +2535,7 @@ export default function ProductManagement() {
 
       {/* Product Details Modal */}
       {selectedProductForDetails && (() => {
-        const productImages: string[] = (() => {
-          const imgs = selectedProductForDetails.images;
-          if (!imgs) return [];
-          if (Array.isArray(imgs)) {
-            return imgs.filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
-          }
-          if (typeof imgs === 'string') {
-            try {
-              const parsed = JSON.parse(imgs);
-              if (Array.isArray(parsed)) return parsed.filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
-            } catch {
-              return (imgs as string).split(',').map(s => s.trim()).filter(Boolean);
-            }
-          }
-          return [];
-        })();
-
+        const productImages = parseImageGallery(selectedProductForDetails.images);
         const currentActiveImg = productImages[activeDetailImageIndex] || productImages[0] || null;
         const mainFabricDetails = getFabricDetails(selectedProductForDetails.main_fabric || selectedProductForDetails.main_fabric_id);
         const resolvedTypeName = getResolvedProductTypeName(selectedProductForDetails);
@@ -3059,74 +3044,14 @@ export default function ProductManagement() {
         );
       })()}
 
-      {/* Lightbox Modal (Fullscreen Image Viewer) */}
-      {isLightboxOpen && selectedProductForDetails && (() => {
-        const imgs = (() => {
-          const raw = selectedProductForDetails.images;
-          if (!raw) return [];
-          if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
-          if (typeof raw === 'string') {
-            try {
-              const p = JSON.parse(raw);
-              if (Array.isArray(p)) return p.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
-            } catch {
-              return (raw as string).split(',').map(s => s.trim()).filter(Boolean);
-            }
-          }
-          return [];
-        })();
-        const activeImg = imgs[activeDetailImageIndex] || imgs[0];
-
-        return (
-          <div
-            className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            <div className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
-              <button
-                type="button"
-                onClick={() => setIsLightboxOpen(false)}
-                className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white rounded-full bg-white/10 hover:bg-white/20 transition cursor-pointer"
-                title="Close Lightbox"
-              >
-                <X size={22} />
-              </button>
-              <div className="w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black/40 p-2">
-                {activeImg && (
-                  <img
-                    src={activeImg}
-                    alt={selectedProductForDetails.name}
-                    className="max-h-[73vh] max-w-full object-contain rounded-xl shadow-2xl"
-                  />
-                )}
-              </div>
-              {imgs.length > 1 && (
-                <div className="flex items-center gap-4 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setActiveDetailImageIndex(prev => (prev > 0 ? prev - 1 : imgs.length - 1))}
-                    className="p-2 bg-white/15 hover:bg-white/25 text-white rounded-xl transition cursor-pointer"
-                    title="Previous Photo"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <span className="text-white text-xs font-bold font-mono">
-                    {activeDetailImageIndex + 1} / {imgs.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveDetailImageIndex(prev => (prev < imgs.length - 1 ? prev + 1 : 0))}
-                    className="p-2 bg-white/15 hover:bg-white/25 text-white rounded-xl transition cursor-pointer"
-                    title="Next Photo"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Zoomable Image Lightbox Modal */}
+      <ZoomableImageLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={selectedProductForDetails?.images || []}
+        initialIndex={activeDetailImageIndex}
+        title={selectedProductForDetails ? getProductDisplayName(selectedProductForDetails, dresses, genders) : ''}
+      />
 
       {/* Double verify: Edit Confirmation */}
       <ConfirmModal

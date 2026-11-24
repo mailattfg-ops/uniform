@@ -66,6 +66,8 @@ interface Customer {
   assigned_operator_id: number | null;
   assigned_operator?: { id: number; full_name: string; employee_id: string } | null;
   is_active?: boolean | null;
+  customer_activity?: 'Active' | 'Inactive' | null;
+  last_invoice_date?: string | null;
   is_special?: boolean | null;
   is_risk?: boolean | null;
   client_tag?: string | null;
@@ -74,6 +76,9 @@ interface Customer {
   credit_period_days?: number | null;
   created_at: string;
 }
+
+// Inactive if manually disabled or no invoice for 1 year (customer_activity from backend)
+const isCustomerActive = (c: Customer) => c.is_active !== false && c.customer_activity !== 'Inactive';
 
 interface Industry {
   id: number;
@@ -102,8 +107,8 @@ function compileCustomerDirectoryHTML({
   zones?: any[];
 }): string {
   const totalCount = customers.length;
-  const activeCount = customers.filter(c => c.is_active !== false).length;
-  const inactiveCount = customers.filter(c => c.is_active === false).length;
+  const activeCount = customers.filter(c => isCustomerActive(c)).length;
+  const inactiveCount = customers.filter(c => !isCustomerActive(c)).length;
   const specialCount = customers.filter(c => c.is_special).length;
   const riskCount = customers.filter(c => c.is_risk).length;
   const totalReceivables = customers.reduce((sum, c) => sum + Number(c.receivables || 0), 0);
@@ -1000,7 +1005,7 @@ export default function CustomersRegistry() {
     let risk = 0;
 
     customers.forEach(c => {
-      if (c.is_active !== false) active++;
+      if (isCustomerActive(c)) active++;
       else inactive++;
 
       if (c.is_special) special++;
@@ -1037,8 +1042,8 @@ export default function CustomersRegistry() {
       }
 
       // Status & Classification filter (USER REQUEST)
-      if (statusFilter === 'ACTIVE' && c.is_active === false) return false;
-      if (statusFilter === 'INACTIVE' && c.is_active !== false) return false;
+      if (statusFilter === 'ACTIVE' && !isCustomerActive(c)) return false;
+      if (statusFilter === 'INACTIVE' && isCustomerActive(c)) return false;
       if (statusFilter === 'SPECIAL' && !c.is_special) return false;
       if (statusFilter === 'RISK' && !c.is_risk) return false;
 
@@ -1072,7 +1077,7 @@ export default function CustomersRegistry() {
       accessor: (c) => {
         const isRisk = Boolean(c.is_risk);
         const isSpecial = Boolean(c.is_special);
-        const isActive = c.is_active !== false;
+        const isActive = isCustomerActive(c);
 
         return (
           <div className="group min-w-0">
@@ -1083,7 +1088,7 @@ export default function CustomersRegistry() {
                     ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]'
                     : 'bg-rose-400'
                 }`}
-                title={isActive ? 'Active Customer' : 'Inactive Customer'}
+                title={`${isActive ? 'Active Customer' : 'Inactive Customer'}${c.last_invoice_date ? ` · Last invoice: ${formatDate(c.last_invoice_date)}` : ''}`}
               />
               <span
                 className="text-left font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate block"
