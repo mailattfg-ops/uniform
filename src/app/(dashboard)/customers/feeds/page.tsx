@@ -24,7 +24,8 @@ import {
   NewFeedModal, 
   FeedOutcomeModal, 
   LeadFormModal, 
-  LeadViewModal 
+  LeadViewModal,
+  CustomerActivityBadge
 } from '../leads/page';
 
 export default function FeedsRegistryPage() {
@@ -422,9 +423,12 @@ export default function FeedsRegistryPage() {
       sortValue: (l) => l.name,
       accessor: (l) => (
         <div className="min-w-0">
-          <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
-            {l.name}
-          </p>
+          <div className="flex items-center gap-1.5 max-w-full">
+            <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+              {l.name}
+            </p>
+            <CustomerActivityBadge lead={l} />
+          </div>
           {(() => {
             const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
             if (!industryName) return null;

@@ -5,11 +5,11 @@ import { formatDate } from '@/lib/formatters';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Search, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
   X,
   Package,
   Layers,
@@ -28,8 +28,13 @@ import {
   UploadCloud,
   Camera,
   Image as ImageIcon,
-  RotateCcw
+  RotateCcw,
+  Maximize2,
+  Copy,
+  Box,
+  FileText
 } from 'lucide-react';
+import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DataTable, Column, SortInfo, HeaderGroupItem } from '@/components/ui/DataTable';
@@ -242,61 +247,83 @@ const MultiEntryInput: React.FC<{
 
 const ImageUploadField: React.FC<{
   label: string;
-  value: string;
-  onChange: (val: string) => void;
+  images: string[];
+  onChange: (images: string[]) => void;
+  maxImages?: number;
   colorTheme?: 'teal' | 'indigo';
-}> = ({ label, value, onChange, colorTheme = 'teal' }) => {
+}> = ({ label, images = [], onChange, maxImages = 6, colorTheme = 'teal' }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = (file: File) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload a valid image file (PNG, JPG, WEBP, etc.)');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size exceeds 5MB limit. Please upload a smaller image.');
+  const handleFiles = (files: FileList | File[]) => {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (fileArr.length === 0) {
+      toast.error('Please upload valid image files (PNG, JPG, WEBP, etc.)');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      onChange(base64);
-      toast.success('Image loaded successfully!');
-    };
-    reader.onerror = () => {
-      toast.error('Failed to read image file');
-    };
-    reader.readAsDataURL(file);
+    if (images.length + fileArr.length > maxImages) {
+      toast.error(`You can upload a maximum of ${maxImages} images.`);
+      return;
+    }
+
+    let loadedCount = 0;
+    const newBase64List: string[] = [];
+
+    fileArr.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`Image "${file.name}" exceeds 5MB limit and was skipped.`);
+        loadedCount++;
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        newBase64List.push(base64);
+        loadedCount++;
+        if (loadedCount === fileArr.length) {
+          onChange([...images, ...newBase64List]);
+          toast.success(`${newBase64List.length} image(s) added!`);
+        }
+      };
+      reader.onerror = () => {
+        toast.error(`Failed to read "${file.name}"`);
+        loadedCount++;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemove = (index: number) => {
+    const updated = images.filter((_, idx) => idx !== index);
+    onChange(updated);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileChange(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
     }
   };
 
   const accentBg = colorTheme === 'indigo' ? 'hover:border-indigo-400 focus:border-indigo-500' : 'hover:border-[#C82A2B] focus:border-[#C82A2B]';
-  const accentColor = colorTheme === 'indigo' ? 'text-indigo-600' : 'text-[#9E1B1D]';
   const dragActiveBorder = colorTheme === 'indigo' ? 'border-indigo-500 bg-indigo-50/50' : 'border-[#C82A2B] bg-[#FFF1F1]/50';
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-700">
-          {label}
+          {label} ({images.length} / {maxImages})
         </label>
-        {value && (
+        {images.length > 0 && (
           <button
             type="button"
-            onClick={() => onChange('')}
+            onClick={() => onChange([])}
             className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
           >
-            <Trash2 size={11} /> Remove Image
+            <Trash2 size={11} /> Clear All
           </button>
         )}
       </div>
@@ -305,44 +332,53 @@ const ImageUploadField: React.FC<{
         type="file"
         ref={fileInputRef}
         accept="image/*"
+        multiple
         onChange={(e) => {
-          if (e.target.files && e.target.files[0]) {
-            handleFileChange(e.target.files[0]);
+          if (e.target.files && e.target.files.length > 0) {
+            handleFiles(e.target.files);
+            e.target.value = '';
           }
         }}
         className="hidden"
       />
 
-      {value ? (
-        <div className="flex items-center gap-4 p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
-          <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-white border border-zinc-200 shadow-xs shrink-0 flex items-center justify-center">
-            <img src={value} alt="Preview" className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                <Check size={10} /> Image Attached
-              </span>
-              <span className="text-[11px] text-zinc-400 font-medium">Ready for catalog</span>
-            </div>
-            <div className="flex items-center gap-2">
+      {images.length > 0 ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
+            {images.map((img, idx) => (
+              <div
+                key={idx}
+                className="relative aspect-square rounded-xl overflow-hidden bg-white border border-zinc-200 group shadow-xs"
+              >
+                <img src={img} alt={`Accessory ${idx + 1}`} className="w-full h-full object-cover" />
+                {idx === 0 && (
+                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-white text-[8px] font-black uppercase tracking-wider rounded-md">
+                    Cover
+                  </span>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(idx)}
+                    className="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-sm cursor-pointer"
+                    title="Remove image"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {images.length < maxImages && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="h-8 px-3 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                className="aspect-square rounded-xl border-2 border-dashed border-zinc-300 hover:border-zinc-400 bg-white hover:bg-zinc-50 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-700 transition-all cursor-pointer shadow-2xs group"
               >
-                <Camera size={13} className={accentColor} />
-                <span>Replace Image</span>
+                <Plus size={20} className="group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Add More</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onChange('')}
-                className="h-8 px-3 rounded-lg text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 flex items-center gap-1 transition-all cursor-pointer"
-              >
-                <Trash2 size={12} />
-                <span>Clear</span>
-              </button>
-            </div>
+            )}
           </div>
         </div>
       ) : (
@@ -358,17 +394,19 @@ const ImageUploadField: React.FC<{
             isDragging ? dragActiveBorder : `border-zinc-200 ${accentBg}`
           }`}
         >
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform hover:scale-110 shadow-2xs ${
-            colorTheme === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-[#FFF1F1] text-[#9E1B1D]'
-          }`}>
+          <div
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform hover:scale-110 shadow-2xs ${
+              colorTheme === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-[#FFF1F1] text-[#9E1B1D]'
+            }`}
+          >
             <UploadCloud size={24} />
           </div>
           <div>
             <p className="text-xs font-black text-zinc-900">
-              Click to browse or drag & drop image here
+              Click to browse or drag & drop multiple images
             </p>
             <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
-              Supports PNG, JPG, JPEG, WEBP or GIF (max 5MB)
+              Supports PNG, JPG, JPEG, WEBP or GIF (up to {maxImages} images, 5MB each)
             </p>
           </div>
         </div>
@@ -425,7 +463,7 @@ export default function AccessoriesAndTradeCatalogPage() {
     quantity: '0',
     uom: 'Pcs',
     description: '',
-    image_url: ''
+    images: [] as string[]
   });
 
   // --- CATEGORY MODALS & TABS ---
@@ -445,6 +483,12 @@ export default function AccessoriesAndTradeCatalogPage() {
     isOpen: false,
     item: null
   });
+
+  // --- DETAILS MODAL & LIGHTBOX ---
+  const [selectedAccessoryForDetails, setSelectedAccessoryForDetails] = useState<AccessoryItem | null>(null);
+  const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Helper: Detect Classification
   const getItemClassification = (item: AccessoryItem): 'ACCESSORY' | 'TRADE_READYMADE' => {
@@ -498,7 +542,7 @@ export default function AccessoriesAndTradeCatalogPage() {
     const rawRemark = item.remarks?.[0]?.text || '';
     const remarkColorMatch = !colorMatch ? rawRemark.match(/Color:\s*([^|\]]+)/i) : null;
     const remarkTraderMatch = !traderMatch ? rawRemark.match(/Trader:\s*([^|\]]+)/i) : null;
-    
+
     const cleanSpecs = mat
       .replace(/\[ProductType:[^\]]+\]/gi, '')
       .replace(/\[Trader:[^\]]+\]/gi, '')
@@ -553,7 +597,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             if (Array.isArray(parsed) && parsed.length > 0) {
               setCategories(parsed);
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
@@ -566,7 +610,7 @@ export default function AccessoriesAndTradeCatalogPage() {
           if (Array.isArray(parsedTrade) && parsedTrade.length > 0) {
             setTradeCategories(parsedTrade);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
   };
@@ -596,8 +640,8 @@ export default function AccessoriesAndTradeCatalogPage() {
       const stockProds: any[] = stockRes.data?.products || (Array.isArray(stockRes.data) ? stockRes.data : []);
       const stockQtyMap: Record<number, number> = {};
       stockProds.forEach((sp: any) => {
-        const qty = Array.isArray(sp.stocks) 
-          ? sp.stocks.reduce((acc: number, s: any) => acc + (Number(s.quantity) || 0), 0) 
+        const qty = Array.isArray(sp.stocks)
+          ? sp.stocks.reduce((acc: number, s: any) => acc + (Number(s.quantity) || 0), 0)
           : (Number(sp.quantity) || 0);
         stockQtyMap[sp.id] = qty;
       });
@@ -607,10 +651,10 @@ export default function AccessoriesAndTradeCatalogPage() {
         const mat = (p.materials || '').toLowerCase();
         const cat = (p.category || '').toLowerCase();
         const pType = (p.product_type || '').toLowerCase();
-        
+
         const isAccessory = cat === 'accessories' || pType === 'accessories' || mat.includes('[producttype: accessories]');
         const isTrade = cat === 'trade_readymade' || cat === 'readymade_trade' || pType === 'trade_readymade' || pType === 'readymade_trade' || mat.includes('[producttype: trade_readymade]') || mat.includes('[producttype: readymade_trade]');
-        
+
         return isAccessory || isTrade;
       }).map((p: any) => ({
         ...p,
@@ -742,15 +786,15 @@ export default function AccessoriesAndTradeCatalogPage() {
       if (genderFilter !== 'ALL') {
         const targetGender = genderFilter.toLowerCase();
         const itemGender = (item.gender || '').toLowerCase();
-        const matchedGenderObj = (genders || []).find(g => 
-          (g.name && g.name.toLowerCase() === targetGender) || 
+        const matchedGenderObj = (genders || []).find(g =>
+          (g.name && g.name.toLowerCase() === targetGender) ||
           (g.code && g.code.toLowerCase() === targetGender)
         );
         const matchCode = matchedGenderObj?.code?.toLowerCase();
         const matchName = matchedGenderObj?.name?.toLowerCase();
 
-        const matches = itemGender === targetGender || 
-          (matchCode && itemGender === matchCode) || 
+        const matches = itemGender === targetGender ||
+          (matchCode && itemGender === matchCode) ||
           (matchName && itemGender === matchName);
 
         if (!matches) return false;
@@ -792,7 +836,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const meta = extractTradeMetadata(item);
-        const matches = 
+        const matches =
           item.name.toLowerCase().includes(term) ||
           item.art_number.toLowerCase().includes(term) ||
           (item.brand_name || '').toLowerCase().includes(term) ||
@@ -841,9 +885,9 @@ export default function AccessoriesAndTradeCatalogPage() {
   };
 
   const handleOpenAddArticle = (defaultType?: 'ACCESSORY' | 'TRADE_READYMADE') => {
-    const determinedType = defaultType 
+    const determinedType = defaultType
       || (activeCatalogTab === 'TRADE_READYMADE' ? 'TRADE_READYMADE' : 'ACCESSORY');
-    
+
     setEditingItem(null);
     setArticleType(determinedType);
 
@@ -871,7 +915,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       quantity: '0',
       uom: 'Pcs',
       description: '',
-      image_url: ''
+      images: []
     });
     setIsArticleModalOpen(true);
   };
@@ -904,7 +948,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       quantity: item.quantity !== undefined ? String(item.quantity) : '0',
       uom: item.uom || 'Pcs',
       description: item.description || meta.fabric_details || item.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').replace(/Color:[^|]+\|?/i, '').replace(/Trader:[^|]+\|?/i, '').trim() || '',
-      image_url: item.images?.[0] || ''
+      images: parseImageGallery(item.images)
     });
     setIsArticleModalOpen(true);
   };
@@ -995,15 +1039,20 @@ export default function AccessoriesAndTradeCatalogPage() {
     }
   };
 
-  const headerGroups: HeaderGroupItem[] = [
-    { header: 'ACC NO.', colSpan: 1 },
-    { header: 'ITEM NAME', colSpan: 7, className: 'bg-[#FEF08A]/75 text-zinc-900 border-[#FACC15] font-black tracking-widest' },
-    { header: 'DESCRIPTION', colSpan: 1 },
-    { header: 'QUANTITY', colSpan: 1 },
-    { header: 'UOM', colSpan: 1 },
-    { header: 'RATE', colSpan: 1 },
-    { header: 'ACTION', colSpan: 1 }
-  ];
+  const getItemFullName = (item: AccessoryItem) => {
+    const cat = extractCategoryName(item);
+    const brand = item.brand_name || extractTradeMetadata(item).trader_name;
+    const name = item.name;
+    const spec = item.specification;
+    const col = item.color || extractTradeMetadata(item).colors || extractItemColor(item);
+    const shade = item.shade_no ? `Shade ${item.shade_no}` : null;
+    const sz = item.size || item.base_size;
+
+    return [cat, brand, name, spec, col, shade, sz]
+      .map(val => (val || '').trim())
+      .filter(val => val && val !== '—')
+      .join(' ') || item.name || '—';
+  };
 
   const columns: Column<AccessoryItem>[] = [
     {
@@ -1013,86 +1062,27 @@ export default function AccessoriesAndTradeCatalogPage() {
       sortValue: (item) => item.art_number
     },
     {
-      header: 'Category',
-      accessor: (item) => (
-        <span className="font-bold text-xs text-zinc-800">
-          {extractCategoryName(item) || '—'}
-        </span>
-      ),
-      sortable: true,
-      sortValue: (item) => extractCategoryName(item) || ''
-    },
-    {
-      header: 'Brand Name',
-      accessor: (item) => (
-        <span className="font-semibold text-xs text-zinc-700">
-          {item.brand_name || extractTradeMetadata(item).trader_name || '—'}
-        </span>
-      ),
-      sortable: true,
-      sortValue: (item) => item.brand_name || extractTradeMetadata(item).trader_name || ''
-    },
-    {
       header: 'Item Name',
-      accessor: (item) => (
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
-            {item.images && item.images.length > 0 ? (
-              <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
-            ) : (
-              <Tag size={15} className="text-[#9E1B1D]" />
-            )}
-          </div>
-          <div>
-            <div className="font-bold text-zinc-900 text-xs">{item.name}</div>
-          </div>
-        </div>
-      ),
-      sortable: true,
-      sortValue: (item) => item.name || ''
-    },
-    {
-      header: 'Specification',
-      accessor: (item) => (
-        <span className="text-xs text-zinc-600 font-mono">
-          {item.specification || '—'}
-        </span>
-      ),
-      sortable: true,
-      sortValue: (item) => item.specification || ''
-    },
-    {
-      header: 'Colour',
       accessor: (item) => {
-        const col = item.color || extractItemColor(item);
-        return col ? (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 font-bold text-xs">
-            <span className="w-2 h-2 rounded-full border border-black/20" style={{ backgroundColor: col.toLowerCase() }} />
-            {col}
-          </span>
-        ) : <span className="text-zinc-400 text-xs">—</span>;
+        const fullName = getItemFullName(item);
+        const itemImgs = parseImageGallery(item.images);
+        return (
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
+              {itemImgs.length > 0 ? (
+                <img src={itemImgs[0]} alt={fullName || item.name} className="w-full h-full object-cover" />
+              ) : (
+                <Tag size={15} className="text-[#9E1B1D]" />
+              )}
+            </div>
+            <div>
+              <div className="font-bold text-zinc-900 text-xs">{fullName || item.name || '—'}</div>
+            </div>
+          </div>
+        );
       },
       sortable: true,
-      sortValue: (item) => item.color || extractItemColor(item) || ''
-    },
-    {
-      header: 'Shade No.',
-      accessor: (item) => (
-        <span className="text-xs font-mono font-medium text-zinc-600">
-          {item.shade_no || '—'}
-        </span>
-      ),
-      sortable: true,
-      sortValue: (item) => item.shade_no || ''
-    },
-    {
-      header: 'Size',
-      accessor: (item) => {
-        const sz = item.size || item.base_size || '—';
-        return <span className="font-bold text-xs text-zinc-800 font-mono">{sz}</span>;
-      },
-      sortable: true,
-      sortValue: (item) => item.size || item.base_size || ''
+      sortValue: (item) => getItemFullName(item) || item.name || ''
     },
     {
       header: 'Description',
@@ -1151,15 +1141,21 @@ export default function AccessoriesAndTradeCatalogPage() {
       header: 'Action',
       accessor: (item) => (
         <div className="flex items-center gap-1.5">
-          <button 
-            onClick={() => handleOpenEditArticle(item)}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenEditArticle(item);
+            }}
             className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 hover:text-[#9E1B1D] transition-colors cursor-pointer"
             title="Edit Article"
           >
             <Edit2 size={14} />
           </button>
-          <button 
-            onClick={() => setDeleteConfirm({ isOpen: true, item })}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteConfirm({ isOpen: true, item });
+            }}
             className="p-1.5 hover:bg-red-50 rounded-lg text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
             title="Delete Item"
           >
@@ -1170,7 +1166,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       className: 'w-24'
     }
   ];
-const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
+  const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     if (newType === articleType) return;
     setArticleType(newType);
 
@@ -1245,8 +1241,8 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     const loadingToast = toast.loading(`${actionLabel} ${itemLabel}...`);
 
     try {
-      const finalSizes = articleFormData.sizing_mode === 'FREE_SIZE' 
-        ? 'Free Size' 
+      const finalSizes = articleFormData.sizing_mode === 'FREE_SIZE'
+        ? 'Free Size'
         : articleFormData.sizes.trim() || 'Free Size';
 
       const finalArtNumber = editingItem?.art_number || articleFormData.art_number.trim() || generateNextAccessoryCode(articleFormData.category_name);
@@ -1270,10 +1266,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
         base_price: articleFormData.selling_price ? parseFloat(articleFormData.selling_price) : 0,
         retail_sam_value: articleFormData.cost_price ? parseFloat(articleFormData.cost_price) : 0,
         materials: `[ProductType: ${isTrade ? 'trade_readymade' : 'accessories'}] [Category: ${articleFormData.category_name}] ${articleFormData.color ? `[Color: ${articleFormData.color}] ` : ''}${brandVal ? `[Brand: ${brandVal}] ` : ''}${articleFormData.description.trim()}`.trim(),
-        images: articleFormData.image_url ? [articleFormData.image_url.trim()] : [],
+        images: articleFormData.images,
         remarks: [{
           text: `[Category: ${articleFormData.category_name}] ${articleFormData.color ? `Color: ${articleFormData.color} | ` : ''}${brandVal ? `Brand: ${brandVal} | ` : ''}${articleFormData.description.trim()}`,
-          images: []
+          images: articleFormData.images
         }],
         is_active: true
       };
@@ -1423,7 +1419,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     const loadingToast = toast.loading('Saving category changes...');
     try {
       if (isTrade) {
-        const updated = tradeCategories.map(c => 
+        const updated = tradeCategories.map(c =>
           c.id === catId ? { ...c, name: trimmedName, code_prefix: trimmedPrefix || c.code_prefix } : c
         );
         setTradeCategories(updated);
@@ -1440,7 +1436,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
           console.warn('API update failed, updating locally:', apiErr);
         }
 
-        const updated = categories.map(c => 
+        const updated = categories.map(c =>
           c.id === catId ? { ...c, name: trimmedName, code_prefix: trimmedPrefix || c.code_prefix } : c
         );
         setCategories(updated);
@@ -1499,7 +1495,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      
+
       {/* Top Header - Matching Readymades, Fabric and Trim Standards */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -1513,7 +1509,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
 
         <div className="flex flex-wrap items-center gap-2.5">
 
-          <button 
+          <button
             onClick={() => handleOpenAddArticle()}
             className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
@@ -1556,32 +1552,49 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
       </div>
 
       {/* Table Content */}
-      {/* Yellow Filter Toolbar matching spreadsheet plan */}
-        <div className="relative z-20 bg-[#FEF08A]/75 border-2 border-[#FACC15] rounded-2xl p-3 md:px-5 md:py-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-zinc-900 shrink-0">
-            <span className="px-3 py-1 bg-[#FACC15] text-zinc-950 font-black text-xs uppercase tracking-widest rounded-lg shadow-2xs">
-              FILTER
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+      <DataTable
+        columns={columns}
+        data={filteredItems}
+        isLoading={isLoading}
+        searchPlaceholder="Search accessories"
+        onSearch={setSearchTerm}
+        onPrint={handlePrintAccessories}
+        hideTablePrint={true}
+        printTriggerRef={printTriggerRef}
+        userReportTriggerRef={userReportTriggerRef}
+        onRowClick={(item) => {
+          setSelectedAccessoryForDetails(item);
+          setActiveDetailImageIndex(0);
+        }}
+        headerAction={
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Category Filter */}
             <FilterDropdown
-              label="Categories"
+              label="Category"
               allLabel={`All Categories (${items.length})`}
               value={selectedCategory}
               onChange={setSelectedCategory}
               options={categoryOptions}
-              maxWidth="max-w-[190px]"
             />
+
+            {/* Gender Filter */}
+            {uniqueGenders.length > 0 && (
+              <FilterDropdown
+                label="Gender"
+                allLabel="All Genders"
+                value={genderFilter}
+                onChange={setGenderFilter}
+                options={uniqueGenders}
+              />
+            )}
 
             {/* Brand Filter */}
             <FilterDropdown
-              label="Brand Name"
+              label="Brand"
               allLabel="All Brands"
               value={filterBrand}
               onChange={setFilterBrand}
               options={uniqueBrands}
-              maxWidth="max-w-[190px]"
             />
 
             {/* Colour Filter */}
@@ -1591,7 +1604,6 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
               value={filterColour}
               onChange={setFilterColour}
               options={uniqueColours}
-              maxWidth="max-w-[190px]"
             />
 
             {/* Size Filter */}
@@ -1601,39 +1613,273 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
               value={filterSize}
               onChange={setFilterSize}
               options={uniqueSizes}
-              maxWidth="max-w-[190px]"
             />
 
-            {(selectedCategory !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL') && (
+            {(selectedCategory !== 'ALL' || genderFilter !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL') && (
               <button
                 type="button"
                 onClick={() => {
                   setSelectedCategory('ALL');
+                  setGenderFilter('ALL');
                   setFilterBrand('ALL');
                   setFilterColour('ALL');
                   setFilterSize('ALL');
                 }}
-                className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold rounded-xl border border-red-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-[#C82A2B] text-xs font-bold rounded-xl border border-red-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <RotateCcw size={12} />
                 <span>Reset</span>
               </button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        <DataTable
-          headerGroups={headerGroups}
-          columns={columns}
-          data={filteredItems}
-          isLoading={isLoading}
-          searchPlaceholder="Search accessories"
-          onSearch={setSearchTerm}
-          onPrint={handlePrintAccessories}
-          hideTablePrint={true}
-          printTriggerRef={printTriggerRef}
-          userReportTriggerRef={userReportTriggerRef}
-        />
+      {/* Accessory Article Details Modal */}
+      {selectedAccessoryForDetails && (() => {
+        const accImages = parseImageGallery(selectedAccessoryForDetails.images);
+        const currentActiveImg = accImages[activeDetailImageIndex] || accImages[0];
+        const fullName = getItemFullName(selectedAccessoryForDetails) || selectedAccessoryForDetails.name;
+        const isTrade = getItemClassification(selectedAccessoryForDetails) === 'TRADE_READYMADE';
+        const categoryName = extractCategoryName(selectedAccessoryForDetails);
+        const meta = extractTradeMetadata(selectedAccessoryForDetails);
+        const effectivePrice = (Number(selectedAccessoryForDetails.base_price) > 0)
+          ? Number(selectedAccessoryForDetails.base_price)
+          : (Number(selectedAccessoryForDetails.retail_sam_value) > 0 ? Number(selectedAccessoryForDetails.retail_sam_value) : null);
+        const rawRemark = selectedAccessoryForDetails.remarks?.[0]?.text?.replace(/\[[^\]]+\]/g, '').trim();
+        const cleanMat = selectedAccessoryForDetails.materials?.replace(/\[[^\]]+\]/g, '').trim();
+        const desc = selectedAccessoryForDetails.description || rawRemark || cleanMat || '';
+
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
+            onClick={() => setSelectedAccessoryForDetails(null)}
+          >
+            <div
+              className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedAccessoryForDetails.art_number && (
+                      <span className="px-3 py-1 bg-zinc-900 text-white rounded-xl text-xs font-black font-mono flex items-center gap-1.5 shadow-xs">
+                        <Tag size={12} className="text-zinc-400" />
+                        {selectedAccessoryForDetails.art_number}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedAccessoryForDetails.art_number);
+                            setCopiedCode(true);
+                            setTimeout(() => setCopiedCode(false), 2000);
+                          }}
+                          className="hover:text-amber-400 transition ml-0.5 cursor-pointer"
+                          title="Copy Code"
+                        >
+                          {copiedCode ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </span>
+                    )}
+                    <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${isTrade
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                      : 'bg-[#C82A2B]/10 text-[#9E1B1D] border-[#C82A2B]/20'
+                      }`}>
+                      {isTrade ? 'Trade Readymade' : 'Accessory'}
+                    </span>
+                    {categoryName && (
+                      <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {categoryName}
+                      </span>
+                    )}
+                    {selectedAccessoryForDetails.brand_name && (
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {selectedAccessoryForDetails.brand_name}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+                    {fullName}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const item = selectedAccessoryForDetails;
+                      setSelectedAccessoryForDetails(null);
+                      handleOpenEditArticle(item);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  >
+                    <Edit2 size={13} />
+                    Edit Article
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAccessoryForDetails(null)}
+                    className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Photos */}
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="relative aspect-4/3 sm:aspect-square w-full rounded-2xl bg-zinc-50 border border-zinc-200/90 overflow-hidden flex items-center justify-center group shadow-inner">
+                      {currentActiveImg ? (
+                        <>
+                          <img
+                            src={currentActiveImg}
+                            alt={fullName}
+                            className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                            onClick={() => setIsLightboxOpen(true)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsLightboxOpen(true)}
+                            className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 hover:bg-black/90 text-white rounded-xl backdrop-blur-xs text-xs font-bold flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                            title="Click to Zoom / Enlarge"
+                          >
+                            <Maximize2 size={13} />
+                            <span className="text-[10px] font-black uppercase tracking-wider">Enlarge</span>
+                          </button>
+                          {accImages.length > 1 && (
+                            <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/60 text-white text-[10px] font-black uppercase tracking-wider rounded-lg backdrop-blur-xs">
+                              {activeDetailImageIndex + 1} / {accImages.length}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+                          <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mb-2">
+                            <Box size={32} />
+                          </div>
+                          <p className="text-xs font-bold text-zinc-600">No Image Available</p>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Edit this article to upload product photos</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Thumbnail Strip */}
+                    {accImages.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        {accImages.map((imgUrl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveDetailImageIndex(idx)}
+                            className={`w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${activeDetailImageIndex === idx
+                              ? 'border-[#C82A2B] ring-2 ring-[#C82A2B]/20 shadow-sm scale-105'
+                              : 'border-zinc-200 opacity-60 hover:opacity-100'
+                              }`}
+                          >
+                            <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Key Details & Specifications */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* Specification Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Article Number</span>
+                        <span className="text-sm font-black text-[#9E1B1D] font-mono mt-0.5 block">{selectedAccessoryForDetails.art_number || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Classification</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{isTrade ? 'Trade Readymade' : 'Accessory'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Category</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{categoryName || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Brand / Trader</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedAccessoryForDetails.brand_name || meta.trader_name || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Specification</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedAccessoryForDetails.specification || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Colour / Shade No.</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">
+                          {[selectedAccessoryForDetails.color || meta.colors || extractItemColor(selectedAccessoryForDetails), selectedAccessoryForDetails.shade_no ? `Shade: ${selectedAccessoryForDetails.shade_no}` : null].filter(Boolean).join(' • ') || '—'}
+                        </span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Size</span>
+                        <span className="text-sm font-black text-zinc-900 font-mono mt-0.5 block">
+                          {selectedAccessoryForDetails.size || selectedAccessoryForDetails.base_size || 'Free Size'}
+                        </span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Gender</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedAccessoryForDetails.gender || 'Unisex'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Rate / Selling Price</span>
+                        <span className="text-sm font-black text-zinc-900 font-mono mt-0.5 block">
+                          {effectivePrice !== null ? formatCurrency(effectivePrice) : '—'}
+                        </span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Current Stock</span>
+                        <span className="text-sm font-black text-emerald-600 font-mono mt-0.5 block">
+                          {formatQuantity(selectedAccessoryForDetails.quantity ?? 0)} {selectedAccessoryForDetails.uom || 'Pcs'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {desc && (
+                      <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-1.5">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
+                          <FileText size={13} className="text-[#C82A2B]" />
+                          Description & Notes
+                        </h4>
+                        <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                          {desc}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 px-6 bg-zinc-50 border-t border-zinc-200 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAccessoryForDetails(null)}
+                  className="px-6 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Lightbox Viewer */}
+      <ZoomableImageLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={selectedAccessoryForDetails?.images || []}
+        initialIndex={activeDetailImageIndex}
+        title={selectedAccessoryForDetails ? (getItemFullName(selectedAccessoryForDetails) || selectedAccessoryForDetails.name) : ''}
+      />
 
       {/* ========================================================================= */}
       {/* UNIFIED MODAL: ADD / EDIT ARTICLE (ACCESSORY & READYMADE TRADE)          */}
@@ -1643,15 +1889,14 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
           <div className="w-full max-w-4xl bg-white rounded-[2.5rem] border border-zinc-200/80 p-6 md:p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
             {/* Top Brand Accent Rail */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
-            
+
             {/* Modal Header with Title & Type Toggle Switch */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-zinc-100 gap-4">
               <div className="flex items-center gap-3.5">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                  articleType === 'TRADE_READYMADE'
-                    ? 'bg-indigo-50 border border-indigo-200 text-indigo-600'
-                    : 'bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D]'
-                }`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${articleType === 'TRADE_READYMADE'
+                  ? 'bg-indigo-50 border border-indigo-200 text-indigo-600'
+                  : 'bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D]'
+                  }`}>
                   {articleType === 'TRADE_READYMADE' ? <ShoppingBag size={24} /> : <Tag size={24} />}
                 </div>
                 <div>
@@ -1659,11 +1904,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <h3 className="text-2xl font-black italic tracking-tight text-zinc-900">
                       {editingItem ? 'Edit Article' : 'New Catalog Article'}
                     </h3>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                      articleType === 'TRADE_READYMADE'
-                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        : 'bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20'
-                    }`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${articleType === 'TRADE_READYMADE'
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      : 'bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20'
+                      }`}>
                       {articleType === 'TRADE_READYMADE' ? 'Readymade (Trade)' : 'Accessory'}
                     </span>
                   </div>
@@ -1681,11 +1925,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   <button
                     type="button"
                     onClick={() => handleSwitchArticleType('ACCESSORY')}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                      articleType === 'ACCESSORY'
-                        ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
-                        : 'text-zinc-500 hover:text-zinc-900'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${articleType === 'ACCESSORY'
+                      ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
+                      : 'text-zinc-500 hover:text-zinc-900'
+                      }`}
                   >
                     <Tag size={13} />
                     <span>Accessory</span>
@@ -1694,18 +1937,17 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   <button
                     type="button"
                     onClick={() => handleSwitchArticleType('TRADE_READYMADE')}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                      articleType === 'TRADE_READYMADE'
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                        : 'text-zinc-500 hover:text-zinc-900'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${articleType === 'TRADE_READYMADE'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                      : 'text-zinc-500 hover:text-zinc-900'
+                      }`}
                   >
                     <ShoppingBag size={13} />
                     <span>Readymade (Trade)</span>
                   </button>
                 </div>
 
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsArticleModalOpen(false)}
                   className="w-10 h-10 rounded-2xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-colors cursor-pointer shrink-0"
@@ -1737,7 +1979,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Item Name *
                     </label>
-                    <input 
+                    <input
                       type="text"
                       required
                       placeholder={articleType === 'TRADE_READYMADE' ? 'e.g. Premium Tees, Round Neck T-Shirt...' : 'e.g. Stripe Woven Tie, School Baseball Cap...'}
@@ -1752,7 +1994,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Brand Name / Trader
                     </label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g. Spinnex, Arihant, Forma, Wildcraft..."
                       value={articleFormData.brand_name || articleFormData.trader_name}
@@ -1800,7 +2042,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       ACC No. / Art Number
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={articleFormData.art_number}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, art_number: e.target.value }))}
@@ -1814,7 +2056,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Specification
                     </label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g. MR220, 100% Cotton Bio-Wash, Woven Jacquard..."
                       value={articleFormData.specification}
@@ -1844,7 +2086,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Colour
                     </label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g. Rama Blue, White, Black, Navy Blue..."
                       value={articleFormData.color}
@@ -1857,11 +2099,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                           key={col}
                           type="button"
                           onClick={() => setArticleFormData(prev => ({ ...prev, color: col }))}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
-                            articleFormData.color === col 
-                              ? 'bg-[#C82A2B] text-white shadow-xs'
-                              : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
-                          }`}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${articleFormData.color === col
+                            ? 'bg-[#C82A2B] text-white shadow-xs'
+                            : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
+                            }`}
                         >
                           {col}
                         </button>
@@ -1874,7 +2115,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Shade No.
                     </label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g. 001, #104, D-22"
                       value={articleFormData.shade_no}
@@ -1899,22 +2140,20 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <button
                       type="button"
                       onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'FREE_SIZE', size: 'Free Size' }))}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                        articleFormData.sizing_mode === 'FREE_SIZE'
-                          ? 'bg-white text-zinc-800 shadow-sm font-black'
-                          : 'text-zinc-500 hover:text-zinc-900'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${articleFormData.sizing_mode === 'FREE_SIZE'
+                        ? 'bg-white text-zinc-800 shadow-sm font-black'
+                        : 'text-zinc-500 hover:text-zinc-900'
+                        }`}
                     >
                       Free Size
                     </button>
                     <button
                       type="button"
                       onClick={() => setArticleFormData(prev => ({ ...prev, sizing_mode: 'MULTI_SIZE' }))}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                        articleFormData.sizing_mode === 'MULTI_SIZE'
-                          ? 'bg-[#C82A2B] text-white shadow-sm'
-                          : 'text-zinc-500 hover:text-zinc-900'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${articleFormData.sizing_mode === 'MULTI_SIZE'
+                        ? 'bg-[#C82A2B] text-white shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-900'
+                        }`}
                     >
                       Multiple Sizes / Dimension
                     </button>
@@ -1927,7 +2166,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Size Dimension / Value
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={articleFormData.size}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, size: e.target.value }))}
@@ -1940,11 +2179,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                           key={sz}
                           type="button"
                           onClick={() => setArticleFormData(prev => ({ ...prev, size: sz }))}
-                          className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
-                            articleFormData.size === sz 
-                              ? 'bg-[#C82A2B] text-white shadow-xs'
-                              : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
-                          }`}
+                          className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${articleFormData.size === sz
+                            ? 'bg-[#C82A2B] text-white shadow-xs'
+                            : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+                            }`}
                         >
                           {sz}
                         </button>
@@ -1957,7 +2195,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Size Unit (UOM)
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={articleFormData.size_uom}
                       onChange={(e) => setArticleFormData(prev => ({ ...prev, size_uom: e.target.value }))}
@@ -1970,11 +2208,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                           key={u}
                           type="button"
                           onClick={() => setArticleFormData(prev => ({ ...prev, size_uom: u }))}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
-                            articleFormData.size_uom === u 
-                              ? 'bg-zinc-800 text-white shadow-xs'
-                              : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
-                          }`}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${articleFormData.size_uom === u
+                            ? 'bg-zinc-800 text-white shadow-xs'
+                            : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+                            }`}
                         >
                           {u}
                         </button>
@@ -2009,7 +2246,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     </label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-xs">₹</span>
-                      <input 
+                      <input
                         type="number"
                         step="0.01"
                         placeholder="0.00"
@@ -2027,7 +2264,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     </label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-xs">₹</span>
-                      <input 
+                      <input
                         type="number"
                         step="0.01"
                         placeholder="0.00"
@@ -2043,7 +2280,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                       Stock Quantity
                     </label>
-                    <input 
+                    <input
                       type="number"
                       step="any"
                       placeholder="0"
@@ -2076,9 +2313,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
               {/* Card 4: Image & Description */}
               <div className="p-5 bg-white rounded-2xl border border-zinc-200 space-y-4">
                 <ImageUploadField
-                  label={articleType === 'TRADE_READYMADE' ? 'Product Garment Image (Optional)' : 'Accessory Product Image (Optional)'}
-                  value={articleFormData.image_url}
-                  onChange={(val) => setArticleFormData(prev => ({ ...prev, image_url: val }))}
+                  label={articleType === 'TRADE_READYMADE' ? 'Product Garment Images' : 'Accessory Product Images'}
+                  images={articleFormData.images}
+                  onChange={(imgs) => setArticleFormData(prev => ({ ...prev, images: imgs }))}
+                  maxImages={6}
                   colorTheme={articleType === 'TRADE_READYMADE' ? 'indigo' : 'teal'}
                 />
 
@@ -2086,7 +2324,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                     Specifications &amp; Description
                   </label>
-                  <textarea 
+                  <textarea
                     rows={2}
                     placeholder="Extended notes, fabric weave, application or packaging notes..."
                     value={articleFormData.description}
@@ -2128,11 +2366,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                  addCatType === 'TRADE' 
-                    ? 'bg-indigo-50 border border-indigo-200 text-indigo-600' 
-                    : 'bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D]'
-                }`}>
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${addCatType === 'TRADE'
+                  ? 'bg-indigo-50 border border-indigo-200 text-indigo-600'
+                  : 'bg-[#FFF1F1] border border-[#C82A2B]/20 text-[#9E1B1D]'
+                  }`}>
                   {addCatType === 'TRADE' ? <ShoppingBag size={20} /> : <Tag size={20} />}
                 </div>
                 <div>
@@ -2142,7 +2379,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => setIsAddCatModalOpen(false)}
                 className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-colors cursor-pointer"
@@ -2156,11 +2393,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
               <button
                 type="button"
                 onClick={() => setAddCatType('ACCESSORY')}
-                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  addCatType === 'ACCESSORY'
-                    ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
-                    : 'text-zinc-500 hover:text-zinc-900'
-                }`}
+                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${addCatType === 'ACCESSORY'
+                  ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
+                  : 'text-zinc-500 hover:text-zinc-900'
+                  }`}
               >
                 <Tag size={13} />
                 <span>Accessory</span>
@@ -2168,11 +2404,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
               <button
                 type="button"
                 onClick={() => setAddCatType('TRADE')}
-                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  addCatType === 'TRADE'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'text-zinc-500 hover:text-zinc-900'
-                }`}
+                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${addCatType === 'TRADE'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                  : 'text-zinc-500 hover:text-zinc-900'
+                  }`}
               >
                 <ShoppingBag size={13} />
                 <span>Trade Readymade</span>
@@ -2184,15 +2419,14 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                   {addCatType === 'TRADE' ? 'Garment Category Name *' : 'Accessory Category Name *'}
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   placeholder={addCatType === 'TRADE' ? 'e.g. Polo T-Shirt, Round Neck Tee, Corporate Blazer...' : 'e.g. Scarf, Dupatta, Badge, Belt, Socks...'}
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
-                  className={`w-full text-xs font-bold text-zinc-800 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${
-                    addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
-                  }`}
+                  className={`w-full text-xs font-bold text-zinc-800 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
+                    }`}
                 />
               </div>
 
@@ -2200,15 +2434,14 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-800 mb-1.5">
                   SKU Prefix (3-4 Letters)
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder={addCatType === 'TRADE' ? 'e.g. POL, RNK, BLZ' : 'e.g. SCF, DPT, BDG'}
                   value={newCatPrefix}
                   onChange={e => setNewCatPrefix(e.target.value.toUpperCase())}
                   maxLength={5}
-                  className={`w-full text-xs font-mono font-bold text-zinc-800 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${
-                    addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
-                  }`}
+                  className={`w-full text-xs font-mono font-bold text-zinc-800 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none transition-all ${addCatType === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
+                    }`}
                 />
               </div>
 
@@ -2223,11 +2456,10 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                 <button
                   type="submit"
                   disabled={isSavingCat || !newCatName.trim()}
-                  className={`px-5 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 cursor-pointer ${
-                    addCatType === 'TRADE' 
-                      ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30' 
-                      : 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20'
-                  }`}
+                  className={`px-5 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 cursor-pointer ${addCatType === 'TRADE'
+                    ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30'
+                    : 'bg-[#C82A2B] hover:bg-[#A81D1E] shadow-[#C82A2B]/20'
+                    }`}
                 >
                   {isSavingCat ? 'Saving...' : 'Save'}
                 </button>
@@ -2245,7 +2477,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-200/80 relative space-y-5 max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
-            
+
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-zinc-900 flex items-center justify-center text-white border border-zinc-800">
@@ -2256,7 +2488,7 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   <p className="text-xs text-zinc-400 mt-0.5">Customize categories, SKU prefixes & delete unused tags.</p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => {
                   setEditingCatId(null);
@@ -2276,17 +2508,15 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   setEditingCatId(null);
                   setManageCatTab('ACCESSORY');
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  manageCatTab === 'ACCESSORY'
-                    ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
-                    : 'text-zinc-500 hover:text-zinc-900'
-                }`}
+                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${manageCatTab === 'ACCESSORY'
+                  ? 'bg-[#9E1B1D] text-white shadow-md shadow-[#9E1B1D]/25'
+                  : 'text-zinc-500 hover:text-zinc-900'
+                  }`}
               >
                 <Tag size={13} />
                 <span>Accessories</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                  manageCatTab === 'ACCESSORY' ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-600'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${manageCatTab === 'ACCESSORY' ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-600'
+                  }`}>
                   {categories.length}
                 </span>
               </button>
@@ -2297,62 +2527,55 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                   setEditingCatId(null);
                   setManageCatTab('TRADE');
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  manageCatTab === 'TRADE'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'text-zinc-500 hover:text-zinc-900'
-                }`}
+                className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${manageCatTab === 'TRADE'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                  : 'text-zinc-500 hover:text-zinc-900'
+                  }`}
               >
                 <ShoppingBag size={13} />
                 <span>Trade Readymade</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                  manageCatTab === 'TRADE' ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-600'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${manageCatTab === 'TRADE' ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-600'
+                  }`}>
                   {tradeCategories.length}
                 </span>
               </button>
             </div>
 
             {/* Quick Add Bar */}
-            <div className={`p-3.5 rounded-2xl border transition-all ${
-              manageCatTab === 'TRADE' 
-                ? 'bg-indigo-50/50 border-indigo-200/80' 
-                : 'bg-zinc-50 border-zinc-200/80'
-            }`}>
-              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${
-                manageCatTab === 'TRADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'
+            <div className={`p-3.5 rounded-2xl border transition-all ${manageCatTab === 'TRADE'
+              ? 'bg-indigo-50/50 border-indigo-200/80'
+              : 'bg-zinc-50 border-zinc-200/80'
               }`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${manageCatTab === 'TRADE' ? 'text-indigo-600' : 'text-[#9E1B1D]'
+                }`}>
                 + Add {manageCatTab === 'TRADE' ? 'Readymade Garment' : 'Accessory'} Category
               </p>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder={manageCatTab === 'TRADE' ? 'Garment Category (e.g. Polo T-Shirt)' : 'Accessory Category (e.g. Scarf)'}
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
-                  className={`flex-1 text-xs font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${
-                    manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
-                  }`}
+                  className={`flex-1 text-xs font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
+                    }`}
                 />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Prefix"
                   value={newCatPrefix}
                   onChange={e => setNewCatPrefix(e.target.value.toUpperCase())}
                   maxLength={5}
-                  className={`w-20 text-xs font-mono font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${
-                    manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
-                  }`}
+                  className={`w-20 text-xs font-mono font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none ${manageCatTab === 'TRADE' ? 'focus:border-indigo-500' : 'focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/10'
+                    }`}
                 />
                 <button
                   type="button"
                   onClick={() => handleCreateCategory(undefined, manageCatTab)}
                   disabled={!newCatName.trim()}
-                  className={`px-4 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all disabled:opacity-50 cursor-pointer ${
-                    manageCatTab === 'TRADE'
-                      ? 'bg-indigo-600 hover:bg-indigo-700 shadow-sm'
-                      : 'bg-zinc-900 hover:bg-zinc-800 shadow-sm'
-                  }`}
+                  className={`px-4 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all disabled:opacity-50 cursor-pointer ${manageCatTab === 'TRADE'
+                    ? 'bg-indigo-600 hover:bg-indigo-700 shadow-sm'
+                    : 'bg-zinc-900 hover:bg-zinc-800 shadow-sm'
+                    }`}
                 >
                   Add
                 </button>
@@ -2367,21 +2590,20 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
 
                 if (isEditing) {
                   return (
-                    <div key={cat.id} className={`p-3 rounded-2xl border space-y-2 ${
-                      manageCatTab === 'TRADE'
-                        ? 'bg-indigo-50/70 border-indigo-200'
-                        : 'bg-[#FFF1F1] border-[#C82A2B]/30'
-                    }`}>
+                    <div key={cat.id} className={`p-3 rounded-2xl border space-y-2 ${manageCatTab === 'TRADE'
+                      ? 'bg-indigo-50/70 border-indigo-200'
+                      : 'bg-[#FFF1F1] border-[#C82A2B]/30'
+                      }`}>
                       <div className="flex items-center gap-2">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={editCatName}
                           onChange={e => setEditCatName(e.target.value)}
                           placeholder="Category Name"
                           className="flex-1 text-xs font-bold text-zinc-800 px-3 py-2 bg-white border border-zinc-200 rounded-xl outline-none"
                         />
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={editCatPrefix}
                           onChange={e => setEditCatPrefix(e.target.value.toUpperCase())}
                           placeholder="Prefix"
@@ -2400,9 +2622,8 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                         <button
                           type="button"
                           onClick={() => handleSaveEditCat(cat.id, manageCatTab === 'TRADE')}
-                          className={`px-4 py-1.5 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm cursor-pointer flex items-center gap-1 ${
-                            manageCatTab === 'TRADE' ? 'bg-indigo-600' : 'bg-[#C82A2B]'
-                          }`}
+                          className={`px-4 py-1.5 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm cursor-pointer flex items-center gap-1 ${manageCatTab === 'TRADE' ? 'bg-indigo-600' : 'bg-[#C82A2B]'
+                            }`}
                         >
                           <Check size={11} /> Save
                         </button>
@@ -2412,16 +2633,15 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                 }
 
                 return (
-                  <div 
-                    key={cat.id} 
+                  <div
+                    key={cat.id}
                     className="flex items-center justify-between p-3 rounded-2xl border border-zinc-150 bg-white hover:border-zinc-300 transition-colors shadow-xs"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`font-mono text-xs font-black px-2 py-1 rounded-lg ${
-                        manageCatTab === 'TRADE'
-                          ? 'text-indigo-600 bg-indigo-50 border border-indigo-100'
-                          : 'text-[#9E1B1D] bg-[#FFF1F1] border border-[#C82A2B]/20'
-                      }`}>
+                      <span className={`font-mono text-xs font-black px-2 py-1 rounded-lg ${manageCatTab === 'TRADE'
+                        ? 'text-indigo-600 bg-indigo-50 border border-indigo-100'
+                        : 'text-[#9E1B1D] bg-[#FFF1F1] border border-[#C82A2B]/20'
+                        }`}>
                         {cat.code_prefix}
                       </span>
                       <div>
@@ -2436,9 +2656,8 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
                       <button
                         type="button"
                         onClick={() => handleStartEditCat(cat)}
-                        className={`p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors cursor-pointer ${
-                          manageCatTab === 'TRADE' ? 'hover:text-indigo-600' : 'hover:text-[#9E1B1D]'
-                        }`}
+                        className={`p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors cursor-pointer ${manageCatTab === 'TRADE' ? 'hover:text-indigo-600' : 'hover:text-[#9E1B1D]'
+                          }`}
                         title="Edit Name & Prefix"
                       >
                         <Edit2 size={13} />
@@ -2490,13 +2709,13 @@ const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
               Are you sure you want to remove <span className="font-bold text-zinc-700">{deleteConfirm.item.name}</span>?
             </p>
             <div className="flex items-center justify-center gap-3">
-              <button 
+              <button
                 onClick={() => setDeleteConfirm({ isOpen: false, item: null })}
                 className="px-5 py-2 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-600 hover:bg-zinc-50 cursor-pointer"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleDeleteItem}
                 className="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-wider shadow-md cursor-pointer"
               >

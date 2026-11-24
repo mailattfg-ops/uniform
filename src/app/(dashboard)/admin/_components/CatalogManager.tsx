@@ -5,7 +5,8 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
-import { Plus, Edit2, Trash2, ArrowLeft, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowLeft, X, Maximize2, Copy, Check, ChevronLeft, ChevronRight, Box, Layers, Tag, Scissors, Sparkles, Building2, Store, FileText } from 'lucide-react';
+import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -340,6 +341,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     isOpen: false,
     id: null
   });
+  const [selectedItemForDetails, setSelectedItemForDetails] = useState<Item | null>(null);
+  const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -561,11 +566,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       accessor: (item: Item) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {item.image ? (
-              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
-            )}
+            {(() => {
+              const displayImg = item.image || parseImageGallery(item.images)[0];
+              return displayImg ? (
+                <img src={displayImg} alt={item.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
+              );
+            })()}
           </div>
           <div>
             <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
@@ -609,7 +617,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       accessor: (item) => (
         <div className="flex gap-2">
           <Button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setEditingItem(item);
               setView('edit');
             }}
@@ -620,7 +629,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             <Edit2 size={16} />
           </Button>
           <Button
-            onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteConfirm({ isOpen: true, id: item.id });
+            }}
             variant="secondary"
             className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
             title="Delete Item"
@@ -697,7 +709,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       accessor: (item) => (
         <div className="flex gap-2">
           <Button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setEditingItem(item);
               setView('edit');
             }}
@@ -707,7 +720,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             <Edit2 size={16} />
           </Button>
           <Button
-            onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteConfirm({ isOpen: true, id: item.id });
+            }}
             variant="secondary"
             className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
           >
@@ -1018,6 +1034,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
+        onRowClick={(item) => {
+          setSelectedItemForDetails(item);
+          setActiveDetailImageIndex(0);
+        }}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {type === 'fabrics' && (
@@ -1104,6 +1124,308 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
             )}
           </div>
         }
+      />
+
+      {/* Fabric / Item Details Modal */}
+      {selectedItemForDetails && (() => {
+        // Collect all images safely
+        const fabricImages = (() => {
+          const list = parseImageGallery(selectedItemForDetails.images);
+          if (selectedItemForDetails.image && typeof selectedItemForDetails.image === 'string' && selectedItemForDetails.image.trim()) {
+            const single = selectedItemForDetails.image.trim();
+            if (!list.includes(single)) {
+              list.unshift(single);
+            }
+          }
+          return list;
+        })();
+
+        const currentActiveImg = fabricImages[activeDetailImageIndex] || fabricImages[0];
+        const isFabric = type === 'fabrics';
+        const displayName = isFabric ? formatFabricDisplayName(selectedItemForDetails) : selectedItemForDetails.name;
+
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
+            onClick={() => setSelectedItemForDetails(null)}
+          >
+            <div
+              className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedItemForDetails.code && (
+                      <span className="px-3 py-1 bg-zinc-900 text-white rounded-xl text-xs font-black font-mono flex items-center gap-1.5 shadow-xs">
+                        <Tag size={12} className="text-zinc-400" />
+                        {selectedItemForDetails.code}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedItemForDetails.code);
+                            setCopiedCode(true);
+                            setTimeout(() => setCopiedCode(false), 2000);
+                          }}
+                          className="hover:text-amber-400 transition ml-0.5 cursor-pointer"
+                          title="Copy Code"
+                        >
+                          {copiedCode ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </span>
+                    )}
+                    {selectedItemForDetails.garment_category && (
+                      <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {selectedItemForDetails.garment_category}
+                      </span>
+                    )}
+                    {selectedItemForDetails.brand_type && (
+                      <span className="px-2.5 py-1 bg-teal-50 text-teal-800 border border-teal-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {selectedItemForDetails.brand_type}
+                      </span>
+                    )}
+                    {selectedItemForDetails.brand_name && (
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {selectedItemForDetails.brand_name}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+                    {displayName}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const item = selectedItemForDetails;
+                      setSelectedItemForDetails(null);
+                      setEditingItem(item);
+                      setView('edit');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  >
+                    <Edit2 size={13} />
+                    Edit {isFabric ? 'Fabric' : 'Item'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItemForDetails(null)}
+                    className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Photos */}
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="relative aspect-4/3 sm:aspect-square w-full rounded-2xl bg-zinc-50 border border-zinc-200/90 overflow-hidden flex items-center justify-center group shadow-inner">
+                      {currentActiveImg ? (
+                        <>
+                          <img
+                            src={currentActiveImg}
+                            alt={displayName}
+                            className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                            onClick={() => setIsLightboxOpen(true)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsLightboxOpen(true)}
+                            className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 hover:bg-black/90 text-white rounded-xl backdrop-blur-xs text-xs font-bold flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                            title="Click to Zoom / Enlarge"
+                          >
+                            <Maximize2 size={13} />
+                            <span className="text-[10px] font-black uppercase tracking-wider">Enlarge</span>
+                          </button>
+                          {fabricImages.length > 1 && (
+                            <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/60 text-white text-[10px] font-black uppercase tracking-wider rounded-lg backdrop-blur-xs">
+                              {activeDetailImageIndex + 1} / {fabricImages.length}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+                          <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mb-2">
+                            <Box size={32} />
+                          </div>
+                          <p className="text-xs font-bold text-zinc-600">No Image Available</p>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Edit this item to upload swatch or article photos</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Thumbnail Strip */}
+                    {fabricImages.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        {fabricImages.map((imgUrl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveDetailImageIndex(idx)}
+                            className={`w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
+                              activeDetailImageIndex === idx
+                                ? 'border-[#C82A2B] ring-2 ring-[#C82A2B]/20 shadow-sm scale-105'
+                                : 'border-zinc-200 opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Key Details & Specifications */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* Specification Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {isFabric ? (
+                        <>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Garment Category</span>
+                            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.garment_category || '—'}</span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Brand Type</span>
+                            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.brand_type || '—'}</span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Brand Name</span>
+                            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.brand_name || '—'}</span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Quality Name</span>
+                            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.quality || '—'}</span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Shade</span>
+                            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.shade || '—'}</span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Fabric Width</span>
+                            <span className="text-sm font-black text-[#2d8d9b] font-mono mt-0.5 block">
+                              {selectedItemForDetails.width ? `${selectedItemForDetails.width}"` : '—'}
+                            </span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Current Stock</span>
+                            <span className="text-sm font-black text-emerald-600 font-mono mt-0.5 block">
+                              {selectedItemForDetails.quantity !== null && selectedItemForDetails.quantity !== undefined
+                                ? `${Number(selectedItemForDetails.quantity).toFixed(2)} meters`
+                                : '0.00 meters'}
+                            </span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Latest SAM</span>
+                            <span className="text-sm font-bold text-zinc-900 font-mono mt-0.5 block">
+                              {selectedItemForDetails.latest_sam ? `${selectedItemForDetails.latest_sam}` : '—'}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Item Code</span>
+                            <span className="text-sm font-bold text-zinc-900 font-mono mt-0.5 block">{selectedItemForDetails.code || '—'}</span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Current Stock</span>
+                            <span className="text-sm font-black text-emerald-600 font-mono mt-0.5 block">
+                              {selectedItemForDetails.quantity ?? 0} {type === 'threads' ? 'spools' : 'pieces'}
+                            </span>
+                          </div>
+                          {selectedItemForDetails.type && (
+                            <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Type</span>
+                              <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.type}</span>
+                            </div>
+                          )}
+                          {selectedItemForDetails.unit_price !== null && selectedItemForDetails.unit_price !== undefined && (
+                            <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Unit Price</span>
+                              <span className="text-sm font-black text-zinc-900 font-mono mt-0.5 block">₹{Number(selectedItemForDetails.unit_price).toFixed(2)}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    {selectedItemForDetails.description && (
+                      <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-1.5">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
+                          <FileText size={13} className="text-[#C82A2B]" />
+                          Description & Notes
+                        </h4>
+                        <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                          {selectedItemForDetails.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Vendors & Suppliers */}
+                    {selectedItemForDetails.vendors && Array.isArray(selectedItemForDetails.vendors) && selectedItemForDetails.vendors.length > 0 && (
+                      <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-2">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-700 flex items-center gap-1.5">
+                          <Building2 size={13} className="text-zinc-500" />
+                          Associated Vendors ({selectedItemForDetails.vendors.length})
+                        </h4>
+                        <div className="divide-y divide-zinc-200/60 border border-zinc-200/60 rounded-xl overflow-hidden bg-white">
+                          {selectedItemForDetails.vendors.map((v: any, idx: number) => (
+                            <div key={v.id || idx} className="p-2.5 text-xs flex items-center justify-between gap-3">
+                              <div>
+                                <span className="font-bold text-zinc-800">{v.name || v.vendor_name || 'Vendor'}</span>
+                                {v.code && <span className="text-[10px] text-zinc-400 font-mono ml-2">[{v.code}]</span>}
+                              </div>
+                              {v.phone && <span className="text-[11px] text-zinc-500 font-mono">{v.phone}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 px-6 bg-zinc-50 border-t border-zinc-200 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedItemForDetails(null)}
+                  className="px-6 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Lightbox Viewer */}
+      <ZoomableImageLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={(() => {
+          if (!selectedItemForDetails) return [];
+          const list = parseImageGallery(selectedItemForDetails.images);
+          if (selectedItemForDetails.image && typeof selectedItemForDetails.image === 'string' && selectedItemForDetails.image.trim()) {
+            const single = selectedItemForDetails.image.trim();
+            if (!list.includes(single)) {
+              list.unshift(single);
+            }
+          }
+          return list;
+        })()}
+        initialIndex={activeDetailImageIndex}
+        title={selectedItemForDetails ? (type === 'fabrics' ? formatFabricDisplayName(selectedItemForDetails) : selectedItemForDetails.name) : ''}
       />
 
       <ConfirmModal

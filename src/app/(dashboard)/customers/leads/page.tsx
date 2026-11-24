@@ -116,6 +116,10 @@ export interface Lead {
   is_cold?: boolean;
   is_risk?: boolean | null;
   is_special?: boolean | null;
+  customer_activity?: 'Active' | 'Inactive' | null;
+  last_invoice_date?: string | null;
+  is_returning_customer?: boolean | null;
+  dormant_since?: string | null;
   origin?: string | null;
   organization_id?: number | null;
   organizations?: any;
@@ -150,6 +154,30 @@ export interface Zone {
   description?: string | null;
   is_active?: boolean;
   branches?: { id: number; name: string; code?: string | null } | null;
+}
+
+// Existing customers only: Active < 1 year since last invoice, Inactive after that
+export function CustomerActivityBadge({ lead }: { lead: Lead }) {
+  if (!lead.customer_activity) return null;
+  const inactive = lead.customer_activity === 'Inactive';
+  return (
+    <>
+      {lead.is_returning_customer && (
+        <span
+          title={lead.dormant_since ? `Returning customer: no invoice since ${formatDate(lead.dormant_since)}` : 'Returning customer'}
+          className="shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border-amber-200"
+        >
+          Returning
+        </span>
+      )}
+      <span
+        title={lead.last_invoice_date ? `Last invoice: ${formatDate(lead.last_invoice_date)}` : undefined}
+        className={`shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${inactive ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+      >
+        {lead.customer_activity}
+      </span>
+    </>
+  );
 }
 
 export interface LeadActivity {
@@ -757,9 +785,10 @@ export default function LeadsRegistryPage() {
               <CustomerRiskFavBadge 
                 isRisk={isRisk} 
                 isSpecial={isSpecial} 
-                customer={(l as any).organizations} 
-                size={18} 
+                customer={(l as any).organizations}
+                size={18}
               />
+              <CustomerActivityBadge lead={l} />
             </div>
             {industryName && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
@@ -3323,7 +3352,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 const isLeadOrFeed = lead.status === 'Feeds' || lead.status === 'Open Feeds' || lead.status === 'Contacted Leads' ||
                   ['Open Leads', 'New Leads', 'Sales Leads', 'Follow-ups', 'Meetings', 'Hot Leads'].includes(lead.status) || !lead.organization_id;
 
-                if (!isLeadOrFeed && lead.organization_id) {
+                if ((!isLeadOrFeed || lead.is_returning_customer) && lead.organization_id) {
                   return (
                     <button
                       type="button"

@@ -2,22 +2,30 @@
 import { Select } from '@/components/ui/Select';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { DataTable, Column, SortInfo, HeaderGroupItem } from '@/components/ui/DataTable';
+import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatCurrency, formatQuantity, formatDate } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
   FolderPlus,
   X,
   ArrowLeft,
-  RotateCcw
+  RotateCcw,
+  Maximize2,
+  Copy,
+  Check,
+  Box,
+  Tag,
+  Building2,
+  FileText
 } from 'lucide-react';
+import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
 
@@ -84,7 +92,7 @@ const VendorChecklistInput: React.FC<{
     loadVendors();
   }, []);
 
-  const selectedIds = (value || []).map(v => 
+  const selectedIds = (value || []).map(v =>
     typeof v === 'object' && v !== null ? (v.id || v.code) : v
   ).map(String);
 
@@ -128,7 +136,7 @@ const VendorChecklistInput: React.FC<{
 
       const res = await api.post('/vendors', payload);
       toast.success('Vendor registered successfully!', { id: loadingToast });
-      
+
       setCode('');
       setName('');
       setContactPerson('');
@@ -157,7 +165,7 @@ const VendorChecklistInput: React.FC<{
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Select Supplying Vendors</label>
-        <button 
+        <button
           type="button"
           onClick={() => setIsModalOpen(true)}
           className="text-[10px] font-black text-[#9E1B1D] hover:text-[#C82A2B] hover:underline uppercase tracking-wider transition-all cursor-pointer bg-transparent border-none outline-none"
@@ -173,15 +181,14 @@ const VendorChecklistInput: React.FC<{
           globalVendors.map(vendor => {
             const isChecked = selectedIds.includes(String(vendor.id));
             return (
-              <label 
+              <label
                 key={vendor.id}
-                className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none text-left ${
-                  isChecked 
-                    ? 'bg-[#FFF1F1] border-[#C82A2B] text-[#9E1B1D] font-bold shadow-2xs' 
-                    : 'bg-white border-zinc-200/80 hover:border-zinc-300 text-zinc-600'
-                }`}
+                className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none text-left ${isChecked
+                  ? 'bg-[#FFF1F1] border-[#C82A2B] text-[#9E1B1D] font-bold shadow-2xs'
+                  : 'bg-white border-zinc-200/80 hover:border-zinc-300 text-zinc-600'
+                  }`}
               >
-                <input 
+                <input
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => handleToggle(vendor.id)}
@@ -205,7 +212,7 @@ const VendorChecklistInput: React.FC<{
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200 relative space-y-4 overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
-            <button 
+            <button
               type="button"
               onClick={() => setIsModalOpen(false)}
               className="absolute top-5 right-5 text-zinc-400 hover:text-zinc-600 transition-colors"
@@ -219,70 +226,70 @@ const VendorChecklistInput: React.FC<{
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Company / Vendor Name *</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={e => setName(e.target.value)} 
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
                   placeholder="e.g. Apex Fasteners Ltd"
-                  className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                  className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Vendor Code</label>
-                  <input 
-                    type="text" 
-                    value={code} 
-                    onChange={e => setCode(e.target.value)} 
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
                     placeholder="e.g. V-001"
-                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Contact Person</label>
-                  <input 
-                    type="text" 
-                    value={contactPerson} 
-                    onChange={e => setContactPerson(e.target.value)} 
+                  <input
+                    type="text"
+                    value={contactPerson}
+                    onChange={e => setContactPerson(e.target.value)}
                     placeholder="e.g. Rahul"
-                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Phone</label>
-                  <input 
-                    type="text" 
-                    value={phone} 
-                    onChange={e => setPhone(e.target.value)} 
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
                     placeholder="+91..."
-                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">Email</label>
-                  <input 
-                    type="email" 
-                    value={email} 
-                    onChange={e => setEmail(e.target.value)} 
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                     placeholder="sales@..."
-                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   />
                 </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-3 border-t border-zinc-100">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="px-4 py-2 text-xs font-bold text-zinc-400 hover:text-zinc-600 uppercase tracking-wider"
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => handleRegisterVendor()}
                 disabled={isSaving}
                 className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer active:scale-95"
@@ -312,6 +319,10 @@ export default function TrimsCatalogPage() {
     isOpen: false,
     id: null
   });
+  const [selectedTrimForDetails, setSelectedTrimForDetails] = useState<TrimItem | null>(null);
+  const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // State for Add Category Modal
   const [newCatData, setNewCatData] = useState({
@@ -363,7 +374,7 @@ export default function TrimsCatalogPage() {
     setIsSavingCategory(true);
     const loadingToast = toast.loading('Creating trim category...');
     try {
-      const prefix = newCatData.code_prefix.trim().toUpperCase() || 
+      const prefix = newCatData.code_prefix.trim().toUpperCase() ||
         newCatData.name.trim().substring(0, 3).toUpperCase();
 
       await api.post('/inventory/trim-categories', {
@@ -396,7 +407,7 @@ export default function TrimsCatalogPage() {
         color: data.color?.trim() || null,
         shade_no: data.shade_no?.trim() || null,
         size: data.size?.trim() || null,
-        size_uom: data.size_uom?.trim() || null,
+        size_uom: null,
         quantity: data.quantity !== undefined && data.quantity !== '' ? parseFloat(data.quantity) : 0,
         uom: data.uom || 'Pcs',
         description: data.description?.trim() || null,
@@ -466,7 +477,9 @@ export default function TrimsCatalogPage() {
     const set = new Set<string>();
     trims.forEach(t => {
       if (t.size && t.size.trim()) {
-        const full = t.size_uom ? `${t.size.trim()} ${t.size_uom.trim()}` : t.size.trim();
+        const full = t.size_uom && !t.size.toLowerCase().includes(t.size_uom.toLowerCase())
+          ? `${t.size.trim()} ${t.size_uom.trim()}`
+          : t.size.trim();
         set.add(full);
       }
       const text = `${t.name} ${t.description || ''} ${t.type || ''}`;
@@ -477,7 +490,7 @@ export default function TrimsCatalogPage() {
       const matches = text.match(/\b(\d+(?:\.\d+)?(?:["']|L|mm|cm|m)\b|#\d+|XS|S|M|L|XL|2XL|3XL|4XL|Free Size)/gi);
       if (matches) {
         matches.forEach(m => {
-          if (m && isNaN(Number(m))) set.add(m.trim());
+          if (m && m.length <= 12) set.add(m);
         });
       }
     });
@@ -487,8 +500,8 @@ export default function TrimsCatalogPage() {
   const uniqueColours = useMemo(() => {
     const set = new Set<string>();
     const commonColors = [
-      'White', 'Black', 'Gold', 'Silver', 'Brass', 'Navy Blue', 'Navy', 
-      'Royal Blue', 'Sky Blue', 'Grey', 'Heather Grey', 'Maroon', 'Red', 
+      'White', 'Black', 'Gold', 'Silver', 'Brass', 'Navy Blue', 'Navy',
+      'Royal Blue', 'Sky Blue', 'Grey', 'Heather Grey', 'Maroon', 'Red',
       'Bottle Green', 'Green', 'Beige', 'Khaki', 'Yellow', 'Brown', 'Bronze', 'Rama Blue'
     ];
     trims.forEach(t => {
@@ -555,19 +568,32 @@ export default function TrimsCatalogPage() {
 
   const printTriggerRef = useRef<(() => void) | null>(null);
   const userReportTriggerRef = useRef<(() => void) | null>(null);
+  const getTrimFullName = (item: TrimItem) => {
+    const trimType = item.category?.name || item.type;
+    const brand = item.brand_name;
+    const name = item.name;
+    const spec = item.specification;
+    const col = item.color || extractTrimColor(item);
+    const shade = item.shade_no;
+    const sz = item.size ? (
+      item.size_uom && !item.size.toLowerCase().includes(item.size_uom.toLowerCase())
+        ? `${item.size} ${item.size_uom}`
+        : item.size
+    ) : (item.size_uom || '');
+
+    return [trimType, brand, name, spec, col, shade, sz]
+      .map(val => (val || '').trim())
+      .filter(val => val && val !== '—')
+      .join(' ');
+  };
+
   const handlePrintTrims = (sortedData?: TrimItem[], sortInfo?: SortInfo<TrimItem>) => {
     const dataToPrint = sortedData && sortedData.length > 0 ? sortedData : filteredTrims;
     const rowsHtml = dataToPrint.map((item, idx) => `
       <tr>
         <td style="border: 1px solid #ddd; padding: 6px; font-weight: bold; text-align: center;">${idx + 1}</td>
         <td style="border: 1px solid #ddd; padding: 6px; font-family: monospace; font-weight: 800; color: #9E1B1D;">${item.code || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 600;">${item.category?.name || item.type || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 600;">${item.brand_name || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 700;">${item.name || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px;">${item.specification || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${item.color || extractTrimColor(item) || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-family: monospace;">${item.shade_no || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 6px; font-family: monospace;">${item.size ? `${item.size}${item.size_uom ? ` ${item.size_uom}` : ''}` : '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-weight: 700;">${getTrimFullName(item) || item.name || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 6px;">${item.description || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: 700; font-family: monospace;">${formatQuantity(item.quantity)}</td>
         <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: 600;">${item.uom || '—'}</td>
@@ -599,13 +625,7 @@ export default function TrimsCatalogPage() {
       <tr>
         <th style="width: 30px; text-align: center;">#</th>
         <th>Trim No.</th>
-        <th>Trim Type</th>
-        <th>Brand Name</th>
         <th>Item Name</th>
-        <th>Specification</th>
-        <th>Colour</th>
-        <th>Shade No.</th>
-        <th>Size</th>
         <th>Description</th>
         <th style="text-align: right;">Quantity</th>
         <th style="text-align: center;">UOM</th>
@@ -613,7 +633,7 @@ export default function TrimsCatalogPage() {
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="13" style="text-align:center; padding: 20px;">No trims found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="7" style="text-align:center; padding: 20px;">No trims found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -630,98 +650,34 @@ export default function TrimsCatalogPage() {
     }
   };
 
-  // Columns styled identically to Fabric CatalogManager
-  const headerGroups: HeaderGroupItem[] = [
-    { header: 'TRIM NO.', colSpan: 1 },
-    { header: 'ITEM NAME', colSpan: 7, className: 'bg-[#FEF08A]/75 text-zinc-900 border-[#FACC15] font-black tracking-widest' },
-    { header: 'DESCRIPTION', colSpan: 1 },
-    { header: 'QUANTITY', colSpan: 1 },
-    { header: 'UOM', colSpan: 1 },
-    { header: 'RATE', colSpan: 1 },
-    { header: 'ACTION', colSpan: 1 }
-  ];
-
   const columns: Column<TrimItem>[] = [
-    { 
-      header: 'Trim No.', 
-      accessor: 'code', 
+    {
+      header: 'Trim No.',
+      accessor: 'code',
       className: 'font-black text-[#9E1B1D]',
       sortValue: (item) => item.code
     },
     {
-      header: 'Trim Type',
-      accessor: ((item: TrimItem) => (
-        <span className="font-bold text-xs text-zinc-800">
-          {item.category?.name || item.type || '—'}
-        </span>
-      )) as any,
-      sortValue: (item) => item.category?.name || item.type || ''
-    },
-    {
-      header: 'Brand Name',
-      accessor: ((item: TrimItem) => (
-        <span className="font-semibold text-xs text-zinc-700">
-          {item.brand_name || '—'}
-        </span>
-      )) as any,
-      sortValue: (item) => item.brand_name || ''
-    },
-    { 
-      header: 'Item Name', 
-      accessor: ((item: TrimItem) => (
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-150 flex items-center justify-center overflow-hidden shrink-0">
-            {item.images && item.images.length > 0 ? (
-              <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-[8px] text-zinc-300 font-bold uppercase">No Img</span>
-            )}
-          </div>
-          <div>
-            <p className="font-bold text-xs text-zinc-900">{item.name}</p>
-          </div>
-        </div>
-      )) as any,
-      sortValue: (item) => item.name
-    },
-    {
-      header: 'Specification',
-      accessor: ((item: TrimItem) => (
-        <span className="text-xs text-zinc-600 font-mono">
-          {item.specification || '—'}
-        </span>
-      )) as any,
-      sortValue: (item) => item.specification || ''
-    },
-    {
-      header: 'Colour',
+      header: 'Item Name',
       accessor: ((item: TrimItem) => {
-        const col = item.color || extractTrimColor(item);
-        return col ? (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 font-bold text-xs">
-            <span className="w-2 h-2 rounded-full border border-black/20" style={{ backgroundColor: col.toLowerCase() }} />
-            {col}
-          </span>
-        ) : <span className="text-zinc-400 text-xs">—</span>;
+        const fullName = getTrimFullName(item);
+        const itemImgs = parseImageGallery(item.images);
+        return (
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-150 flex items-center justify-center overflow-hidden shrink-0">
+              {itemImgs.length > 0 ? (
+                <img src={itemImgs[0]} alt={fullName || item.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[8px] text-zinc-300 font-bold uppercase">No Img</span>
+              )}
+            </div>
+            <div>
+              <p className="font-bold text-xs text-zinc-900">{fullName || item.name || '—'}</p>
+            </div>
+          </div>
+        );
       }) as any,
-      sortValue: (item) => item.color || extractTrimColor(item) || ''
-    },
-    {
-      header: 'Shade No.',
-      accessor: ((item: TrimItem) => (
-        <span className="text-xs font-mono font-medium text-zinc-600">
-          {item.shade_no || '—'}
-        </span>
-      )) as any,
-      sortValue: (item) => item.shade_no || ''
-    },
-    {
-      header: 'Size',
-      accessor: ((item: TrimItem) => {
-        const sz = item.size ? `${item.size}${item.size_uom ? ` ${item.size_uom}` : ''}` : '—';
-        return <span className="font-bold text-xs text-zinc-800 font-mono">{sz}</span>;
-      }) as any,
-      sortValue: (item) => item.size || ''
+      sortValue: (item) => getTrimFullName(item) || item.name
     },
     {
       header: 'Description',
@@ -761,7 +717,8 @@ export default function TrimsCatalogPage() {
       accessor: ((item: TrimItem) => (
         <div className="flex items-center gap-1.5">
           <Button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setEditingItem(item);
               setView('edit');
             }}
@@ -772,7 +729,10 @@ export default function TrimsCatalogPage() {
             <Edit2 size={14} />
           </Button>
           <Button
-            onClick={() => setDeleteConfirm({ isOpen: true, id: item.id })}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteConfirm({ isOpen: true, id: item.id });
+            }}
             variant="secondary"
             className="!p-0 h-8 w-8 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-xs p-0 border-none cursor-pointer"
             title="Delete Trim"
@@ -784,7 +744,7 @@ export default function TrimsCatalogPage() {
       className: 'w-24'
     }
   ];
-// View: Add or Edit Form matching Fabric CatalogManager
+  // View: Add or Edit Form matching Fabric CatalogManager
   if (view !== 'list') {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
@@ -800,7 +760,7 @@ export default function TrimsCatalogPage() {
           Back to List
         </Button>
 
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <DynamicForm
             title={editingItem ? 'Edit Trim Article' : 'Add New Trim Article'}
             fields={[
@@ -829,12 +789,22 @@ export default function TrimsCatalogPage() {
                 allowSpecialCharacters: true
               },
               {
+                name: 'brand_name',
+                label: 'Brand Name',
+                type: 'text',
+                required: false,
+                placeholder: 'e.g. YKK, Coats, Madura, Prym',
+                defaultValue: editingItem?.brand_name || '',
+                allowSpecialCharacters: true
+              },
+              {
                 name: 'name',
                 label: 'Trim Name',
                 type: 'text',
                 required: true,
-                placeholder: 'e.g. YKK Brass Zipper 7", 24L Pearl Button, 40/2 Spun Poly Thread',
-                defaultValue: editingItem?.name || ''
+                placeholder: 'e.g. Brass Zipper, Pearl Button, Spun Poly Thread',
+                defaultValue: editingItem?.name || '',
+                allowSpecialCharacters: true
               },
               {
                 name: 'type',
@@ -842,16 +812,58 @@ export default function TrimsCatalogPage() {
                 type: 'text',
                 required: false,
                 placeholder: 'e.g. Polyester, Brass, Resin, Nylon, Cotton',
-                defaultValue: editingItem?.type || ''
+                defaultValue: editingItem?.type || '',
+                allowSpecialCharacters: true
+              },
+              {
+                name: 'specification',
+                label: 'Specification',
+                type: 'text',
+                required: false,
+                placeholder: 'e.g. Auto Lock, 4-Hole Rimmed, 3-Ply High Tenacity',
+                defaultValue: editingItem?.specification || '',
+                allowSpecialCharacters: true
+              },
+              {
+                name: 'color',
+                label: 'Colour',
+                type: 'text',
+                required: false,
+                placeholder: 'e.g. Navy Blue, White, Antique Brass, Jet Black',
+                defaultValue: editingItem?.color || '',
+                allowSpecialCharacters: true
+              },
+              {
+                name: 'shade_no',
+                label: 'Shade No.',
+                type: 'text',
+                required: false,
+                placeholder: 'e.g. SH-402, 001, D-12',
+                defaultValue: editingItem?.shade_no || '',
+                allowSpecialCharacters: true
+              },
+              {
+                name: 'size',
+                label: 'Size / Dimension',
+                type: 'text',
+                required: false,
+                placeholder: 'e.g. 7", 24L, 32L, #5, 40/2, 25mm',
+                defaultValue: editingItem?.size ? (
+                  editingItem?.size_uom && !editingItem.size.toLowerCase().includes(editingItem.size_uom.toLowerCase())
+                    ? `${editingItem.size} ${editingItem.size_uom}`
+                    : editingItem.size
+                ) : (editingItem?.size_uom || ''),
+                allowSpecialCharacters: true
               },
               {
                 name: 'uom',
-                label: 'Unit of Measure (UOM)',
+                label: 'Inventory Unit (UOM)',
                 type: 'select',
                 required: true,
                 options: [
                   { label: 'Pcs (Pieces)', value: 'Pcs' },
                   { label: 'Spools', value: 'Spools' },
+                  { label: 'Cones', value: 'Cones' },
                   { label: 'Meters', value: 'Meters' },
                   { label: 'Gross (144 pcs)', value: 'Gross' },
                   { label: 'Sets', value: 'Sets' },
@@ -861,8 +873,16 @@ export default function TrimsCatalogPage() {
                 defaultValue: editingItem?.uom || 'Pcs'
               },
               {
+                name: 'quantity',
+                label: 'Current Stock Quantity',
+                type: 'number',
+                step: 'any',
+                placeholder: '0',
+                defaultValue: editingItem?.quantity !== null && editingItem?.quantity !== undefined ? String(editingItem.quantity) : '0'
+              },
+              {
                 name: 'unit_price',
-                label: 'Unit Price (₹)',
+                label: 'Unit Price / Rate (₹)',
                 type: 'number',
                 step: 'any',
                 placeholder: '0.00',
@@ -878,9 +898,10 @@ export default function TrimsCatalogPage() {
               },
               {
                 name: 'description',
-                label: 'Trim Specification / Remarks',
+                label: 'Additional Remarks / Notes',
                 type: 'textarea',
-                placeholder: 'Detailed specifications, size (e.g. 24L, 32L, #5), tensile strength, color shade code...',
+                className: 'md:col-span-2',
+                placeholder: 'Optional storage location, vendor part references, packaging details...',
                 defaultValue: editingItem?.description || ''
               },
               {
@@ -889,6 +910,7 @@ export default function TrimsCatalogPage() {
                 type: 'image-upload',
                 maxImages: 5,
                 uploadLabel: 'Upload Trim Images',
+                className: 'md:col-span-2',
                 defaultValue: editingItem?.images || []
               },
               {
@@ -964,78 +986,8 @@ export default function TrimsCatalogPage() {
           </div>
         </div>
 
-        {/* Yellow Filter Toolbar matching spreadsheet plan */}
-        <div className="relative z-20 bg-[#FEF08A]/75 border-2 border-[#FACC15] rounded-2xl p-3 md:px-5 md:py-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-zinc-900 shrink-0">
-            <span className="px-3 py-1 bg-[#FACC15] text-zinc-950 font-black text-xs uppercase tracking-widest rounded-lg shadow-2xs">
-              FILTER
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-            {/* Category Filter */}
-            <FilterDropdown
-              label="Categories"
-              allLabel={`All Categories (${trims.length})`}
-              value={selectedCategoryId}
-              onChange={setSelectedCategoryId}
-              options={categories.map(c => ({
-                label: c.name,
-                value: c.id,
-                badge: trims.filter(t => t.category_id === c.id).length
-              }))}
-              maxWidth="max-w-[190px]"
-            />
-
-            {/* Brand Filter */}
-            <FilterDropdown
-              label="Brand Name"
-              allLabel="All Brands"
-              value={filterBrand}
-              onChange={setFilterBrand}
-              options={uniqueBrands}
-              maxWidth="max-w-[190px]"
-            />
-
-            {/* Colour Filter */}
-            <FilterDropdown
-              label="Colour"
-              allLabel="All Colours"
-              value={filterColour}
-              onChange={setFilterColour}
-              options={uniqueColours}
-              maxWidth="max-w-[190px]"
-            />
-
-            {/* Size Filter */}
-            <FilterDropdown
-              label="Size"
-              allLabel="All Sizes"
-              value={filterSize}
-              onChange={setFilterSize}
-              options={uniqueSizes}
-              maxWidth="max-w-[190px]"
-            />
-
-            {(selectedCategoryId !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategoryId('ALL');
-                  setFilterBrand('ALL');
-                  setFilterColour('ALL');
-                  setFilterSize('ALL');
-                }}
-                className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold rounded-xl border border-red-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-              >
-                <RotateCcw size={12} />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
-        </div>
-
+        {/* Table Content */}
         <DataTable
-          headerGroups={headerGroups}
           columns={columns}
           data={filteredTrims}
           isLoading={isLoading}
@@ -1045,8 +997,331 @@ export default function TrimsCatalogPage() {
           hideTablePrint={true}
           printTriggerRef={printTriggerRef}
           userReportTriggerRef={userReportTriggerRef}
+          onRowClick={(trim) => {
+            setSelectedTrimForDetails(trim);
+            setActiveDetailImageIndex(0);
+          }}
+          headerAction={
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Category Filter */}
+              <FilterDropdown
+                label="Category"
+                allLabel={`All Categories (${trims.length})`}
+                value={selectedCategoryId}
+                onChange={setSelectedCategoryId}
+                options={categories.map(c => ({
+                  label: c.name,
+                  value: c.id,
+                  badge: trims.filter(t => t.category_id === c.id).length
+                }))}
+              />
+
+              {/* Brand Filter */}
+              <FilterDropdown
+                label="Brand"
+                allLabel="All Brands"
+                value={filterBrand}
+                onChange={setFilterBrand}
+                options={uniqueBrands}
+              />
+
+              {/* Colour Filter */}
+              <FilterDropdown
+                label="Colour"
+                allLabel="All Colours"
+                value={filterColour}
+                onChange={setFilterColour}
+                options={uniqueColours}
+              />
+
+              {/* Size Filter */}
+              <FilterDropdown
+                label="Size"
+                allLabel="All Sizes"
+                value={filterSize}
+                onChange={setFilterSize}
+                options={uniqueSizes}
+              />
+
+              {(selectedCategoryId !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategoryId('ALL');
+                    setFilterBrand('ALL');
+                    setFilterColour('ALL');
+                    setFilterSize('ALL');
+                  }}
+                  className="px-2.5 py-1.5 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold rounded-xl border border-red-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <RotateCcw size={12} />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          }
         />
       </div>
+
+      {/* Trim Article Details Modal */}
+      {selectedTrimForDetails && (() => {
+        const trimImages = parseImageGallery(selectedTrimForDetails.images);
+        const currentActiveImg = trimImages[activeDetailImageIndex] || trimImages[0];
+        const fullName = getTrimFullName(selectedTrimForDetails) || selectedTrimForDetails.name;
+        const categoryName = categories.find(c => c.id === selectedTrimForDetails.category_id)?.name || selectedTrimForDetails.category?.name;
+
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
+            onClick={() => setSelectedTrimForDetails(null)}
+          >
+            <div
+              className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedTrimForDetails.code && (
+                      <span className="px-3 py-1 bg-zinc-900 text-white rounded-xl text-xs font-black font-mono flex items-center gap-1.5 shadow-xs">
+                        <Tag size={12} className="text-zinc-400" />
+                        {selectedTrimForDetails.code}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedTrimForDetails.code);
+                            setCopiedCode(true);
+                            setTimeout(() => setCopiedCode(false), 2000);
+                          }}
+                          className="hover:text-amber-400 transition ml-0.5 cursor-pointer"
+                          title="Copy Code"
+                        >
+                          {copiedCode ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </span>
+                    )}
+                    {categoryName && (
+                      <span className="px-2.5 py-1 bg-[#C82A2B]/10 text-[#9E1B1D] border border-[#C82A2B]/20 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {categoryName}
+                      </span>
+                    )}
+                    {selectedTrimForDetails.brand_name && (
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {selectedTrimForDetails.brand_name}
+                      </span>
+                    )}
+                    {selectedTrimForDetails.type && (
+                      <span className="px-2.5 py-1 bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        {selectedTrimForDetails.type}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+                    {fullName}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const item = selectedTrimForDetails;
+                      setSelectedTrimForDetails(null);
+                      setEditingItem(item);
+                      setView('edit');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  >
+                    <Edit2 size={13} />
+                    Edit Trim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTrimForDetails(null)}
+                    className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Photos */}
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="relative aspect-4/3 sm:aspect-square w-full rounded-2xl bg-zinc-50 border border-zinc-200/90 overflow-hidden flex items-center justify-center group shadow-inner">
+                      {currentActiveImg ? (
+                        <>
+                          <img
+                            src={currentActiveImg}
+                            alt={fullName}
+                            className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                            onClick={() => setIsLightboxOpen(true)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsLightboxOpen(true)}
+                            className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 hover:bg-black/90 text-white rounded-xl backdrop-blur-xs text-xs font-bold flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                            title="Click to Zoom / Enlarge"
+                          >
+                            <Maximize2 size={13} />
+                            <span className="text-[10px] font-black uppercase tracking-wider">Enlarge</span>
+                          </button>
+                          {trimImages.length > 1 && (
+                            <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/60 text-white text-[10px] font-black uppercase tracking-wider rounded-lg backdrop-blur-xs">
+                              {activeDetailImageIndex + 1} / {trimImages.length}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+                          <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mb-2">
+                            <Box size={32} />
+                          </div>
+                          <p className="text-xs font-bold text-zinc-600">No Image Available</p>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Edit this trim to upload sample photos</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Thumbnail Strip */}
+                    {trimImages.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        {trimImages.map((imgUrl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveDetailImageIndex(idx)}
+                            className={`w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
+                              activeDetailImageIndex === idx
+                                ? 'border-[#C82A2B] ring-2 ring-[#C82A2B]/20 shadow-sm scale-105'
+                                : 'border-zinc-200 opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Key Details & Specifications */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* Specification Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Trim Number</span>
+                        <span className="text-sm font-black text-[#9E1B1D] font-mono mt-0.5 block">{selectedTrimForDetails.code || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Category</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{categoryName || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Brand</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedTrimForDetails.brand_name || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Trim Type</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedTrimForDetails.type || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Specification</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedTrimForDetails.specification || '—'}</span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Colour / Shade No.</span>
+                        <span className="text-sm font-bold text-zinc-900 mt-0.5 block">
+                          {[selectedTrimForDetails.color, selectedTrimForDetails.shade_no ? `Shade: ${selectedTrimForDetails.shade_no}` : null].filter(Boolean).join(' • ') || '—'}
+                        </span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Size</span>
+                        <span className="text-sm font-black text-zinc-900 font-mono mt-0.5 block">
+                          {selectedTrimForDetails.size ? (
+                            selectedTrimForDetails.size_uom && !selectedTrimForDetails.size.toLowerCase().includes(selectedTrimForDetails.size_uom.toLowerCase())
+                              ? `${selectedTrimForDetails.size} ${selectedTrimForDetails.size_uom}`
+                              : selectedTrimForDetails.size
+                          ) : (selectedTrimForDetails.size_uom || '—')}
+                        </span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Rate / Unit Price</span>
+                        <span className="text-sm font-black text-zinc-900 font-mono mt-0.5 block">
+                          {selectedTrimForDetails.unit_price ? formatCurrency(selectedTrimForDetails.unit_price) : '—'}
+                        </span>
+                      </div>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 col-span-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Current Stock</span>
+                        <span className="text-sm font-black text-emerald-600 font-mono mt-0.5 block">
+                          {formatQuantity(selectedTrimForDetails.quantity)} {selectedTrimForDetails.uom || 'Pcs'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {selectedTrimForDetails.description && (
+                      <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-1.5">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
+                          <FileText size={13} className="text-[#C82A2B]" />
+                          Description & Notes
+                        </h4>
+                        <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                          {selectedTrimForDetails.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Vendors & Suppliers */}
+                    {selectedTrimForDetails.vendors && Array.isArray(selectedTrimForDetails.vendors) && selectedTrimForDetails.vendors.length > 0 && (
+                      <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-2">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-700 flex items-center gap-1.5">
+                          <Building2 size={13} className="text-zinc-500" />
+                          Associated Vendors ({selectedTrimForDetails.vendors.length})
+                        </h4>
+                        <div className="divide-y divide-zinc-200/60 border border-zinc-200/60 rounded-xl overflow-hidden bg-white">
+                          {selectedTrimForDetails.vendors.map((v: any, idx: number) => (
+                            <div key={v.id || idx} className="p-2.5 text-xs flex items-center justify-between gap-3">
+                              <div>
+                                <span className="font-bold text-zinc-800">{v.name || v.vendor_name || 'Vendor'}</span>
+                                {v.code && <span className="text-[10px] text-zinc-400 font-mono ml-2">[{v.code}]</span>}
+                              </div>
+                              {v.phone && <span className="text-[11px] text-zinc-500 font-mono">{v.phone}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 px-6 bg-zinc-50 border-t border-zinc-200 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrimForDetails(null)}
+                  className="px-6 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Lightbox Viewer */}
+      <ZoomableImageLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={selectedTrimForDetails?.images || []}
+        initialIndex={activeDetailImageIndex}
+        title={selectedTrimForDetails ? (getTrimFullName(selectedTrimForDetails) || selectedTrimForDetails.name) : ''}
+      />
 
       {/* Delete Item Confirmation Modal */}
       <ConfirmModal
@@ -1062,7 +1337,7 @@ export default function TrimsCatalogPage() {
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200 relative space-y-4 overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
-            <button 
+            <button
               type="button"
               onClick={() => setIsCategoryModalOpen(false)}
               className="absolute top-5 right-5 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer"
@@ -1079,12 +1354,12 @@ export default function TrimsCatalogPage() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                   Category Name *
                 </label>
-                <input 
-                  type="text" 
-                  value={newCatData.name} 
-                  onChange={e => setNewCatData(prev => ({ ...prev, name: e.target.value }))} 
+                <input
+                  type="text"
+                  value={newCatData.name}
+                  onChange={e => setNewCatData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. Elastic, Metal Buckles, Hang Tags"
-                  className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                  className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   required
                 />
               </div>
@@ -1094,13 +1369,13 @@ export default function TrimsCatalogPage() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                     Code Prefix
                   </label>
-                  <input 
-                    type="text" 
-                    value={newCatData.code_prefix} 
-                    onChange={e => setNewCatData(prev => ({ ...prev, code_prefix: e.target.value.toUpperCase() }))} 
+                  <input
+                    type="text"
+                    value={newCatData.code_prefix}
+                    onChange={e => setNewCatData(prev => ({ ...prev, code_prefix: e.target.value.toUpperCase() }))}
                     placeholder="e.g. ELA, BCK"
                     maxLength={5}
-                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none uppercase" 
+                    className="w-full text-xs font-bold text-zinc-900 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none uppercase"
                   />
                 </div>
                 <div>
@@ -1123,15 +1398,15 @@ export default function TrimsCatalogPage() {
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-zinc-100">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsCategoryModalOpen(false)}
                   className="px-4 py-2 text-xs font-bold text-zinc-400 hover:text-zinc-600 uppercase tracking-wider cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isSavingCategory}
                   className="px-6 py-2.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer active:scale-95"
                 >
