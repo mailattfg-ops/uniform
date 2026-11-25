@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
-import { formatSpecificationDisplay } from '@/lib/formatters';
-import { 
-  Box, 
-  AlertTriangle, 
-  XCircle, 
-  ShieldCheck, 
-  Search, 
-  Plus, 
-  Loader2, 
-Layers,
-  SlidersHorizontal
-} from 'lucide-react';
+import { Loader2, SlidersHorizontal } from 'lucide-react';
+import { DataTable, Column } from '@/components/ui/DataTable';
+import { FilterDropdown } from '@/components/ui/FilterDropdown';
+// Shared with the Readymades Items table (/admin/products) so names and type resolution match exactly
+import { getProductDisplayName, parseMaterialsField as parseProductMaterials } from '@/app/(dashboard)/admin/products/page';
+
+type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+const STATUS_META: Record<StockStatus, { label: string; pill: string; text: string; row: string }> = {
+  IN_STOCK: { label: 'In Stock', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-600', row: '' },
+  LOW_STOCK: { label: 'Low Stock', pill: 'bg-amber-50 text-amber-700 border-amber-200', text: 'text-amber-600', row: 'bg-amber-50/30' },
+  OUT_OF_STOCK: { label: 'Out of Stock', pill: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-600', row: 'bg-rose-50/30' },
+};
 
 interface StockRecord {
   id: number;
@@ -37,11 +37,40 @@ interface Product {
   name: string;
   art_number: string;
   gender: string;
+  category?: string;
   materials: string;
   base_size?: string | null;
+  item_id?: number | string | null;
+  specification_id?: number | string | null;
+  product_type_id?: number | string | null;
   product_types?: ProductType;
   stocks: StockRecord[];
 }
+
+// Mirrors the Items table's parseArtNumber item-code resolution (only the item code is needed for filtering)
+const parseArtItemCode = (artNumber: string, dresses: any[] = [], genders: any[] = []): string => {
+  if (!artNumber) return '';
+  const parts = artNumber.split('-');
+  if (parts.length === 3) {
+    const rawItem = parts[0];
+    if ((dresses || []).find(d => d.code === rawItem)) return rawItem;
+    const match = rawItem.match(/^([0-9a-zA-Z]+?)([A-Za-z])$/);
+    return match ? match[1] : rawItem;
+  }
+  if (parts.length === 2) {
+    if (dresses.some(d => d.code === parts[0])) {
+      for (const g of genders) {
+        if (parts[1].startsWith(g.code)) return parts[0];
+      }
+    }
+    for (const dress of dresses) {
+      if (parts[1].startsWith(dress.code)) return dress.code;
+    }
+  }
+  return '';
+};
+
+const ITEM_FALLBACK_NAMES: Record<string, string> = { '1': 'Shirt', '2': 'Trouser', '3': 'Blazer', '4': 'T-Shirt', '5': 'Skirt' };
 
 const parseMaterialsField = (rawText: string | undefined | null) => {
   if (!rawText) return { type: '', materials: '' };
@@ -54,9 +83,16 @@ const parseMaterialsField = (rawText: string | undefined | null) => {
 export default function ProductStockPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'IN_STOCK'>('ALL');
-  
+  const [filterGender, setFilterGender] = useState<string>('ALL');
+  const [filterDress, setFilterDress] = useState<string>('ALL');
+  const [filterGarmentType, setFilterGarmentType] = useState<string>('ALL');
+
+  // Master data used by the Items table's name formatter and filters
+  const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [dresses, setDresses] = useState<any[]>([]);
+  const [genders, setGenders] = useState<any[]>([]);
+
   // Modal states
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
@@ -66,14 +102,6 @@ export default function ProductStockPage() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessoryAdjustments, setAccessoryAdjustments] = useState<Record<string, { quantity_delta: number; low_stock_threshold: number }>>({});
-
-  // Stats states
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    lowStockCount: 0,
-    outOfStockCount: 0,
-    totalReserved: 0
-  });
 
   const fetchStockData = async () => {
     setIsLoading(true);
@@ -89,7 +117,6 @@ export default function ProductStockPage() {
         return isTrade && !isAccessory;
       });
       setProducts(tradeProducts);
-      calculateStats(tradeProducts);
     } catch (err: any) {
       console.error(err);
       toast.error('Failed to load readymade trade stock catalog.');
@@ -98,36 +125,17 @@ export default function ProductStockPage() {
     }
   };
 
-  const calculateStats = (productList: Product[]) => {
-    let lowStock = 0;
-    let outOfStock = 0;
-    let reserved = 0;
-
-    productList.forEach(prod => {
-      const stock = prod.stocks?.find(s => s.size === 'M') || prod.stocks?.[0];
-      if (!stock) {
-        outOfStock++;
-      } else {
-        const available = stock.quantity - stock.reserved_quantity;
-        if (available <= 0) {
-          outOfStock++;
-        } else if (available <= stock.low_stock_threshold) {
-          lowStock++;
-        }
-        reserved += stock.reserved_quantity || 0;
-      }
-    });
-
-    setStats({
-      totalProducts: productList.length,
-      lowStockCount: lowStock,
-      outOfStockCount: outOfStock,
-      totalReserved: reserved
-    });
-  };
-
   useEffect(() => {
     fetchStockData();
+    // Loaded the same way as the Items table (failures fall back to empty lists)
+    Promise.all([
+      api.get('/product-types').catch(() => ({ data: [] })),
+      api.get('/art-number-hub/master-data').catch(() => ({ data: { dresses: [], genders: [] } })),
+    ]).then(([typeRes, masterHubRes]: any[]) => {
+      setProductTypes(typeRes.data || []);
+      setDresses(masterHubRes.data?.items || masterHubRes.data?.dresses || []);
+      setGenders(masterHubRes.data?.genders || []);
+    });
   }, []);
 
   const handleOpenProductAdjust = (product: Product, size: string, stockRecord?: StockRecord) => {
@@ -213,322 +221,234 @@ export default function ProductStockPage() {
     }
   };
 
-  // Filter & Search logic
-  const filteredProducts = React.useMemo(() => {
-    return products.filter(prod => {
-      const matchesSearch = 
-        prod.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        prod.art_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (prod.product_types?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+  // Readymade trade stock is tracked on the standard size (M), falling back to the first record
+  const getStockInfo = (prod: Product) => {
+    const s = prod.stocks?.find(st => st.size === 'M') || prod.stocks?.[0];
+    const physical = s?.quantity ?? 0;
+    const reserved = s?.reserved_quantity ?? 0;
+    const threshold = s?.low_stock_threshold ?? 5;
+    const available = physical - reserved;
+    const status: StockStatus = !s || available <= 0 ? 'OUT_OF_STOCK' : available <= threshold ? 'LOW_STOCK' : 'IN_STOCK';
+    return { record: s, size: s?.size || 'M', physical, reserved, threshold, available, status };
+  };
 
-      if (!matchesSearch) return false;
+  const statusCounts = React.useMemo(() => {
+    const c = { IN_STOCK: 0, LOW_STOCK: 0, OUT_OF_STOCK: 0 };
+    products.forEach(p => { c[getStockInfo(p).status]++; });
+    return c;
+  }, [products]);
 
-      if (filterStatus === 'ALL') return true;
+  // Same garment type resolution as the Items table
+  const getResolvedProductTypeName = (product: Product) => {
+    if (product.product_types?.name) return product.product_types.name;
+    if (product.product_type_id) {
+      const pt = productTypes.find(t => String(t.id) === String(product.product_type_id));
+      if (pt) return pt.name;
+    }
+    const parsed = parseProductMaterials(product.materials);
+    if (parsed.type) return parsed.type;
+    return product.category ? product.category.replace(/_/g, ' ') : '—';
+  };
 
-      const stock = prod.stocks?.find(s => s.size === 'M') || prod.stocks?.[0];
+  // Items table filter options: Gender, Item, Garment Type
+  const uniqueGenders = useMemo(() => {
+    const set = new Set<string>();
+    (genders || []).forEach(g => { if (g.name) set.add(g.name); });
+    (products || []).forEach(p => { if (p.gender) set.add(p.gender); });
+    return Array.from(set).sort();
+  }, [genders, products]);
 
-      if (filterStatus === 'OUT_OF_STOCK') {
-        if (!stock) return true;
-        return (stock.quantity - stock.reserved_quantity) <= 0;
-      }
-
-      if (filterStatus === 'LOW_STOCK') {
-        if (!stock) return false;
-        const avail = stock.quantity - stock.reserved_quantity;
-        return avail > 0 && avail <= stock.low_stock_threshold;
-      }
-
-      if (filterStatus === 'IN_STOCK') {
-        if (!stock) return false;
-        return (stock.quantity - stock.reserved_quantity) > stock.low_stock_threshold;
-      }
-
-      return true;
+  const uniqueItemOptions = useMemo(() => {
+    const formatItemTitle = (name: string) => {
+      if (!name) return '';
+      const trimmed = name.trim();
+      if (trimmed.toUpperCase() === 'T-SHIRT') return 'T-Shirt';
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    };
+    const map = new Map<string, { code: string; name: string }>();
+    (dresses || []).forEach(d => {
+      const code = String(d.code || '').trim();
+      if (!code) return;
+      map.set(code, { code, name: formatItemTitle(d.name || code) });
     });
-  }, [products, searchTerm, filterStatus]);
+    (products || []).forEach(p => {
+      const itemCode = parseArtItemCode(p.art_number || '', dresses, genders);
+      if (itemCode && !map.has(itemCode)) {
+        map.set(itemCode, { code: itemCode, name: formatItemTitle(ITEM_FALLBACK_NAMES[itemCode] || itemCode) });
+      }
+    });
+    return Array.from(map.values())
+      .map(item => ({ label: item.name, value: item.code }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [dresses, products, genders]);
+
+  const uniqueGarmentTypes = useMemo(() => {
+    const set = new Set<string>();
+    (productTypes || []).forEach(pt => { if (pt.name) set.add(pt.name); });
+    (products || []).forEach(p => {
+      const typeName = getResolvedProductTypeName(p);
+      if (typeName && typeName !== '—') set.add(typeName);
+    });
+    return Array.from(set).sort();
+  }, [productTypes, products]);
+
+  const filteredProducts = useMemo(() => products.filter(p => {
+    if (filterStatus !== 'ALL' && getStockInfo(p).status !== filterStatus) return false;
+
+    if (filterGender !== 'ALL') {
+      const targetGender = filterGender.toLowerCase();
+      const pGender = (p.gender || '').toLowerCase();
+      const matchedGenderObj = (genders || []).find(g =>
+        (g.name && g.name.toLowerCase() === targetGender) ||
+        (g.code && g.code.toLowerCase() === targetGender)
+      );
+      const matchCode = matchedGenderObj?.code?.toLowerCase();
+      const matchName = matchedGenderObj?.name?.toLowerCase();
+      if (!(pGender === targetGender || (matchCode && pGender === matchCode) || (matchName && pGender === matchName))) return false;
+    }
+
+    if (filterDress !== 'ALL') {
+      const target = filterDress.toLowerCase();
+      const pItemCode = parseArtItemCode(p.art_number || '', dresses, genders).toLowerCase();
+      const matchedItem = (dresses || []).find(d =>
+        String(d.code).toLowerCase() === pItemCode ||
+        String(d.id) === String(p.item_id)
+      );
+      const itemName = (matchedItem?.name || '').toLowerCase();
+      if (!(pItemCode === target || itemName === target || String(p.item_id) === target)) return false;
+    }
+
+    if (filterGarmentType !== 'ALL') {
+      const targetType = filterGarmentType.toLowerCase();
+      const resolvedType = getResolvedProductTypeName(p).toLowerCase();
+      const ptName = (p.product_types?.name || '').toLowerCase();
+      const catName = (p.category || '').toLowerCase().replace(/_/g, ' ');
+      if (!(resolvedType === targetType || ptName === targetType || catName === targetType)) return false;
+    }
+
+    return true;
+  }), [products, genders, dresses, productTypes, filterStatus, filterGender, filterDress, filterGarmentType]);
+
+  const columns: Column<Product>[] = [
+    {
+      header: 'ID',
+      className: 'whitespace-nowrap',
+      accessor: (p) => <span className="text-xs font-mono font-bold text-zinc-700 whitespace-nowrap">{p.art_number || '—'}</span>,
+      sortable: true,
+      sortValue: (p) => p.art_number || '',
+    },
+    {
+      header: 'Item Name',
+      accessor: (p) => (
+        <div>
+          <p className="font-black text-sm tracking-tight text-zinc-900">{getProductDisplayName(p, dresses, genders)}</p>
+          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+            {p.product_types?.name || p.category?.replace('_', ' ') || ''}
+          </span>
+        </div>
+      ),
+      sortable: true,
+      sortValue: (p) => getProductDisplayName(p, dresses, genders),
+    },
+    {
+      header: 'Available Stock',
+      className: 'text-right',
+      accessor: (p) => {
+        const i = getStockInfo(p);
+        return <span className={`font-mono text-xs font-black ${STATUS_META[i.status].text}`}>{i.available}</span>;
+      },
+      sortable: true,
+      sortValue: (p) => getStockInfo(p).available,
+    },
+    {
+      header: 'Status',
+      className: 'text-center',
+      accessor: (p) => {
+        const meta = STATUS_META[getStockInfo(p).status];
+        return <span className={`inline-block px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider whitespace-nowrap ${meta.pill}`}>{meta.label}</span>;
+      },
+      sortable: true,
+      sortValue: (p) => getStockInfo(p).status,
+    },
+    {
+      header: 'Action',
+      className: 'text-center',
+      accessor: (p) => {
+        const i = getStockInfo(p);
+        return (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleOpenProductAdjust(p, i.size, i.record); }}
+            className={i.record
+              ? 'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white text-[#C82A2B] border border-[#C82A2B]/30 hover:bg-[#FFF1F1] transition-all cursor-pointer whitespace-nowrap'
+              : 'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white transition-all cursor-pointer whitespace-nowrap'}
+          >
+            {i.record ? 'Adjust' : 'Initialize'}
+          </button>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      
+
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <Layers size={20} />
-            </div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Readymade (Trade) Stock</h1>
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-2 opacity-80">
-            Finished Garments Procured For Trade / Resale & Sizing Stock
-          </p>
-        </div>
+      <div>
+        <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Readymade Stock</h1>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1">
+          Finished Garments Procured For Trade / Resale
+        </p>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Total Products */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d] border border-[#3a525d]/10 shrink-0">
-            <Box size={20} />
+      <DataTable
+        columns={columns}
+        data={filteredProducts}
+        isLoading={isLoading}
+        searchPlaceholder="Search"
+        emptyMessage='No readymade stock. Register articles as "Readymade (Trade)" in Products to manage them here.'
+        rowClassName={(p) => STATUS_META[getStockInfo(p).status].row}
+        headerAction={
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterDropdown
+              label="Gender"
+              allLabel="All Genders"
+              value={filterGender}
+              onChange={setFilterGender}
+              options={uniqueGenders}
+            />
+            <FilterDropdown
+              label="Item"
+              allLabel="All Items"
+              value={filterDress}
+              onChange={setFilterDress}
+              options={uniqueItemOptions}
+              maxWidth="max-w-[220px]"
+            />
+            <FilterDropdown
+              label="Garment Type"
+              allLabel="All Garment Types"
+              value={filterGarmentType}
+              onChange={setFilterGarmentType}
+              options={uniqueGarmentTypes}
+              maxWidth="max-w-[220px]"
+            />
+            <FilterDropdown
+              label="Stock Status"
+              allLabel="All Garments"
+              allBadge={products.length}
+              value={filterStatus}
+              onChange={(v) => setFilterStatus(v as typeof filterStatus)}
+              options={[
+                { label: 'In Stock', value: 'IN_STOCK', badge: statusCounts.IN_STOCK },
+                { label: 'Low Stock', value: 'LOW_STOCK', badge: statusCounts.LOW_STOCK },
+                { label: 'Out of Stock', value: 'OUT_OF_STOCK', badge: statusCounts.OUT_OF_STOCK },
+              ]}
+              maxWidth="max-w-[220px]"
+            />
           </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]/60">Garment Items</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d] mt-0.5">{stats.totalProducts}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-zinc-800 scale-125 group-hover:scale-150 transition-transform duration-500">
-            <Box size={60} />
-          </div>
-        </div>
-
-        {/* Low Stock Alerts */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100 shrink-0">
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600/70">Low Stock Products</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-amber-600 mt-0.5">{stats.lowStockCount}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-amber-500 scale-125 group-hover:scale-150 transition-transform duration-500">
-            <AlertTriangle size={60} />
-          </div>
-        </div>
-
-        {/* Out of Stock */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
-            <XCircle size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-red-600/70">Out of Stock</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-red-600 mt-0.5">{stats.outOfStockCount}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-red-500 scale-125 group-hover:scale-150 transition-transform duration-500">
-            <XCircle size={60} />
-          </div>
-        </div>
-
-        {/* Total Reserved */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-teal-200 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100 shrink-0">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-teal-600/70">Reserved Stock</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-teal-600 mt-0.5">{stats.totalReserved}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-teal-500 scale-125 group-hover:scale-150 transition-transform duration-500">
-            <ShieldCheck size={60} />
-          </div>
-        </div>
-
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="bg-white border border-zinc-200/80 rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
-        
-        {/* Status Filters */}
-        <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
-          {(['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'] as const).map((status) => {
-            const labels = {
-              ALL: 'All Garments',
-              IN_STOCK: 'In Stock',
-              LOW_STOCK: 'Low Stock Alerts',
-              OUT_OF_STOCK: 'Out of Stock'
-            };
-
-            const styles = {
-              ALL: 'border-zinc-200 text-[#3a525d] hover:bg-zinc-50',
-              IN_STOCK: 'border-emerald-100 text-emerald-600 hover:bg-emerald-50/30',
-              LOW_STOCK: 'border-amber-100 text-amber-600 hover:bg-amber-50/30',
-              OUT_OF_STOCK: 'border-red-100 text-red-600 hover:bg-red-50/30'
-            };
-
-            const activeStyles = {
-              ALL: '!bg-[#3a525d] !text-white !border-[#3a525d] shadow-lg shadow-[#3a525d]/20',
-              IN_STOCK: '!bg-emerald-500 !text-white !border-emerald-500 shadow-lg shadow-emerald-500/20',
-              LOW_STOCK: '!bg-amber-500 !text-white !border-amber-500 shadow-lg shadow-amber-500/20',
-              OUT_OF_STOCK: '!bg-red-500 !text-white !border-red-500 shadow-lg shadow-red-500/20'
-            };
-
-            return (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-5 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
-                  filterStatus === status ? activeStyles[status] : styles[status]
-                }`}
-              >
-                {labels[status]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Search */}
-        <div className="relative group w-full md:w-96 md:ml-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-          <input 
-            type="text" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search"
-            className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
-          />
-        </div>
-
-      </div>
-
-      {/* Main Grid display of finished uniform stocks */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center p-24 bg-white border border-zinc-200/80 rounded-[3rem] gap-4">
-          <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
-          <p className="text-sm font-bold text-[#3a525d]">Parsing product stock database...</p>
-        </div>
-      ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 animate-in fade-in duration-500">
-          {filteredProducts.map((product) => {
-            const { type: parsedType } = parseMaterialsField(product.materials);
-            const isAccessory = parsedType === 'accessories';
-            const sizes = isAccessory && product.base_size 
-              ? product.base_size.split(',').map(s => s.trim()).filter(Boolean) 
-              : ['M']; // default standard size
-
-            const totalStock = product.stocks
-              ? product.stocks.filter((s: StockRecord) => sizes.includes(s.size)).reduce((acc: number, s: StockRecord) => acc + s.quantity, 0)
-              : 0;
-            const totalReserved = product.stocks
-              ? product.stocks.filter((s: StockRecord) => sizes.includes(s.size)).reduce((acc: number, s: StockRecord) => acc + s.reserved_quantity, 0)
-              : 0;
-
-            const hasInitializedStock = product.stocks && product.stocks.length > 0;
-
-            return (
-              <div 
-                key={product.id}
-                className="bg-white rounded-[2.5rem] border border-zinc-200/80 p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300"
-              >
-                {/* Product Header */}
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex gap-4">
-                    <div className="w-14 h-14 bg-[#2d8d9b]/5 border border-[#2d8d9b]/10 rounded-2xl flex items-center justify-center text-[#2d8d9b] shadow-inner shrink-0">
-                      <Box size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-lg tracking-tight text-[#3a525d] line-clamp-1">{product.name}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-black bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                          {product.art_number}
-                        </span>
-                        {product.product_types?.name && (
-                          <span className="text-[10px] font-black bg-[#2d8d9b]/5 text-[#2d8d9b] px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            {product.product_types.name}
-                          </span>
-                        )}
-                        {product.gender && (
-                          <span className="text-[10px] font-black bg-[#3a525d]/5 text-[#3a525d] px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            {product.gender}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sizing Stock Breakdowns */}
-                <div className="mt-8 space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6b5a] opacity-75">
-                    Stock Levels {isAccessory && '(Sizing Roll)'}
-                  </p>
-
-                  {hasInitializedStock ? (
-                    <div className="border border-zinc-100 rounded-2xl overflow-hidden shadow-sm bg-white">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-zinc-50 border-b border-zinc-150 text-[9px] font-black uppercase tracking-widest text-[#3a525d]">
-                            {isAccessory && <th className="py-2.5 px-4 text-center">Size</th>}
-                            <th className="py-2.5 px-4 text-center">Physical</th>
-                            <th className="py-2.5 px-4 text-center">Reserved</th>
-                            <th className="py-2.5 px-4 text-center">Available</th>
-                            <th className="py-2.5 px-4 text-center">Alert Threshold</th>
-                            <th className="py-2.5 px-4 text-center">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100 text-zinc-750 font-bold">
-                          {sizes.map((size: string) => {
-                            const s = product.stocks?.find(st => st.size === size);
-                            const qty = s ? s.quantity : 0;
-                            const res = s ? s.reserved_quantity : 0;
-                            const thresh = s ? s.low_stock_threshold : 5;
-                            const avail = qty - res;
-                            const isLow = avail <= thresh;
-                            const isOut = avail <= 0;
-
-                            return (
-                              <tr key={size} className={`hover:bg-zinc-50/50 transition-colors ${
-                                isOut ? 'bg-red-50/20 text-red-700' : isLow ? 'bg-amber-50/20 text-amber-700' : ''
-                              }`}>
-                                {isAccessory && <td className="py-2.5 px-4 font-black text-[#2d8d9b]">{size}</td>}
-                                <td className="py-2.5 px-4 font-mono">{qty}</td>
-                                <td className="py-2.5 px-4 text-right font-mono text-zinc-400">{res}</td>
-                                <td className={`py-2.5 px-4 text-right font-black font-mono ${
-                                  isOut ? 'text-red-650' : isLow ? 'text-amber-650' : 'text-emerald-600'
-                                }`}>{avail}</td>
-                                <td className="py-2.5 px-4 text-right font-mono text-zinc-400">≤ {thresh}</td>
-                                <td className="py-2.5 px-4 text-right">
-                                  <button
-                                    onClick={() => handleOpenProductAdjust(product, size, s)}
-                                    className="px-2.5 py-1 text-[9px] font-black uppercase border border-zinc-205 hover:border-[#2d8d9b] hover:text-[#2d8d9b] rounded-lg bg-white transition-all shadow-sm"
-                                  >
-                                    {s ? 'Adjust' : 'Init'}
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-6 bg-zinc-50/50 border border-dashed border-zinc-200 rounded-2xl text-center">
-                      <p className="text-xs text-zinc-400 font-bold italic">No stock records initialized.</p>
-                      <button
-                        onClick={() => handleOpenProductAdjust(product, sizes[0])}
-                        className="mt-3 px-4 py-2 bg-white border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-[10px] font-black uppercase tracking-wider text-[#3a525d] transition-all flex items-center gap-1.5 mx-auto shadow-sm"
-                      >
-                        <Plus size={12} className="text-[#2d8d9b]" />
-                        Initialize Stock
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer summary */}
-                <div className="mt-6 pt-4 border-t border-zinc-100 flex justify-between items-center text-[10px] font-bold text-zinc-500">
-                  <p>Materials: <span className="font-black text-[#3a525d]">{formatSpecificationDisplay(product.materials, 'Standard Fabric')}</span></p>
-                  <p>Physical Stock: <span className="font-black text-[#2d8d9b] text-xs">{totalStock}</span> | Reserved: <span className="font-black text-zinc-700">{totalReserved}</span></p>
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-white border border-zinc-200/80 rounded-[3rem] p-16 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <Box size={32} />
-            </div>
-            <p className="text-xl font-black italic text-[#3a525d]">No Readymade (Trade) Stock Records</p>
-            <p className="text-xs font-bold max-w-md text-zinc-500 leading-relaxed">
-              Custom manufactured uniforms are produced on-demand via Job Cards and do not sit in warehouse finished stock.
-              To manage trade finished stock here, register articles with <span className="text-[#2d8d9b] font-black">"Readymade (Trade)"</span> in the Products.
-            </p>
-          </div>
-        </div>
-      )}
+        }
+      />
 
       {/* Adjust Stock & Threshold Modal */}
       {isAdjustModalOpen && selectedProduct && (() => {
@@ -537,19 +457,19 @@ export default function ProductStockPage() {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div 
+            <div
               className={`w-full ${isAccessory ? 'max-w-3xl' : 'max-w-lg'} bg-white rounded-[3rem] p-8 border border-zinc-200/80 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header decor */}
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
-              
+
               <div className="flex items-center gap-3 border-b border-zinc-100 pb-5 mt-2">
                 <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-white border border-zinc-800">
                   <SlidersHorizontal size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black italic text-[#3a525d] tracking-tight">
+                  <h3 className="text-xl font-black italic text-[#18181b] tracking-tight">
                     {isInitializing ? 'Initialize Stock Level' : 'Adjust Stock Levels'}
                   </h3>
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] mt-0.5">
@@ -580,14 +500,14 @@ export default function ProductStockPage() {
                       };
 
                       return (
-                        <div key={sz} className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#2d8d9b]/35 transition-all">
+                        <div key={sz} className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#C82A2B]/35 transition-all">
                           {/* Size Tag & Stats */}
                           <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xs font-black text-[#2d8d9b] bg-[#2d8d9b]/10 px-2.5 py-1 rounded-lg">
+                            <span className="text-xs font-black text-[#C82A2B] bg-[#C82A2B]/10 px-2.5 py-1 rounded-lg">
                               {sz}
                             </span>
                             <div className="text-[10px] font-bold text-zinc-500 space-x-2">
-                              <span>Current: <strong className="text-[#3a525d]">{qty}</strong></span>
+                              <span>Current: <strong className="text-[#18181b]">{qty}</strong></span>
                               <span>Reserved: <strong className="text-zinc-600">{res}</strong></span>
                               <span>Avail: <strong className={avail <= 0 ? 'text-red-500' : 'text-emerald-600'}>{avail}</strong></span>
                             </div>
@@ -597,7 +517,7 @@ export default function ProductStockPage() {
                           <div className="flex flex-wrap items-center gap-4">
                             {/* Delta Quantity */}
                             <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[#3a525d]/70">Change Qty</span>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[#18181b]/70">Change Qty</span>
                               <div className="flex items-center gap-1">
                                 <button
                                   type="button"
@@ -624,7 +544,7 @@ export default function ProductStockPage() {
 
                             {/* Low Stock Threshold */}
                             <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[#3a525d]/70">Threshold Limit</span>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[#18181b]/70">Threshold Limit</span>
                               <input
                                 type="number"
                                 min="0"
@@ -647,15 +567,15 @@ export default function ProductStockPage() {
                         <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 grid grid-cols-3 gap-3 text-center">
                           <div>
                             <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Current Qty</p>
-                            <p className="text-base font-black text-[#3a525d] mt-1">{currentStock?.quantity ?? 0}</p>
+                            <p className="text-base font-black text-[#18181b] mt-1">{currentStock?.quantity ?? 0}</p>
                           </div>
                           <div>
                             <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Reserved</p>
-                            <p className="text-base font-black text-[#3a525d] mt-1">{currentStock?.reserved_quantity ?? 0}</p>
+                            <p className="text-base font-black text-[#18181b] mt-1">{currentStock?.reserved_quantity ?? 0}</p>
                           </div>
                           <div>
                             <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Available</p>
-                            <p className="text-base font-black text-[#2d8d9b] mt-1">
+                            <p className="text-base font-black text-[#C82A2B] mt-1">
                               {(currentStock?.quantity ?? 0) - (currentStock?.reserved_quantity ?? 0)}
                             </p>
                           </div>
@@ -665,13 +585,13 @@ export default function ProductStockPage() {
 
                     {/* Physical Delta Adjustment */}
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#18181b]">
                         <label>Physical Inventory Change</label>
                         <span className={`text-[9px] font-extrabold ${physicalDelta > 0 ? 'text-emerald-500' : physicalDelta < 0 ? 'text-red-500' : 'text-zinc-400'}`}>
                           {physicalDelta > 0 ? `+${physicalDelta} items` : physicalDelta < 0 ? `${physicalDelta} items` : 'No physical adjustment'}
                         </span>
                       </div>
-                      
+
                       <div className="flex gap-3 items-center">
                         <button
                           type="button"
@@ -687,7 +607,7 @@ export default function ProductStockPage() {
                         >
                           -1
                         </button>
-                        
+
                         <input
                           type="number"
                           step="1"
@@ -718,10 +638,10 @@ export default function ProductStockPage() {
                     {/* Threshold level */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#18181b]">
                           Low Stock Threshold Limit
                         </label>
-                        <span className="text-[10px] font-black text-[#2d8d9b] bg-[#2d8d9b]/5 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-black text-[#C82A2B] bg-[#C82A2B]/5 px-2 py-0.5 rounded">
                           Current limit: {newThreshold} items
                         </span>
                       </div>
@@ -756,7 +676,7 @@ export default function ProductStockPage() {
                   <button
                     type="button"
                     onClick={() => setIsAdjustModalOpen(false)}
-                    className="flex-1 h-14 bg-zinc-50 hover:bg-zinc-100 text-[#3a525d] rounded-2xl font-black uppercase tracking-widest text-xs transition-all border border-zinc-200/50"
+                    className="flex-1 h-14 bg-zinc-50 hover:bg-zinc-100 text-[#18181b] rounded-2xl font-black uppercase tracking-widest text-xs transition-all border border-zinc-200/50"
                   >
                     Cancel
                   </button>

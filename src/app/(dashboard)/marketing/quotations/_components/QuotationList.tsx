@@ -21,10 +21,7 @@ import {
   Snowflake,
   ChevronDown,
   ChevronUp,
-  History,
   FileText,
-  Layers,
-  Plus,
   Check,
   Send
 } from 'lucide-react';
@@ -52,6 +49,7 @@ interface QuotationListProps {
   onSubmitToBm?: (q: Quotation) => void;
   onBmApprove?: (q: Quotation) => void;
   onBmReject?: (q: Quotation) => void;
+  onViewPipeline?: (q: Quotation) => void; // status badge click: lead pipeline modal with quote logs
   currentUser?: any;
   onRefresh?: () => void;
   onPrintTrigger?: (triggerFn: () => void) => void;
@@ -71,6 +69,7 @@ export default function QuotationList({
   onSubmitToBm,
   onBmApprove,
   onBmReject,
+  onViewPipeline,
   currentUser,
   onRefresh,
   onPrintTrigger,
@@ -473,10 +472,11 @@ export default function QuotationList({
           <div 
             onClick={(e) => {
               e.stopPropagation();
-              setFollowUpQuotation(q);
+              if (onViewPipeline) onViewPipeline(q);
+              else onViewDetails(q);
             }}
             className="flex items-center justify-center cursor-pointer group/status"
-            title="Click to view quotation pipeline log & history"
+            title="Click to view the lead pipeline with all quotation logs"
           >
             <div className="transition-transform group-hover/status:scale-105">
               {badge}
@@ -502,7 +502,7 @@ export default function QuotationList({
                   e.stopPropagation();
                   onSubmitToBm(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-sky-600 hover:bg-sky-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
                 title="Submit quotation to Branch Manager for approval"
               >
                 <Send size={10} />
@@ -517,7 +517,7 @@ export default function QuotationList({
                   e.stopPropagation();
                   onStartEdit(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-200 hover:bg-zinc-300 text-zinc-800 shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
               >
                 <Edit3 size={10} />
                 <span>Edit</span>
@@ -536,7 +536,7 @@ export default function QuotationList({
                     e.stopPropagation();
                     onBmApprove(q);
                   }}
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
                   title="Approve as Branch Manager"
                 >
                   <Check size={10} strokeWidth={3} />
@@ -550,7 +550,7 @@ export default function QuotationList({
                     e.stopPropagation();
                     onBmReject(q);
                   }}
-                  className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-white hover:bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/30 shadow-2xs transition-all active:scale-95 cursor-pointer"
                   title="Request revision with notes back to Draft"
                 >
                   <RotateCcw size={10} />
@@ -574,7 +574,7 @@ export default function QuotationList({
                   e.stopPropagation();
                   setFollowUpQuotation(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
                 title="Log customer decision (Approved, Held, Rejected)"
               >
                 <MessageSquare size={10} />
@@ -594,7 +594,7 @@ export default function QuotationList({
                   e.stopPropagation();
                   setAdvancePaymentQuotation(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
                 title="Record Advance Payment for this approved quotation"
               >
                 <CreditCard size={10} />
@@ -642,29 +642,23 @@ export default function QuotationList({
                   e.stopPropagation();
                   setFollowUpQuotation(q);
                 }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all cursor-pointer mx-auto"
-                title="Log customer follow-up"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer mx-auto"
+                title="Log customer decision (Approved, Held, Rejected)"
               >
                 <MessageSquare size={10} />
-                <span>Follow-up</span>
+                <span>Log Decision</span>
               </button>
             </div>
           );
         }
 
+        // Revised (or any other final state): no next step
+        const supersededBy = q.metrics_summary?.revised_to_quotation_no;
         return (
           <div className="flex items-center justify-center text-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setFollowUpQuotation(q);
-              }}
-              className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 shadow-2xs transition-all cursor-pointer"
-              title="Log communication note"
-            >
-              Follow-up
-            </button>
+            <span className="text-[10px] font-bold text-zinc-400 italic">
+              {q.status === 'Revised' && supersededBy ? `Superseded by ${supersededBy}` : '—'}
+            </span>
           </div>
         );
       }
@@ -936,44 +930,16 @@ interface QuotationFollowUpModalProps {
 
 export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
   quotation,
-  allQuotations = [],
   onClose,
   onSuccess,
   currentUser,
   onStartEdit,
-  onStartRevision,
-  onRecordPayment
+  onStartRevision
 }) => {
-  const [activeModalTab, setActiveModalTab] = useState<'record' | 'log'>('log');
   const [responseType, setResponseType] = useState<'rejected' | 'held' | 'approved' | 'revision_requested'>('held');
   const [remarks, setRemarks] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [manualLogText, setManualLogText] = useState('');
-  const [manualLogType, setManualLogType] = useState('Manual Note');
-  const [isSavingManualLog, setIsSavingManualLog] = useState(false);
-
-  const handleSaveManualLog = async () => {
-    if (!manualLogText.trim() || !quotation) return;
-    setIsSavingManualLog(true);
-    const toastId = toast.loading('Recording log entry...');
-    try {
-      await api.post(`/quotations/${quotation.id}/follow-up`, {
-        outcome: manualLogType || 'Manual Note',
-        response_type: 'held',
-        status: quotation.status,
-        remarks: manualLogText.trim(),
-        text: manualLogText.trim()
-      });
-      toast.success('Log entry recorded successfully', { id: toastId });
-      setManualLogText('');
-      if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to save log entry', { id: toastId });
-    } finally {
-      setIsSavingManualLog(false);
-    }
-  };
 
   const handleEditRevise = (qToEdit: Quotation) => {
     onClose();
@@ -986,135 +952,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
     }
   };
 
-  // Group and sort all related quotations for this customer / organization
-  const relatedQuotations = useMemo(() => {
-    const orgId = quotation.organization_id;
-    const leadId = (quotation as any).lead_id;
-    if (!allQuotations || allQuotations.length === 0) return [quotation];
-
-    const matches = allQuotations.filter(q => {
-      if (orgId && q.organization_id === orgId) return true;
-      if (leadId && (q as any).lead_id === leadId) return true;
-      if (
-        quotation.organizations?.name &&
-        q.organizations?.name &&
-        quotation.organizations.name.trim().toLowerCase() === q.organizations.name.trim().toLowerCase()
-      ) {
-        return true;
-      }
-      return false;
-    });
-
-    if (matches.length === 0) return [quotation];
-
-    // Chronological ascending: earliest is first quote, subsequent are revisions
-    return [...matches].sort((a, b) => {
-      const timeA = new Date(a.created_at || a.quotation_date || 0).getTime();
-      const timeB = new Date(b.created_at || b.quotation_date || 0).getTime();
-      if (timeA !== timeB) return timeA - timeB;
-      return a.id - b.id;
-    });
-  }, [quotation, allQuotations]);
-
-  // Combined timeline of all quotation events, BM revision requests, and follow-up activities
-  const allTimelineActivities = useMemo(() => {
-    const activities: any[] = [];
-
-    relatedQuotations.forEach((q, idx) => {
-      const isFirst = idx === 0;
-      const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
-      activities.push({
-        id: `quote_created_${q.id}`,
-        quotation_id: q.id,
-        quotation_no: q.quotation_no,
-        type: 'quotation_version',
-        title: `${verLabel}: #${q.quotation_no}`,
-        badge: verLabel,
-        badgeColor: isFirst ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
-        date: q.quotation_date || q.created_at,
-        amount: q.final_quote_value || (q as any).total_amount || 0,
-        status: q.status,
-        author: 'Commercial Team',
-        remarks: `Quotation #${q.quotation_no} generated for ₹${Number(q.final_quote_value || (q as any).total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`
-      });
-
-      // BM Rejection / Revision Request
-      if (q.metrics_summary?.bm_rejection_reason) {
-        activities.push({
-          id: `bm_rejection_${q.id}`,
-          quotation_id: q.id,
-          quotation_no: q.quotation_no,
-          type: 'revision_request',
-          title: `Revision Requested by BM (#${q.quotation_no})`,
-          badge: 'Revision Requested',
-          badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-          date: q.metrics_summary.bm_rejection_at || q.updated_at || q.created_at,
-          author: q.metrics_summary.bm_rejected_by_name || 'Branch Manager',
-          remarks: `Branch Manager revision instructions: "${q.metrics_summary.bm_rejection_reason}"`
-        });
-      }
-
-      // BM Approved
-      if (q.metrics_summary?.bm_approved || q.status === 'Approved') {
-        activities.push({
-          id: `bm_approved_${q.id}`,
-          quotation_id: q.id,
-          quotation_no: q.quotation_no,
-          type: 'approval',
-          title: `Quotation Approved (#${q.quotation_no})`,
-          badge: 'Approved',
-          badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-          date: q.metrics_summary?.bm_approved_at || q.metrics_summary?.submitted_to_ops_at || q.updated_at || q.created_at,
-          author: q.metrics_summary?.bm_approved_by_name || 'Branch Manager',
-          remarks: 'Quotation verified and approved by Branch Manager & Operations.'
-        });
-      }
-
-      // Customer Revision Request
-      if (q.metrics_summary?.customer_revision_reason || q.status === 'Revision Requested') {
-        activities.push({
-          id: `cust_rev_${q.id}`,
-          quotation_id: q.id,
-          quotation_no: q.quotation_no,
-          type: 'revision_request',
-          title: `Revision Requested by Customer (#${q.quotation_no})`,
-          badge: 'Revision Requested',
-          badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-          date: q.metrics_summary?.customer_revision_requested_at || q.updated_at || q.created_at,
-          author: q.metrics_summary?.customer_revision_requested_by || 'Customer',
-          remarks: `Customer revision request notes: "${q.metrics_summary?.customer_revision_reason || 'Changes requested by client'}"`
-        });
-      }
-
-      // Follow-up entries
-      if (Array.isArray(q.metrics_summary?.followups)) {
-        q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
-          const outcomeLower = String(f.outcome || f.response_type || '').toLowerCase();
-          const isRev = outcomeLower.includes('revision');
-          activities.push({
-            id: f.id || `f_${q.id}_${fIdx}`,
-            quotation_id: q.id,
-            quotation_no: q.quotation_no,
-            type: isRev ? 'revision_request' : 'followup',
-            title: isRev ? `Customer Revision Requested (#${q.quotation_no})` : `Follow-up on Quote #${q.quotation_no}`,
-            badge: isRev ? 'Revision Requested' : (f.outcome || f.response_type || 'Follow-up'),
-            badgeColor: isRev ? 'bg-purple-50 text-purple-700 border-purple-200' : undefined,
-            outcome: f.outcome || f.response_type,
-            date: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at),
-            author: f.author?.name || 'Sales Representative',
-            remarks: f.remarks || f.text || '',
-            next_followup_date: f.next_followup_date
-          });
-        });
-      }
-    });
-
-    return activities.sort((a, b) => {
-      const timeA = new Date(a.date || 0).getTime();
-      const timeB = new Date(b.date || 0).getTime();
-      return timeB - timeA;
-    });
-  }, [relatedQuotations]);
 
   const openQuotationTab = (qId: number | string, qNo?: string) => {
     const url = qId
@@ -1255,12 +1092,10 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
               </button>
             </div>
             <h3 className="text-xl font-black text-zinc-900 tracking-tight">
-              Quotation History & Activity Log
+              Log Customer Response
             </h3>
             <p className="text-xs text-zinc-500 font-medium">
               Client: <span className="text-zinc-900 font-bold">{quotation.organizations?.name || 'Commercial Client'}</span>
-              <span className="mx-1.5 text-zinc-300">•</span>
-              <span>{relatedQuotations.length} Quotation{relatedQuotations.length > 1 ? 's' : ''} (First quote & revisions)</span>
             </p>
           </div>
           <button
@@ -1273,387 +1108,8 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
           </button>
         </div>
 
-        {/* Tabs Bar */}
-        <div className="flex items-center gap-2 border-b border-zinc-150 pb-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveModalTab('record')}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-              activeModalTab === 'record'
-                ? 'bg-[#801416] text-white shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-            }`}
-          >
-            <Plus size={13} />
-            <span>Response Log</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveModalTab('log')}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-              activeModalTab === 'log'
-                ? 'bg-zinc-900 text-white shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-            }`}
-          >
-            <Layers size={13} />
-            <span>Quotation Log & Versions ({relatedQuotations.length})</span>
-          </button>
-        </div>
-
         {/* Modal Body */}
         <div className="space-y-5 overflow-y-auto pr-1 flex-1">
-          {activeModalTab === 'log' ? (
-            <div className="space-y-6">
-              {/* Status Banner for Active Quotation */}
-              {quotation.status === 'Rejected' && (
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-3 shadow-2xs animate-in fade-in">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                      <XCircle size={18} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-rose-900 uppercase tracking-wide">Quotation Rejected by Customer</p>
-                      <p className="text-[11px] text-rose-700 font-medium">Customer rejected this quote. You can directly edit and revise it.</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleEditRevise(quotation)}
-                    className="px-3.5 py-2 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
-                    title="Directly edit and create a revision for this quotation"
-                  >
-                    <Edit3 size={13} />
-                    <span>Edit / Revise Quote</span>
-                  </button>
-                </div>
-              )}
-
-              {quotation.status === 'Approved' && (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 shadow-2xs animate-in fade-in">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                      <CheckCircle2 size={18} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-emerald-900 uppercase tracking-wide">Quotation Approved by Customer</p>
-                      <p className="text-[11px] text-emerald-700 font-medium">Customer confirmed and approved this quotation.</p>
-                    </div>
-                  </div>
-                  {parseFloat(String(quotation.paid_amount || 0)) <= 0 ? (
-                    onRecordPayment && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                          onRecordPayment(quotation);
-                        }}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
-                        title="Record advance payment for this approved quotation"
-                      >
-                        <CreditCard size={13} />
-                        <span>Record Advance</span>
-                      </button>
-                    )
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 shrink-0">
-                      <CheckCircle2 size={12} className="text-emerald-700" />
-                      <span>Advance Received (₹{parseFloat(String(quotation.paid_amount || 0)).toLocaleString('en-IN')})</span>
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {quotation.status === 'Held' && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 shadow-2xs animate-in fade-in">
-                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                    <Clock size={18} strokeWidth={2.5} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-amber-900 uppercase tracking-wide">Quotation Held</p>
-                    <p className="text-[11px] text-amber-700 font-medium">Customer has not confirmed yet / decision pending.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* 1. All Quotation Versions (First quote, Revised quotes) */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-                    All Quotations for this Client ({relatedQuotations.length})
-                  </span>
-                  <span className="text-[10px] font-semibold text-zinc-400">
-                    Click any card or button to view in another tab
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {relatedQuotations.map((q, idx) => {
-                    const isFirst = idx === 0;
-                    const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
-                    const isCurrent = q.id === quotation.id;
-                    const qAmount = Number(q.final_quote_value || (q as any).total_amount || 0);
-
-                    return (
-                      <div
-                        key={q.id}
-                        onClick={() => openQuotationTab(q.id, q.quotation_no)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer group relative flex flex-col justify-between ${
-                          isCurrent
-                            ? 'bg-[#FFF1F1] border-[#C82A2B]/40 shadow-xs hover:border-[#C82A2B]'
-                            : 'bg-white border-zinc-200 hover:border-[#C82A2B]/50 hover:shadow-md'
-                        }`}
-                        title="Click to open this quotation in a new tab"
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border inline-block ${
-                                isFirst
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-amber-50 text-amber-700 border-amber-200'
-                              }`}>
-                                {verLabel}
-                              </span>
-                              <p className="font-mono font-bold text-sm text-zinc-900 mt-1 flex items-center gap-1.5">
-                                <span>{q.quotation_no}</span>
-                                {isCurrent && (
-                                  <span className="text-[9px] font-bold text-[#C82A2B] uppercase tracking-wider">
-                                    (Active)
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openQuotationTab(q.id, q.quotation_no);
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xs transition-all shrink-0 cursor-pointer"
-                            >
-                              <span>View Quote</span>
-                              <ExternalLink size={10} className="shrink-0" />
-                            </button>
-                          </div>
-
-                          <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100">
-                            <span className="text-zinc-500 font-medium">
-                              {formatDate(q.quotation_date || q.created_at)}
-                            </span>
-                            <span className="font-mono font-black text-[#C82A2B]">
-                              ₹{qAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          {q.metrics_summary?.bm_rejection_reason && (
-                            <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[10px] text-rose-800 font-medium leading-relaxed">
-                              <strong>Revision Reason:</strong> {q.metrics_summary.bm_rejection_reason}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="pt-2 flex items-center justify-between border-t border-zinc-100 mt-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border flex items-center gap-1 ${
-                            q.status === 'Approved'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : q.status === 'Rejected'
-                              ? 'bg-rose-50 text-rose-700 border-rose-200'
-                              : q.status === 'Held'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-zinc-100 text-zinc-700 border-zinc-200'
-                          }`}>
-                            {q.status === 'Approved' && <CheckCircle2 size={9} className="text-emerald-600" />}
-                            {q.status === 'Rejected' && <XCircle size={9} className="text-rose-600" />}
-                            {q.status === 'Held' && <Clock size={9} className="text-amber-600" />}
-                            <span>{q.status || 'Draft'}</span>
-                          </span>
-                          {q.status === 'Rejected' ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditRevise(q);
-                              }}
-                              className="px-2.5 py-1 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-lg text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
-                              title="Revise this rejected quotation"
-                            >
-                              <Edit3 size={10} />
-                              <span>Revise Quote</span>
-                            </button>
-                          ) : (
-                            <span className="text-[10px] text-[#C82A2B] font-bold group-hover:underline inline-flex items-center gap-0.5">
-                              Open in tab <ExternalLink size={9} />
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 2. Timeline of Activities & Follow-ups */}
-              <div className="space-y-3 pt-2 border-t border-zinc-150">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-                    Follow-up Communication & Activity History ({allTimelineActivities.length})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveModalTab('record')}
-                    className="text-[10px] font-black uppercase tracking-wider text-[#801416] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus size={11} /> Record New Follow-up
-                  </button>
-                </div>
-
-                {allTimelineActivities.length > 0 ? (
-                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                    {allTimelineActivities.map((entry) => {
-                      const outcomeLower = String(entry.outcome || entry.badge || '').toLowerCase();
-                      const isApproved = outcomeLower.includes('approv') || outcomeLower.includes('pos') || outcomeLower.includes('won');
-                      const isRejected = outcomeLower.includes('reject') || outcomeLower.includes('neg') || outcomeLower.includes('cold') || outcomeLower.includes('decline');
-                      const isHeld = outcomeLower.includes('held') || outcomeLower.includes('hold') || outcomeLower.includes('pend');
-
-                      return (
-                        <div
-                          key={entry.id}
-                          className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1.5"
-                        >
-                          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-                            <span className="font-bold text-zinc-800">
-                              {entry.title}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              {entry.badge && (
-                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border flex items-center gap-1 ${
-                                  entry.badgeColor || (
-                                    isApproved
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : isRejected
-                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                      : 'bg-amber-50 text-amber-700 border-amber-200'
-                                  )
-                                }`}>
-                                  {isApproved && <CheckCircle2 size={10} className="text-emerald-600" />}
-                                  {isRejected && <XCircle size={10} className="text-rose-600" />}
-                                  {isHeld && <Clock size={10} className="text-amber-600" />}
-                                  <span>{isApproved ? 'Approved' : isRejected ? 'Rejected' : isHeld ? 'Held' : entry.badge}</span>
-                                </span>
-                              )}
-                              {entry.quotation_id && (
-                                <button
-                                  type="button"
-                                  onClick={() => openQuotationTab(entry.quotation_id, entry.quotation_no)}
-                                  className="text-[10px] font-bold text-[#C82A2B] hover:underline inline-flex items-center gap-0.5 cursor-pointer ml-1"
-                                  title="View this quotation"
-                                >
-                                  Quote <ExternalLink size={9} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          <p className="text-xs font-semibold text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                            {entry.remarks}
-                          </p>
-
-                          <div className="flex items-center justify-between text-[10px] text-zinc-400 font-medium pt-1 border-t border-zinc-100">
-                            <span>{entry.date ? formatDate(entry.date) : 'Recent'}</span>
-                            {entry.author && <span>By: {entry.author}</span>}
-                          </div>
-
-                          {entry.next_followup_date && (
-                            <div className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded inline-flex items-center gap-1 mt-1">
-                              <Calendar size={10} /> Next Follow-up: {formatDate(entry.next_followup_date)}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 space-y-2">
-                    <History size={24} className="mx-auto text-zinc-400" />
-                    <p className="text-xs font-bold text-zinc-600">No follow-up communications logged yet</p>
-                    <button
-                      type="button"
-                      onClick={() => setActiveModalTab('record')}
-                      className="px-3 py-1.5 bg-[#801416] text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-[#681012] transition-colors"
-                    >
-                      Record First Follow-up
-                    </button>
-                  </div>
-                )}
-
-                {/* Manual Log Entry Composer at Bottom of Quotation Timeline */}
-                <div className="mt-4 pt-3.5 border-t border-zinc-200/80 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200/60 shadow-2xs">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <MessageSquare size={13} className="text-[#801416]" />
-                      <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
-                        Add Manual / Custom Log
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-bold text-zinc-400">
-                      System records user, date &amp; time automatically
-                    </span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <textarea
-                      value={manualLogText}
-                      onChange={(e) => setManualLogText(e.target.value)}
-                      placeholder="Type a manual log, customer note, or call summary here..."
-                      className="w-full text-xs font-medium text-zinc-800 bg-white border border-zinc-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#801416]/20 focus:border-[#801416] resize-none h-20 placeholder:text-zinc-400 shadow-2xs"
-                    />
-
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                          Log Type:
-                        </label>
-                        <select
-                          value={manualLogType}
-                          onChange={(e) => setManualLogType(e.target.value)}
-                          className="text-xs font-bold text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#801416]/20"
-                        >
-                          <option value="Manual Note">Manual Note</option>
-                          <option value="Phone Call">Phone Call</option>
-                          <option value="Client Discussion">Client Discussion</option>
-                          <option value="Commercial Note">Commercial Note</option>
-                          <option value="Pricing Query">Pricing Query</option>
-                          <option value="Customer Feedback">Customer Feedback</option>
-                        </select>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={!manualLogText.trim() || isSavingManualLog}
-                        onClick={handleSaveManualLog}
-                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] disabled:opacity-50 text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed active:scale-95"
-                      >
-                        {isSavingManualLog ? (
-                          <>
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Recording...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={12} strokeWidth={3} />
-                            <span>Add Log Entry</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Follow-up Logging Form */
             <div className="space-y-4">
               {/* Outcome Selection: 4 Options (Approved, Held, Revision Requested, Rejected) */}
               <div className="space-y-2">
@@ -1747,7 +1203,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleEditRevise(quotation)}
-                      className="px-3 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-xs"
+                      className="px-3 py-1.5 rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] text-white font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-xs"
                     >
                       Create Revised Quote &rarr;
                     </button>
@@ -1802,7 +1258,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 />
               </div>
             </div>
-          )}
         </div>
 
         {/* Footer Actions */}
@@ -1815,7 +1270,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
             Cancel
           </Button>
 
-          {activeModalTab === 'record' ? (
             <Button
               disabled={isSubmitting}
               onClick={handleSubmit}
@@ -1839,14 +1293,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 ? 'Record Revision Request & Save'
                 : 'Mark as Held & Save'}
             </Button>
-          ) : (
-            <Button
-              onClick={() => setActiveModalTab('record')}
-              className="flex-1 py-3 text-[10px] font-black uppercase text-white bg-[#801416] hover:bg-[#681012] shadow-lg shadow-[#801416]/20"
-            >
-              <Plus size={12} className="mr-1" /> Add New Follow-up
-            </Button>
-          )}
         </div>
       </div>
     </div>

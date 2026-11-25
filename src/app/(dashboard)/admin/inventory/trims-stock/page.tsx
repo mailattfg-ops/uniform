@@ -3,20 +3,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
-import { 
-  Layers, 
-  AlertTriangle, 
-  XCircle, 
-  Search, 
-  Loader2, 
-X,
-  Package,
+import {
+  X,
   Plus,
   Minus,
-  CircleDot,
-  Scissors
+  RotateCcw
 } from 'lucide-react';
 import { formatQuantity } from '@/lib/formatters';
+import { parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
+import { DataTable, Column } from '@/components/ui/DataTable';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 
 interface TrimCategory {
@@ -33,6 +28,14 @@ interface TrimStockItem {
   code: string;
   name: string;
   type?: string | null;
+  brand_name?: string | null;
+  specification?: string | null;
+  color?: string | null;
+  shade_no?: string | null;
+  size?: string | null;
+  size_uom?: string | null;
+  description?: string | null;
+  images?: string[];
   uom: string;
   quantity: number;
   low_stock_threshold: number;
@@ -40,16 +43,80 @@ interface TrimStockItem {
   category?: TrimCategory;
 }
 
+// Descriptive fields used by the Trims Items naming and filters
+const pickDetails = (x: any) => ({
+  brand_name: x.brand_name ?? null,
+  specification: x.specification ?? null,
+  color: x.color ?? null,
+  shade_no: x.shade_no ?? null,
+  size: x.size ?? null,
+  size_uom: x.size_uom ?? null,
+  description: x.description ?? null,
+  images: x.images,
+});
+
+// Same as the Trims Items page: extract colour from type/description
+const extractTrimColor = (t: TrimStockItem): string => {
+  const desc = t.description || '';
+  const colorMatch = desc.match(/(?:color|shade)\s*:\s*([^,;|\n]+)/i);
+  if (colorMatch && colorMatch[1]) return colorMatch[1].trim();
+
+  if (t.type && !t.type.toLowerCase().includes('button') && !t.type.toLowerCase().includes('thread') && !t.type.toLowerCase().includes('trim')) {
+    return t.type.trim();
+  }
+  return '';
+};
+
+// Same as the Trims Items page "Item Name" column
+const getTrimFullName = (item: TrimStockItem) => {
+  const trimType = item.category?.name || item.type;
+  const brand = item.brand_name;
+  const name = item.name;
+  const spec = item.specification;
+  const col = item.color || extractTrimColor(item);
+  const shade = item.shade_no;
+  const sz = item.size ? (
+    item.size_uom && !item.size.toLowerCase().includes(item.size_uom.toLowerCase())
+      ? `${item.size} ${item.size_uom}`
+      : item.size
+  ) : (item.size_uom || '');
+
+  return [trimType, brand, name, spec, col, shade, sz]
+    .map(val => (val || '').trim())
+    .filter(val => val && val !== '—')
+    .join(' ');
+};
+
+type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+const STATUS_META: Record<StockStatus, { label: string; pill: string; text: string; row: string }> = {
+  IN_STOCK: { label: 'In Stock', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-600', row: '' },
+  LOW_STOCK: { label: 'Low Stock', pill: 'bg-amber-50 text-amber-700 border-amber-200', text: 'text-amber-600', row: 'bg-amber-50/30' },
+  OUT_OF_STOCK: { label: 'Out of Stock', pill: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-600', row: 'bg-rose-50/30' },
+};
+
+// Trims, buttons and threads come from separate tables, so their ids can collide;
+// rows get a composite `id` while `item` keeps the original record for the adjust handler.
+type TrimRow = Omit<TrimStockItem, 'id'> & { id: string; item: TrimStockItem };
+
+const getStatus = (item: TrimStockItem): StockStatus => {
+  const qty = Number(item.quantity) || 0;
+  const threshold = Number(item.low_stock_threshold) || 10;
+  if (qty <= 0) return 'OUT_OF_STOCK';
+  if (qty <= threshold) return 'LOW_STOCK';
+  return 'IN_STOCK';
+};
+
 export default function TrimsStockPage() {
   const [trims, setTrims] = useState<TrimStockItem[]>([]);
   const [categories, setCategories] = useState<TrimCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Search & Filter
-  const [searchTerm, setSearchTerm] = useState('');
+  // Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [filterBrand, setFilterBrand] = useState<string>('ALL');
+  const [filterSize, setFilterSize] = useState<string>('ALL');
+  const [filterColour, setFilterColour] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'IN_STOCK'>('ALL');
-  const [viewMode, setViewMode] = useState<'CARDS' | 'TABLE'>('CARDS');
 
   // Adjustment Modal
   const [selectedTrim, setSelectedTrim] = useState<TrimStockItem | null>(null);
@@ -58,25 +125,6 @@ export default function TrimsStockPage() {
   const [inputDelta, setInputDelta] = useState<string>('10');
   const [newThreshold, setNewThreshold] = useState<number>(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Statistics
-  const stats = useMemo(() => {
-    let lowStock = 0;
-    let outOfStock = 0;
-    trims.forEach(t => {
-      const qty = Number(t.quantity) || 0;
-      const threshold = Number(t.low_stock_threshold) || 0;
-      if (qty <= 0) outOfStock++;
-      else if (qty <= threshold) lowStock++;
-    });
-
-    return {
-      totalItems: trims.length,
-      lowStockCount: lowStock,
-      outOfStockCount: outOfStock,
-      inStockCount: trims.length - lowStock - outOfStock
-    };
-  }, [trims]);
 
   const fetchStockData = async () => {
     setIsLoading(true);
@@ -103,6 +151,7 @@ export default function TrimsStockPage() {
             quantity: Number(t.quantity) || 0,
             low_stock_threshold: Number(t.low_stock_threshold) || 10,
             unit_price: t.unit_price,
+            ...pickDetails(t),
             category: t.category || { id: 'trim', name: 'Trim', code_prefix: 'TRM', default_uom: 'Pcs' }
           });
         });
@@ -123,6 +172,7 @@ export default function TrimsStockPage() {
               quantity: Number(b.quantity) || 0,
               low_stock_threshold: Number(b.low_stock_threshold) || 10,
               unit_price: b.unit_price,
+              ...pickDetails(b),
               category: { id: 'button-cat', name: 'Button', code_prefix: 'BTN', default_uom: 'Pcs' }
             });
           }
@@ -144,6 +194,7 @@ export default function TrimsStockPage() {
               quantity: Number(th.quantity) || 0,
               low_stock_threshold: Number(th.low_stock_threshold) || 10,
               unit_price: th.unit_price,
+              ...pickDetails(th),
               category: { id: 'thread-cat', name: 'Thread', code_prefix: 'THD', default_uom: 'Spools' }
             });
           }
@@ -173,42 +224,107 @@ export default function TrimsStockPage() {
     fetchStockData();
   }, []);
 
-  // Filtered Items
-  const filteredTrims = useMemo(() => {
-    return trims.filter(item => {
-      // Category filter
-      if (categoryFilter !== 'ALL') {
-        const itemCatId = item.category_id;
-        const itemCatName = (item.category?.name || '').toLowerCase();
-        const filterCatName = (categories.find(c => c.id === categoryFilter)?.name || '').toLowerCase();
+  const statusCounts = useMemo(() => {
+    const c = { IN_STOCK: 0, LOW_STOCK: 0, OUT_OF_STOCK: 0 };
+    trims.forEach(t => { c[getStatus(t)]++; });
+    return c;
+  }, [trims]);
 
-        const matchesId = itemCatId === categoryFilter;
-        const matchesName = itemCatName && filterCatName && itemCatName === filterCatName;
-        if (!matchesId && !matchesName) return false;
+  // Brand / Size / Colour options: same derivation as the Trims Items page
+  const uniqueBrands = useMemo(() => {
+    const set = new Set<string>();
+    trims.forEach(t => {
+      if (t.brand_name && t.brand_name.trim()) {
+        set.add(t.brand_name.trim());
       }
-
-      // Status filter
-      const qty = Number(item.quantity) || 0;
-      const threshold = Number(item.low_stock_threshold) || 0;
-
-      if (statusFilter === 'OUT_OF_STOCK' && qty > 0) return false;
-      if (statusFilter === 'LOW_STOCK' && (qty <= 0 || qty > threshold)) return false;
-      if (statusFilter === 'IN_STOCK' && qty <= threshold) return false;
-
-      // Search term
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase();
-        const matchesSearch = 
-          item.name.toLowerCase().includes(term) ||
-          item.code.toLowerCase().includes(term) ||
-          (item.type || '').toLowerCase().includes(term) ||
-          (item.category?.name || '').toLowerCase().includes(term);
-        if (!matchesSearch) return false;
-      }
-
-      return true;
     });
-  }, [trims, categoryFilter, statusFilter, searchTerm, categories]);
+    return Array.from(set).sort();
+  }, [trims]);
+
+  const uniqueSizes = useMemo(() => {
+    const set = new Set<string>();
+    trims.forEach(t => {
+      if (t.size && t.size.trim()) {
+        const full = t.size_uom && !t.size.toLowerCase().includes(t.size_uom.toLowerCase())
+          ? `${t.size.trim()} ${t.size_uom.trim()}`
+          : t.size.trim();
+        set.add(full);
+      }
+      const text = `${t.name} ${t.description || ''} ${t.type || ''}`;
+      const sizeMatch = (t.description || '').match(/(?:size|dimensions?|width|length)\s*:\s*([^,;|\n]+)/i);
+      if (sizeMatch && sizeMatch[1]) {
+        set.add(sizeMatch[1].trim());
+      }
+      const matches = text.match(/\b(\d+(?:\.\d+)?(?:["']|L|mm|cm|m)\b|#\d+|XS|S|M|L|XL|2XL|3XL|4XL|Free Size)/gi);
+      if (matches) {
+        matches.forEach(m => {
+          if (m && m.length <= 12) set.add(m);
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [trims]);
+
+  const uniqueColours = useMemo(() => {
+    const set = new Set<string>();
+    const commonColors = [
+      'White', 'Black', 'Gold', 'Silver', 'Brass', 'Navy Blue', 'Navy',
+      'Royal Blue', 'Sky Blue', 'Grey', 'Heather Grey', 'Maroon', 'Red',
+      'Bottle Green', 'Green', 'Beige', 'Khaki', 'Yellow', 'Brown', 'Bronze', 'Rama Blue'
+    ];
+    trims.forEach(t => {
+      if (t.color && t.color.trim()) {
+        set.add(t.color.trim());
+      }
+      const col = extractTrimColor(t);
+      if (col) {
+        set.add(col);
+      }
+      const descMatch = (t.description || '').match(/(?:color|shade)\s*:\s*([^,;|\n]+)/i);
+      if (descMatch && descMatch[1]) {
+        set.add(descMatch[1].trim());
+      }
+      const text = `${t.name || ''} ${t.description || ''} ${t.type || ''}`;
+      commonColors.forEach(cc => {
+        const regex = new RegExp(`\\b${cc}\\b`, 'i');
+        if (regex.test(text)) {
+          set.add(cc);
+        }
+      });
+    });
+    return Array.from(set).sort();
+  }, [trims]);
+
+  // Filtered Rows (category / brand / size / colour matching copied from the Trims Items page)
+  const filteredRows = useMemo<TrimRow[]>(() => {
+    return trims
+      .filter(t => {
+        if (categoryFilter !== 'ALL' && t.category_id !== categoryFilter) return false;
+        if (filterBrand !== 'ALL') {
+          const itemBrand = (t.brand_name || '').toLowerCase();
+          if (itemBrand !== filterBrand.toLowerCase()) return false;
+        }
+        if (filterSize !== 'ALL') {
+          const itemSize = t.size ? `${t.size} ${t.size_uom || ''}`.trim().toLowerCase() : '';
+          const text = `${t.name} ${t.description || ''} ${t.type || ''}`.toLowerCase();
+          if (!text.includes(filterSize.toLowerCase()) && !itemSize.includes(filterSize.toLowerCase())) return false;
+        }
+        if (filterColour !== 'ALL') {
+          const itemColor = (t.color || extractTrimColor(t) || '').toLowerCase();
+          const text = `${t.name} ${t.description || ''} ${t.type || ''}`.toLowerCase();
+          if (!text.includes(filterColour.toLowerCase()) && !itemColor.includes(filterColour.toLowerCase())) return false;
+        }
+
+        // Status filter
+        if (statusFilter !== 'ALL' && getStatus(t) !== statusFilter) return false;
+
+        return true;
+      })
+      .map(item => ({ ...item, id: `${item.origin}-${item.id}`, item }));
+  }, [trims, categoryFilter, filterBrand, filterSize, filterColour, statusFilter]);
+
+  const hasActiveFilters =
+    categoryFilter !== 'ALL' || filterBrand !== 'ALL' || filterColour !== 'ALL' || filterSize !== 'ALL' || statusFilter !== 'ALL';
 
   // Open Adjust Modal
   const handleOpenAdjust = (item: TrimStockItem) => {
@@ -261,377 +377,174 @@ export default function TrimsStockPage() {
     }
   };
 
+  const columns: Column<TrimRow>[] = [
+    {
+      header: 'ID',
+      accessor: (r) => <span className="font-mono text-xs font-black text-[#9E1B1D] whitespace-nowrap">{r.code || '—'}</span>,
+      sortable: true,
+      sortValue: (r) => r.code,
+    },
+    {
+      header: 'Item Name',
+      accessor: (r) => {
+        const fullName = getTrimFullName(r.item) || r.name || '—';
+        const itemImgs = parseImageGallery(r.images);
+        return (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-150 flex items-center justify-center overflow-hidden shrink-0">
+              {itemImgs.length > 0 ? (
+                <img src={itemImgs[0]} alt={fullName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[8px] text-zinc-300 font-bold uppercase">No Img</span>
+              )}
+            </div>
+            <p className="font-bold text-xs text-zinc-900 truncate max-w-[360px]" title={fullName}>{fullName}</p>
+          </div>
+        );
+      },
+      sortable: true,
+      sortValue: (r) => getTrimFullName(r.item) || r.name,
+    },
+    {
+      header: 'Available Stock',
+      className: 'text-right',
+      accessor: (r) => {
+        const status = getStatus(r.item);
+        return (
+          <span className={`font-mono text-xs font-black whitespace-nowrap ${STATUS_META[status].text}`}>
+            {formatQuantity(Number(r.quantity) || 0)} <span className="text-[10px] font-bold text-zinc-400">{r.uom}</span>
+          </span>
+        );
+      },
+      sortable: true,
+      sortValue: (r) => Number(r.quantity) || 0,
+    },
+    {
+      header: 'Status',
+      className: 'text-center',
+      accessor: (r) => {
+        const meta = STATUS_META[getStatus(r.item)];
+        return <span className={`inline-block px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider whitespace-nowrap ${meta.pill}`}>{meta.label}</span>;
+      },
+      sortable: true,
+      sortValue: (r) => getStatus(r.item),
+    },
+    {
+      header: 'Action',
+      className: 'text-center',
+      accessor: (r) => (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleOpenAdjust(r.item); }}
+          className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white text-[#C82A2B] border border-[#C82A2B]/30 hover:bg-[#FFF1F1] transition-all cursor-pointer whitespace-nowrap"
+        >
+          Adjust
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      
-      {/* Page Header matching FabricStockPage */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <Layers size={20} />
-            </div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Trims Stock Ledger</h1>
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-2 opacity-80">
-            Thread spools, buttons, zippers, labels & finishing trim stock balances
-          </p>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-1 flex items-center shadow-sm">
-            <button
-              onClick={() => setViewMode('CARDS')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                viewMode === 'CARDS' ? 'bg-[#3a525d] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
-              }`}
-            >
-              Cards
-            </button>
-            <button
-              onClick={() => setViewMode('TABLE')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                viewMode === 'TABLE' ? 'bg-[#3a525d] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
-              }`}
-            >
-              Table
-            </button>
-          </div>
-        </div>
+      {/* Page Header */}
+      <div>
+        <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Trims Stock Ledger</h1>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1">
+          Thread spools, buttons, zippers, labels & finishing trim stock balances
+        </p>
       </div>
 
-      {/* Metrics Row matching Fabric Stock */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        
-        {/* Total Trim Profiles */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-[#2d8d9b]/30 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-[#2d8d9b]/5 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/10 shrink-0">
-            <Layers size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#2d8d9b]/70">All Trim Profiles</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#2d8d9b] mt-0.5">{stats.totalItems}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-[#2d8d9b] scale-125 group-hover:scale-150 transition-transform duration-500">
-            <Layers size={60} />
-          </div>
-        </div>
-
-        {/* Low Stock Alerts */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100 shrink-0">
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600/70">Low Stock Trims</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-amber-600 mt-0.5">{stats.lowStockCount}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-amber-500 scale-125 group-hover:scale-150 transition-transform duration-500">
-            <AlertTriangle size={60} />
-          </div>
-        </div>
-
-        {/* Out of Stock */}
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all duration-300 relative overflow-hidden group">
-          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
-            <XCircle size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-red-600/70">Depleted Trims</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-red-600 mt-0.5">{stats.outOfStockCount}</h3>
-          </div>
-          <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 text-red-500 scale-125 group-hover:scale-150 transition-transform duration-500">
-            <XCircle size={60} />
-          </div>
-        </div>
-
-      </div>
-
-      {/* Arranged Trim Categories Tabs Bar */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            onClick={() => setCategoryFilter('ALL')}
-            className={`h-11 px-5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-              categoryFilter === 'ALL'
-                ? 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20'
-                : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200/80'
-            }`}
-          >
-            <span>All Trims Stock</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${categoryFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
-              {trims.length}
-            </span>
-          </button>
-
-          {categories.map(cat => {
-            const count = trims.filter(t => 
-              t.category_id === cat.id || 
-              (t.category?.name || '').toLowerCase() === cat.name.toLowerCase()
-            ).length;
-            const isSelected = categoryFilter === cat.id;
-
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setCategoryFilter(cat.id)}
-                className={`h-11 px-5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-                  isSelected
-                    ? 'bg-[#3a525d] text-white shadow-md shadow-[#3a525d]/20'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200/80'
-                }`}
-              >
-                <span className="font-mono text-[10px] text-[#2d8d9b] font-bold">[{cat.code_prefix}]</span>
-                <span>{cat.name} Stock</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filter and Search Bar matching Fabric Stock */}
-        <div className="bg-white border border-zinc-200/80 rounded-[2rem] p-4 flex flex-col xl:flex-row gap-4 items-center justify-between shadow-sm">
-          
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
-            {/* Category Dropdown Filter */}
+      <DataTable
+        columns={columns}
+        data={filteredRows}
+        isLoading={isLoading}
+        searchPlaceholder="Search"
+        emptyMessage="No trim stock records found. Try adjusting the search term or filters."
+        rowClassName={(r) => STATUS_META[getStatus(r.item)].row}
+        onRowClick={(r) => handleOpenAdjust(r.item)}
+        headerAction={
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Category Filter */}
             <FilterDropdown
               label="Category"
               allLabel={`All Categories (${trims.length})`}
               value={categoryFilter}
-              onChange={(val) => setCategoryFilter(val)}
-              options={categories.map(c => {
-                const count = trims.filter(t => 
-                  t.category_id === c.id || 
-                  (t.category?.name || '').toLowerCase() === c.name.toLowerCase()
-                ).length;
-                return {
-                  label: c.name,
-                  value: c.id,
-                  badge: count
-                };
-              })}
+              onChange={setCategoryFilter}
+              options={categories.map(c => ({
+                label: c.name,
+                value: c.id,
+                badge: trims.filter(t => t.category_id === c.id).length
+              }))}
             />
 
-            {/* Status Dropdown Filter */}
+            {/* Brand Filter */}
+            <FilterDropdown
+              label="Brand"
+              allLabel="All Brands"
+              value={filterBrand}
+              onChange={setFilterBrand}
+              options={uniqueBrands}
+            />
+
+            {/* Colour Filter */}
+            <FilterDropdown
+              label="Colour"
+              allLabel="All Colours"
+              value={filterColour}
+              onChange={setFilterColour}
+              options={uniqueColours}
+            />
+
+            {/* Size Filter */}
+            <FilterDropdown
+              label="Size"
+              allLabel="All Sizes"
+              value={filterSize}
+              onChange={setFilterSize}
+              options={uniqueSizes}
+            />
+
+            {/* Stock Status Filter */}
             <FilterDropdown
               label="Stock Status"
-              allLabel="All Stock Statuses"
+              allLabel="All Statuses"
+              allBadge={trims.length}
               value={statusFilter}
-              onChange={(val) => setStatusFilter(val as any)}
+              onChange={(v) => setStatusFilter(v as typeof statusFilter)}
               options={[
-                { label: "In Stock", value: "IN_STOCK", badge: stats.inStockCount },
-                { label: "Low Stock Alerts", value: "LOW_STOCK", badge: stats.lowStockCount },
-                { label: "Depleted", value: "OUT_OF_STOCK", badge: stats.outOfStockCount }
+                { label: 'In Stock', value: 'IN_STOCK', badge: statusCounts.IN_STOCK },
+                { label: 'Low Stock', value: 'LOW_STOCK', badge: statusCounts.LOW_STOCK },
+                { label: 'Out of Stock', value: 'OUT_OF_STOCK', badge: statusCounts.OUT_OF_STOCK },
               ]}
             />
-          </div>
 
-          {/* Search */}
-          <div className="relative group w-full xl:w-96 xl:ml-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d8d9b]/50 group-focus-within:text-[#2d8d9b] transition-colors" size={16} />
-            <input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search"
-              className="w-full bg-white border border-zinc-200/80 rounded-2xl py-3 pl-12 pr-10 text-xs font-bold outline-none focus:ring-4 focus:ring-[#fce4d4]/40 transition-all text-[#3a525d] shadow-sm"
-            />
-          </div>
-
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center p-24 bg-white border border-zinc-200/80 rounded-[3rem] gap-4">
-          <Loader2 className="animate-spin text-[#2d8d9b]" size={40} />
-          <p className="text-sm font-bold text-[#3a525d]">Parsing trims stock ledger...</p>
-        </div>
-      ) : filteredTrims.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-20 bg-white border border-zinc-200/80 rounded-[3rem] text-center space-y-3">
-          <Package size={48} className="text-zinc-300" />
-          <h3 className="text-lg font-black text-[#3a525d]">No Trim Stock Records Found</h3>
-          <p className="text-xs text-zinc-400 max-w-sm">No items match your filter criteria. Try adjusting the search term or category tabs.</p>
-        </div>
-      ) : viewMode === 'CARDS' ? (
-        /* Visual Cards Grid matching Fabric Stock */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
-          {filteredTrims.map((item) => {
-            const qty = Number(item.quantity) || 0;
-            const threshold = Number(item.low_stock_threshold) || 10;
-            
-            let status: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
-            if (qty <= 0) status = 'OUT_OF_STOCK';
-            else if (qty <= threshold) status = 'LOW_STOCK';
-
-            const statusColors = {
-              IN_STOCK: 'bg-emerald-50/40 text-emerald-600 border-emerald-100 hover:border-emerald-300',
-              LOW_STOCK: 'bg-amber-50/40 text-amber-600 border-amber-100 hover:border-amber-300',
-              OUT_OF_STOCK: 'bg-red-50/40 text-red-600 border-red-100 hover:border-red-300'
-            };
-
-            const badgeColors = {
-              IN_STOCK: 'bg-emerald-500 text-white',
-              LOW_STOCK: 'bg-amber-500 text-white',
-              OUT_OF_STOCK: 'bg-red-500 text-white'
-            };
-
-            const percentage = Math.min(100, Math.max(5, (qty / Math.max(1, threshold * 2)) * 100));
-
-            return (
-              <div 
-                key={`${item.origin}-${item.id}`}
-                onClick={() => handleOpenAdjust(item)}
-                className={`bg-white rounded-[2.5rem] border p-6 shadow-sm flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.99] ${statusColors[status]}`}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter('ALL');
+                  setFilterBrand('ALL');
+                  setFilterColour('ALL');
+                  setFilterSize('ALL');
+                  setStatusFilter('ALL');
+                }}
+                className="px-2.5 py-1.5 bg-white hover:bg-[#FFF1F1] text-[#C82A2B] hover:text-[#A81D1E] text-xs font-bold rounded-xl border border-[#C82A2B]/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                <div>
-                  {/* Card Header */}
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200/50 flex items-center justify-center text-[#2d8d9b] shadow-sm shrink-0">
-                        {item.category?.name?.toLowerCase().includes('button') ? (
-                          <CircleDot size={18} />
-                        ) : item.category?.name?.toLowerCase().includes('thread') ? (
-                          <Scissors size={18} />
-                        ) : (
-                          <Layers size={18} />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-black text-sm text-[#3a525d] tracking-tight line-clamp-1">{item.name}</h4>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] font-black bg-white/70 text-zinc-500 px-1.5 py-0.5 rounded border border-zinc-200/40 uppercase tracking-wider font-mono">
-                            {item.code}
-                          </span>
-                          <span className="text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200/50 uppercase">
-                            {item.category?.name || 'Trim'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${badgeColors[status]}`}>
-                      {status.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  {/* Metadata Row */}
-                  <div className="grid grid-cols-3 gap-2 mt-5 bg-white/50 backdrop-blur-sm rounded-2xl p-3 border border-black/5 text-center">
-                    <div>
-                      <p className="text-[7.5px] font-black uppercase tracking-widest text-zinc-400">Type / Variant</p>
-                      <p className="text-xs font-black text-[#3a525d] truncate mt-0.5">{item.type || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[7.5px] font-black uppercase tracking-widest text-zinc-400">Unit of Measure</p>
-                      <p className="text-xs font-black text-[#3a525d] truncate mt-0.5">{item.uom}</p>
-                    </div>
-                    <div>
-                      <p className="text-[7.5px] font-black uppercase tracking-widest text-zinc-400">Alert Min</p>
-                      <p className="text-xs font-black text-[#3a525d] truncate mt-0.5">{threshold} {item.uom}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gauge & Balance Footer */}
-                <div className="mt-5 pt-4 border-t border-black/5">
-                  <div className="flex justify-between items-end mb-2">
-                    <div>
-                      <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Available Balance</span>
-                      <p className="text-2xl font-black text-[#3a525d] leading-none mt-1">
-                        {formatQuantity(qty)} <span className="text-xs font-bold text-zinc-400">{item.uom}</span>
-                      </p>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider text-[#2d8d9b] bg-[#2d8d9b]/10 px-2.5 py-1 rounded-xl">
-                      Adjust Stock →
-                    </span>
-                  </div>
-
-                  <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        status === 'OUT_OF_STOCK' ? 'bg-red-500' :
-                        status === 'LOW_STOCK' ? 'bg-amber-500' : 'bg-emerald-500'
-                      }`}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* High Density Table View */
-        <div className="bg-white rounded-[2.5rem] border border-zinc-200/80 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#fce4d4]/60 bg-zinc-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Trim Code</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Article Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Category</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Variant / Type</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Current Stock</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Alert Threshold</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a525d] text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {filteredTrims.map((item) => {
-                  const qty = Number(item.quantity) || 0;
-                  const threshold = Number(item.low_stock_threshold) || 10;
-                  const status = qty <= 0 ? 'OUT_OF_STOCK' : (qty <= threshold ? 'LOW_STOCK' : 'IN_STOCK');
-                  
-                  return (
-                    <tr key={`${item.origin}-${item.id}`} className="hover:bg-zinc-50/50 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-xs text-[#2d8d9b]">{item.code}</td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-xs text-[#3a525d]">{item.name}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 bg-amber-50 border border-amber-100 rounded-lg text-[10px] font-black text-amber-700">
-                          {item.category?.name || 'Trim'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-zinc-500 font-medium">{item.type || '—'}</td>
-                      <td className="px-6 py-4 font-black text-sm text-[#3a525d]">
-                        {formatQuantity(qty)} <span className="text-[10px] font-bold text-zinc-400">{item.uom}</span>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-bold text-zinc-500">{threshold} {item.uom}</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          status === 'IN_STOCK' ? 'bg-emerald-100 text-emerald-700' :
-                          status === 'LOW_STOCK' ? 'bg-amber-100 text-amber-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleOpenAdjust(item)}
-                          className="px-3 py-1.5 bg-[#2d8d9b]/10 hover:bg-[#2d8d9b] text-[#2d8d9b] hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
-                        >
-                          Adjust
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
-        </div>
-      )}
+        }
+      />
 
       {/* Stock Adjustment Modal */}
       {isAdjustModalOpen && selectedTrim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-100 relative space-y-6">
-            <button 
+          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-100 relative space-y-6 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
+            <button
               type="button"
               onClick={() => setIsAdjustModalOpen(false)}
               className="absolute top-6 right-6 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer"
@@ -640,17 +553,17 @@ export default function TrimsStockPage() {
             </button>
 
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#2d8d9b] block">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] block">
                 Stock Adjustment
               </span>
-              <h3 className="text-xl font-black text-[#3a525d] mt-1">{selectedTrim.name}</h3>
+              <h3 className="text-xl font-black text-zinc-900 mt-1">{selectedTrim.name}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs font-mono font-bold text-zinc-400">{selectedTrim.code}</span>
-                <span className="text-[10px] font-black bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                <span className="text-[10px] font-black bg-[#FFF1F1] text-[#9E1B1D] px-2 py-0.5 rounded-full border border-[#C82A2B]/20">
                   {selectedTrim.category?.name || 'Trim'}
                 </span>
                 <span className="text-xs font-bold text-zinc-500">
-                  Current: <strong className="text-[#3a525d]">{formatQuantity(selectedTrim.quantity)} {selectedTrim.uom}</strong>
+                  Current: <strong className="text-zinc-900">{formatQuantity(selectedTrim.quantity)} {selectedTrim.uom}</strong>
                 </span>
               </div>
             </div>
@@ -658,7 +571,7 @@ export default function TrimsStockPage() {
             <form onSubmit={handleAdjustSubmit} className="space-y-5">
               {/* Replenish vs Consume Switch */}
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-2">
                   Transaction Mode
                 </label>
                 <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-1.5 rounded-2xl border border-zinc-200">
@@ -680,7 +593,7 @@ export default function TrimsStockPage() {
                     onClick={() => setAdjustmentAction('CONSUME')}
                     className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       adjustmentAction === 'CONSUME'
-                        ? 'bg-red-500 text-white shadow-md shadow-red-500/20'
+                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
                         : 'text-zinc-500 hover:text-zinc-800'
                     }`}
                   >
@@ -693,14 +606,14 @@ export default function TrimsStockPage() {
               {/* Quantity Input with Quick Delta Presets */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d]">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">
                     Quantity Change ({selectedTrim.uom}) *
                   </label>
                   <span className="text-[10px] font-bold text-zinc-400">
-                    Calculated Result: <strong className="text-[#3a525d]">
+                    Calculated Result: <strong className="text-zinc-900">
                       {formatQuantity(
                         Math.max(
-                          0, 
+                          0,
                           Number(selectedTrim.quantity) + (adjustmentAction === 'REPLENISH' ? (parseFloat(inputDelta) || 0) : -(parseFloat(inputDelta) || 0))
                         )
                       )} {selectedTrim.uom}
@@ -708,14 +621,14 @@ export default function TrimsStockPage() {
                   </span>
                 </div>
 
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   step="any"
                   min="0.01"
-                  value={inputDelta} 
-                  onChange={e => setInputDelta(e.target.value)} 
+                  value={inputDelta}
+                  onChange={e => setInputDelta(e.target.value)}
                   placeholder="e.g. 50"
-                  className="w-full text-sm font-black text-[#3a525d] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                  className="w-full text-sm font-black text-zinc-900 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                   required
                 />
 
@@ -726,7 +639,7 @@ export default function TrimsStockPage() {
                       key={amt}
                       type="button"
                       onClick={() => setInputDelta(String(amt))}
-                      className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg text-[10px] font-black cursor-pointer transition-colors"
+                      className="px-2.5 py-1 bg-zinc-100 hover:bg-[#FFF1F1] hover:text-[#9E1B1D] text-zinc-600 rounded-lg text-[10px] font-black cursor-pointer transition-colors"
                     >
                       {amt} {selectedTrim.uom}
                     </button>
@@ -736,31 +649,31 @@ export default function TrimsStockPage() {
 
               {/* Low Stock Alert Threshold */}
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#3a525d] block mb-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900 block mb-1">
                   Low Stock Alert Threshold ({selectedTrim.uom})
                 </label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   step="any"
                   min="0"
-                  value={newThreshold} 
-                  onChange={e => setNewThreshold(parseFloat(e.target.value) || 0)} 
-                  className="w-full text-xs font-bold text-[#3a525d] px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none" 
+                  value={newThreshold}
+                  onChange={e => setNewThreshold(parseFloat(e.target.value) || 0)}
+                  className="w-full text-xs font-bold text-zinc-900 px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 outline-none"
                 />
-                <p className="text-[10px] text-zinc-400 mt-1">Trims with quantity at or below this level trigger amber alert cards.</p>
+                <p className="text-[10px] text-zinc-400 mt-1">Trims with quantity at or below this level are flagged as low stock.</p>
               </div>
 
               {/* Footer Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsAdjustModalOpen(false)}
                   className="px-5 py-2.5 text-xs font-bold text-zinc-400 hover:text-zinc-600 uppercase tracking-wider cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isSubmitting}
                   className="px-7 py-3 bg-[#C82A2B] hover:bg-[#A81D1E] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >

@@ -13,6 +13,7 @@ import QuotationList from './_components/QuotationList';
 import QuotationDetails from './_components/QuotationDetails';
 import QuotationWizard from './_components/QuotationWizard';
 import { RevisionModal } from './_components/RevisionModal';
+import { LeadViewModal } from '../../customers/leads/page';
 
 export interface Organization {
   id: number;
@@ -222,6 +223,7 @@ export default function QuotationsPage() {
   const searchParams = useSearchParams();
 
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [pipelineLead, setPipelineLead] = useState<any | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [fabricsList, setFabricsList] = useState<any[]>([]);
@@ -546,6 +548,29 @@ export default function QuotationsPage() {
     }
   };
 
+  // Status badge click: open the quote's lead in the (read-only) lead pipeline modal on the Quotations tab
+  const handleViewPipeline = async (quote: Quotation) => {
+    const toastId = toast.loading('Opening lead pipeline...');
+    try {
+      const res = await api.get('/leads');
+      const leads: any[] = Array.isArray(res.data) ? res.data : [];
+      const orgName = String((quote as any).organizations?.name || '').toLowerCase().trim();
+      const lead =
+        leads.find(l => (quote as any).lead_id && l.id === (quote as any).lead_id) ||
+        leads.find(l => quote.organization_id && l.organization_id === quote.organization_id) ||
+        leads.find(l => orgName && String(l.name || '').toLowerCase().trim() === orgName);
+      if (lead) {
+        toast.dismiss(toastId);
+        setPipelineLead(lead);
+        return;
+      }
+      toast.info('No lead found for this customer. Showing quotation details.', { id: toastId });
+    } catch {
+      toast.info('Lead pipeline unavailable. Showing quotation details.', { id: toastId });
+    }
+    handleViewDetails(quote);
+  };
+
   const handleStartEdit = (quote: Quotation) => {
     setIsRevisionMode(false);
     setRevisedFromQuotationId(null);
@@ -719,10 +744,29 @@ export default function QuotationsPage() {
           onSubmitToBm={setSubmitToBmCandidate}
           onBmApprove={setBmApproveCandidate}
           onBmReject={setBmRejectCandidate}
+          onViewPipeline={handleViewPipeline}
           currentUser={currentUser}
           onRefresh={fetchQuotations}
           onPrintTrigger={(fn) => { printTriggerRef.current = fn; }}
           onUserReportTrigger={(fn) => { userReportTriggerRef.current = fn; }}
+        />
+      )}
+
+      {pipelineLead && (
+        <LeadViewModal
+          isOpen={true}
+          lead={pipelineLead}
+          readOnly
+          initialTab="Quotations"
+          onClose={() => setPipelineLead(null)}
+          onEdit={() => {}}
+          onFeedOutcome={() => {}}
+          onAssignBranch={() => {}}
+          onAssignStaff={() => {}}
+          onFollowUp={() => {}}
+          onMeetingOutcome={() => {}}
+          onConvertFeed={() => {}}
+          onReload={() => {}}
         />
       )}
 

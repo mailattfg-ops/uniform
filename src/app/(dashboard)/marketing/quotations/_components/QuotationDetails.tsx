@@ -857,6 +857,8 @@ export default function QuotationDetails({
   const isDraft = selectedQuotation.status === 'Draft' && !isBmRevision;
   const isCustomerApproved = selectedQuotation.status === 'Approved';
   const isApprovedAndPaid = isCustomerApproved && parseFloat(String(selectedQuotation.paid_amount || 0)) > 0;
+  // Customer decision/follow-up logging only after the quote is sent to the customer
+  const canLogDecision = selectedQuotation.status === 'BM Approved' || selectedQuotation.status === 'Held';
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -889,7 +891,7 @@ export default function QuotationDetails({
                 {onBmApprove && (
                   <Button
                     onClick={() => onBmApprove(selectedQuotation)}
-                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/10 border-none h-9 cursor-pointer"
+                    className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 cursor-pointer"
                   >
                     <Check size={14} strokeWidth={2.5} />
                     Approve (BM)
@@ -898,7 +900,7 @@ export default function QuotationDetails({
                 {onBmReject && (
                   <Button
                     onClick={() => onBmReject(selectedQuotation)}
-                    className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest shadow-lg shadow-amber-500/10 border-none h-9 cursor-pointer"
+                    className="flex items-center gap-1.5 bg-white hover:bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/30 rounded-xl py-2 px-3 text-xs font-black uppercase tracking-widest shadow-xs h-9 cursor-pointer"
                   >
                     <RotateCcw size={14} />
                     Revision
@@ -911,7 +913,7 @@ export default function QuotationDetails({
             {!readOnly && isDraft && canSubmitToBm && onSubmitToBm && (
               <Button
                 onClick={() => onSubmitToBm(selectedQuotation)}
-                className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-600/10 border-none h-9 cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 cursor-pointer"
               >
                 <Send size={14} strokeWidth={2.5} />
                 Send to BM
@@ -922,7 +924,7 @@ export default function QuotationDetails({
             {!readOnly && isBmRevision && canSubmitToBm && onSubmitToBm && (
               <Button
                 onClick={() => onSubmitToBm(selectedQuotation)}
-                className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-600/10 border-none h-9 cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 cursor-pointer"
               >
                 <Send size={14} strokeWidth={2.5} />
                 Resubmit to BM
@@ -930,10 +932,10 @@ export default function QuotationDetails({
             )}
 
             {/* Log Customer Decision (once BM Approved) */}
-            {!readOnly && selectedQuotation.status === 'BM Approved' && (
+            {!readOnly && canLogDecision && (
               <Button
                 onClick={() => setShowFollowUpModal(true)}
-                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 border-none h-9 cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 cursor-pointer"
               >
                 <MessageSquare size={14} strokeWidth={2.5} />
                 Log Customer Decision
@@ -954,7 +956,7 @@ export default function QuotationDetails({
             {isCustomerApproved && parseFloat(String(selectedQuotation.paid_amount || 0)) <= 0 && (
               <Button
                 onClick={() => setShowAdvancePaymentModal(true)}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 title="Record advance payment from client"
               >
                 <CreditCard size={14} strokeWidth={2.5} />
@@ -1725,7 +1727,7 @@ export default function QuotationDetails({
                   {parseFloat(String(selectedQuotation.paid_amount || 0)) <= 0 ? (
                     <Button
                       onClick={() => setShowAdvancePaymentModal(true)}
-                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-wider shadow-md shrink-0 h-8 cursor-pointer"
+                      className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3 text-xs font-black uppercase tracking-wider shadow-md shrink-0 h-8 cursor-pointer"
                     >
                       <CreditCard size={12} />
                       <span>Record Advance</span>
@@ -1763,7 +1765,7 @@ export default function QuotationDetails({
                 </p>
               </div>
 
-              {!readOnly && !isApprovedAndPaid && (
+              {!readOnly && !isApprovedAndPaid && canLogDecision && (
                 <Button
                   onClick={() => setShowFollowUpModal(true)}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#801416] hover:bg-[#681012] text-white shadow-lg shadow-[#801416]/20 border-none cursor-pointer self-start sm:self-auto"
@@ -1878,7 +1880,7 @@ export default function QuotationDetails({
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
                   Timeline & Follow-up Communications ({timelineActivities.length})
                 </span>
-                {!readOnly && (
+                {!readOnly && canLogDecision && (
                   <button
                     type="button"
                     onClick={() => setShowFollowUpModal(true)}
@@ -1954,7 +1956,7 @@ export default function QuotationDetails({
                 <div className="p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 space-y-2">
                   <History size={24} className="mx-auto text-zinc-400" />
                   <p className="text-xs font-bold text-zinc-600">No activity or follow-up notes logged yet</p>
-                  {!readOnly && (
+                  {!readOnly && canLogDecision && (
                     <Button
                       onClick={() => setShowFollowUpModal(true)}
                       className="px-3 py-1.5 bg-[#801416] text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-[#681012] transition-colors"

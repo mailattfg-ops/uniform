@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Clock, ArrowRight, X, ChevronLeft, Calendar, CheckCircle2, Scale, Building2, ChevronRight } from 'lucide-react';
+import { Clock, X, Trash2, ChevronLeft, Calendar, CheckCircle2, Scale, Building2, ChevronRight } from 'lucide-react';
 import { formatDate } from '@/lib/formatters';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 
@@ -48,10 +48,6 @@ interface WizardStep4Props {
   setIsTaxInclusive: (val: boolean) => void;
   extraCharges: ExtraCharge[];
   setExtraCharges: (val: ExtraCharge[]) => void;
-  status: string;
-  setStatus: (val: string) => void;
-  onBack: () => void;
-  onNext: () => void;
   fabricsList?: any[];
 }
 
@@ -61,11 +57,6 @@ const gstOptions = [
   { label: '12%', value: '12' },
   { label: '18%', value: '18' },
   { label: '28%', value: '28' }
-];
-
-const statusOptions = [
-  { label: 'Pending', value: 'Pending' },
-  { label: 'Draft', value: 'Draft' }
 ];
 
 const typeOptions = [
@@ -94,10 +85,6 @@ export default function WizardStep4({
   setIsTaxInclusive,
   extraCharges,
   setExtraCharges,
-  status,
-  setStatus,
-  onBack,
-  onNext,
   fabricsList = [],
 }: WizardStep4Props) {
   const [allQuotations, setAllQuotations] = useState<any[]>([]);
@@ -270,9 +257,10 @@ export default function WizardStep4({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Side panel narrows this section, so the estimates card sits below the fields until 2xl */}
+      <div className="grid grid-cols-1 2xl:grid-cols-3 gap-8">
         {/* TIMELINE SETTINGS */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="2xl:col-span-2 space-y-6 min-w-0">
           <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Project Milestones</h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -377,16 +365,6 @@ export default function WizardStep4({
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Quotation Status</label>
-              <Select
-                value={status}
-                onChange={setStatus}
-                options={statusOptions}
-                placeholder="Select Status..."
-                className="!py-2.5 !rounded-xl !border border-zinc-200"
-              />
-            </div>
           </div>
 
           {/* EXTRA CHARGES SECTION */}
@@ -405,10 +383,14 @@ export default function WizardStep4({
             {extraCharges.length === 0 ? (
               <p className="text-[10px] text-zinc-400 font-bold italic">No extra charges added yet.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
+                {/* Column labels (hidden on phones, where the row wraps) */}
+                <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem_4.5rem_6rem_2.25rem] gap-2 px-3 text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                  <span>Charge</span><span>Type</span><span className="text-center">Qty</span><span className="text-center">Rate (₹)</span><span />
+                </div>
                 {extraCharges.map((ec, idx) => (
-                  <div key={idx} className="flex gap-4 items-center bg-zinc-50/50 p-3 border border-zinc-150 rounded-2xl flex-wrap md:flex-nowrap">
-                    <div className="flex-1 min-w-[200px]">
+                  <div key={idx} className="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_7rem_4.5rem_6rem_2.25rem] gap-2 items-center bg-zinc-50/50 p-3 border border-zinc-150 rounded-2xl">
+                    <div className="min-w-0 col-span-2 sm:col-span-1">
                       <input
                         type="text"
                         placeholder="Charge Name (e.g. Packing, Delivery)"
@@ -423,7 +405,7 @@ export default function WizardStep4({
                     </div>
                     
                     {/* TYPE SELECTION BOX */}
-                    <div className="w-28 flex-shrink-0">
+                    <div className="min-w-0">
                       <Select
                         value={ec.type || 'product'}
                         onChange={(val) => {
@@ -441,7 +423,7 @@ export default function WizardStep4({
                       />
                     </div>
 
-                    <div className="w-20 flex-shrink-0">
+                    <div className="min-w-0">
                       <input
                         type="number"
                         placeholder="Qty"
@@ -459,7 +441,7 @@ export default function WizardStep4({
                         }`}
                       />
                     </div>
-                    <div className="w-24 flex-shrink-0">
+                    <div className="min-w-0">
                       <input
                         type="number"
                         placeholder="Rate"
@@ -475,9 +457,11 @@ export default function WizardStep4({
                     <button
                       type="button"
                       onClick={() => setExtraCharges(extraCharges.filter((_, i) => i !== idx))}
-                      className="px-3 py-2 text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 rounded-xl border border-red-200 transition-all flex-shrink-0"
+                      title="Remove this charge"
+                      aria-label="Remove this charge"
+                      className="w-9 h-9 flex items-center justify-center text-red-500 bg-white hover:text-white hover:bg-red-500 rounded-xl border border-red-200 transition-all cursor-pointer"
                     >
-                      Delete
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
@@ -488,9 +472,9 @@ export default function WizardStep4({
         </div>
 
         {/* LIVE TIMELINE REPORT CARD */}
-        <Card className="h-fit p-8 border border-zinc-100 bg-zinc-50/50 rounded-[2.5rem] flex flex-col justify-between">
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-zinc-900 border-b border-zinc-200 pb-4">
+        <Card className="h-fit p-6 border border-zinc-100 bg-zinc-50/50 rounded-[2rem] flex flex-col justify-between min-w-0">
+          <div className="grid gap-6 md:grid-cols-2 2xl:grid-cols-1">
+            <div className="flex items-center gap-2 text-zinc-900 border-b border-zinc-200 pb-4 md:col-span-2 2xl:col-span-1">
               <Clock size={20} />
               <h4 className="text-xs font-black uppercase tracking-widest">Time & Yield Estimates</h4>
             </div>
@@ -535,7 +519,7 @@ export default function WizardStep4({
               )}
             </div>
 
-            <div className="border-t border-zinc-200/60 pt-4 space-y-2 text-xs font-bold text-zinc-500">
+            <div className="border-t md:border-t-0 2xl:border-t border-zinc-200/60 pt-4 md:pt-0 2xl:pt-4 space-y-2 text-xs font-bold text-zinc-500 [&>div]:gap-3 [&>div>span:first-child]:min-w-0">
               <div className="flex justify-between">
                 <span>Production Expenses:</span>
                 <span className="font-mono text-zinc-900">₹{quoteTotals.expenses.toFixed(2)}</span>
@@ -575,28 +559,13 @@ export default function WizardStep4({
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
               {quoteTotals.isTaxInclusive ? 'Total Contract Value (GST Inclusive)' : 'Total Contract Value (With GST)'}
             </p>
-            <p className="text-4xl font-black italic tracking-tighter text-[#C82A2B] font-mono mt-1">
+            <p className="text-3xl font-black italic tracking-tighter text-[#C82A2B] font-mono mt-1 break-all">
               ₹{quoteTotals.finalValue.toFixed(2)}
             </p>
           </div>
         </Card>
       </div>
 
-      <div className="flex justify-between pt-6 border-t border-zinc-100 mt-10">
-        <Button
-          variant="secondary"
-          onClick={onBack}
-          className="h-16 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest"
-        >
-          Back
-        </Button>
-        <Button
-          onClick={onNext}
-          className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          Review Summary <ArrowRight size={16} />
-        </Button>
-      </div>
 
       {/* POPUP DETAIL MODAL */}
       {selectedQuoteDetail && (

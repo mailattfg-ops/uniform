@@ -2,8 +2,7 @@
 import { Select } from '@/components/ui/Select';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Plus, ArrowRight, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw, Hash } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, AlertTriangle, Layers, Trash2, Package, Zap, Users, GraduationCap, RefreshCw, Hash } from 'lucide-react';
 import { ProductType, TemplateLineItem, ManualItem, ItemKind } from '../../page';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
@@ -394,8 +393,6 @@ interface WizardStep2Props {
   calculateFabricCost: (fabricId: string, metersStr: string, fabricSamStr: string, productTypeId: string) => number;
   laborRatePerHour: string;
   isAnalyzing: boolean;
-  onBack: () => void;
-  onNext: () => void;
   isManualItemsValid: () => boolean;
   organizations?: any[];
   selectedOrgId?: string;
@@ -426,8 +423,6 @@ export default function WizardStep2({
   calculateFabricCost,
   laborRatePerHour,
   isAnalyzing,
-  onBack,
-  onNext,
   isManualItemsValid,
   organizations = [],
   selectedOrgId = '',
@@ -1121,10 +1116,13 @@ export default function WizardStep2({
     if (matchedProd) {
       if (isAccessoryProduct(matchedProd)) {
         const basePrice = parseFloat(matchedProd.base_price || matchedProd.retail_sam_value || '0') || 0;
+        const accName = formatProductDisplayName(matchedProd, masterItems) || matchedProd.name || '';
         return {
           art_number: matchedProd.art_number || clean,
           product_id: String(matchedProd.id),
           product_type_id: String(matchedProd.product_type_id || currentItem.product_type_id || ''),
+          product_name: accName,
+          name: accName,
           design_number: matchedProd.design_number || 'ACC-STANDARD',
           gender: normalizeGender(matchedProd.gender) || currentItem.gender || 'unisex',
           price: basePrice > 0 ? basePrice.toFixed(2) : (currentItem.price || '0.00'),
@@ -1524,7 +1522,9 @@ export default function WizardStep2({
                 </Select>
               </div>
 
-              {/* Product Type */}
+              {/* Product Type: garments only. Accessory products usually have no product type
+                  (and no "Accessories" type may exist), so they are picked directly below. */}
+              {!isAccessoryType && (
               <div className="min-w-[150px]">
                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Product Type</p>
                 <Select
@@ -1541,6 +1541,7 @@ export default function WizardStep2({
                   ))}
                 </Select>
               </div>
+              )}
 
               {/* Specification (Replaces Product for readymades) */}
               <div className="flex-1 min-w-[200px]">
@@ -1548,9 +1549,9 @@ export default function WizardStep2({
                   {isAccessoryType ? 'Product' : 'Specification'}
                 </p>
                 <Select
-                  className={`${selectCls} ${!item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`${selectCls} ${!isAccessoryType && !item.product_type_id ? 'opacity-50 cursor-not-allowed' : ''}`}
                   value={item.product_id || ''}
-                  disabled={!item.product_type_id}
+                  disabled={!isAccessoryType && !item.product_type_id}
                   onChange={(e) => {
                     const val = e.target.value;
                     const prod = allProducts.find(p => String(p.id) === val);
@@ -1567,6 +1568,8 @@ export default function WizardStep2({
                         updateItem(index, {
                           product_id: val,
                           product_type_id: String(prod.product_type_id || item.product_type_id || ''),
+                          product_name: formattedTitle || prod.name || '',
+                          name: formattedTitle || prod.name || '',
                           art_number: prod.art_number || item.art_number || '',
                           gender: normalizeGender(prod.gender) || item.gender || 'unisex',
                           price: basePrice > 0 ? basePrice.toFixed(2) : (item.price || '0.00'),
@@ -1577,7 +1580,7 @@ export default function WizardStep2({
                           }
                         });
                       } else {
-                        updateItem(index, { product_id: '', art_number: '', price: '' });
+                        updateItem(index, { product_id: '', product_name: '', name: '', art_number: '', price: '' });
                       }
                       return;
                     }
@@ -2982,24 +2985,6 @@ export default function WizardStep2({
 
       {renderItemModal()}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-6 border-t border-zinc-100 mt-10">
-        <Button
-          disabled={isAnalyzing}
-          variant="secondary"
-          onClick={onBack}
-          className="h-16 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest"
-        >
-          Back
-        </Button>
-        <Button
-          disabled={!hasMeasurements && !isManualItemsValid()}
-          onClick={onNext}
-          className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          Expenses Setup <ArrowRight size={16} />
-        </Button>
-      </div>
     </div>
   );
 }
