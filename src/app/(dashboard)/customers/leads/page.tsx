@@ -4324,7 +4324,8 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
   onSuccess,
   onConvertToLead
 }) => {
-  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
+  // Feeds have no Negative outcome: only Hold (stays in Feeds) or Positive (converts)
+  const [responseType, setResponseType] = useState<'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -4332,7 +4333,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
     setIsSubmitting(true);
     const toastId = toast.loading('Recording feed response outcome...');
     try {
-      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : responseType === 'negative' ? 'Negative response from prospect' : 'Prospect ongoing / hold');
+      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : 'Prospect ongoing / hold');
       const res = await api.post(`/leads/${lead.id}/activity`, {
         stage: 'Feeds',
         activity_type: 'Feed Contact Outcome',
@@ -4378,26 +4379,8 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] block">
             Field Contact Response Outcome *
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {/* 1. Negative (Left) */}
-            <button
-              type="button"
-              onClick={() => setResponseType('negative')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                responseType === 'negative'
-                  ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
-              }`}
-            >
-              <span className="text-xs font-black block flex items-center gap-1">
-                <Snowflake size={12} className="text-rose-500" /> Negative
-              </span>
-              <p className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
-                Mark Cold in Feeds
-              </p>
-            </button>
-
-            {/* 2. Hold / Pending (Middle - Default) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* 1. Hold / Pending (Default) */}
             <button
               type="button"
               onClick={() => setResponseType('hold')}
@@ -4413,7 +4396,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
               </p>
             </button>
 
-            {/* 3. Positive (Right) */}
+            {/* 2. Positive */}
             <button
               type="button"
               onClick={() => setResponseType('positive')}
@@ -4457,8 +4440,6 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
             className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
               responseType === 'positive'
                 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
-                : responseType === 'negative'
-                ? 'bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'
                 : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
             }`}
           >
@@ -4696,7 +4677,8 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const [responseType, setResponseType] = useState<'negative' | 'hold' | 'positive'>('hold');
+  // No Negative here: Cold Lead is set only by a rejected meeting
+  const [responseType, setResponseType] = useState<'hold' | 'positive'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -4754,24 +4736,8 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-[#C82A2B]">Call / Follow-up Outcome *</label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {/* 1. Negative (Left) */}
-            <button
-              type="button"
-              onClick={() => setResponseType('negative')}
-              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                responseType === 'negative'
-                  ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
-                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
-              }`}
-            >
-              <span className="text-xs font-black block flex items-center gap-1">
-                <Snowflake size={12} className="text-rose-500" /> Negative
-              </span>
-              <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">Mark Cold in Follow-ups</span>
-            </button>
-
-            {/* 2. Hold / Pending (Middle - Default) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* 1. Hold / Pending (Default) */}
             <button
               type="button"
               onClick={() => setResponseType('hold')}
@@ -4785,7 +4751,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
               <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">Stays in Follow-ups</span>
             </button>
 
-            {/* 3. Positive (Right) */}
+            {/* 2. Positive */}
             <button
               type="button"
               onClick={() => setResponseType('positive')}
@@ -4822,9 +4788,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
             onClick={handleSubmit}
             className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
               responseType === 'positive' 
-                ? 'bg-emerald-600 hover:bg-emerald-700' 
-                : responseType === 'negative'
-                ? 'bg-rose-600 hover:bg-rose-700'
+                ? 'bg-emerald-600 hover:bg-emerald-700'
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}
           >

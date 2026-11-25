@@ -181,11 +181,18 @@ export default function FeedsRegistryPage() {
   const feedCounts = useMemo(() => {
     let open = 0;
     let contacted = 0;
+    let active = 0;
+    let inactive = 0;
     feedsList.forEach(l => {
-      if (isFeedContacted(l)) contacted++;
-      else open++;
+      // Returning customers are tracked only as Active/Inactive, never Open/Contacted
+      if (!l.is_returning_customer) {
+        if (isFeedContacted(l)) contacted++;
+        else open++;
+      }
+      if (l.customer_activity === 'Active') active++;
+      if (l.customer_activity === 'Inactive') inactive++;
     });
-    return { all: feedsList.length, open, contacted };
+    return { all: feedsList.length, open, contacted, active, inactive };
   }, [feedsList, isFeedContacted]);
 
   // Available zones filtered by selected branch
@@ -203,8 +210,10 @@ export default function FeedsRegistryPage() {
   const filteredFeeds = useMemo(() => {
     return feedsList.filter(l => {
       // 1. Feed Status filter (All Feeds, Open Feeds, Contacted Feeds)
-      if (selectedFeedStatus === 'OPEN' && isFeedContacted(l)) return false;
-      if (selectedFeedStatus === 'CONTACTED' && !isFeedContacted(l)) return false;
+      if (selectedFeedStatus === 'OPEN' && (l.is_returning_customer || isFeedContacted(l))) return false;
+      if (selectedFeedStatus === 'CONTACTED' && (l.is_returning_customer || !isFeedContacted(l))) return false;
+      if (selectedFeedStatus === 'ACTIVE' && l.customer_activity !== 'Active') return false;
+      if (selectedFeedStatus === 'INACTIVE' && l.customer_activity !== 'Inactive') return false;
 
       // 2. Branch filter & branch staff isolation
       if (!isSuperAdmin && currentUser?.branchId) {
@@ -273,7 +282,8 @@ export default function FeedsRegistryPage() {
 
   // Convert Feed to Full Active Lead
   const handleConvertFeedToLead = (targetFeed: Lead) => {
-    setConvertingFeed(targetFeed);
+    if (targetFeed.is_returning_customer) setFeedOutcomeLead(targetFeed); // convert via outcome modal, not the full lead form
+    else setConvertingFeed(targetFeed);
   };
 
   const handleCompleteFeedConversion = async (formData: any) => {
@@ -331,8 +341,8 @@ export default function FeedsRegistryPage() {
     const rowsHtml = dataToPrint.map((l, idx) => {
       const zoneName = l.zones?.name || zones.find(z => z.id === l.zone_id)?.name;
       const locality = [l.city, l.state].filter(Boolean).join(', ') || l.city || l.state || '—';
-      const contacted = isFeedContacted(l);
-      const statusLabel = contacted ? 'Contacted' : 'Open';
+      const contacted = l.is_returning_customer ? l.customer_activity === 'Active' : isFeedContacted(l);
+      const statusLabel = l.is_returning_customer ? (l.customer_activity || 'Returning') : contacted ? 'Contacted' : 'Open';
       return `
       <tr>
         <td style="text-align: center; color: #718096; font-size: 10px;">${idx + 1}</td>
@@ -526,8 +536,20 @@ export default function FeedsRegistryPage() {
     {
       header: 'Feed Status',
       className: 'w-[130px] min-w-[120px] whitespace-nowrap text-center',
-      sortValue: (l) => isFeedContacted(l) ? 'Contacted' : 'Open',
+      sortValue: (l) => l.is_returning_customer ? (l.customer_activity || 'Returning') : isFeedContacted(l) ? 'Contacted' : 'Open',
       accessor: (l) => {
+        if (l.is_returning_customer) {
+          const inactive = l.customer_activity === 'Inactive';
+          return (
+            <span
+              title={l.last_invoice_date ? `Returning customer · Last invoice: ${formatDate(l.last_invoice_date)}` : 'Returning customer'}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-2xs ${inactive ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${inactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+              {l.customer_activity || 'Returning'}
+            </span>
+          );
+        }
         const contacted = isFeedContacted(l);
         return (
           <div
@@ -563,10 +585,10 @@ export default function FeedsRegistryPage() {
             type="button"
             onClick={() => setFeedOutcomeLead(l)}
             className="px-3.5 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
-            title="Record follow-up outcome for feed"
+            title={l.is_returning_customer ? 'Log response and convert returning customer to lead' : 'Record follow-up outcome for feed'}
           >
             <MessageSquarePlus size={12} />
-            <span>Update</span>
+            <span>{l.is_returning_customer ? 'Convert' : 'Update'}</span>
           </button>
         </div>
       )
@@ -637,7 +659,9 @@ export default function FeedsRegistryPage() {
               onChange={(val) => setSelectedFeedStatus(val)}
               options={[
                 { label: 'Open Feeds', value: 'OPEN', badge: feedCounts.open },
-                { label: 'Contacted Feeds', value: 'CONTACTED', badge: feedCounts.contacted }
+                { label: 'Contacted Feeds', value: 'CONTACTED', badge: feedCounts.contacted },
+                { label: 'Active Customers', value: 'ACTIVE', badge: feedCounts.active },
+                { label: 'Inactive Customers', value: 'INACTIVE', badge: feedCounts.inactive }
               ]}
             />
 
@@ -740,7 +764,8 @@ export default function FeedsRegistryPage() {
             setFeedOutcomeLead(null);
             fetchData();
           }}
-          onConvertToLead={() => {
+          // Returning customers: backend already moves a positive outcome to Open/New Leads; their details exist, so no lead form
+          onConvertToLead={feedOutcomeLead.is_returning_customer ? undefined : () => {
             const target = feedOutcomeLead;
             setFeedOutcomeLead(null);
             handleConvertFeedToLead(target);
