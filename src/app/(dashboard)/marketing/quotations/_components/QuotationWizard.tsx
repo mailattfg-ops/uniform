@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import toast from '@/components/ui/toast';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/Card';
-import { Check, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { Organization, ProductType, SeparateFabricItem, ManualItem, TemplateLineItem } from '../page';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { getItemKind, getLineError, parseQty, toSeparateFabrics, fabricLineFromSeparate, formatProductDisplayName } from '../_lib/itemLines';
@@ -87,7 +88,6 @@ const savedQuoteToLines = (fullQuote: any): ManualItem[] => {
 import WizardStep1 from './wizard/WizardStep1';
 import WizardStep2 from './wizard/WizardStep2';
 import WizardStep4 from './wizard/WizardStep4';
-import WizardStep5 from './wizard/WizardStep5';
 
 // Fabric scaling multipliers per size
 const SIZE_FABRIC_MULTIPLIERS: Record<string, number> = {
@@ -138,7 +138,7 @@ export default function QuotationWizard({
   onClose,
   onSaveSuccess,
 }: QuotationWizardProps) {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
   const [quoteTitle, setQuoteTitle] = useState('');
   const [quoteNo, setQuoteNo] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState('');
@@ -341,7 +341,7 @@ export default function QuotationWizard({
         setCoverLetter(fullQuote.metrics_summary?.cover_letter || '');
         setGstPercent(fullQuote.metrics_summary?.gst_percent != null ? String(fullQuote.metrics_summary.gst_percent) : '5');
         setIsTaxInclusive(Boolean(fullQuote.metrics_summary?.is_tax_inclusive));
-        setStatus(fullQuote.status || 'Pending');
+        setStatus(fullQuote.status || 'Draft'); // not user-editable; sent back unchanged on update
 
         if (fullQuote.metrics_summary?.sales_type) {
           setSalesType(fullQuote.metrics_summary.sales_type === 'B2B' ? 'WHOLESALE' : fullQuote.metrics_summary.sales_type);
@@ -391,8 +391,6 @@ export default function QuotationWizard({
             };
           }));
         }
-
-        setCurrentStep(2); // Jump straight to edit page specs/sizing
       } catch (err: any) {
         toast.error('Failed to load quotation details for editing');
         console.error(err);
@@ -573,10 +571,6 @@ export default function QuotationWizard({
       handleOrgSelection(String(initialOrgId));
     }
   }, [editingQuotationId, initialOrgId, organizations.length]);
-
-  const handleStep1Next = () => {
-    setCurrentStep(2);
-  };
 
   // Every item line must be complete for its kind; a quotation needs at least one line
   const isManualItemsValid = () => manualItems.length > 0 && manualItems.every(item => !getLineError(item));
@@ -1214,7 +1208,6 @@ Forma Apparels Co.`;
   };
 
   const resetWizard = () => {
-    setCurrentStep(1);
     setQuoteTitle('');
     setQuoteNo('');
     setSelectedOrgId('');
@@ -1278,156 +1271,210 @@ Forma Apparels Co.`;
     );
   }
 
+  // Everything Save needs, listed in the summary panel when missing
+  const missing: string[] = [];
+  if (!selectedOrgId) missing.push('Select a customer');
+  if (!quoteTitle.trim()) missing.push('Enter a quotation title');
+  if (!hasMeasurements && manualItems.length === 0) missing.push('Add at least one item');
+  else if (!hasMeasurements && !isManualItemsValid()) missing.push('Complete the highlighted item lines');
+  const canSave = missing.length === 0 && !isAnalyzing && !isSaving;
+
+  const onSave = async () => {
+    if (!canSave) return;
+    setIsSaving(true);
+    try { await handleSaveQuotation(); } finally { setIsSaving(false); }
+  };
+
+  const totals = getCalculatedQuoteTotals();
+  const selectedOrgName = organizations.find(o => String(o.id) === String(selectedOrgId))?.name;
+  const garmentQty = productLines.reduce((sum, it) => sum + parseQty(it), 0) + (hasMeasurements ? (orgAnalysis.total_entities || 0) : 0);
+  const money = (v: number) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  const sections = [
+    { id: 'qw-customer', label: 'Customer', done: Boolean(selectedOrgId && quoteTitle.trim()) },
+    { id: 'qw-items', label: 'Items', done: hasMeasurements || isManualItemsValid() },
+    { id: 'qw-charges', label: 'Timeline & Charges', done: Boolean(deliveryDate) },
+  ];
+  const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const locked = (
+    <p className="py-10 text-center text-xs font-bold text-zinc-400">Select a customer above to continue.</p>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* STEPPER PROGRESS */}
-      <div className="bg-[#FFF1F1] p-6 rounded-[2rem] border border-[#C82A2B]/15 flex justify-between items-center max-w-4xl mx-auto">
-        {[
-          { idx: 1, label: 'Customer' },
-          { idx: 2, label: 'Items' },
-          { idx: 3, label: 'Timeline & Charges' },
-          { idx: 4, label: 'Review' }
-        ].map(step => (
-          <div key={step.idx} className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 ${currentStep === step.idx
-              ? 'bg-[#C82A2B] border-[#C82A2B] text-white shadow-lg shadow-[#C82A2B]/25'
-              : currentStep > step.idx
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-white border-zinc-200 text-zinc-400'
-              }`}>
-              {currentStep > step.idx ? <Check size={16} strokeWidth={3} /> : step.idx}
-            </div>
-            <span className={`text-xs font-black uppercase tracking-wider hidden md:inline ${currentStep === step.idx ? 'text-[#C82A2B]' : 'text-zinc-400'
-              }`}>
-              {step.label}
-            </span>
-            {step.idx < 4 && <ChevronRight size={16} className="text-zinc-300 hidden md:block" />}
-          </div>
-        ))}
+    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+      <div className="space-y-6 min-w-0">
+        {/* SECTION LINKS */}
+        <div className="bg-[#FFF1F1] px-4 py-3 rounded-2xl border border-[#C82A2B]/15 flex flex-wrap gap-2">
+          {sections.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => jumpTo(s.id)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider text-zinc-600 hover:bg-white hover:text-[#C82A2B] transition-colors cursor-pointer"
+            >
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] border-2 ${s.done ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-zinc-200 text-zinc-500'}`}>
+                {s.done ? <Check size={12} strokeWidth={3} /> : i + 1}
+              </span>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 1. CUSTOMER */}
+        <section id="qw-customer" className="scroll-mt-6">
+          <Card className="p-6 md:p-8 border border-zinc-100 rounded-[2rem] shadow-xl shadow-zinc-100 bg-white">
+            <WizardStep1
+              organizations={organizations}
+              selectedOrgId={selectedOrgId}
+              onOrgSelection={handleOrgSelection}
+              quoteTitle={quoteTitle}
+              setQuoteTitle={setQuoteTitle}
+              quoteNo={quoteNo}
+              setQuoteNo={setQuoteNo}
+              coverLetter={coverLetter}
+              setCoverLetter={setCoverLetter}
+              salesType={salesType}
+              setSalesType={setSalesType}
+              customerType={customerType}
+              setCustomerType={setCustomerType}
+              isAnalyzing={isAnalyzing}
+              generateAutoCoverLetter={generateAutoCoverLetter}
+              previousOrders={previousOrders}
+              onSelectPreviousOrder={handleSelectPreviousOrder}
+              groupDesignCombinations={groupDesignCombinations}
+              selectedGroupDesignId={selectedGroupDesignId}
+              onSelectGroupDesign={handleSelectGroupDesign}
+            />
+          </Card>
+        </section>
+
+        {/* 2. ITEMS (needs the customer's departments) */}
+        <section id="qw-items" className="scroll-mt-6">
+          <Card className="p-6 md:p-8 border border-zinc-100 rounded-[2rem] shadow-xl shadow-zinc-100 bg-white">
+            {!selectedOrgId ? locked : (
+              <WizardStep2
+                hasMeasurements={hasMeasurements}
+                orgAnalysis={orgAnalysis}
+                templateLineItems={templateLineItems}
+                setTemplateLineItems={setTemplateLineItems}
+                manualItems={manualItems}
+                setManualItems={setManualItems}
+                orgDepartments={orgDepartments}
+                setOrgDepartments={setOrgDepartments}
+                productTypes={productTypes}
+                allProducts={allProducts}
+                fabricsList={fabricsList}
+                buttonsList={buttonsList}
+                threadsList={threadsList}
+                trimsList={trimsList}
+                trimCategories={trimCategories}
+                inwardRates={inwardRates}
+                fabricMargins={fabricMargins}
+                samConfigurations={samConfigurations}
+                salesType={salesType}
+                customerType={customerType}
+                calculateProductSAMCost={calculateProductSAMCost}
+                calculateFabricCost={calculateFabricCost}
+                laborRatePerHour={laborRatePerHour}
+                isAnalyzing={isAnalyzing}
+                isManualItemsValid={isManualItemsValid}
+                organizations={organizations}
+                selectedOrgId={selectedOrgId}
+              />
+            )}
+          </Card>
+        </section>
+
+        {/* 3. TIMELINE, CHARGES & TAX */}
+        <section id="qw-charges" className="scroll-mt-6">
+          <Card className="p-6 md:p-8 border border-zinc-100 rounded-[2rem] shadow-xl shadow-zinc-100 bg-white">
+            {!selectedOrgId ? locked : (
+              <WizardStep4
+                hasMeasurements={hasMeasurements}
+                baseProductionHours={baseProductionHours}
+                setBaseProductionHours={setBaseProductionHours}
+                extraCustomizationHours={extraCustomizationHours}
+                setExtraCustomizationHours={setExtraCustomizationHours}
+                projectStartDate={projectStartDate}
+                setProjectStartDate={setProjectStartDate}
+                deliveryDate={deliveryDate}
+                setDeliveryDate={setDeliveryDate}
+                profitMargin={profitMargin}
+                setProfitMargin={setProfitMargin}
+                orgAnalysis={orgAnalysis}
+                timeMetrics={getCalculatedTimeMetrics()}
+                quoteTotals={totals}
+                gstPercent={gstPercent}
+                setGstPercent={setGstPercent}
+                isTaxInclusive={isTaxInclusive}
+                setIsTaxInclusive={setIsTaxInclusive}
+                extraCharges={extraCharges}
+                setExtraCharges={setExtraCharges}
+                fabricsList={fabricsList}
+              />
+            )}
+          </Card>
+        </section>
       </div>
 
-      <Card className="p-10 border border-zinc-100 rounded-[3rem] shadow-2xl shadow-zinc-100 relative overflow-hidden bg-white/80 backdrop-blur-md">
-        {/* STEP 1: CUSTOMER SELECTION */}
-        {currentStep === 1 && (
-          <WizardStep1
-            organizations={organizations}
-            selectedOrgId={selectedOrgId}
-            onOrgSelection={handleOrgSelection}
-            quoteTitle={quoteTitle}
-            setQuoteTitle={setQuoteTitle}
-            quoteNo={quoteNo}
-            setQuoteNo={setQuoteNo}
-            coverLetter={coverLetter}
-            setCoverLetter={setCoverLetter}
-            salesType={salesType}
-            setSalesType={setSalesType}
-            customerType={customerType}
-            setCustomerType={setCustomerType}
-            isAnalyzing={isAnalyzing}
-            onNext={handleStep1Next}
-            generateAutoCoverLetter={generateAutoCoverLetter}
-            previousOrders={previousOrders}
-            onSelectPreviousOrder={handleSelectPreviousOrder}
-            groupDesignCombinations={groupDesignCombinations}
-            selectedGroupDesignId={selectedGroupDesignId}
-            onSelectGroupDesign={handleSelectGroupDesign}
-          />
-        )}
+      {/* LIVE SUMMARY + SAVE (replaces the old Review step) */}
+      <aside className="lg:sticky lg:top-6">
+        <Card className="p-5 border border-zinc-100 rounded-[2rem] shadow-xl shadow-zinc-100 bg-white space-y-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              {isRevisionMode ? 'Revised Quotation' : editingQuotationId ? 'Editing Quotation' : 'New Quotation'}
+            </p>
+            <p className="text-sm font-black text-zinc-900 truncate">{quoteTitle.trim() || 'Untitled quotation'}</p>
+            <p className="text-xs font-semibold text-zinc-500 truncate">
+              {selectedOrgName || 'No customer selected'}{quoteNo ? ` • ${quoteNo}` : ''}
+            </p>
+          </div>
 
-        {/* STEP 2: SIZING AUDIT & MEASUREMENT CHECKS */}
-        {currentStep === 2 && (
-          <WizardStep2
-            hasMeasurements={hasMeasurements}
-            orgAnalysis={orgAnalysis}
-            templateLineItems={templateLineItems}
-            setTemplateLineItems={setTemplateLineItems}
-            manualItems={manualItems}
-            setManualItems={setManualItems}
-            orgDepartments={orgDepartments}
-            setOrgDepartments={setOrgDepartments}
-            productTypes={productTypes}
-            allProducts={allProducts}
-            fabricsList={fabricsList}
-            buttonsList={buttonsList}
-            threadsList={threadsList}
-            trimsList={trimsList}
-            trimCategories={trimCategories}
-            inwardRates={inwardRates}
-            fabricMargins={fabricMargins}
-            samConfigurations={samConfigurations}
-            salesType={salesType}
-            customerType={customerType}
-            calculateProductSAMCost={calculateProductSAMCost}
-            calculateFabricCost={calculateFabricCost}
-            laborRatePerHour={laborRatePerHour}
-            isAnalyzing={isAnalyzing}
-            onBack={() => setCurrentStep(1)}
-            onNext={() => setCurrentStep(3)}
-            isManualItemsValid={isManualItemsValid}
-            organizations={organizations}
-            selectedOrgId={selectedOrgId}
-          />
-        )}
+          <div className="space-y-1.5 text-xs border-t border-zinc-100 pt-3">
+            <div className="flex justify-between"><span className="text-zinc-500 font-semibold">Item lines</span><span className="font-bold text-zinc-900">{manualItems.length}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500 font-semibold">Garment qty</span><span className="font-bold text-zinc-900">{garmentQty}</span></div>
+            {deliveryDate && (
+              <div className="flex justify-between"><span className="text-zinc-500 font-semibold">Delivery</span><span className="font-bold text-zinc-900">{deliveryDate}</span></div>
+            )}
+          </div>
 
-        {/* STEP 3: TIMELINE, CAPACITY & PROFIT ANALYSIS */}
-        {currentStep === 3 && (
-          <WizardStep4
-            hasMeasurements={hasMeasurements}
-            baseProductionHours={baseProductionHours}
-            setBaseProductionHours={setBaseProductionHours}
-            extraCustomizationHours={extraCustomizationHours}
-            setExtraCustomizationHours={setExtraCustomizationHours}
-            projectStartDate={projectStartDate}
-            setProjectStartDate={setProjectStartDate}
-            deliveryDate={deliveryDate}
-            setDeliveryDate={setDeliveryDate}
-            profitMargin={profitMargin}
-            setProfitMargin={setProfitMargin}
-            orgAnalysis={orgAnalysis}
-            timeMetrics={getCalculatedTimeMetrics()}
-            quoteTotals={getCalculatedQuoteTotals()}
-            gstPercent={gstPercent}
-            setGstPercent={setGstPercent}
-            isTaxInclusive={isTaxInclusive}
-            setIsTaxInclusive={setIsTaxInclusive}
-            extraCharges={extraCharges}
-            setExtraCharges={setExtraCharges}
-            status={status}
-            setStatus={setStatus}
-            onBack={() => setCurrentStep(2)}
-            onNext={() => setCurrentStep(4)}
-            fabricsList={fabricsList}
-          />
-        )}
+          <div className="space-y-1.5 text-xs border-t border-zinc-100 pt-3">
+            <div className="flex justify-between"><span className="text-zinc-500 font-semibold">Taxable subtotal</span><span className="font-mono font-bold text-zinc-900">{money(totals.subtotal)}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500 font-semibold">GST {gstPercent || 0}%{isTaxInclusive ? ' (incl.)' : ''}</span><span className="font-mono font-bold text-zinc-900">{money(totals.gstValue)}</span></div>
+            <div className="flex justify-between items-baseline pt-1.5 border-t border-dashed border-zinc-200">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">Grand total</span>
+              <span className="font-mono font-black text-base text-[#C82A2B]">{money(totals.finalValue)}</span>
+            </div>
+          </div>
 
-        {/* STEP 4: COMPILE PROPOSAL & FINAL REVIEW */}
-        {currentStep === 4 && (
-          <WizardStep5
-            hasMeasurements={hasMeasurements}
-            quoteTitle={quoteTitle}
-            quoteNo={quoteNo}
-            selectedOrgId={selectedOrgId}
-            organizations={organizations}
-            productTypes={productTypes}
-            selectedProductTypeId={selectedProductTypeId}
-            orgAnalysis={orgAnalysis}
-            manualItems={productLines}
-            separateFabrics={separateFabrics}
-            fabricsList={fabricsList}
-            profitMargin={profitMargin}
-            calculatedExpenses={getCalculatedExpenses()}
-            quoteTotals={getCalculatedQuoteTotals()}
-            gstPercent={gstPercent}
-            editingQuotationId={editingQuotationId}
-            onBack={() => setCurrentStep(3)}
-            onSave={handleSaveQuotation}
-            orgDepartments={[]}
-            departmentItems={{}}
-            quotationType="CUSTOM"
-            allProducts={allProducts}
-          />
-        )}
-      </Card>
+          {hasMeasurements && orgAnalysis.missing_count > 0 && (
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium flex gap-2">
+              <AlertTriangle size={14} className="shrink-0 text-amber-600 mt-0.5" />
+              <span>{orgAnalysis.missing_count} missing measurements will be priced at standard size (M).</span>
+            </div>
+          )}
+
+          {missing.length > 0 && (
+            <ul className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 font-semibold space-y-1">
+              {missing.map(m => <li key={m}>• {m}</li>)}
+            </ul>
+          )}
+
+          <Button
+            disabled={!canSave}
+            onClick={onSave}
+            className="w-full h-12 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-[#C82A2B]/20 disabled:opacity-50"
+          >
+            {isSaving ? 'Saving...' : editingQuotationId && !isRevisionMode ? 'Update Quotation' : 'Save Quotation'}
+          </Button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full text-[11px] font-black uppercase tracking-wider text-zinc-400 hover:text-zinc-700 cursor-pointer"
+          >
+            Cancel
+          </button>
+        </Card>
+      </aside>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { formatDate, capitalizeFirstLetter, capitalizeWords, formatContactPerson
 import { supabase } from '@/lib/supabase';
 import { useLayout } from '@/hooks/useLayout';
 import QuotationDetails from '@/app/(dashboard)/marketing/quotations/_components/QuotationDetails';
+import QuoteLogCard from '@/app/(dashboard)/marketing/quotations/_components/QuoteLogCard';
 
 export const PIPELINE_STAGES = [
   { key: 'Feeds', label: 'Feeds', desc: 'Raw field prospect data' },
@@ -2843,6 +2844,8 @@ interface LeadViewModalProps {
     canManageMeetings: boolean;
     canManageHotLeads: boolean;
   };
+  readOnly?: boolean; // hides stage actions and edit/delete; custom log stays (used from Quotations page)
+  initialTab?: string; // overrides the stage tab picked from lead.status
 }
 
 export const LeadViewModal: React.FC<LeadViewModalProps> = ({
@@ -2858,7 +2861,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
   onMeetingOutcome,
   onConvertFeed,
   onReload,
-  permissions
+  permissions,
+  readOnly = false,
+  initialTab
 }) => {
   const perms = permissions || {
     canManageLeads: true,
@@ -2951,7 +2956,9 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
   useEffect(() => {
     if (lead) {
-      if (lead.status === 'Open Feeds' || lead.status === 'Contacted Leads' || lead.status === 'Feeds') {
+      if (initialTab) {
+        setSelectedStageTab(initialTab);
+      } else if (lead.status === 'Open Feeds' || lead.status === 'Contacted Leads' || lead.status === 'Feeds') {
         setSelectedStageTab('Feeds');
       } else if (['Open Leads', 'New Leads', 'Sales Leads', 'Follow-ups', 'Meetings', 'Hot Leads'].includes(lead.status)) {
         setSelectedStageTab('Leads');
@@ -2965,7 +2972,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         setSelectedStageTab('Feeds');
       }
     }
-  }, [lead]);
+  }, [lead, initialTab]);
 
   // Fetch activities attributed specifically to selectedStageTab
   const fetchLogs = useCallback(async () => {
@@ -3066,6 +3073,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           const quoteNo = q.quotation_no || q.quotation_number || `QT-${q.id}`;
           const qVal = Number(q.final_quote_value || q.total_amount || 0);
 
+          // One timeline entry per quotation, rendered by QuoteLogCard (items + nested follow-ups)
           quoteActs.push({
             id: `quote_${q.id}`,
             quotation_id: q.id,
@@ -3075,6 +3083,8 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             activity_type: `${verLabel}: #${quoteNo}`,
             response_type: q.status || 'Active',
             is_quotation_version: true,
+            quote: q,
+            is_latest_quote: qIdx === sortedQuotes.length - 1,
             version_label: verLabel,
             quote_amount: qVal,
             remarks: `Quotation #${quoteNo} (${verLabel}) generated for ₹${qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}${q.metrics_summary?.bm_rejection_reason ? ` | Revision Notes: ${q.metrics_summary.bm_rejection_reason}` : ''}`,
@@ -3085,28 +3095,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             staff_branch: q.branches?.name || (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: q.created_at || lead.updated_at
           });
-
-          // Also include any quotation follow-up history from metrics_summary
-          if (Array.isArray(q.metrics_summary?.followups)) {
-            q.metrics_summary.followups.forEach((f: any, fIdx: number) => {
-              quoteActs.push({
-                id: f.id || `quote_fu_${q.id}_${fIdx}`,
-                quotation_id: q.id,
-                quotation_no: quoteNo,
-                lead_id: lead.id,
-                stage: 'Quotations',
-                activity_type: `Quotation Follow-up: #${quoteNo}`,
-                response_type: f.outcome || f.response_type || 'Follow-up',
-                remarks: f.remarks || f.text || '',
-                staff_name: f.author?.name || 'Sales Representative',
-                staff_employee_id: 'SALES',
-                staff_designation: 'Sales & Marketing',
-                staff_department: 'Commercial',
-                staff_branch: f.author?.branch || f.author?.branch_name || (lead as any).branches?.name || (lead as any).branch_name || null,
-                created_at: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at)
-              });
-            });
-          }
+          // Quote follow-ups (metrics_summary.followups) are shown inside the QuoteLogCard
         });
 
         const existingIds = new Set(mapped.map(m => String(m.id)));
@@ -3389,7 +3378,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             </div>
 
             {/* Context-Sensitive Stage Action Button in Header */}
-            <div className="flex items-center gap-2">
+            <div className={readOnly ? 'hidden' : 'flex items-center gap-2'}>
               {lead.status === 'Feeds' && (
                 perms.canManageFeeds ? (
                   <div className="flex items-center gap-2">
@@ -3674,7 +3663,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                             </p>
                           </div>
                         </div>
-                        {(lead.status === 'Follow-ups' || lead.status === 'Sales Leads') && (
+                        {!readOnly && (lead.status === 'Follow-ups' || lead.status === 'Sales Leads') && (
                           <button
                             onClick={onFollowUp}
                             className="px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm shrink-0 cursor-pointer self-start sm:self-auto"
@@ -4016,6 +4005,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                           {/* Right Side: Activity Card */}
                           <div 
                             onClick={() => {
+                              if ((act as any).quote) return; // quote cards have their own View/expand controls
                               const qId = (act as any).quotation_id;
                               const qNo = (act as any).quotation_no;
                               if (qId || qNo) {
@@ -4023,11 +4013,21 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                               }
                             }}
                             className={`border rounded-2xl p-4 shadow-2xs transition-all space-y-2 min-w-0 ${
-                              (act as any).quotation_id || (act as any).quotation_no
-                                ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 hover:border-[#2d8d9b]/60 cursor-pointer group/qcard'
+                              (act as any).quote
+                                ? 'bg-white border-zinc-200/90'
+                                : (act as any).quotation_id || (act as any).quotation_no
+                                ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 hover:border-[#C82A2B]/60 cursor-pointer group/qcard'
                                 : 'bg-white hover:bg-zinc-50/70 border-zinc-200/90'
                             }`}
                           >
+                            {(act as any).quote ? (
+                              <QuoteLogCard
+                                quote={(act as any).quote}
+                                versionLabel={(act as any).version_label}
+                                defaultExpanded={Boolean((act as any).is_latest_quote)}
+                                onView={(q) => handleViewQuotation(q.id, q.quotation_no)}
+                              />
+                            ) : (<>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="text-xs font-bold text-zinc-900 tracking-tight">
@@ -4064,7 +4064,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                                       e.stopPropagation();
                                       handleViewQuotation((act as any).quotation_id, (act as any).quotation_no);
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2d8d9b] hover:bg-[#236e7a] text-white shadow-xs transition-all cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-xs transition-all cursor-pointer"
                                   >
                                     <span>View Quotation</span>
                                     <ExternalLink size={10} className="shrink-0" />
@@ -4078,11 +4078,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                             </p>
 
                             {((act as any).quotation_id || (act as any).quotation_no) && (
-                              <div className="pt-1 text-[10px] text-[#2d8d9b] font-bold flex items-center gap-1 group-hover/qcard:underline">
+                              <div className="pt-1 text-[10px] text-[#C82A2B] font-bold flex items-center gap-1 group-hover/qcard:underline">
                                 <span>Click card to open quotation in another tab</span>
                                 <ExternalLink size={10} />
                               </div>
                             )}
+                            </>)}
 
                             {/* Staff Attribution Footer: Staff Name, Employee ID, Designation, Branch */}
                             {act.activity_type !== 'Requirements' && (
@@ -4223,12 +4224,14 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
               Close
             </Button>
 
-            <Button
-              onClick={onEdit}
-              className="h-11 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest bg-[#C82A2B] text-white hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/20 gap-1.5 cursor-pointer"
-            >
-              <Edit2 size={13} /> Edit Profile
-            </Button>
+            {!readOnly && (
+              <Button
+                onClick={onEdit}
+                className="h-11 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest bg-[#C82A2B] text-white hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/20 gap-1.5 cursor-pointer"
+              >
+                <Edit2 size={13} /> Edit Profile
+              </Button>
+            )}
           </div>
         </div>
       </div>

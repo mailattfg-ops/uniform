@@ -83,7 +83,7 @@ const modules: ModuleItem[] = [
   {
     icon: Package, label: 'Inventory', href: '/inventory',
     subsections: [
-      { label: 'Readymade (Trade) Stock', href: '/admin/inventory/product-stock' },
+      { label: 'Readymade Stock', href: '/admin/inventory/product-stock' },
       { label: 'Accessories Stock', href: '/admin/inventory/accessories-stock' },
       { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
       { label: 'Trims Stock', href: '/admin/inventory/trims-stock' },
@@ -233,7 +233,7 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Button Stock': ['manage_inventory', 'view_inventory'],
   'Thread Stock': ['manage_inventory', 'view_inventory'],
   'Product Stock': ['manage_inventory', 'view_inventory'],
-  'Readymade (Trade) Stock': ['manage_inventory', 'view_inventory'],
+  'Readymade Stock': ['manage_inventory', 'view_inventory'],
   'Accessories Stock': ['manage_inventory', 'view_inventory'],
   'Branch Inventory': ['branch_inventory', 'manage_system'],
   'Branch Stock & Inventory': ['branch_inventory', 'manage_system'],
@@ -382,7 +382,7 @@ function ClientPortalSidebar({
         onClick={() => setIsSidebarOpen(false)}
       />
 
-      <aside 
+      <aside
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`
@@ -402,9 +402,8 @@ function ClientPortalSidebar({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
               </svg>
             </div>
-            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-              isExpanded ? 'opacity-100 max-w-[140px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-            }`}>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[140px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+              }`}>
               <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
               <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
             </div>
@@ -412,18 +411,16 @@ function ClientPortalSidebar({
           <button
             onClick={toggleSidebar}
             title={isPinned ? "Unpin sidebar" : "Pin sidebar open"}
-            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all duration-300 hidden md:flex shrink-0 ${
-              !isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
-            }`}
+            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all duration-300 hidden md:flex shrink-0 ${!isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+              }`}
           >
             <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#C82A2B]' : ''}`} />
           </button>
         </div>
 
         {/* Client Portal Badge */}
-        <div className={`mx-4 overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
-          isExpanded ? 'max-h-12 opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0 pointer-events-none'
-        }`}>
+        <div className={`mx-4 overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${isExpanded ? 'max-h-12 opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0 pointer-events-none'
+          }`}>
           <div className="px-3 py-2 rounded-xl bg-[#C82A2B]/10 border border-[#C82A2B]/20 flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-[#C82A2B] animate-pulse shrink-0" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C82A2B]">{portalLabel}</span>
@@ -448,24 +445,22 @@ function ClientPortalSidebar({
                     className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${isActive
                       ? '!bg-[#C82A2B] text-white shadow-xl font-semibold'
                       : 'hover:bg-white/5 text-white/60 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center min-w-0">
                       <div className="shrink-0 w-7 h-7 flex items-center justify-center">
                         <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />
                       </div>
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-                        isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-                      }`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                        }`}>
                         <span className="text-[13.5px] font-semibold tracking-wide">
                           {item.label}
                         </span>
                       </div>
                     </div>
                     {item.badge && (
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
-                        isExpanded ? 'opacity-100 max-w-[60px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-                      }`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${isExpanded ? 'opacity-100 max-w-[60px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                        }`}>
                         <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
                           {item.badge}
                         </span>
@@ -486,19 +481,17 @@ function ClientPortalSidebar({
                       setIsSidebarOpen(false);
                     }
                   }}
-                  className={`flex items-center p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${
-                    pathname === '/settings/profile'
+                  className={`flex items-center p-2.5 rounded-2xl transition-all duration-300 w-full overflow-hidden ${pathname === '/settings/profile'
                       ? '!bg-[#C82A2B] text-white shadow-xl font-semibold'
                       : 'hover:bg-white/5 text-white/60 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center min-w-0">
                     <div className="shrink-0 w-7 h-7 flex items-center justify-center">
                       <Settings size={19} strokeWidth={2} />
                     </div>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-                      isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-                    }`}>
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                      }`}>
                       <span className="text-[13.5px] font-semibold tracking-wide">Profile & Settings</span>
                     </div>
                   </div>
@@ -544,9 +537,8 @@ function ClientPortalSidebar({
                   <Building2 size={16} className="text-[#C82A2B]" strokeWidth={2.5} />
                 )}
               </div>
-              <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-                isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-              }`}>
+              <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                }`}>
                 <p className="text-sm font-bold truncate leading-tight text-white">
                   {displayName}
                 </p>
@@ -555,9 +547,8 @@ function ClientPortalSidebar({
                 </p>
               </div>
             </div>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
-              isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-            }`}>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+              }`}>
               <svg className={`w-4 h-4 text-white/85 shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
               </svg>
@@ -702,7 +693,7 @@ export const Sidebar: React.FC = () => {
       />
 
       {/* Sidebar Content */}
-      <aside 
+      <aside
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={`
@@ -722,9 +713,8 @@ export const Sidebar: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 2l4 2-1 8 4 6-5 4-5-4 4-6-1-8zm2 0v10" />
               </svg>
             </div>
-            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-              isExpanded ? 'opacity-100 max-w-[140px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-            }`}>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[140px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+              }`}>
               <span className="text-sm font-black tracking-[0.2em] text-white leading-none">FORMA</span>
               <span className="text-[9.5px] font-bold tracking-[0.2em] text-white/50 leading-none mt-1">APPARELS</span>
             </div>
@@ -733,9 +723,8 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={toggleSidebar}
             title={isPinned ? "Unpin sidebar" : "Pin sidebar open"}
-            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all duration-300 hidden md:flex shrink-0 ${
-              !isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
-            }`}
+            className={`w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center transition-all duration-300 hidden md:flex shrink-0 ${!isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+              }`}
           >
             <ChevronLeft size={16} className={`text-white transition-transform duration-300 ${isPinned ? 'rotate-180 text-[#C82A2B]' : ''}`} />
           </button>
@@ -767,7 +756,7 @@ export const Sidebar: React.FC = () => {
                 if (!hasAnyVisibleSub) return null;
               }
 
-              const isPathActive = item.subsections.some(sub => 
+              const isPathActive = item.subsections.some(sub =>
                 pathname === sub.href || (sub.href !== '/' && (pathname.startsWith(sub.href + '/') || pathname.startsWith(sub.href + '?')))
               ) ||
                 (item.href !== '/' && (pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?'))) ||
@@ -778,8 +767,8 @@ export const Sidebar: React.FC = () => {
                 : isPathActive;
 
               return (
-                <div 
-                  key={item.label} 
+                <div
+                  key={item.label}
                   className="transition-all duration-300 px-1.5"
                 >
                   <div
@@ -791,27 +780,24 @@ export const Sidebar: React.FC = () => {
                       <div className="shrink-0 w-7 h-7 flex items-center justify-center">
                         <Icon size={19} strokeWidth={isPathActive ? 2.5 : 2} />
                       </div>
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-                        isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-                      }`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[160px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                        }`}>
                         <span className="text-[13.5px] font-semibold tracking-wide">
                           {item.label}
                         </span>
                       </div>
                     </div>
                     {item.subsections.length > 0 && (
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
-                        isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-                      }`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                        }`}>
                         <ChevronDown size={13} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                       </div>
                     )}
                   </div>
 
                   {item.subsections.length > 0 && (
-                    <div className={`relative ml-8 pl-4 border-l border-[#C82A2B]/30 space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${
-                      isExpanded && isOpen ? 'max-h-96 opacity-100 mt-2 pb-2 pt-1' : 'max-h-0 opacity-0 mt-0 pb-0 pt-0 pointer-events-none'
-                    }`}>
+                    <div className={`relative ml-8 pl-4 border-l border-[#C82A2B]/30 space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${isExpanded && isOpen ? 'max-h-96 opacity-100 mt-2 pb-2 pt-1' : 'max-h-0 opacity-0 mt-0 pb-0 pt-0 pointer-events-none'
+                      }`}>
                       {item.subsections.map((sub, idx) => {
                         const isSubActive = pathname === sub.href;
 
@@ -891,9 +877,8 @@ export const Sidebar: React.FC = () => {
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 shadow-inner">
                 <User size={16} className="text-[#C82A2B]" strokeWidth={2.5} />
               </div>
-              <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${
-                isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-              }`}>
+              <div className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap ${isExpanded ? 'opacity-100 max-w-[150px] ml-3' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+                }`}>
                 <p className="text-sm font-bold truncate leading-tight text-white">
                   {user?.fullName || 'John Lee'}
                 </p>
@@ -902,9 +887,8 @@ export const Sidebar: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
-              isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
-            }`}>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${isExpanded ? 'opacity-100 max-w-[20px] ml-1' : 'opacity-0 max-w-0 ml-0 pointer-events-none'
+              }`}>
               <svg className={`w-4 h-4 text-white/85 shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
               </svg>

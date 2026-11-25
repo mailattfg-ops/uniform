@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Package, 
-  Box, 
-  AlertTriangle, 
-  XCircle, 
-  ShieldCheck, 
-  Palette, 
-  SlidersHorizontal, 
-  Tag, 
-  ArrowLeftRight, 
+import {
+  Package,
+  Box,
+  AlertTriangle,
+  XCircle,
+  ShieldCheck,
+  Palette,
+  SlidersHorizontal,
+  Tag,
+  ArrowLeftRight,
   Building2,
   Layers
 } from 'lucide-react';
@@ -98,9 +98,9 @@ export default function InventoryDashboardPage() {
         isRefreshing={isLoading}
       />
 
-      {/* Group 1: Readymade (Trade) Stock */}
+      {/* Group 1: Readymade Stock */}
       <DashboardCardGroup
-        title="Readymade (Trade) Stock"
+        title="Readymade Stock"
         description="Finished goods inventory for retail distribution and instant client order fulfillment."
         icon={Box}
         targetHref="/admin/inventory/product-stock"

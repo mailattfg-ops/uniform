@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, Pencil, Trash2, Shirt, Layers, Package, ChevronDown, Sparkles } from 'lucide-react';
+import { Plus, Pencil, Trash2, Shirt, Layers, Package, ChevronDown } from 'lucide-react';
 import type { ItemKind, ManualItem } from '../../page';
 import { ITEM_KIND_LABELS, getItemKind, lineAmount } from '../../_lib/itemLines';
 
@@ -24,7 +24,6 @@ interface ItemLinesTableProps {
 }
 
 const KIND_OPTIONS: { kind: ItemKind; label: string; hint: string; icon: React.ReactNode }[] = [
-  { kind: 'CUSTOM', label: 'Custom Item', hint: 'Direct item, qty & rate entry', icon: <Sparkles size={14} /> },
   { kind: 'READYMADE', label: 'Readymades', hint: 'In-house garments: fabric, trims & SAM', icon: <Shirt size={14} /> },
   { kind: 'FABRIC', label: 'Fabrics', hint: 'Fabric by the meter', icon: <Layers size={14} /> },
   { kind: 'ACCESSORY', label: 'Accessories', hint: 'Accessories & trade readymades', icon: <Package size={14} /> },
@@ -37,7 +36,7 @@ const KIND_BADGE: Record<ItemKind, string> = {
   ACCESSORY: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
-const cellInput = 'w-full px-2.5 py-1.5 text-xs font-bold font-mono border border-zinc-200 rounded-lg text-zinc-900 text-right focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 bg-white';
+const cellInput = 'w-full min-w-0 px-2 py-1.5 text-xs font-bold font-mono border border-zinc-200 rounded-lg text-zinc-900 text-right focus:outline-none focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B]/20 bg-white';
 
 export default function ItemLinesTable({
   lines,
@@ -94,6 +93,119 @@ export default function ItemLinesTable({
 
   return (
     <div className="space-y-4">
+
+      <div className="overflow-x-auto border border-zinc-200 rounded-2xl bg-white shadow-sm">
+        <table className="w-full table-fixed text-left border-collapse min-w-[600px]">
+          <thead>
+            <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-500 tracking-wider whitespace-nowrap">
+              <th className="p-3 w-14 text-center">SL No.</th>
+              <th className="p-3">Item</th>
+              <th className="p-3 w-28 text-right">Quantity</th>
+              <th className="p-3 w-32 text-right">Rate (₹)</th>
+              <th className="p-3 w-32 text-right">Amount (₹)</th>
+              <th className="p-3 w-24 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {lines.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-10 text-center">
+                  <p className="text-xs font-black text-zinc-400">No items yet</p>
+                  <p className="text-[10px] font-semibold text-zinc-400 mt-1">Use the input below to quickly add custom quotation items, or "Add Catalog Line" for pre-configured garments.</p>
+                </td>
+              </tr>
+            ) : (
+              lines.map((l, i) => {
+                const kind = getItemKind(l.item);
+                return (
+                  <tr key={l.item.id} className="hover:bg-zinc-50/60">
+                    <td className="p-3 text-center text-xs font-black text-zinc-500">{i + 1}</td>
+                    <td className="p-3">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <span className={`mt-0.5 px-1.5 py-0.5 rounded border text-[8px] font-black uppercase tracking-wider shrink-0 ${KIND_BADGE[kind]}`}>
+                          {ITEM_KIND_LABELS[kind]}
+                        </span>
+                        {kind === 'CUSTOM' ? (
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={l.item.name || l.item.product_name || ''}
+                              onChange={e => onChangeName ? onChangeName(l.index, e.target.value) : undefined}
+                              title={l.item.name || l.item.product_name || ''}
+                              className="w-full px-2 py-1 text-xs font-bold border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white"
+                              placeholder="Custom item name..."
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0" title={[l.title, l.subtitle].filter(Boolean).join('\n')}>
+                            <p className="text-xs font-black text-zinc-900 truncate">{l.title}</p>
+                            {l.subtitle && <p className="text-[10px] font-semibold text-zinc-400 truncate">{l.subtitle}</p>}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step={kind === 'FABRIC' ? '0.01' : '1'}
+                          value={l.item.quantity}
+                          onChange={e => onChangeQty(l.index, e.target.value)}
+                          className={cellInput}
+                        />
+                        {kind === 'FABRIC' && <span className="text-[9px] font-black text-zinc-400">m</span>}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={l.item.price}
+                        onChange={e => onChangeRate(l.index, e.target.value)}
+                        className={cellInput}
+                      />
+                    </td>
+                    <td className="p-3 text-right font-mono text-xs font-black text-zinc-900">
+                      {lineAmount(l.item).toFixed(2)}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          title="Edit item"
+                          onClick={() => onEdit(l.index)}
+                          className="w-8 h-8 rounded-lg bg-zinc-50 text-zinc-500 hover:bg-zinc-900 hover:text-white border border-zinc-200 flex items-center justify-center transition-all"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete item"
+                          onClick={() => onDelete(l.index)}
+                          className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white border border-red-100 flex items-center justify-center transition-all"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+          {lines.length > 0 && (
+            <tfoot>
+              <tr className="bg-zinc-50 border-t border-zinc-200">
+                <td colSpan={4} className="p-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-500">Total</td>
+                <td className="p-3 text-right font-mono text-sm font-black text-[#C82A2B]">₹{grandTotal.toFixed(2)}</td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
       {/* CUSTOM QUOTATION INPUT CARD */}
       <div className="bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-2 border-zinc-200 hover:border-[#C82A2B]/40 rounded-2xl p-5 shadow-sm space-y-3 transition-colors">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -123,11 +235,7 @@ export default function ItemLinesTable({
                     type="button"
                     onClick={() => {
                       setMenuOpen(false);
-                      if (opt.kind === 'CUSTOM') {
-                        itemInputRef.current?.focus();
-                      } else {
-                        onAdd(opt.kind);
-                      }
+                      onAdd(opt.kind);
                     }}
                     className="w-full text-left px-4 py-3 hover:bg-[#FFF1F1] flex items-start gap-3 transition-colors border-b border-zinc-100 last:border-b-0"
                   >
@@ -224,118 +332,6 @@ export default function ItemLinesTable({
             </button>
           </div>
         </form>
-      </div>
-
-      <div className="overflow-x-auto border border-zinc-200 rounded-2xl bg-white shadow-sm">
-        <table className="w-full text-left border-collapse min-w-[720px]">
-          <thead>
-            <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black uppercase text-zinc-500 tracking-wider">
-              <th className="p-3 w-16 text-center">SL No.</th>
-              <th className="p-3">Item</th>
-              <th className="p-3 w-32 text-right">Quantity</th>
-              <th className="p-3 w-36 text-right">Rate (₹)</th>
-              <th className="p-3 w-36 text-right">Amount (₹)</th>
-              <th className="p-3 w-24 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {lines.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-10 text-center">
-                  <p className="text-xs font-black text-zinc-400">No items yet</p>
-                  <p className="text-[10px] font-semibold text-zinc-400 mt-1">Use the input above to quickly add custom quotation items, or "Add Catalog Line" for pre-configured garments.</p>
-                </td>
-              </tr>
-            ) : (
-              lines.map((l, i) => {
-                const kind = getItemKind(l.item);
-                return (
-                  <tr key={l.item.id} className="hover:bg-zinc-50/60">
-                    <td className="p-3 text-center text-xs font-black text-zinc-500">{i + 1}</td>
-                    <td className="p-3">
-                      <div className="flex items-start gap-2">
-                        <span className={`mt-0.5 px-1.5 py-0.5 rounded border text-[8px] font-black uppercase tracking-wider shrink-0 ${KIND_BADGE[kind]}`}>
-                          {ITEM_KIND_LABELS[kind]}
-                        </span>
-                        {kind === 'CUSTOM' ? (
-                          <div className="flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={l.item.name || l.item.product_name || ''}
-                              onChange={e => onChangeName ? onChangeName(l.index, e.target.value) : undefined}
-                              className="w-full px-2 py-1 text-xs font-bold border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-[#C82A2B] bg-white"
-                              placeholder="Custom item name..."
-                            />
-                          </div>
-                        ) : (
-                          <div className="min-w-0">
-                            <p className="text-xs font-black text-zinc-900 truncate">{l.title}</p>
-                            {l.subtitle && <p className="text-[10px] font-semibold text-zinc-400 truncate">{l.subtitle}</p>}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min="0"
-                          step={kind === 'FABRIC' ? '0.01' : '1'}
-                          value={l.item.quantity}
-                          onChange={e => onChangeQty(l.index, e.target.value)}
-                          className={cellInput}
-                        />
-                        {kind === 'FABRIC' && <span className="text-[9px] font-black text-zinc-400">m</span>}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={l.item.price}
-                        onChange={e => onChangeRate(l.index, e.target.value)}
-                        className={cellInput}
-                      />
-                    </td>
-                    <td className="p-3 text-right font-mono text-xs font-black text-zinc-900">
-                      {lineAmount(l.item).toFixed(2)}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          title="Edit item"
-                          onClick={() => onEdit(l.index)}
-                          className="w-8 h-8 rounded-lg bg-zinc-50 text-zinc-500 hover:bg-zinc-900 hover:text-white border border-zinc-200 flex items-center justify-center transition-all"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          title="Delete item"
-                          onClick={() => onDelete(l.index)}
-                          className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white border border-red-100 flex items-center justify-center transition-all"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-          {lines.length > 0 && (
-            <tfoot>
-              <tr className="bg-zinc-50 border-t border-zinc-200">
-                <td colSpan={4} className="p-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-500">Total</td>
-                <td className="p-3 text-right font-mono text-sm font-black text-[#C82A2B]">₹{grandTotal.toFixed(2)}</td>
-                <td />
-              </tr>
-            </tfoot>
-          )}
-        </table>
       </div>
     </div>
   );

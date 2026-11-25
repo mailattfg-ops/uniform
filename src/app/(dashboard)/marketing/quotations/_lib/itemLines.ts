@@ -101,9 +101,9 @@ export const createBlankLine = (kind: ItemKind): ManualItem => ({
   button_id: '', button_count: '', thread_id: '', thread_count: '',
   trims: [],
   sam_value: '', design_number: '',
-  quantity: kind === 'FABRIC' ? '1' : (kind === 'READYMADE' ? '2' : '1'),
+  quantity: '1',
   price: '',
-  qty_mode: kind === 'READYMADE' ? 'members_sets' : 'direct_products',
+  qty_mode: 'direct_products', // all kinds start on "No. of Products"; Members & Sets is opt-in
   no_of_members: '1',
   no_of_sets: '2',
   gender: '',

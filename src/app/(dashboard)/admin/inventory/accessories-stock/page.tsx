@@ -3,21 +3,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
-import { 
-  Tag, 
-  AlertTriangle, 
-  XCircle, 
-  ShieldCheck, 
-  Search, 
-  Plus, 
-  RotateCw, 
-  SlidersHorizontal,
-  X,
-  Package,
-  ChevronRight
-} from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+import { ChevronRight, RotateCcw, X } from 'lucide-react';
+import { DataTable, Column } from '@/components/ui/DataTable';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+
+type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+const STATUS_META: Record<StockStatus, { label: string; pill: string; text: string; row: string }> = {
+  IN_STOCK: { label: 'In Stock', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-600', row: '' },
+  LOW_STOCK: { label: 'Low Stock', pill: 'bg-amber-50 text-amber-700 border-amber-200', text: 'text-amber-600', row: 'bg-amber-50/30' },
+  OUT_OF_STOCK: { label: 'Out of Stock', pill: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-600', row: 'bg-rose-50/30' },
+};
 
 interface StockRecord {
   id: number;
@@ -41,16 +36,92 @@ interface Product {
   base_size?: string | null;
   base_price?: number | null;
   images?: string[];
+  remarks?: any[];
+  brand_name?: string | null;
+  specification?: string | null;
+  color?: string | null;
+  shade_no?: string | null;
+  size?: string | null;
   stocks: StockRecord[];
 }
+
+interface AccessoryCategory {
+  id: string;
+  name: string;
+  code_prefix: string;
+}
+
+interface StockRow {
+  id: string;
+  product: Product;
+  size: string;
+  stock?: StockRecord;
+  fullName: string;
+  available: number;
+  status: StockStatus;
+}
+
+// Same defaults as the Accessories Items page (used until categories load from API / cache)
+const DEFAULT_ACCESSORY_CATEGORIES: AccessoryCategory[] = [
+  { id: 'cat-tie', name: 'Tie', code_prefix: 'TIE' },
+  { id: 'cat-belt', name: 'Belt', code_prefix: 'BLT' },
+  { id: 'cat-socks', name: 'Socks', code_prefix: 'SCK' },
+  { id: 'cat-badge', name: 'Badge / Crest', code_prefix: 'BDG' },
+  { id: 'cat-cap', name: 'Cap / Hat', code_prefix: 'CAP' },
+  { id: 'cat-lanyard', name: 'Lanyard / ID Card', code_prefix: 'LAN' },
+  { id: 'cat-scarf', name: 'Scarf / Dupatta', code_prefix: 'SCF' },
+  { id: 'cat-bottle', name: 'Water Bottle / Lunchbox', code_prefix: 'BOT' },
+  { id: 'cat-other', name: 'Other Accessory', code_prefix: 'ACC' }
+];
+
+// Helpers mirrored from the Accessories Items page so names and filters match exactly
+const extractTraderName = (item: Product): string => {
+  const mat = item.materials || '';
+  const traderMatch = mat.match(/\[Trader:\s*([^\]]+)\]/i);
+  if (traderMatch) return traderMatch[1].trim();
+  const rawRemark = item.remarks?.[0]?.text || '';
+  const remarkTraderMatch = rawRemark.match(/Trader:\s*([^|\]]+)/i);
+  return remarkTraderMatch ? remarkTraderMatch[1].trim() : '';
+};
+
+const extractTradeColors = (item: Product): string => {
+  const mat = item.materials || '';
+  const colorMatch = mat.match(/\[Color:\s*([^\]]+)\]/i);
+  if (colorMatch) return colorMatch[1].trim();
+  const rawRemark = item.remarks?.[0]?.text || '';
+  const remarkColorMatch = rawRemark.match(/Color:\s*([^|\]]+)/i);
+  return remarkColorMatch ? remarkColorMatch[1].trim() : '';
+};
+
+const extractItemColor = (item: Product): string => {
+  const mat = item.materials || '';
+  const colorMatch = mat.match(/\[Color:\s*([^\]]+)\]/i);
+  if (colorMatch && colorMatch[1]) return colorMatch[1].trim();
+  const rawRemark = item.remarks?.[0]?.text || '';
+  const remarkColorMatch = rawRemark.match(/Color:\s*([^|\]\n]+)/i);
+  if (remarkColorMatch && remarkColorMatch[1]) return remarkColorMatch[1].trim();
+  return '';
+};
+
+const isTradeItem = (item: Product): boolean => {
+  const cat = (item.category || '').toLowerCase();
+  const pType = (item.product_type || '').toLowerCase();
+  const mat = (item.materials || '').toLowerCase();
+  return cat === 'trade_readymade' || cat === 'readymade_trade' || pType === 'trade_readymade' || pType === 'readymade_trade' ||
+    mat.includes('[producttype: trade_readymade]') || mat.includes('[producttype: readymade_trade]');
+};
 
 export default function AccessoriesStockPage() {
   const [accessories, setAccessories] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'IN_STOCK'>('ALL');
-  const [categories, setCategories] = useState<{ id: string; name: string; code_prefix: string }[]>([]);
+  const [categories, setCategories] = useState<AccessoryCategory[]>(DEFAULT_ACCESSORY_CATEGORIES);
+  const [genders, setGenders] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [genderFilter, setGenderFilter] = useState('ALL');
+  const [filterBrand, setFilterBrand] = useState('ALL');
+  const [filterColour, setFilterColour] = useState('ALL');
+  const [filterSize, setFilterSize] = useState('ALL');
 
   // Adjustment Modal
   const [selectedAccessory, setSelectedAccessory] = useState<Product | null>(null);
@@ -61,20 +132,13 @@ export default function AccessoriesStockPage() {
   const [newThreshold, setNewThreshold] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Statistics
-  const [stats, setStats] = useState({
-    totalAccessories: 0,
-    lowStockCount: 0,
-    outOfStockCount: 0,
-    totalReserved: 0
-  });
-
   const fetchStockData = async () => {
     setIsLoading(true);
     try {
-      const [res, catRes] = await Promise.all([
+      const [res, catRes, masterRes] = await Promise.all([
         api.get('/inventory/stock'),
-        api.get('/inventory/accessory-categories').catch(() => ({ data: [] }))
+        api.get('/inventory/accessory-categories').catch(() => ({ data: [] })),
+        api.get('/art-number-hub/master-data').catch(() => ({ data: { genders: [] } }))
       ]);
       const allProducts: any[] = res.data?.products || [];
 
@@ -87,7 +151,7 @@ export default function AccessoriesStockPage() {
       });
 
       setAccessories(accessoryItems);
-      calculateStats(accessoryItems);
+      setGenders(masterRes.data?.genders || []);
 
       if (catRes.data && Array.isArray(catRes.data) && catRes.data.length > 0) {
         setCategories(catRes.data);
@@ -105,65 +169,170 @@ export default function AccessoriesStockPage() {
     }
   };
 
-  const calculateStats = (items: Product[]) => {
-    let lowStock = 0;
-    let outOfStock = 0;
-    let reserved = 0;
-
-    items.forEach(item => {
-      const allStocks = item.stocks || [];
-      if (allStocks.length === 0) {
-        outOfStock++;
-      } else {
-        const totalAvail = allStocks.reduce((sum, s) => sum + (s.quantity - s.reserved_quantity), 0);
-        const minThreshold = Math.min(...allStocks.map(s => s.low_stock_threshold || 5));
-        if (totalAvail <= 0) {
-          outOfStock++;
-        } else if (totalAvail <= minThreshold) {
-          lowStock++;
-        }
-        reserved += allStocks.reduce((sum, s) => sum + (s.reserved_quantity || 0), 0);
-      }
-    });
-
-    setStats({
-      totalAccessories: items.length,
-      lowStockCount: lowStock,
-      outOfStockCount: outOfStock,
-      totalReserved: reserved
-    });
-  };
-
   useEffect(() => {
     fetchStockData();
   }, []);
 
-  const filteredAccessories = useMemo(() => {
-    return accessories.filter(item => {
-      const allStocks = item.stocks || [];
-      const totalAvail = allStocks.reduce((sum, s) => sum + (s.quantity - s.reserved_quantity), 0);
-      const minThreshold = allStocks.length > 0 ? Math.min(...allStocks.map(s => s.low_stock_threshold || 5)) : 5;
+  // Same category resolution as the Accessories Items page
+  const extractCategoryName = (item: Product): string => {
+    const matchMat = (item.materials || '').match(/\[Category:\s*([^\]]+)\]/i);
+    if (matchMat && matchMat[1]) return matchMat[1].trim();
 
-      if (filterStatus === 'OUT_OF_STOCK' && totalAvail > 0) return false;
-      if (filterStatus === 'LOW_STOCK' && (totalAvail <= 0 || totalAvail > minThreshold)) return false;
-      if (filterStatus === 'IN_STOCK' && (allStocks.length === 0 || totalAvail <= minThreshold)) return false;
+    const rawRemark = item.remarks?.[0]?.text || '';
+    const matchRemark = rawRemark.match(/\[([^\]]+)\]/);
+    if (matchRemark && matchRemark[1] && !matchRemark[1].toLowerCase().includes('producttype')) {
+      return matchRemark[1].trim();
+    }
 
-      if (selectedCategory !== 'ALL') {
-        const itemText = `${item.name} ${item.materials || ''}`.toLowerCase();
-        if (!itemText.includes(selectedCategory.toLowerCase())) return false;
+    if (isTradeItem(item)) return 'Trade Readymade';
+
+    const found = categories.find(c => item.name.toLowerCase().includes(c.name.toLowerCase()));
+    if (found) return found.name;
+
+    return 'Other Accessory';
+  };
+
+  // Same "Item Name" format as the Accessories Items table
+  const getItemFullName = (item: Product) => {
+    const cat = extractCategoryName(item);
+    const brand = item.brand_name || extractTraderName(item);
+    const col = item.color || extractTradeColors(item) || extractItemColor(item);
+    const shade = item.shade_no ? `Shade ${item.shade_no}` : null;
+    // Each row is one size and shows it as a tag, so a multi-size list is left out of the name
+    const rawSz = item.size || item.base_size || '';
+    const sz = rawSz && !rawSz.includes(',') ? rawSz : null;
+
+    return [cat, brand, item.name, item.specification, col, shade, sz]
+      .map(val => (val || '').trim())
+      .filter(val => val && val !== '—')
+      .join(' ') || item.name || '—';
+  };
+
+  // One row per accessory-size, so per-size stock levels are visible
+  const rows = useMemo<StockRow[]>(() => {
+    const out: StockRow[] = [];
+    accessories.forEach(product => {
+      const rawSizes = product.base_size
+        ? product.base_size.split(',').map(s => s.trim()).filter(Boolean)
+        : ['Free Size'];
+      const sizes = rawSizes.length > 0 ? rawSizes : ['Free Size'];
+      const fullName = getItemFullName(product);
+
+      sizes.forEach(sz => {
+        const stock = product.stocks?.find(s => s.size === sz);
+        const physical = stock?.quantity || 0;
+        const reserved = stock?.reserved_quantity || 0;
+        const available = Math.max(0, physical - reserved);
+        const threshold = stock?.low_stock_threshold ?? 5;
+        const status: StockStatus = available <= 0 ? 'OUT_OF_STOCK' : available <= threshold ? 'LOW_STOCK' : 'IN_STOCK';
+        out.push({ id: `${product.id}-${sz}`, product, size: sz, stock, fullName, available, status });
+      });
+    });
+    return out;
+  }, [accessories, categories]);
+
+  // Filter options (same sources as the Accessories Items table)
+  const uniqueGenders = useMemo(() => {
+    const set = new Set<string>();
+    (genders || []).forEach(g => { if (g.name) set.add(g.name); });
+    accessories.forEach(i => { if (i.gender) set.add(i.gender); });
+    return Array.from(set).sort();
+  }, [genders, accessories]);
+
+  const uniqueSizes = useMemo(() => {
+    const set = new Set<string>();
+    accessories.forEach(i => {
+      if (i.base_size) {
+        i.base_size.split(',').forEach(s => { const t = s.trim(); if (t) set.add(t); });
+      } else {
+        set.add('Free Size');
       }
+    });
+    return Array.from(set).sort();
+  }, [accessories]);
 
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase();
-        const matches = 
-          item.name.toLowerCase().includes(term) ||
-          item.art_number.toLowerCase().includes(term) ||
-          (item.base_size || '').toLowerCase().includes(term);
+  const uniqueBrands = useMemo(() => {
+    const set = new Set<string>();
+    accessories.forEach(i => {
+      const b = i.brand_name || extractTraderName(i);
+      if (b && b.trim()) set.add(b.trim());
+    });
+    return Array.from(set).sort();
+  }, [accessories]);
+
+  const uniqueColours = useMemo(() => {
+    const set = new Set<string>();
+    accessories.forEach(i => {
+      const col = i.color || extractItemColor(i);
+      if (col && col.trim()) set.add(col.trim());
+    });
+    return Array.from(set).sort();
+  }, [accessories]);
+
+  const categoryOptions = useMemo(() => {
+    const list: { label: string; value: string; badge?: number }[] = [];
+    const seen = new Set<string>();
+    categories.forEach(c => {
+      if (c.name && !seen.has(c.name.toLowerCase())) {
+        seen.add(c.name.toLowerCase());
+        const count = accessories.filter(it => extractCategoryName(it).toLowerCase() === c.name.toLowerCase()).length;
+        list.push({ label: c.name, value: c.name, badge: count });
+      }
+    });
+    return list;
+  }, [categories, accessories]);
+
+  // Item-level filters (same matching logic as the Accessories Items table); size matches the row's size
+  const itemFilteredRows = useMemo(() => {
+    return rows.filter(r => {
+      const item = r.product;
+
+      if (genderFilter !== 'ALL') {
+        const targetGender = genderFilter.toLowerCase();
+        const itemGender = (item.gender || '').toLowerCase();
+        const matchedGenderObj = (genders || []).find(g =>
+          (g.name && g.name.toLowerCase() === targetGender) ||
+          (g.code && g.code.toLowerCase() === targetGender)
+        );
+        const matchCode = matchedGenderObj?.code?.toLowerCase();
+        const matchName = matchedGenderObj?.name?.toLowerCase();
+        const matches = itemGender === targetGender ||
+          (matchCode && itemGender === matchCode) ||
+          (matchName && itemGender === matchName);
         if (!matches) return false;
       }
+
+      if (selectedCategory !== 'ALL' && extractCategoryName(item).toLowerCase() !== selectedCategory.toLowerCase()) return false;
+
+      if (filterBrand !== 'ALL') {
+        const itemBrand = (item.brand_name || extractTraderName(item) || '').toLowerCase();
+        if (itemBrand !== filterBrand.toLowerCase()) return false;
+      }
+
+      if (filterSize !== 'ALL' && r.size.toLowerCase() !== filterSize.toLowerCase()) return false;
+
+      if (filterColour !== 'ALL') {
+        const itemColor = (item.color || extractItemColor(item) || '').toLowerCase();
+        if (!itemColor.includes(filterColour.toLowerCase())) return false;
+      }
+
       return true;
     });
-  }, [accessories, filterStatus, selectedCategory, searchTerm]);
+  }, [rows, genders, genderFilter, selectedCategory, filterBrand, filterSize, filterColour, categories]);
+
+  const statusCounts = useMemo(() => {
+    const c = { IN_STOCK: 0, LOW_STOCK: 0, OUT_OF_STOCK: 0 };
+    itemFilteredRows.forEach(r => { c[r.status]++; });
+    return c;
+  }, [itemFilteredRows]);
+
+  const filteredRows = useMemo(
+    () => itemFilteredRows.filter(r => filterStatus === 'ALL' || r.status === filterStatus),
+    [itemFilteredRows, filterStatus]
+  );
+
+  const hasActiveFilters = selectedCategory !== 'ALL' || genderFilter !== 'ALL' || filterBrand !== 'ALL' ||
+    filterColour !== 'ALL' || filterSize !== 'ALL' || filterStatus !== 'ALL';
 
   const handleOpenAdjust = (product: Product, sizeToAdjust: string) => {
     setSelectedAccessory(product);
@@ -211,274 +380,179 @@ export default function AccessoriesStockPage() {
     }
   };
 
+  const columns: Column<StockRow>[] = [
+    {
+      header: 'ID',
+      accessor: (r) => <span className="text-xs font-black text-[#9E1B1D] whitespace-nowrap">{r.product.art_number || '—'}</span>,
+      sortable: true,
+      sortValue: (r) => r.product.art_number || '',
+    },
+    {
+      header: 'Item Name',
+      accessor: (r) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-bold text-zinc-900 text-xs truncate max-w-[360px]" title={r.fullName}>{r.fullName}</span>
+          <span className="shrink-0 inline-block text-[10px] font-black text-[#9E1B1D] bg-[#FFF1F1] px-2 py-0.5 rounded-md whitespace-nowrap">{r.size}</span>
+        </div>
+      ),
+      sortable: true,
+      sortValue: (r) => `${r.fullName} ${r.size}`,
+    },
+    {
+      header: 'Available Stock',
+      className: 'text-right',
+      accessor: (r) => <span className={`font-mono text-xs font-black ${STATUS_META[r.status].text}`}>{r.available}</span>,
+      sortable: true,
+      sortValue: (r) => r.available,
+    },
+    {
+      header: 'Status',
+      className: 'text-center',
+      accessor: (r) => {
+        const meta = STATUS_META[r.status];
+        return <span className={`inline-block px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider whitespace-nowrap ${meta.pill}`}>{meta.label}</span>;
+      },
+      sortable: true,
+      sortValue: (r) => r.status,
+    },
+    {
+      header: 'Action',
+      className: 'text-center',
+      accessor: (r) => (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleOpenAdjust(r.product, r.size); }}
+          className={r.stock
+            ? 'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white text-[#C82A2B] border border-[#C82A2B]/30 hover:bg-[#FFF1F1] transition-all cursor-pointer whitespace-nowrap'
+            : 'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white transition-all cursor-pointer whitespace-nowrap'}
+        >
+          {r.stock ? 'Adjust' : 'Initialize'}
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      
+
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <Tag size={20} />
-            </div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-[#3a525d]">Accessories Stock</h1>
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2d8d9b] mt-2 opacity-80">
-            Finished Stock Tracking for Ties, Belts, Socks, Badges & Crests
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a 
-            href="/admin/accessories"
-            className="h-14 px-6 bg-white hover:bg-zinc-50 border border-zinc-200/80 rounded-2xl font-bold text-xs text-[#3a525d] shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
-          >
-            Manage Catalog <ChevronRight size={14} />
-          </a>
-        </div>
+      <div>
+        <h1 className="text-4xl font-black italic tracking-tighter text-zinc-900">Accessories Stock</h1>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9E1B1D] mt-1">
+          Finished Stock Tracking for Ties, Belts, Socks, Badges & Crests
+        </p>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#3a525d]/5 flex items-center justify-center text-[#3a525d] border border-[#3a525d]/10 shrink-0">
-            <Package size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#3a525d]/60">Accessory Items</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d] mt-0.5">{stats.totalAccessories}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100 shrink-0">
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600/70">Low Stock Items</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-amber-600 mt-0.5">{stats.lowStockCount}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
-            <XCircle size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-red-600/70">Out of Stock</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-red-600 mt-0.5">{stats.outOfStockCount}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/70">Allocated / Reserved</p>
-            <h3 className="text-2xl font-black italic tracking-tight text-emerald-600 mt-0.5">{stats.totalReserved}</h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters & Search */}
-      <div className="bg-white rounded-[2rem] border border-zinc-200/80 p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Filters on Left */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Category Dropdown */}
-          {categories.length > 0 && (
+      <DataTable
+        columns={columns}
+        data={filteredRows}
+        isLoading={isLoading}
+        searchPlaceholder="Search"
+        emptyMessage="No accessory stock records. Register ties, belts, socks, and badges in the Accessories Catalog to track their physical stock here."
+        rowClassName={(r) => STATUS_META[r.status].row}
+        headerAction={
+          <div className="flex items-center gap-2 flex-wrap">
             <FilterDropdown
               label="Category"
-              allLabel="All Categories"
+              allLabel={`All Categories (${accessories.length})`}
               value={selectedCategory}
-              onChange={(val) => setSelectedCategory(val)}
-              options={categories.map(c => ({ label: c.name, value: c.name }))}
+              onChange={setSelectedCategory}
+              options={categoryOptions}
             />
-          )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {(['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'] as const).map(status => (
+            {uniqueGenders.length > 0 && (
+              <FilterDropdown
+                label="Gender"
+                allLabel="All Genders"
+                value={genderFilter}
+                onChange={setGenderFilter}
+                options={uniqueGenders}
+              />
+            )}
+
+            <FilterDropdown
+              label="Brand"
+              allLabel="All Brands"
+              value={filterBrand}
+              onChange={setFilterBrand}
+              options={uniqueBrands}
+            />
+
+            <FilterDropdown
+              label="Colour"
+              allLabel="All Colours"
+              value={filterColour}
+              onChange={setFilterColour}
+              options={uniqueColours}
+            />
+
+            <FilterDropdown
+              label="Size"
+              allLabel="All Sizes"
+              value={filterSize}
+              onChange={setFilterSize}
+              options={uniqueSizes}
+            />
+
+            <FilterDropdown
+              label="Stock Status"
+              allLabel="All Stock"
+              allBadge={itemFilteredRows.length}
+              value={filterStatus}
+              onChange={(v) => setFilterStatus(v as typeof filterStatus)}
+              options={[
+                { label: 'In Stock', value: 'IN_STOCK', badge: statusCounts.IN_STOCK },
+                { label: 'Low Stock', value: 'LOW_STOCK', badge: statusCounts.LOW_STOCK },
+                { label: 'Out of Stock', value: 'OUT_OF_STOCK', badge: statusCounts.OUT_OF_STOCK },
+              ]}
+              maxWidth="max-w-[220px]"
+            />
+
+            {hasActiveFilters && (
               <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  filterStatus === status
-                    ? 'bg-[#2d8d9b] text-white shadow-md'
-                    : 'bg-zinc-50 hover:bg-zinc-100 text-[#3a525d]/70'
-                }`}
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('ALL');
+                  setGenderFilter('ALL');
+                  setFilterBrand('ALL');
+                  setFilterColour('ALL');
+                  setFilterSize('ALL');
+                  setFilterStatus('ALL');
+                }}
+                className="px-3 py-1.5 bg-[#FFF1F1] hover:bg-[#C82A2B]/10 text-[#C82A2B] text-xs font-bold rounded-xl border border-[#C82A2B]/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                {status.replace(/_/g, ' ')}
+                <RotateCcw size={12} />
+                <span>Reset</span>
               </button>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* Search on Right */}
-        <div className="relative w-full md:w-96 md:ml-auto">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input 
-            type="text" 
-            placeholder="Search" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] placeholder:text-zinc-400 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Stock Cards Grid */}
-      {isLoading ? (
-        <div className="p-20 text-center flex flex-col items-center gap-3">
-          <RotateCw size={28} className="animate-spin text-[#2d8d9b]" />
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Loading accessory stock...</p>
-        </div>
-      ) : filteredAccessories.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredAccessories.map(product => {
-            const rawSizes = product.base_size 
-              ? product.base_size.split(',').map(s => s.trim()).filter(Boolean)
-              : ['Free Size'];
-            const sizes = rawSizes.length > 0 ? rawSizes : ['Free Size'];
-
-            const hasImage = product.images && product.images.length > 0;
-            const totalPhysical = (product.stocks || []).reduce((acc, s) => acc + (s.quantity || 0), 0);
-            const totalReserved = (product.stocks || []).reduce((acc, s) => acc + (s.reserved_quantity || 0), 0);
-            const totalAvailable = Math.max(0, totalPhysical - totalReserved);
-
-            return (
-              <div 
-                key={product.id}
-                className="bg-white border border-zinc-200/80 rounded-[2.5rem] p-6 shadow-sm hover:border-[#2d8d9b]/30 transition-all duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  {/* Top Bar */}
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0">
-                        {hasImage ? (
-                          <img src={product.images![0]} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <Tag size={20} className="text-zinc-400" />
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#2d8d9b] bg-[#2d8d9b]/10 px-2 py-0.5 rounded-md">
-                          {product.art_number}
-                        </span>
-                        <h3 className="text-base font-black text-[#3a525d] mt-1">{product.name}</h3>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
-                        totalAvailable <= 0
-                          ? 'bg-red-50 text-red-600 border border-red-200'
-                          : totalAvailable <= 10
-                            ? 'bg-amber-50 text-amber-600 border border-amber-200'
-                            : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                      }`}>
-                        {totalAvailable <= 0 ? 'Out of Stock' : totalAvailable <= 10 ? 'Low Stock' : 'In Stock'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Sizing Stock Table */}
-                  <div className="mt-4 border border-zinc-100 rounded-2xl overflow-hidden bg-zinc-50/50">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-zinc-200/80 text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                          <th className="py-2.5 px-3.5 text-center">Size</th>
-                          <th className="py-2.5 px-3.5 text-center">Physical</th>
-                          <th className="py-2.5 px-3.5 text-center">Reserved</th>
-                          <th className="py-2.5 px-3.5 text-center">Available</th>
-                          <th className="py-2.5 px-3.5 text-center">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100">
-                        {sizes.map(sz => {
-                          const stock = product.stocks?.find(s => s.size === sz);
-                          const physical = stock?.quantity || 0;
-                          const resQty = stock?.reserved_quantity || 0;
-                          const avail = Math.max(0, physical - resQty);
-                          const threshold = stock?.low_stock_threshold ?? 5;
-                          const isLow = avail > 0 && avail <= threshold;
-                          const isOut = avail <= 0;
-
-                          return (
-                            <tr key={sz} className="hover:bg-white/60 transition-colors">
-                              <td className="py-2.5 px-3.5 font-black text-[#3a525d]">
-                                {sz}
-                              </td>
-                              <td className="py-2.5 px-3.5 text-right font-bold text-zinc-600">
-                                {physical}
-                              </td>
-                              <td className="py-2.5 px-3.5 text-right font-bold text-zinc-400">
-                                {resQty}
-                              </td>
-                              <td className="py-2.5 px-3.5 text-right font-black">
-                                <span className={isOut ? 'text-red-500' : isLow ? 'text-amber-500' : 'text-emerald-600'}>
-                                  {avail}
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-3.5 text-center">
-                                <button
-                                  onClick={() => handleOpenAdjust(product, sz)}
-                                  className="px-2.5 py-1 bg-white hover:bg-zinc-100 border border-zinc-200 text-[#2d8d9b] rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-2xs"
-                                >
-                                  Adjust
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Footer summary */}
-                <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-[11px] font-bold text-zinc-500">
-                  <span>Gender: <strong className="text-[#3a525d]">{product.gender || 'Unisex'}</strong></span>
-                  <span>Total Avail: <strong className="text-[#2d8d9b] text-sm">{totalAvailable}</strong></span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-white border border-zinc-200/80 rounded-[3rem] p-16 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-[#2d8d9b]/10 flex items-center justify-center text-[#2d8d9b] border border-[#2d8d9b]/20">
-              <Tag size={32} />
-            </div>
-            <p className="text-xl font-black italic text-[#3a525d]">No Accessory Stock Records</p>
-            <p className="text-xs font-bold max-w-md text-zinc-500 leading-relaxed">
-              Register ties, belts, socks, and badges in the Accessories Catalog to track their physical stock here.
-            </p>
-            <a 
+            <a
               href="/admin/accessories"
-              className="mt-3 px-6 py-3 bg-[#2d8d9b] text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:bg-[#236f7a] transition-all"
+              className="h-10 px-4 bg-white hover:bg-[#FFF1F1] border border-[#C82A2B]/30 rounded-xl font-black text-[10px] uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5 transition-all whitespace-nowrap"
             >
-              Go to Accessories Catalog
+              Manage Catalog <ChevronRight size={14} />
             </a>
           </div>
-        </div>
-      )}
+        }
+      />
 
       {/* Adjust Stock Modal */}
       {isAdjustModalOpen && selectedAccessory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-zinc-200/80 p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
-            
+
+            {/* Header decor */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
+
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
               <div>
-                <h3 className="text-2xl font-black italic tracking-tight text-[#3a525d]">Adjust Stock</h3>
+                <h3 className="text-2xl font-black italic tracking-tight text-zinc-900">Adjust Stock</h3>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#9E1B1D] mt-0.5">
                   {selectedAccessory.name} ({adjustingSize})
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsAdjustModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-colors"
               >
@@ -489,7 +563,7 @@ export default function AccessoriesStockPage() {
             {/* Form */}
             <form onSubmit={handleAdjustSubmit} className="mt-6 space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-900 mb-1.5">
                   Adjustment Type
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -509,7 +583,7 @@ export default function AccessoriesStockPage() {
                     onClick={() => setAdjustmentAction('CONSUME')}
                     className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider border transition-all ${
                       adjustmentAction === 'CONSUME'
-                        ? 'bg-red-500 text-white border-red-500 shadow-md'
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-md'
                         : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100'
                     }`}
                   >
@@ -519,29 +593,29 @@ export default function AccessoriesStockPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-900 mb-1.5">
                   Quantity ({adjustmentAction === 'REPLENISH' ? 'Units to Add' : 'Units to Deduct'})
                 </label>
-                <input 
+                <input
                   type="number"
                   min="1"
                   required
                   value={inputDelta}
                   onChange={(e) => setInputDelta(e.target.value)}
-                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
+                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#3a525d] mb-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-900 mb-1.5">
                   Low Stock Threshold Alert (Units)
                 </label>
-                <input 
+                <input
                   type="number"
                   min="0"
                   value={newThreshold}
                   onChange={(e) => setNewThreshold(parseInt(e.target.value, 10) || 0)}
-                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d] focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
+                  className="w-full h-11 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 focus:outline-none"
                 />
               </div>
 

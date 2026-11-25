@@ -273,7 +273,7 @@ export const RecordAdvancePaymentModal: React.FC<RecordAdvancePaymentModalProps>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 text-[10px] font-black uppercase text-white rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-2.5 text-[10px] font-black uppercase text-white rounded-xl bg-[#C82A2B] hover:bg-[#A81D1E] shadow-lg shadow-[#C82A2B]/20 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <CheckCircle2 size={13} />
               <span>{isSubmitting ? 'Recording...' : 'Record Payment'}</span>

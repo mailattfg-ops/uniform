@@ -3,8 +3,7 @@
 import React from 'react';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { ArrowRight, CheckCircle2, Truck } from 'lucide-react';
+import { CheckCircle2, Truck } from 'lucide-react';
 import { Organization } from '../../page';
 import { formatDate } from '@/lib/formatters';
 
@@ -23,7 +22,6 @@ interface WizardStep1Props {
   customerType: string;
   setCustomerType: (type: string) => void;
   isAnalyzing: boolean;
-  onNext: () => void;
   generateAutoCoverLetter: () => void;
   previousOrders: any[];
   onSelectPreviousOrder: (order: any) => void;
@@ -45,7 +43,6 @@ export default function WizardStep1({
   customerType,
   setCustomerType,
   isAnalyzing,
-  onNext,
   generateAutoCoverLetter,
   previousOrders,
   onSelectPreviousOrder,
@@ -213,15 +210,6 @@ export default function WizardStep1({
         />
       </div>
 
-      <div className="flex justify-end pt-6">
-        <Button
-          disabled={!selectedOrgId || !quoteTitle.trim() || isAnalyzing}
-          onClick={onNext}
-          className="h-16 px-10 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-[#C82A2B]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          {isAnalyzing ? 'Loading...' : 'Add Items & Next'} <ArrowRight size={16} />
-        </Button>
-      </div>
     </div>
   );
 }
