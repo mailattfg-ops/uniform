@@ -100,7 +100,7 @@ export const RevertStageModal: React.FC<RevertStageModalProps> = ({
   const isFormValid = confirmCheck && reason.trim().length >= 3 && Boolean(targetStage);
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
       
       <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden relative z-10 animate-in zoom-in-95 duration-200 flex flex-col">

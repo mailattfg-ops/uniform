@@ -1146,7 +1146,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
 
         return (
           <div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
             onClick={() => setSelectedItemForDetails(null)}
           >
             <div

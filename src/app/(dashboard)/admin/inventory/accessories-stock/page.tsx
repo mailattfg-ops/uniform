@@ -538,7 +538,7 @@ export default function AccessoriesStockPage() {
 
       {/* Adjust Stock Modal */}
       {isAdjustModalOpen && selectedAccessory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-zinc-200/80 p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
 
             {/* Header decor */}

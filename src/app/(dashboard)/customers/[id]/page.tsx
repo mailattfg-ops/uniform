@@ -6594,7 +6594,7 @@ function OrganizationDetailsPageContent() {
       {/* Double Confirmation Delete Department Modal */}
       {deptDeleteModal.isOpen && deptDeleteModal.dept && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => {
             if (!deptDeleteModal.isDeleting) {
               setDeptDeleteModal({ isOpen: false, step: 1, dept: null, typedName: '', isDeleting: false });
@@ -7972,7 +7972,7 @@ function OrganizationDetailsPageContent() {
       {/* Custom Journal Creation Modal */}
       {/* Quick Customer Payment Modal (Quotation or Invoice Target) */}
       {isQuickPaymentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden relative z-10 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 text-white flex items-center justify-between shrink-0">
@@ -8367,7 +8367,7 @@ function OrganizationDetailsPageContent() {
 
       {/* First Custom Department Migration / Confirmation Modal */}
       {firstDeptMigrationModal.isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-[#C82A2B] to-[#9E1B1D] p-6 text-white flex items-center justify-between">

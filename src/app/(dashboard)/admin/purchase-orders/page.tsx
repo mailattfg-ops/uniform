@@ -625,7 +625,7 @@ export default function PurchaseOrdersPage() {
 
       {/* PO Details & Fulfillment Modal */}
       {isDetailsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div 
             className="w-full max-w-3xl bg-white rounded-[3rem] p-8 border border-zinc-200/80 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500"
             onClick={(e) => e.stopPropagation()}
@@ -853,7 +853,7 @@ export default function PurchaseOrdersPage() {
 
       {/* Manual PO Generation Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div 
             className="w-full max-w-2xl bg-white rounded-[3rem] p-8 border border-zinc-200 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh] overflow-y-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}

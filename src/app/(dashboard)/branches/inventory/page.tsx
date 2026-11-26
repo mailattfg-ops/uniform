@@ -308,7 +308,7 @@ export default function BranchInventoryPage() {
 
       {/* Adjust Stock Modal */}
       {showAdjustModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Package className="w-6 h-6 text-emerald-600" />

@@ -1128,7 +1128,7 @@ function DealItemRemarksModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
@@ -1325,7 +1325,7 @@ function BmApprovalModal({
   const advancePaid = parseFloat(quotation?.paid_amount || '0');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-emerald-50/50">
@@ -1501,7 +1501,7 @@ function CorporateApprovalModal({
   const advancePaid = parseFloat(quotation?.paid_amount || '0');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-purple-50/50">
           <div className="flex items-center gap-2">

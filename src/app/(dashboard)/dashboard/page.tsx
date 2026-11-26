@@ -1498,7 +1498,7 @@ export default function DashboardPage() {
       {/* POPUP DETAIL MODAL */}
       {selectedQuoteDetail && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setSelectedQuoteDetail(null)}
         >
           <div 
@@ -1713,7 +1713,7 @@ export default function DashboardPage() {
 
       {/* Loading overlay for fetching details */}
       {isLoadingDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/20 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/20 backdrop-blur-[1px]">
           <div className="bg-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-zinc-150">
             <div className="w-5 h-5 border-2 border-[#C82A2B] border-t-transparent rounded-full animate-spin"></div>
             <span className="font-bold text-xs text-[#3a525d]">Loading order details...</span>

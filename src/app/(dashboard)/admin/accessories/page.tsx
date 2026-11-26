@@ -1652,7 +1652,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 
         return (
           <div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200"
             onClick={() => setSelectedAccessoryForDetails(null)}
           >
             <div
@@ -1885,7 +1885,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* UNIFIED MODAL: ADD / EDIT ARTICLE (ACCESSORY & READYMADE TRADE)          */}
       {/* ========================================================================= */}
       {isArticleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-4xl bg-white rounded-[2.5rem] border border-zinc-200/80 p-6 md:p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
             {/* Top Brand Accent Rail */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
@@ -2360,7 +2360,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* MODAL 2: ADD CATEGORY MODAL (ACCESSORIES & TRADE GARMENTS)               */}
       {/* ========================================================================= */}
       {isAddCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200/80 relative space-y-5 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
@@ -2473,7 +2473,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* MODAL 3: MANAGE CATEGORIES MODAL (ACCESSORIES & TRADE GARMENTS)           */}
       {/* ========================================================================= */}
       {isManageCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-200/80 relative space-y-5 max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
@@ -2697,7 +2697,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* MODAL 5: DELETE ITEM CONFIRMATION                                         */}
       {/* ========================================================================= */}
       {deleteConfirm.isOpen && deleteConfirm.item && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-md bg-white rounded-[2rem] border border-red-100 p-6 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-3">
               <Trash2 size={24} />

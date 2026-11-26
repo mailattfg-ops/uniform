@@ -624,7 +624,7 @@ function DesignNumbersContent() {
 
       {/* DNS Edit Modal */}
       {editingDNS && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <Card className="p-8 border border-zinc-200/80 rounded-[2.5rem] shadow-2xl bg-white max-w-lg w-full space-y-6 relative overflow-hidden">
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             <div className="flex justify-between items-start">
@@ -691,7 +691,7 @@ function DesignNumbersContent() {
 
       {/* DNG Edit Modal */}
       {editingDNG && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <Card className="p-8 border border-zinc-200/80 rounded-[2.5rem] shadow-2xl bg-white max-w-xl w-full space-y-6 relative overflow-hidden">
             <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0" />
             <div className="flex justify-between items-start">
