@@ -100,6 +100,7 @@ export interface Quotation {
     departments?: any[];
     separate_fabrics?: any[];
     quotation_type?: string;
+    brand_tier?: string;
     submitted_to_bm?: boolean;
     submitted_to_bm_at?: string;
     submitted_to_bm_by?: number | string;
@@ -392,9 +393,16 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           </div>
 
           <div class="text-right">
-            <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
-              ${quote.status} ${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
-            </span>
+            <div class="flex items-center justify-end gap-1.5 flex-wrap">
+              ${quote.metrics_summary?.brand_tier ? `
+                <span class="px-2 py-0.5 bg-[#FFF1F1] text-[#9E1B1D] font-black text-[9px] uppercase tracking-wider rounded border border-[#C82A2B]/20 inline-block">
+                  ${quote.metrics_summary.brand_tier === 'SEMI_BRANDED' ? 'Semi-Brand' : quote.metrics_summary.brand_tier === 'NON_BRANDED' ? 'Non-Brand' : 'Branded'}
+                </span>
+              ` : ''}
+              <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
+                ${quote.status} ${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
+              </span>
+            </div>
             <h1 class="text-xl font-black text-gray-800 mt-2 font-outfit">${quote.quotation_no}</h1>
             <p class="text-xs text-gray-500 font-bold mt-1">Date: ${dateStr}</p>
           </div>

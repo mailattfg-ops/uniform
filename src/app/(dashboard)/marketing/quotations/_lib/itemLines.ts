@@ -114,7 +114,7 @@ export const createBlankLine = (kind: ItemKind): ManualItem => ({
 export const toSeparateFabrics = (lines: ManualItem[]): SeparateFabricItem[] =>
   lines
     .filter(l => getItemKind(l) === 'FABRIC')
-    .map(l => ({ id: l.id, fabric_id: l.fabric_id, meters: l.quantity, rate: l.price }));
+    .map(l => ({ id: l.id, fabric_id: l.fabric_id, meters: l.quantity, rate: l.price, brand_tier: l.brand_tier }));
 
 export const fabricLineFromSeparate = (sf: SeparateFabricItem): ManualItem => ({
   ...createBlankLine('FABRIC'),
@@ -122,8 +122,9 @@ export const fabricLineFromSeparate = (sf: SeparateFabricItem): ManualItem => ({
   fabric_id: String(sf.fabric_id || ''),
   quantity: String(sf.meters || ''),
   price: String(sf.rate || ''),
+  brand_tier: sf.brand_tier || '',
   rate_manual: true,
-  size_breakdown: { is_separate_fabric: true },
+  size_breakdown: { is_separate_fabric: true, brand_tier: sf.brand_tier || '' },
 });
 
 // Validation used both by the item modal (Save button) and the wizard (Next button)

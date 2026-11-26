@@ -21,6 +21,8 @@ interface WizardStep1Props {
   setSalesType: (type: string) => void;
   customerType: string;
   setCustomerType: (type: string) => void;
+  brandTier: string;
+  setBrandTier: (tier: string) => void;
   isAnalyzing: boolean;
   generateAutoCoverLetter: () => void;
   previousOrders: any[];
@@ -42,6 +44,8 @@ export default function WizardStep1({
   setSalesType,
   customerType,
   setCustomerType,
+  brandTier,
+  setBrandTier,
   isAnalyzing,
   generateAutoCoverLetter,
   previousOrders,
@@ -118,31 +122,50 @@ export default function WizardStep1({
           </div>
         )}
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Sales Channel Type</label>
-          <Select
-            options={[
-              { label: 'Wholesale', value: 'WHOLESALE' },
-              { label: 'Retail', value: 'RETAIL' }
-            ]}
-            value={salesType}
-            onChange={setSalesType}
-            placeholder="Select Sales Type..."
-          />
-        </div>
+        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-5 pt-1">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Sales Channel Type</label>
+            <Select
+              options={[
+                { label: 'Wholesale', value: 'WHOLESALE' },
+                { label: 'Retail', value: 'RETAIL' }
+              ]}
+              value={salesType}
+              onChange={setSalesType}
+              placeholder="Select Sales Type..."
+            />
+          </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Customer Category</label>
-          <Select
-            options={[
-              { label: 'Direct', value: 'DIRECT' },
-              { label: 'Agent', value: 'AGENT' },
-              { label: 'Best', value: 'BEST' }
-            ]}
-            value={customerType}
-            onChange={setCustomerType}
-            placeholder="Select Customer Category..."
-          />
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Customer Category</label>
+            <Select
+              options={[
+                { label: 'Direct', value: 'DIRECT' },
+                { label: 'Agent', value: 'AGENT' },
+                { label: 'Best', value: 'BEST' }
+              ]}
+              value={customerType}
+              onChange={setCustomerType}
+              placeholder="Select Customer Category..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Brand Category / Tier</label>
+              <span className="text-[9px] font-bold text-[#C82A2B]">SAM Margin</span>
+            </div>
+            <Select
+              options={[
+                { label: 'Branded', value: 'BRANDED' },
+                { label: 'Semi-Brand', value: 'SEMI_BRANDED' },
+                { label: 'Non-Brand', value: 'NON_BRANDED' }
+              ]}
+              value={brandTier}
+              onChange={setBrandTier}
+              placeholder="Select Brand Tier..."
+            />
+          </div>
         </div>
 
       </div>

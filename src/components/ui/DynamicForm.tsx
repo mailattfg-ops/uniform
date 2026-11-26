@@ -17,7 +17,13 @@ import {
   MapPin,
   FileText,
   Layers,
-  Camera
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Plus,
+  UploadCloud,
+  Move
 } from 'lucide-react';
 import toast from '@/components/ui/toast';
 import { capitalizeFirstLetter } from '@/lib/formatters';
@@ -214,82 +220,264 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 </div>
               ) : field.type === 'image-upload' ? (
                 <div className={`space-y-4 p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 transition-all ${field.disabled ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
-                   <label className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1">
-                     {field.label}
-                   </label>
-                   
                    {(() => {
-                     const maxImg = field.maxImages || 3;
-                     const labelText = field.uploadLabel || (maxImg === 1 ? 'Upload Image' : 'Upload Images (2-3 Option)');
+                     const maxImg = field.maxImages || 5;
+                     const labelText = field.uploadLabel || (maxImg === 1 ? 'Upload Image' : `Upload Images (up to ${maxImg})`);
                      const currentImages = imagesState[field.name] || [];
+
+                     const handleFiles = (files: File[]) => {
+                       const validFiles = files.filter(f => f.type.startsWith('image/'));
+                       if (validFiles.length === 0) {
+                         toast.error('Please upload valid image files (PNG, JPG, WEBP, etc.)');
+                         return;
+                       }
+                       if (currentImages.length + validFiles.length > maxImg) {
+                         toast.error(`You can upload a maximum of ${maxImg} images.`);
+                         return;
+                       }
+
+                       let loadedCount = 0;
+                       const newBase64List: string[] = [];
+
+                       validFiles.forEach(file => {
+                         if (file.size > 5 * 1024 * 1024) {
+                           toast.error(`Image "${file.name}" exceeds 5MB limit and was skipped.`);
+                           loadedCount++;
+                           if (loadedCount === validFiles.length && newBase64List.length > 0) {
+                             setImagesState(prev => {
+                               const existing = prev[field.name] || [];
+                               const updated = [...existing, ...newBase64List].slice(0, maxImg);
+                               if (field.onChange) field.onChange(updated);
+                               return { ...prev, [field.name]: updated };
+                             });
+                           }
+                           return;
+                         }
+
+                         const reader = new FileReader();
+                         reader.onloadend = () => {
+                           const base64 = reader.result as string;
+                           newBase64List.push(base64);
+                           loadedCount++;
+                           if (loadedCount === validFiles.length) {
+                             setImagesState(prev => {
+                               const existing = prev[field.name] || [];
+                               const updated = [...existing, ...newBase64List].slice(0, maxImg);
+                               if (field.onChange) field.onChange(updated);
+                               return { ...prev, [field.name]: updated };
+                             });
+                             toast.success(`${newBase64List.length} image(s) added!`);
+                           }
+                         };
+                         reader.onerror = () => {
+                           loadedCount++;
+                           toast.error(`Failed to read "${file.name}"`);
+                         };
+                         reader.readAsDataURL(file);
+                       });
+                     };
+
+                     const handleReorder = (fromIndex: number, toIndex: number) => {
+                       if (fromIndex < 0 || fromIndex >= currentImages.length || toIndex < 0 || toIndex >= currentImages.length) return;
+                       setImagesState(prev => {
+                         const list = [...(prev[field.name] || [])];
+                         const [moved] = list.splice(fromIndex, 1);
+                         list.splice(toIndex, 0, moved);
+                         if (field.onChange) field.onChange(list);
+                         return { ...prev, [field.name]: list };
+                       });
+                     };
+
+                     const handleMove = (index: number, direction: 'left' | 'right') => {
+                       const targetIndex = direction === 'left' ? index - 1 : index + 1;
+                       if (targetIndex >= 0 && targetIndex < currentImages.length) {
+                         handleReorder(index, targetIndex);
+                       }
+                     };
+
+                     const handleRemove = (index: number) => {
+                       setImagesState(prev => {
+                         const updated = (prev[field.name] || []).filter((_, i) => i !== index);
+                         if (field.onChange) field.onChange(updated);
+                         return { ...prev, [field.name]: updated };
+                       });
+                     };
+
+                     const handleClearAll = () => {
+                       setImagesState(prev => {
+                         if (field.onChange) field.onChange([]);
+                         return { ...prev, [field.name]: [] };
+                       });
+                     };
+
                      return (
-                       <div className="flex flex-col gap-4">
-                         <div className="flex items-center gap-3">
-                           <input 
-                             type="file"
-                             accept="image/*"
-                             multiple={maxImg > 1}
-                             disabled={field.disabled || currentImages.length >= maxImg}
-                             onChange={(e) => {
-                               const files = Array.from(e.target.files || []);
-                               if (files.length === 0) return;
-                               
-                               if (currentImages.length + files.length > maxImg) {
-                                 toast.error(`You can upload a maximum of ${maxImg} image${maxImg > 1 ? 's' : ''}.`);
-                                 return;
-                               }
-                               
-                               files.forEach(file => {
-                                 const reader = new FileReader();
-                                 reader.onloadend = () => {
-                                   const base64 = reader.result as string;
-                                   setImagesState(prev => {
-                                     const existing = prev[field.name] || [];
-                                     if (existing.length >= maxImg) return prev;
-                                     const updated = [...existing, base64];
-                                     if (field.onChange) field.onChange(updated);
-                                     return { ...prev, [field.name]: updated };
-                                   });
-                                 };
-                                 reader.readAsDataURL(file);
-                               });
-                             }}
-                             className="hidden"
-                             id={`file-upload-${field.name}`}
-                           />
-                           <label 
-                             htmlFor={`file-upload-${field.name}`}
-                             className={`h-12 px-6 bg-white border-2 border-zinc-200 text-zinc-900 hover:bg-zinc-50 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm ${currentImages.length >= maxImg ? 'opacity-50 cursor-not-allowed' : ''}`}
-                           >
-                             <Camera size={16} />
-                             <span>{labelText}</span>
-                           </label>
-                           <span className="text-[10px] font-bold text-zinc-400">
-                             {currentImages.length} of {maxImg} uploaded
-                           </span>
+                       <div className="flex flex-col gap-3">
+                         {/* Header row */}
+                         <div className="flex items-center justify-between flex-wrap gap-2">
+                           <div className="flex items-center gap-2">
+                             <label className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700 ml-1">
+                               {field.label} ({currentImages.length} / {maxImg})
+                             </label>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             {currentImages.length > 1 && (
+                               <span className="text-[10px] text-zinc-400 font-medium hidden sm:inline">
+                                 Drag or use arrows to rearrange • First image is Cover
+                               </span>
+                             )}
+                             {currentImages.length > 0 && (
+                               <button
+                                 type="button"
+                                 onClick={handleClearAll}
+                                 className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer transition-colors"
+                               >
+                                 <Trash2 size={11} /> Clear All
+                               </button>
+                             )}
+                           </div>
                          </div>
 
-                         {/* Previews */}
-                         {currentImages.length > 0 && (
-                           <div className="flex flex-wrap gap-4 mt-2">
-                             {currentImages.map((img, idx) => (
-                               <div key={idx} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-zinc-200 bg-white group shadow-sm">
-                                 <img src={img} alt="preview" className="w-full h-full object-cover" />
-                                 <button
-                                   type="button"
-                                   onClick={() => {
-                                     setImagesState(prev => {
-                                       const updated = (prev[field.name] || []).filter((_, i) => i !== idx);
-                                       if (field.onChange) field.onChange(updated);
-                                       return { ...prev, [field.name]: updated };
-                                     });
+                         {/* Hidden File Input */}
+                         <input 
+                           type="file"
+                           accept="image/*"
+                           multiple={maxImg > 1}
+                           disabled={field.disabled || currentImages.length >= maxImg}
+                           onChange={(e) => {
+                             const files = Array.from(e.target.files || []);
+                             if (files.length > 0) {
+                               handleFiles(files);
+                               e.target.value = '';
+                             }
+                           }}
+                           className="hidden"
+                           id={`file-upload-${field.name}`}
+                         />
+
+                         {/* Image Thumbnails & Add tile */}
+                         {currentImages.length > 0 ? (
+                           <div className="space-y-3">
+                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-3 bg-white rounded-2xl border border-zinc-200">
+                               {currentImages.map((img, idx) => (
+                                 <div
+                                   key={idx}
+                                   draggable={!field.disabled}
+                                   onDragStart={(e) => {
+                                     e.dataTransfer.setData('text/plain', String(idx));
+                                     e.dataTransfer.effectAllowed = 'move';
                                    }}
-                                   className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all font-black text-[10px] uppercase cursor-pointer"
+                                   onDragOver={(e) => {
+                                     e.preventDefault();
+                                     e.dataTransfer.dropEffect = 'move';
+                                   }}
+                                   onDrop={(e) => {
+                                     e.preventDefault();
+                                     const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                     if (!isNaN(fromIdx) && fromIdx !== idx) {
+                                       handleReorder(fromIdx, idx);
+                                     }
+                                   }}
+                                   className="relative aspect-square rounded-xl overflow-hidden bg-zinc-50 border border-zinc-200 group shadow-xs select-none cursor-grab active:cursor-grabbing hover:border-zinc-400 transition-all"
+                                   title="Drag to reorder or use arrow buttons"
                                  >
-                                   Remove
-                                 </button>
-                               </div>
-                             ))}
+                                   <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                                   
+                                   {/* Badge */}
+                                   {idx === 0 ? (
+                                     <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-[#9E1B1D] text-white text-[8px] font-black uppercase tracking-wider rounded-md shadow-xs z-10">
+                                       Cover
+                                     </span>
+                                   ) : (
+                                     <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-white text-[8px] font-bold rounded-md shadow-xs z-10">
+                                       #{idx + 1}
+                                     </span>
+                                   )}
+
+                                   {/* Hover Controls Overlay */}
+                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5 z-20">
+                                     <div className="flex items-center justify-between">
+                                       <span className="text-white/80 p-0.5" title="Drag to rearrange">
+                                         <Move size={12} />
+                                       </span>
+                                       <button
+                                         type="button"
+                                         onClick={() => handleRemove(idx)}
+                                         className="w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-sm cursor-pointer"
+                                         title="Remove image"
+                                       >
+                                         <Trash2 size={12} />
+                                       </button>
+                                     </div>
+
+                                     {/* Rearrange Arrows */}
+                                     <div className="flex items-center justify-between gap-1 mt-auto">
+                                       <button
+                                         type="button"
+                                         disabled={idx === 0}
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleMove(idx, 'left');
+                                         }}
+                                         className="h-6 flex-1 rounded bg-white/90 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                                         title="Move left"
+                                       >
+                                         <ChevronLeft size={13} strokeWidth={2.5} />
+                                       </button>
+                                       <button
+                                         type="button"
+                                         disabled={idx === currentImages.length - 1}
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleMove(idx, 'right');
+                                         }}
+                                         className="h-6 flex-1 rounded bg-white/90 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                                         title="Move right"
+                                       >
+                                         <ChevronRight size={13} strokeWidth={2.5} />
+                                       </button>
+                                     </div>
+                                   </div>
+                                 </div>
+                               ))}
+
+                               {/* Add More Tile */}
+                               {currentImages.length < maxImg && (
+                                 <label
+                                   htmlFor={`file-upload-${field.name}`}
+                                   className="aspect-square rounded-xl border-2 border-dashed border-zinc-300 hover:border-[#9E1B1D] bg-zinc-50/50 hover:bg-zinc-50 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-[#9E1B1D] transition-all cursor-pointer shadow-2xs group"
+                                 >
+                                   <Plus size={20} className="group-hover:scale-110 transition-transform" />
+                                   <span className="text-[10px] font-black uppercase tracking-wider">Add More</span>
+                                 </label>
+                               )}
+                             </div>
+                           </div>
+                         ) : (
+                           /* Empty Dropzone / Upload button */
+                           <div
+                             onDragOver={(e) => {
+                               e.preventDefault();
+                             }}
+                             onDrop={(e) => {
+                               e.preventDefault();
+                               if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                 handleFiles(Array.from(e.dataTransfer.files));
+                               }
+                             }}
+                             className="border-2 border-dashed border-zinc-200 hover:border-[#9E1B1D] rounded-2xl p-6 bg-white flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
+                             onClick={() => {
+                               document.getElementById(`file-upload-${field.name}`)?.click();
+                             }}
+                           >
+                             <div className="w-12 h-12 rounded-xl bg-zinc-100 group-hover:bg-[#FFF1F1] text-zinc-400 group-hover:text-[#9E1B1D] flex items-center justify-center transition-colors mb-2">
+                               <UploadCloud size={24} />
+                             </div>
+                             <p className="text-xs font-bold text-zinc-800">
+                               {labelText}
+                             </p>
+                             <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                               Click to browse or drag & drop multiple images (up to {maxImg} images, 5MB each)
+                             </p>
                            </div>
                          )}
                        </div>

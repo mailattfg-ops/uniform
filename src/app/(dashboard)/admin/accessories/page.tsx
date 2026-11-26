@@ -32,13 +32,16 @@ import {
   Maximize2,
   Copy,
   Box,
-  FileText
+  FileText,
+  ChevronLeft,
+  Move
 } from 'lucide-react';
 import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DataTable, Column, SortInfo, HeaderGroupItem } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
+import { useItemPermissions } from '@/hooks/useItemPermissions';
 
 export interface AccessoryCategory {
   id: string;
@@ -251,7 +254,7 @@ const ImageUploadField: React.FC<{
   onChange: (images: string[]) => void;
   maxImages?: number;
   colorTheme?: 'teal' | 'indigo';
-}> = ({ label, images = [], onChange, maxImages = 6, colorTheme = 'teal' }) => {
+}> = ({ label, images = [], onChange, maxImages = 5, colorTheme = 'teal' }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -283,7 +286,7 @@ const ImageUploadField: React.FC<{
         newBase64List.push(base64);
         loadedCount++;
         if (loadedCount === fileArr.length) {
-          onChange([...images, ...newBase64List]);
+          onChange([...images, ...newBase64List].slice(0, maxImages));
           toast.success(`${newBase64List.length} image(s) added!`);
         }
       };
@@ -295,9 +298,28 @@ const ImageUploadField: React.FC<{
     });
   };
 
+  const handleReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex < 0 || fromIndex >= images.length || toIndex < 0 || toIndex >= images.length) return;
+    const list = [...images];
+    const [moved] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, moved);
+    onChange(list);
+  };
+
+  const handleMove = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < images.length) {
+      handleReorder(index, targetIndex);
+    }
+  };
+
   const handleRemove = (index: number) => {
     const updated = images.filter((_, idx) => idx !== index);
     onChange(updated);
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -313,19 +335,26 @@ const ImageUploadField: React.FC<{
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-700">
           {label} ({images.length} / {maxImages})
         </label>
-        {images.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
-          >
-            <Trash2 size={11} /> Clear All
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {images.length > 1 && (
+            <span className="text-[10px] text-zinc-400 font-medium hidden sm:inline">
+              Drag or use arrows to rearrange • First image is Cover
+            </span>
+          )}
+          {images.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Trash2 size={11} /> Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       <input
@@ -344,27 +373,85 @@ const ImageUploadField: React.FC<{
 
       {images.length > 0 ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
             {images.map((img, idx) => (
               <div
                 key={idx}
-                className="relative aspect-square rounded-xl overflow-hidden bg-white border border-zinc-200 group shadow-xs"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', String(idx));
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                  if (!isNaN(fromIdx) && fromIdx !== idx) {
+                    handleReorder(fromIdx, idx);
+                  }
+                }}
+                className="relative aspect-square rounded-xl overflow-hidden bg-white border border-zinc-200 group shadow-xs select-none cursor-grab active:cursor-grabbing hover:border-zinc-400 transition-all"
+                title="Drag to reorder or use arrow buttons"
               >
-                <img src={img} alt={`Accessory ${idx + 1}`} className="w-full h-full object-cover" />
-                {idx === 0 && (
-                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-white text-[8px] font-black uppercase tracking-wider rounded-md">
+                <img src={img} alt={`Accessory ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                
+                {/* Badge */}
+                {idx === 0 ? (
+                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-[#9E1B1D] text-white text-[8px] font-black uppercase tracking-wider rounded-md shadow-xs z-10">
                     Cover
                   </span>
+                ) : (
+                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-white text-[8px] font-bold rounded-md shadow-xs z-10">
+                    #{idx + 1}
+                  </span>
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(idx)}
-                    className="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-sm cursor-pointer"
-                    title="Remove image"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+
+                {/* Hover Controls Overlay */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5 z-20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 p-0.5" title="Drag to rearrange">
+                      <Move size={12} />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(idx)}
+                      className="w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-sm cursor-pointer"
+                      title="Remove image"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Rearrange Arrows */}
+                  <div className="flex items-center justify-between gap-1 mt-auto">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMove(idx, 'left');
+                      }}
+                      className="h-6 flex-1 rounded bg-white/90 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                      title="Move left"
+                    >
+                      <ChevronLeft size={13} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === images.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMove(idx, 'right');
+                      }}
+                      className="h-6 flex-1 rounded bg-white/90 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                      title="Move right"
+                    >
+                      <ChevronRight size={13} strokeWidth={2.5} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -426,6 +513,9 @@ export default function AccessoriesAndTradeCatalogPage() {
   const [filterColour, setFilterColour] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Permissions
+  const { canEdit, canViewDetails } = useItemPermissions('accessories');
 
   // Master Data for Manufactured-spec Art Numbers and US Standard Sizing
   const [productTypes, setProductTypes] = useState<any[]>([]);
@@ -1066,13 +1156,29 @@ export default function AccessoriesAndTradeCatalogPage() {
       accessor: (item) => {
         const fullName = getItemFullName(item);
         const itemImgs = parseImageGallery(item.images);
+        const hasImg = itemImgs.length > 0;
         return (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
-              {itemImgs.length > 0 ? (
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
+                canViewDetails && hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+              }`}
+              onClick={
+                canViewDetails && hasImg
+                  ? (e) => {
+                      e.stopPropagation();
+                      setSelectedAccessoryForDetails(item);
+                      setActiveDetailImageIndex(0);
+                      setIsLightboxOpen(true);
+                    }
+                  : undefined
+              }
+              title={canViewDetails && hasImg ? 'Click to enlarge image' : undefined}
+            >
+              {hasImg ? (
                 <img src={itemImgs[0]} alt={fullName || item.name} className="w-full h-full object-cover" />
               ) : (
-                <Tag size={15} className="text-[#9E1B1D]" />
+                <Tag size={18} className="text-zinc-300" />
               )}
             </div>
             <div>
@@ -1137,9 +1243,9 @@ export default function AccessoriesAndTradeCatalogPage() {
       sortable: true,
       sortValue: (item) => Number(item.base_price || item.retail_sam_value || 0)
     },
-    {
+    ...(canEdit ? [{
       header: 'Action',
-      accessor: (item) => (
+      accessor: (item: AccessoryItem) => (
         <div className="flex items-center gap-1.5">
           <button
             onClick={(e) => {
@@ -1164,7 +1270,7 @@ export default function AccessoriesAndTradeCatalogPage() {
         </div>
       ),
       className: 'w-24'
-    }
+    }] : [])
   ];
   const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     if (newType === articleType) return;
@@ -1509,13 +1615,15 @@ export default function AccessoriesAndTradeCatalogPage() {
 
         <div className="flex flex-wrap items-center gap-2.5">
 
-          <button
-            onClick={() => handleOpenAddArticle()}
-            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <Plus size={18} strokeWidth={3} />
-            New Accessories
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => handleOpenAddArticle()}
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Plus size={18} strokeWidth={3} />
+              New Accessories
+            </button>
+          )}
 
           <PageActionsMenu
             onPrint={() => {
@@ -1528,7 +1636,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             printLabel="Print Accessories"
             onUserReport={() => userReportTriggerRef.current?.()}
             userReportLabel="My Updated Report"
-            extraActions={[
+            extraActions={canEdit ? [
               {
                 label: 'Category Management',
                 description: 'Manage, rename & edit categories',
@@ -1546,7 +1654,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 },
                 icon: <Plus size={16} className="text-[#9E1B1D]" />
               }
-            ]}
+            ] : undefined}
           />
         </div>
       </div>
@@ -1562,10 +1670,10 @@ export default function AccessoriesAndTradeCatalogPage() {
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        onRowClick={(item) => {
+        onRowClick={canViewDetails ? (item) => {
           setSelectedAccessoryForDetails(item);
           setActiveDetailImageIndex(0);
-        }}
+        } : undefined}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Category Filter */}
@@ -1636,7 +1744,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       />
 
       {/* Accessory Article Details Modal */}
-      {selectedAccessoryForDetails && (() => {
+      {canViewDetails && selectedAccessoryForDetails && (() => {
         const accImages = parseImageGallery(selectedAccessoryForDetails.images);
         const currentActiveImg = accImages[activeDetailImageIndex] || accImages[0];
         const fullName = getItemFullName(selectedAccessoryForDetails) || selectedAccessoryForDetails.name;
@@ -1704,18 +1812,20 @@ export default function AccessoriesAndTradeCatalogPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const item = selectedAccessoryForDetails;
-                      setSelectedAccessoryForDetails(null);
-                      handleOpenEditArticle(item);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    Edit Article
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = selectedAccessoryForDetails;
+                        setSelectedAccessoryForDetails(null);
+                        handleOpenEditArticle(item);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      Edit Article
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedAccessoryForDetails(null)}
@@ -1874,7 +1984,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 
       {/* Lightbox Viewer */}
       <ZoomableImageLightbox
-        isOpen={isLightboxOpen}
+        isOpen={canViewDetails && isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
         images={selectedAccessoryForDetails?.images || []}
         initialIndex={activeDetailImageIndex}
@@ -1884,7 +1994,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* UNIFIED MODAL: ADD / EDIT ARTICLE (ACCESSORY & READYMADE TRADE)          */}
       {/* ========================================================================= */}
-      {isArticleModalOpen && (
+      {canEdit && isArticleModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-4xl bg-white rounded-[2.5rem] border border-zinc-200/80 p-6 md:p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
             {/* Top Brand Accent Rail */}
@@ -2316,7 +2426,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   label={articleType === 'TRADE_READYMADE' ? 'Product Garment Images' : 'Accessory Product Images'}
                   images={articleFormData.images}
                   onChange={(imgs) => setArticleFormData(prev => ({ ...prev, images: imgs }))}
-                  maxImages={6}
+                  maxImages={5}
                   colorTheme={articleType === 'TRADE_READYMADE' ? 'indigo' : 'teal'}
                 />
 
@@ -2359,7 +2469,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* MODAL 2: ADD CATEGORY MODAL (ACCESSORIES & TRADE GARMENTS)               */}
       {/* ========================================================================= */}
-      {isAddCatModalOpen && (
+      {canEdit && isAddCatModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200/80 relative space-y-5 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
@@ -2472,7 +2582,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* MODAL 3: MANAGE CATEGORIES MODAL (ACCESSORIES & TRADE GARMENTS)           */}
       {/* ========================================================================= */}
-      {isManageCatModalOpen && (
+      {canEdit && isManageCatModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-200/80 relative space-y-5 max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
@@ -2696,7 +2806,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* MODAL 5: DELETE ITEM CONFIRMATION                                         */}
       {/* ========================================================================= */}
-      {deleteConfirm.isOpen && deleteConfirm.item && (
+      {canEdit && deleteConfirm.isOpen && deleteConfirm.item && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-md bg-white rounded-[2rem] border border-red-100 p-6 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-3">

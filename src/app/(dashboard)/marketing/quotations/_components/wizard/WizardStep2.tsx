@@ -389,8 +389,9 @@ interface WizardStep2Props {
   samConfigurations: any[];
   salesType: string;
   customerType: string;
+  brandTier: string;
   calculateProductSAMCost: (samValueStr: string, quantityStr: string) => number;
-  calculateFabricCost: (fabricId: string, metersStr: string, fabricSamStr: string, productTypeId: string) => number;
+  calculateFabricCost: (fabricId: string, metersStr: string, fabricSamStr: string, productTypeId: string, itemBrandTier?: string) => number;
   laborRatePerHour: string;
   isAnalyzing: boolean;
   isManualItemsValid: () => boolean;
@@ -419,6 +420,7 @@ export default function WizardStep2({
   samConfigurations,
   salesType,
   customerType,
+  brandTier,
   calculateProductSAMCost,
   calculateFabricCost,
   laborRatePerHour,
@@ -881,7 +883,7 @@ export default function WizardStep2({
     return '0.00';
   };
 
-  const getMarginForFabric = (fabricId: string): number => {
+  const getMarginForFabric = (fabricId: string, itemBrandTier?: string): number => {
     if (!fabricId) return 0;
     const fabric = fabricsList.find((f: any) => String(f.id) === fabricId);
     if (!fabric) return 0;
@@ -890,11 +892,11 @@ export default function WizardStep2({
         m.customer_type?.toUpperCase() === customerType.toUpperCase()
     );
     if (!marginRow) return 0;
-    const brandType = (fabric.brand_type || '').toLowerCase();
-    if (brandType.includes('branded') && !brandType.includes('semi')) {
-      return parseFloat(marginRow.branded) || 0;
-    } else if (brandType.includes('semi')) {
+    const effectiveBrand = (itemBrandTier || brandTier || fabric.brand_type || 'NON_BRANDED').toLowerCase();
+    if (effectiveBrand.includes('semi')) {
       return parseFloat(marginRow.semi_branded) || 0;
+    } else if (effectiveBrand.includes('brand') && !effectiveBrand.includes('non')) {
+      return parseFloat(marginRow.branded) || 0;
     } else {
       return parseFloat(marginRow.non_branded) || 0;
     }
@@ -910,9 +912,9 @@ export default function WizardStep2({
         calcMainFabricCost: 0, calcAtt1Cost: 0, calcAtt2Cost: 0, calcSamCost: 0
       };
     }
-    const calcMainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
-    const calcAtt1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
-    const calcAtt2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+    const calcMainFabricCost = calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id, item.brand_tier);
+    const calcAtt1Cost = calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id, item.brand_tier);
+    const calcAtt2Cost = calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id, item.brand_tier);
 
     const mainFabricCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
       ? parseFloat(item.main_fabric_cost)
@@ -1336,10 +1338,10 @@ export default function WizardStep2({
     patchLine(index, { price: value, rate_manual: true });
   };
 
-  const getDefaultFabricRate = (fabricId: string): string => {
+  const getDefaultFabricRate = (fabricId: string, itemBrandTier?: string): string => {
     const fabric = fabricsList.find((f: any) => String(f.id) === String(fabricId));
     if (!fabric) return '';
-    const calculatedRate = calculateFabricCost(fabric.id, '1', '6.777', '');
+    const calculatedRate = calculateFabricCost(fabric.id, '1', '6.777', '', itemBrandTier);
     return calculatedRate > 0 ? calculatedRate.toFixed(2) : (parseFloat(fabric.cost_per_meter) || 0).toFixed(2);
   };
 
@@ -1474,7 +1476,21 @@ export default function WizardStep2({
                   </div>
                 </div>
 
-                
+                <div className="min-w-[170px]">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-rose-700 mb-1">
+                    Brand Tier
+                  </label>
+                  <Select
+                    className="h-[38px] px-2.5 py-1.5 border border-rose-200 rounded-xl bg-white text-xs font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 shadow-2xs"
+                    value={item.brand_tier || ''}
+                    onChange={(e) => updateItem(index, { brand_tier: e.target.value })}
+                  >
+                    <option value="">Default ({brandTier === 'BRANDED' ? 'Branded' : brandTier === 'SEMI_BRANDED' ? 'Semi-Brand' : 'Non-Brand'})</option>
+                    <option value="BRANDED">Branded</option>
+                    <option value="SEMI_BRANDED">Semi-Brand</option>
+                    <option value="NON_BRANDED">Non-Brand</option>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -1931,7 +1947,7 @@ export default function WizardStep2({
                     </Select>
                     {item.fabric_id && (
                       <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
-                        Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id)}%
+                        Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id, item.brand_tier)}%
                       </div>
                     )}
                   </td>
@@ -2013,7 +2029,7 @@ export default function WizardStep2({
                     </Select>
                     {item.attachment_fabric1_id && (
                       <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
-                        Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id)}%
+                        Trans: ₹{getRateForFabric(item.attachment_fabric1_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric1_id, item.brand_tier)}%
                       </div>
                     )}
                   </td>
@@ -2095,7 +2111,7 @@ export default function WizardStep2({
                     </Select>
                     {item.attachment_fabric2_id && (
                       <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
-                        Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id)}%
+                        Trans: ₹{getRateForFabric(item.attachment_fabric2_id)}/m | Margin: {getMarginForFabric(item.attachment_fabric2_id, item.brand_tier)}%
                       </div>
                     )}
                   </td>
@@ -2397,57 +2413,87 @@ export default function WizardStep2({
     );
   };
 
-  const renderFabricLineForm = (item: ManualItem, index: number) => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-      <div className="md:col-span-2 space-y-1.5">
-        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Fabric</p>
-        <Select
-          className={selectCls}
-          value={item.fabric_id}
-          onChange={(e) => {
-            const fabricId = e.target.value;
-            patchLine(index, {
-              fabric_id: fabricId,
-              price: item.rate_manual && item.price !== '' ? item.price : getDefaultFabricRate(fabricId),
-            });
-          }}
-        >
-          <option value="">Select fabric...</option>
-          {fabricsList.map((f: any) => (
-            <option key={f.id} value={String(f.id)}>{formatFabricDisplayName(f)}</option>
-          ))}
-        </Select>
-      </div>
-      <div className="space-y-1.5">
-        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Meters</p>
-        <input
-          type="number" step="any" min="0"
-          value={item.quantity}
-          onChange={(e) => patchLine(index, { quantity: e.target.value })}
-          className={inputCls}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B]">Rate / Meter (₹)</p>
-        <input
-          type="number" step="any" min="0"
-          value={item.price}
-          onChange={(e) => patchLine(index, { price: e.target.value, rate_manual: true })}
-          className={`${inputCls} font-mono text-[#C82A2B]`}
-        />
-        {item.fabric_id && item.rate_manual && (
-          <button
-            type="button"
-            onClick={() => patchLine(index, { price: getDefaultFabricRate(item.fabric_id), rate_manual: false })}
-            className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-[#C82A2B]"
+  const renderFabricLineForm = (item: ManualItem, index: number) => {
+    const activeTier = item.brand_tier || brandTier;
+    const tierLabel = activeTier === 'BRANDED' ? 'Branded' : activeTier === 'SEMI_BRANDED' ? 'Semi-Brand' : 'Non-Brand';
+    const quoteTierLabel = brandTier === 'BRANDED' ? 'Branded' : brandTier === 'SEMI_BRANDED' ? 'Semi-Brand' : 'Non-Brand';
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="md:col-span-2 space-y-1.5">
+          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Fabric</p>
+          <Select
+            className={selectCls}
+            value={item.fabric_id}
+            onChange={(e) => {
+              const fabricId = e.target.value;
+              patchLine(index, {
+                fabric_id: fabricId,
+                price: item.rate_manual && item.price !== '' ? item.price : getDefaultFabricRate(fabricId, item.brand_tier),
+              });
+            }}
           >
-            Use standard rate ₹{getDefaultFabricRate(item.fabric_id)}
-          </button>
-        )}
+            <option value="">Select fabric...</option>
+            {fabricsList.map((f: any) => (
+              <option key={f.id} value={String(f.id)}>{formatFabricDisplayName(f)}</option>
+            ))}
+          </Select>
+          {item.fabric_id && (
+            <div className="text-[9px] text-[#C82A2B] font-bold mt-1">
+              Trans: ₹{getRateForFabric(item.fabric_id)}/m | Margin: {getMarginForFabric(item.fabric_id, item.brand_tier)}% ({tierLabel})
+            </div>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Brand Tier</p>
+          <Select
+            className={selectCls}
+            value={item.brand_tier || ''}
+            onChange={(e) => {
+              const newTier = e.target.value;
+              patchLine(index, {
+                brand_tier: newTier,
+                price: item.rate_manual && item.price !== '' ? item.price : getDefaultFabricRate(item.fabric_id, newTier),
+              });
+            }}
+          >
+            <option value="">Default ({quoteTierLabel})</option>
+            <option value="BRANDED">Branded</option>
+            <option value="SEMI_BRANDED">Semi-Brand</option>
+            <option value="NON_BRANDED">Non-Brand</option>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">Meters</p>
+          <input
+            type="number" step="any" min="0"
+            value={item.quantity}
+            onChange={(e) => patchLine(index, { quantity: e.target.value })}
+            className={inputCls}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[9px] font-black uppercase tracking-widest text-[#C82A2B]">Rate / Meter (₹)</p>
+          <input
+            type="number" step="any" min="0"
+            value={item.price}
+            onChange={(e) => patchLine(index, { price: e.target.value, rate_manual: true })}
+            className={`${inputCls} font-mono text-[#C82A2B]`}
+          />
+          {item.fabric_id && item.rate_manual && (
+            <button
+              type="button"
+              onClick={() => patchLine(index, { price: getDefaultFabricRate(item.fabric_id, item.brand_tier), rate_manual: false })}
+              className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-[#C82A2B]"
+            >
+              Use standard rate ₹{getDefaultFabricRate(item.fabric_id, item.brand_tier)}
+            </button>
+          )}
+        </div>
+        <div className="md:col-span-4">{renderDepartmentSelect(item, index)}</div>
       </div>
-      <div className="md:col-span-2">{renderDepartmentSelect(item, index)}</div>
-    </div>
-  );
+    );
+  };
 
   const handleAddCustomLine = ({ name, quantity, price }: { name: string; quantity: string; price: string }) => {
     const line: ManualItem = {

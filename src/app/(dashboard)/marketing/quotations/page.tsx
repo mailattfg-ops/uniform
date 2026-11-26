@@ -133,6 +133,7 @@ export interface SeparateFabricItem {
   fabric_id: string;
   meters: string;
   rate: string;
+  brand_tier?: string;
 }
 
 export interface ManualItem {
@@ -184,6 +185,7 @@ export interface ManualItem {
   art_number?: string;
   quantity: string;
   price: string; // computed unit cost
+  brand_tier?: string; // Optional per-item Brand Tier: BRANDED | SEMI_BRANDED | NON_BRANDED
   size_breakdown?: any;
   // Department, Gender & Manual Quantity selection
   department_id?: string;

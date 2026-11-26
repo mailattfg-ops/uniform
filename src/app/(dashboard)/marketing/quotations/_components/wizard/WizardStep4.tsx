@@ -614,6 +614,21 @@ export default function WizardStep4({
                   {/* General Specifications */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Brand Tier / Channel</p>
+                      <p className="text-xs font-black text-zinc-900 mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
+                          {selectedQuoteDetail.metrics_summary?.brand_tier === 'SEMI_BRANDED' ? 'Semi-Brand' :
+                           selectedQuoteDetail.metrics_summary?.brand_tier === 'NON_BRANDED' ? 'Non-Brand' : 'Branded'}
+                        </span>
+                        <span className="text-zinc-400 font-bold">•</span>
+                        <span>{selectedQuoteDetail.metrics_summary?.sales_type || 'Wholesale'}</span>
+                        {selectedQuoteDetail.metrics_summary?.customer_type && (
+                          <span className="text-zinc-500 font-bold">({selectedQuoteDetail.metrics_summary.customer_type})</span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-zinc-50/50 border border-zinc-150 rounded-2xl">
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Quotation Type</p>
                       <p className="text-xs font-black text-zinc-900 mt-1">
                         {(selectedQuoteDetail.metrics_summary?.quotation_type === 'STANDARD' || selectedQuoteDetail.metrics_summary?.quotation_type === 'READYMADE' || !selectedQuoteDetail.metrics_summary?.quotation_type) && 'Readymades'}

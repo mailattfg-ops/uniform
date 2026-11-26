@@ -1324,6 +1324,21 @@ export default function QuotationDetails({
                   {selectedQuotation.metrics_summary?.quotation_type === 'SET_TYPE' && 'Set Type'}
                 </p>
               </Card>
+
+              <Card className="p-6 border border-zinc-100 rounded-2xl bg-zinc-50/50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Brand Tier & Channel</p>
+                <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20">
+                    {selectedQuotation.metrics_summary?.brand_tier === 'SEMI_BRANDED' ? 'Semi-Brand' :
+                     selectedQuotation.metrics_summary?.brand_tier === 'NON_BRANDED' ? 'Non-Brand' : 'Branded'}
+                  </span>
+                  <span className="text-zinc-400 font-bold">•</span>
+                  <span className="text-xs font-black text-zinc-900">
+                    {selectedQuotation.metrics_summary?.sales_type || 'Wholesale'}
+                    {selectedQuotation.metrics_summary?.customer_type ? ` (${selectedQuotation.metrics_summary.customer_type})` : ''}
+                  </span>
+                </div>
+              </Card>
             </div>
 
             {/* COVER LETTER BANNER CALLOUT */}

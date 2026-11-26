@@ -15,6 +15,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/admin/measures', permissions: ['manage_system', 'manage_measurements', 'view_measurements'] },
   { prefix: '/admin/designs', permissions: ['manage_system', 'manage_products', 'view_products'] },
   { prefix: '/admin/design-numbers', permissions: ['manage_system', 'manage_products', 'view_products'] },
+  { prefix: '/admin/accessories', permissions: ['manage_system', 'manage_inventory', 'view_inventory', 'manage_products', 'view_products'] },
   { prefix: '/admin/inventory', permissions: ['manage_system', 'manage_inventory', 'view_inventory'] },
   { prefix: '/admin/audit', permissions: ['manage_system', 'view_audit_logs'] },
 

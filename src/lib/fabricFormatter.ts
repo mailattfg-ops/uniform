@@ -2,70 +2,81 @@
  * Universal Fabric Display Name Formatter
  * 
  * Formats fabric records according to the required standard:
- * "Garmenttype - BrandQualityShade(width)"
- * e.g., "SHIRTING - Arvind Concord 5111(36\")"
+ * "Brand Quality Shade (width)"
+ * e.g., "Arvind Concord 5111 (36\")"
  */
 
 export function formatFabricDisplayName(fabric: any): string {
   if (!fabric) return '';
+
   if (typeof fabric === 'string') {
     const trimmed = fabric.trim();
-    // Check if it's in the legacy 4-part hyphenated format: "Garment - Brand - Quality - Shade (width)"
-    const matchWithWidth = trimmed.match(/^([^-]+)\s*-\s*([^-]+)\s*-\s*([^-]+)\s*-\s*([^(]+?)\s*\(([^)]+)\)$/);
-    if (matchWithWidth) {
-      const [, garment, brand, quality, shade, width] = matchWithWidth;
-      const bqs = [brand.trim(), quality.trim(), shade.trim()].filter(Boolean).join(' ');
-      const cleanWidth = width.trim().endsWith('"') ? width.trim() : `${width.trim()}"`;
-      return `${garment.trim()} - ${bqs}(${cleanWidth})`;
+
+    // 1. Check if string has (width) at the end: e.g. "SHIRTING - Arvind Concord 5111(36")" or "... (36")"
+    const widthMatch = trimmed.match(/^(.*?)\s*\(([^)]+)\)$/);
+    let base = trimmed;
+    let widthStr = '';
+    if (widthMatch) {
+      base = widthMatch[1].trim();
+      const rawW = widthMatch[2].trim();
+      widthStr = rawW.endsWith('"') ? rawW : `${rawW}"`;
     }
-    // Check without width: "Garment - Brand - Quality - Shade"
-    const matchNoWidth = trimmed.match(/^([^-]+)\s*-\s*([^-]+)\s*-\s*([^-]+)\s*-\s*([^()]+)$/);
-    if (matchNoWidth) {
-      const [, garment, brand, quality, shade] = matchNoWidth;
-      const bqs = [brand.trim(), quality.trim(), shade.trim()].filter(Boolean).join(' ');
-      return `${garment.trim()} - ${bqs}`;
+
+    // 2. Remove any leading "Garment - " or legacy "Garment - Brand - Quality - Shade" prefix from base
+    if (base.includes(' - ')) {
+      const parts = base.split(' - ').map(s => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        // Strip the garment category (first segment)
+        base = parts.slice(1).join(' ');
+      }
     }
-    // Check if string ends with space before parenthesis: "... (width)" -> "...(width)"
-    const spaceWidthMatch = trimmed.match(/^(.*?)\s+\(([^)]+)\)$/);
-    if (spaceWidthMatch) {
-      const [, base, width] = spaceWidthMatch;
-      const cleanWidth = width.trim().endsWith('"') ? width.trim() : `${width.trim()}"`;
-      return `${base.trim()}(${cleanWidth})`;
+
+    if (widthStr) {
+      return `${base} (${widthStr})`;
     }
-    return trimmed;
+    return base;
   }
 
-  const garmentType = (fabric.garment_category || fabric.garment_type || fabric.fabric_type || '').toString().trim();
   const brand = (fabric.brand_name || fabric.brand || '').toString().trim();
   const quality = (fabric.quality || fabric.quality_name || '').toString().trim();
   const shade = (fabric.shade || fabric.colour || fabric.color || '').toString().trim();
 
-  // Combine Brand, Quality, Shade separated by spaces
+  // Combine Brand, Quality, Shade separated by spaces (Garment Category is excluded)
   const brandQualityShade = [brand, quality, shade].filter(Boolean).join(' ');
 
   let baseText = '';
-  if (garmentType && brandQualityShade) {
-    baseText = `${garmentType} - ${brandQualityShade}`;
-  } else if (garmentType) {
-    baseText = garmentType;
-  } else if (brandQualityShade) {
+  if (brandQualityShade) {
     baseText = brandQualityShade;
   } else {
     // Fallback if individual segment fields are unpopulated in legacy entries
     baseText = (fabric.name || fabric.item_name || fabric.code || 'Fabric').toString().trim();
-    // If baseText already has width in parentheses at the end, normalize it without duplicate width
+    // If baseText already has width in parentheses at the end, extract it
     const m = baseText.match(/^(.*?)\s*\(([^)]+)\)$/);
     if (m) {
-      const cleanWidth = m[2].trim().endsWith('"') ? m[2].trim() : `${m[2].trim()}"`;
-      return `${m[1].trim()}(${cleanWidth})`;
+      baseText = m[1].trim();
+      const cleanW = m[2].trim().endsWith('"') ? m[2].trim() : `${m[2].trim()}"`;
+      if (baseText.includes(' - ')) {
+        const parts = baseText.split(' - ').map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          baseText = parts.slice(1).join(' ');
+        }
+      }
+      return `${baseText} (${cleanW})`;
+    }
+    // Remove "Garment - " prefix if present
+    if (baseText.includes(' - ')) {
+      const parts = baseText.split(' - ').map(s => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        baseText = parts.slice(1).join(' ');
+      }
     }
   }
 
-  // Append formatted width directly: (width") with no space before (
+  // User requirement: give a space before (width) in item name
   const rawWidth = fabric.width !== null && fabric.width !== undefined ? String(fabric.width).trim() : '';
   if (rawWidth) {
     const cleanWidth = rawWidth.endsWith('"') ? rawWidth : `${rawWidth}"`;
-    return `${baseText}(${cleanWidth})`;
+    return `${baseText} (${cleanWidth})`;
   }
 
   return baseText;

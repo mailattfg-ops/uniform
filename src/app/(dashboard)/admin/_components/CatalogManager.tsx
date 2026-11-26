@@ -5,7 +5,7 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
-import { Plus, Edit2, Trash2, ArrowLeft, X, Maximize2, Copy, Check, ChevronLeft, ChevronRight, Box, Layers, Tag, Scissors, Sparkles, Building2, Store, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowLeft, X, Maximize2, Copy, Check, ChevronLeft, ChevronRight, Box, Layers, Tag, Scissors, Sparkles, Building2, Store, FileText, Camera } from 'lucide-react';
 import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -13,6 +13,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate } from '@/lib/formatters';
+import { useItemPermissions } from '@/hooks/useItemPermissions';
 
 interface Item {
   id: string;
@@ -33,6 +34,22 @@ interface Item {
   type?: string;
   unit_price?: number | null;
   garment_category?: string;
+}
+
+interface InwardRate {
+  id?: string | number;
+  item: string;
+  width: string;
+  rate: number;
+}
+
+interface MarginCalculation {
+  id?: string | number;
+  sales_type: string;
+  customer_type: string;
+  branded: number;
+  semi_branded: number;
+  non_branded: number;
 }
 
 const VendorChecklistInput: React.FC<{
@@ -333,6 +350,7 @@ interface CatalogManagerProps {
 }
 
 export default function CatalogManager({ type, title, subtitle }: CatalogManagerProps) {
+  const { canEdit, canViewDetails } = useItemPermissions(type === 'fabrics' ? 'fabrics' : 'trims');
   const [items, setItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'list' | 'add' | 'edit'>('list');
@@ -345,17 +363,71 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [inwardRates, setInwardRates] = useState<InwardRate[]>([]);
+  const [fabricMargins, setFabricMargins] = useState<MarginCalculation[]>([]);
 
   const fetchItems = async () => {
     setIsLoading(true);
     try {
       const response = await api.get(`/inventory/${type}`);
       setItems(response.data);
+      if (type === 'fabrics') {
+        try {
+          const [inwardRes, marginsRes] = await Promise.all([
+            api.get('/sam-management/fabric/inward-transportation'),
+            api.get('/sam-management/fabric/margins')
+          ]);
+          if (Array.isArray(inwardRes.data)) setInwardRates(inwardRes.data);
+          if (Array.isArray(marginsRes.data)) setFabricMargins(marginsRes.data);
+        } catch (samErr) {
+          console.error('Failed to load SAM configuration for fabric calculations', samErr);
+        }
+      }
     } catch (err) {
       toast.error(`Failed to load ${type}`);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const calculateFabricAvgRate = (item: Item): number => {
+    // 1. Resolve Fabric SAM (latest_sam, fallback to sheet baseline 6.777)
+    const sam = Number(item.latest_sam) > 0 ? Number(item.latest_sam) : 6.777;
+    // Purchase Cost = ((SAM * 2) * 3) * 4 = SAM * 24
+    const purchaseCost = sam * 24;
+
+    // 2. Inward Transportation
+    const cat = (item.garment_category || '').toUpperCase();
+    let matchedCat = 'SHIRTING';
+    if (cat.includes('SUIT') || cat.includes('BLAZER') || cat.includes('COAT')) {
+      matchedCat = 'SUITING';
+    } else if (cat.includes('BOTTOM') || cat.includes('PANT') || cat.includes('TROUSER')) {
+      matchedCat = 'BOTTOM';
+    } else if (cat.includes('SHIRT')) {
+      matchedCat = 'SHIRTING';
+    } else {
+      const name = (item.name || '').toUpperCase();
+      if (name.includes('SUIT')) matchedCat = 'SUITING';
+      else if (name.includes('BOTTOM') || name.includes('PANT') || name.includes('TROUSER')) matchedCat = 'BOTTOM';
+      else matchedCat = 'SHIRTING';
+    }
+
+    const widthClean = String(item.width || '').replace(/[^0-9]/g, '');
+    const matchedTransport = inwardRates.find(
+      (r) => r.item?.toUpperCase() === matchedCat && String(r.width).replace(/[^0-9]/g, '') === widthClean
+    );
+    const transportCost = matchedTransport ? Number(matchedTransport.rate) : (matchedCat === 'SUITING' ? 4 : 2.5);
+
+    // 3. Retail Direct Non-Brand Margin
+    const retailDirect = fabricMargins.find(
+      (m) => m.sales_type?.toUpperCase() === 'RETAIL' && m.customer_type?.toUpperCase() === 'DIRECT'
+    );
+    const marginPct = retailDirect && retailDirect.non_branded !== undefined && retailDirect.non_branded !== null
+      ? Number(retailDirect.non_branded)
+      : 100;
+
+    // 4. Formula: ((SAM * 24) + Inward Transport) * (1 + Margin / 100) * 1.05 (GST)
+    return (purchaseCost + transportCost) * (1 + marginPct / 100) * 1.05;
   };
 
   useEffect(() => {
@@ -486,10 +558,9 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     const rowsHtml = dataToPrint.map((item, idx) => `
       <tr>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.garment_category || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600;">${item.brand_type || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'} ${item.shade ? `(${item.shade})` : ''}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.width ? `${item.width}"` : '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${item.garment_category || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${formatFabricDisplayName(item) || item.name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">₹${calculateFabricAvgRate(item).toFixed(2)} / m</td>
         <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m</td>
       </tr>
     `).join('');
@@ -517,15 +588,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
-        <th>Garment Category</th>
-        <th>Brand Type</th>
+        <th style="text-align: center;">Garment Category</th>
         <th>Item Name</th>
-        <th style="text-align: center;">Width</th>
+        <th style="text-align: right;">Average Rate</th>
         <th style="text-align: right;">Quantity</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="6" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -545,63 +615,64 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const columns: Column<Item>[] = type === 'fabrics' ? [
     {
       header: 'Garment Category',
+      className: 'text-center',
       accessor: (item: Item) => (
-        <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-xl text-xs font-black text-amber-700 uppercase tracking-wider inline-block">
+        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block text-center">
           {item.garment_category || '—'}
         </span>
       ),
       sortValue: (item) => item.garment_category || ''
     },
     {
-      header: 'Brand Type',
-      accessor: (item: Item) => (
-        <span className="px-2.5 py-1 bg-teal-50 border border-teal-100 rounded-xl text-xs font-black text-teal-700 uppercase tracking-wider inline-block">
-          {item.brand_type || '—'}
-        </span>
-      ),
-      sortValue: (item) => item.brand_type || ''
-    },
-    {
       header: 'Item Name',
-      accessor: (item: Item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {(() => {
-              const displayImg = item.image || parseImageGallery(item.images)[0];
-              return displayImg ? (
+      accessor: (item: Item) => {
+        const displayImg = item.image || parseImageGallery(item.images)[0];
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
+                canViewDetails && displayImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+              }`}
+              onClick={
+                canViewDetails && displayImg
+                  ? (e) => {
+                      e.stopPropagation();
+                      setSelectedItemForDetails(item);
+                      setActiveDetailImageIndex(0);
+                      setIsLightboxOpen(true);
+                    }
+                  : undefined
+              }
+            >
+              {displayImg ? (
                 <img src={displayImg} alt={item.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
-              );
-            })()}
-          </div>
-          <div>
-            <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
-            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-              {item.brand_name && (
-                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-                  {item.brand_name} {item.quality ? `• ${item.quality}` : ''}
-                </span>
-              )}
-              {item.shade && (
-                <span className="text-[10px] font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 px-1.5 py-0.5 rounded">
-                  Shade: {item.shade}
-                </span>
+                <Camera size={18} className="text-zinc-300" />
               )}
             </div>
+            <div className="min-w-0">
+              <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
+            </div>
           </div>
-        </div>
-      ),
-      sortValue: (item) => item.name
+        );
+      },
+      sortValue: (item) => formatFabricDisplayName(item)
     },
     {
-      header: 'Width',
-      accessor: (item: Item) => (
-        item.width
-          ? <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-xs font-black text-[#2d8d9b] font-mono">{item.width}&quot;</span>
-          : <span className="text-xs italic text-zinc-350">—</span>
-      ),
-      sortValue: (item) => item.width || ''
+      header: 'Average Rate',
+      className: 'text-right',
+      accessor: (item: Item) => {
+        const rate = calculateFabricAvgRate(item);
+        return (
+          <div className="text-right">
+            <span className="px-2.5 py-1 bg-zinc-100/80 border border-zinc-200/80 rounded-xl text-xs font-black text-zinc-900 font-mono inline-block">
+              ₹{rate.toFixed(2)}
+              <span className="text-[10px] text-zinc-400 font-sans ml-1 font-semibold">/ m</span>
+            </span>
+          </div>
+        );
+      },
+      sortValue: (item) => calculateFabricAvgRate(item)
     },
     {
       header: 'Quantity',
@@ -611,37 +682,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         </span>
       ),
       sortValue: (item) => item.quantity || 0
-    },
-    {
-      header: 'Actions',
-      accessor: (item) => (
-        <div className="flex gap-2">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingItem(item);
-              setView('edit');
-            }}
-            variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
-            title="Edit Item"
-          >
-            <Edit2 size={16} />
-          </Button>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteConfirm({ isOpen: true, id: item.id });
-            }}
-            variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
-            title="Delete Item"
-          >
-            <Trash2 size={16} />
-          </Button>
-        </div>
-      ),
-      className: 'w-28'
     }
   ] : [
     { 
@@ -768,17 +808,17 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 placeholder: (type === 'fabrics' || type === 'buttons') ? 'Auto-generating...' : undefined,
                 allowSpecialCharacters: true 
               },
-              { 
-                name: 'name', 
-                label: type === 'fabrics' 
-                  ? 'Fabric Name' 
-                  : type === 'buttons' 
+              ...(type !== 'fabrics' ? [
+                { 
+                  name: 'name', 
+                  label: type === 'buttons' 
                     ? 'Button Name' 
                     : 'Thread Name', 
-                type: 'text', 
-                required: true, 
-                defaultValue: editingItem?.name 
-              },
+                  type: 'text' as const, 
+                  required: true, 
+                  defaultValue: editingItem?.name 
+                }
+              ] : []),
               ...(type === 'buttons' ? [
                 {
                   name: 'description',
@@ -868,7 +908,36 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   label: 'Brand Name', 
                   type: 'text' as const, 
                   placeholder: 'e.g. Raymond, Arvind', 
-                  defaultValue: editingItem?.brand_name || '' 
+                  defaultValue: editingItem?.brand_name || '',
+                  required: true
+                },
+                {
+                  name: 'quality',
+                  label: 'Quality',
+                  type: 'text' as const,
+                  placeholder: 'e.g. Concord, Super 120s',
+                  defaultValue: editingItem?.quality || '',
+                  required: true
+                },
+                { 
+                  name: 'shade', 
+                  label: 'Shade', 
+                  type: 'text' as const, 
+                  placeholder: 'e.g. 5111, Navy Blue', 
+                  defaultValue: editingItem?.shade || '',
+                  required: true
+                },
+                {
+                  name: 'width', 
+                  label: 'Width (inches)', 
+                  type: 'select' as const, 
+                  options: [
+                    { label: 'Select Width', value: '' },
+                    { label: '36"', value: '36' },
+                    { label: '44"', value: '44' },
+                    { label: '58"', value: '58' }
+                  ], 
+                  defaultValue: editingItem?.width || ''
                 },
                 { 
                   name: 'garment_category', 
@@ -895,20 +964,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   defaultValue: editingItem?.brand_type || '' 
                 },
                 {
-                  name: 'quality',
-                  label: 'Quality',
-                  type: 'text' as const,
-                  placeholder: 'e.g. Super 120s, Cotton Blend',
-                  defaultValue: editingItem?.quality || ''
-                },
-                { 
-                  name: 'description', 
-                  label: 'Fabric Specification', 
-                  type: 'textarea' as const, 
-                  placeholder: 'Detailed specifications of the fabric', 
-                  defaultValue: editingItem?.description || '' 
-                },
-                {
                   name: 'low_stock_threshold',
                   label: 'Low Stock Threshold (Optional)',
                   type: 'number' as const,
@@ -916,25 +971,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   placeholder: 'e.g. 10',
                   defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : '',
                   required: false
-                },
-                { 
-                  name: 'shade', 
-                  label: 'Shade', 
-                  type: 'text' as const, 
-                  placeholder: 'e.g. Navy Blue, Charcoal Grey', 
-                  defaultValue: editingItem?.shade || '' 
-                },
-                {
-                  name: 'width', 
-                  label: 'Width (inches)', 
-                  type: 'select' as const, 
-                  options: [
-                    { label: 'Select Width', value: '' },
-                    { label: '36"', value: '36' },
-                    { label: '44"', value: '44' },
-                    { label: '58"', value: '58' }
-                  ], 
-                  defaultValue: editingItem?.width || ''
                 },
                 {
                   name: 'latest_sam',
@@ -945,10 +981,19 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   placeholder: 'Auto-updated from quotations',
                   defaultValue: editingItem?.latest_sam !== null && editingItem?.latest_sam !== undefined ? String(editingItem.latest_sam) : '0'
                 },
+                { 
+                  name: 'description', 
+                  label: 'Description', 
+                  type: 'textarea' as const, 
+                  className: 'md:col-span-2',
+                  placeholder: 'Detailed description or specifications of the fabric', 
+                  defaultValue: editingItem?.description || '' 
+                },
                 {
                   name: 'images',
                   label: 'Fabric Images',
                   type: 'image-upload' as const,
+                  className: 'md:col-span-2',
                   maxImages: 5,
                   uploadLabel: 'Upload Fabric Images',
                   defaultValue: editingItem?.images || (editingItem?.image ? [editingItem.image] : [])
@@ -997,16 +1042,18 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            onClick={() => {
-              setEditingItem(null);
-              setView('add');
-            }}
-            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus size={18} strokeWidth={3} />
-            Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
-          </Button>
+          {canEdit && (
+            <Button
+              onClick={() => {
+                setEditingItem(null);
+                setView('add');
+              }}
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus size={18} strokeWidth={3} />
+              Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
+            </Button>
+          )}
           {type === 'fabrics' && (
             <PageActionsMenu
               onPrint={() => {
@@ -1034,10 +1081,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        onRowClick={(item) => {
-          setSelectedItemForDetails(item);
-          setActiveDetailImageIndex(0);
-        }}
+        onRowClick={
+          canViewDetails
+            ? (item) => {
+                setSelectedItemForDetails(item);
+                setActiveDetailImageIndex(0);
+              }
+            : undefined
+        }
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {type === 'fabrics' && (
@@ -1127,7 +1178,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       />
 
       {/* Fabric / Item Details Modal */}
-      {selectedItemForDetails && (() => {
+      {canViewDetails && selectedItemForDetails && (() => {
         // Collect all images safely
         const fabricImages = (() => {
           const list = parseImageGallery(selectedItemForDetails.images);
@@ -1197,19 +1248,21 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const item = selectedItemForDetails;
-                      setSelectedItemForDetails(null);
-                      setEditingItem(item);
-                      setView('edit');
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    Edit {isFabric ? 'Fabric' : 'Item'}
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = selectedItemForDetails;
+                        setSelectedItemForDetails(null);
+                        setEditingItem(item);
+                        setView('edit');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      Edit {isFabric ? 'Fabric' : 'Item'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedItemForDetails(null)}
@@ -1326,6 +1379,12 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Latest SAM</span>
                             <span className="text-sm font-bold text-zinc-900 font-mono mt-0.5 block">
                               {selectedItemForDetails.latest_sam ? `${selectedItemForDetails.latest_sam}` : '—'}
+                            </span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Average Rate</span>
+                            <span className="text-sm font-black text-[#C82A2B] font-mono mt-0.5 block">
+                              ₹{calculateFabricAvgRate(selectedItemForDetails).toFixed(2)} / m
                             </span>
                           </div>
                         </>
