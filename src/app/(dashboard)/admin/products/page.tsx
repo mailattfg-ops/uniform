@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
-import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Copy, Check, Layers, FolderTree, Bookmark, Sparkles, X, AlertTriangle, CheckCircle2, Info, ExternalLink, Scissors, FileText, MoreHorizontal, Ruler } from 'lucide-react';
+import { Plus, Edit2, Trash2, Box, Tag, Camera, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Copy, Check, Layers, FolderTree, Bookmark, Sparkles, X, AlertTriangle, CheckCircle2, Info, ExternalLink, Scissors, FileText, MoreHorizontal, Ruler, RotateCcw } from 'lucide-react';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -2113,10 +2113,10 @@ export default function ProductManagement() {
     return product.category ? product.category.replace(/_/g, ' ') : '—';
   };
 
-  // Readymades table filters: Gender, Product/dress (Dress Prefix), and Garment Type
+  // Readymades table filters: Gender, Item, Specification
   const [filterGender, setFilterGender] = useState<string>('ALL');
   const [filterDress, setFilterDress] = useState<string>('ALL');
-  const [filterGarmentType, setFilterGarmentType] = useState<string>('ALL');
+  const [filterSpecification, setFilterSpecification] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   const uniqueGenders = useMemo(() => {
@@ -2182,18 +2182,21 @@ export default function ProductManagement() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [dresses, products, genders, patterns]);
 
-  // Garment type options
-  const uniqueGarmentTypes = useMemo(() => {
+  // Specification options for filter (from master items & product catalog)
+  const uniqueSpecifications = useMemo(() => {
     const set = new Set<string>();
-    (productTypes || []).forEach(pt => {
-      if (pt.name) set.add(pt.name);
+    (dresses || []).forEach((d: any) => {
+      (d.art_item_specifications || []).forEach((s: any) => {
+        if (s.name && String(s.name).trim()) set.add(String(s.name).trim());
+      });
     });
-    (products || []).forEach(p => {
-      const typeName = getResolvedProductTypeName(p);
-      if (typeName && typeName !== '—') set.add(typeName);
+    (products || []).forEach((p) => {
+      const specObj = getItemSpecDisplayName(p, dresses);
+      const specName = specObj?.name || (p as any).specification;
+      if (specName && String(specName).trim()) set.add(String(specName).trim());
     });
     return Array.from(set).sort();
-  }, [productTypes, products]);
+  }, [dresses, products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -2235,17 +2238,14 @@ export default function ProductManagement() {
         if (!matches) return false;
       }
 
-      // 3. Garment Type Filter
-      if (filterGarmentType !== 'ALL') {
-        const targetType = filterGarmentType.toLowerCase();
-        const resolvedType = getResolvedProductTypeName(p).toLowerCase();
-        const ptName = (p.product_types?.name || '').toLowerCase();
-        const catName = (p.category || '').toLowerCase().replace(/_/g, ' ');
+      // 3. Specification Filter
+      if (filterSpecification !== 'ALL') {
+        const targetSpec = filterSpecification.toLowerCase().trim();
+        const specObj = getItemSpecDisplayName(p, dresses);
+        const specName = (specObj?.name || (p as any).specification || '').toLowerCase().trim();
+        const specCode = (specObj?.code || '').toLowerCase().trim();
 
-        const matches = resolvedType === targetType || 
-          ptName === targetType || 
-          catName === targetType;
-
+        const matches = specName === targetSpec || (specCode && specCode === targetSpec);
         if (!matches) return false;
       }
 
@@ -2264,7 +2264,7 @@ export default function ProductManagement() {
       }
       return true;
     });
-  }, [products, genders, dresses, patterns, productTypes, filterGender, filterDress, filterGarmentType, searchTerm]);
+  }, [products, genders, dresses, patterns, filterGender, filterDress, filterSpecification, searchTerm]);
 
   const printTriggerRef = useRef<(() => void) | null>(null);
   const userReportTriggerRef = useRef<(() => void) | null>(null);
@@ -2274,13 +2274,8 @@ export default function ProductManagement() {
       <tr>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${getProductDisplayName(p, dresses, genders) || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">${p.gender || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-family: monospace; font-weight: 800; color: #2d8d9b;">${p.art_number || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-family: monospace; font-weight: 800; color: #9E1B1D;">${p.art_number || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px;">${p.description || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${(() => {
-          const spec = getItemSpecDisplayName(p, dresses);
-          return spec ? (spec.code ? `[${spec.code}] ${spec.name}` : spec.name) : '—';
-        })()}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${p.base_size || '—'}</td>
       </tr>
     `).join('');
@@ -2309,15 +2304,13 @@ export default function ProductManagement() {
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
         <th>Item Name</th>
-        <th style="text-align: center;">Gender</th>
         <th>Art No.</th>
         <th>Description</th>
-        <th>Specification</th>
         <th style="text-align: center;">Base Size</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="7" style="text-align:center; padding: 20px;">No readymades found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px;">No readymades found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -2336,31 +2329,52 @@ export default function ProductManagement() {
 
   const columns: Column<Product>[] = [
     {
-      header: 'Item (Product)',
-      accessor: (p) => (
-        <div>
-          <p className="font-black text-sm tracking-tight text-zinc-900">{getProductDisplayName(p, dresses, genders)}</p>
-          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-            {p.product_types?.name || p.category?.replace('_', ' ') || ''}
-          </span>
-        </div>
-      ),
+      header: 'Item Name',
+      accessor: (p) => {
+        const fullName = getProductDisplayName(p, dresses, genders);
+        const itemImgs = parseImageGallery(p.images);
+        const hasImg = itemImgs.length > 0;
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
+                hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+              }`}
+              onClick={
+                hasImg
+                  ? (e) => {
+                      e.stopPropagation();
+                      setSelectedProductForDetails(p);
+                      setActiveDetailImageIndex(0);
+                      setIsLightboxOpen(true);
+                    }
+                  : undefined
+              }
+              title={hasImg ? 'Click to enlarge image' : undefined}
+            >
+              {hasImg ? (
+                <img
+                  src={itemImgs[0]}
+                  alt={fullName || p.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Box size={16} className="text-zinc-400" />
+              )}
+            </div>
+            <div>
+              <p className="font-black text-sm tracking-tight text-zinc-900">{fullName}</p>
+            </div>
+          </div>
+        );
+      },
       sortValue: (p) => getProductDisplayName(p, dresses, genders)
-    },
-    {
-      header: 'Gender',
-      accessor: (p) => (
-        <span className="px-2.5 py-1 bg-zinc-100 border border-zinc-200 rounded-xl text-xs font-bold text-[#3a525d]">
-          {p.gender || '—'}
-        </span>
-      ),
-      sortValue: (p) => p.gender || ''
     },
     {
       header: 'Art No.',
       className: 'whitespace-nowrap !px-2 w-px',
       accessor: (p) => (
-        <span className="text-xs font-mono font-bold text-[#2d8d9b] whitespace-nowrap">
+        <span className="text-sm font-mono font-black text-[#9E1B1D] whitespace-nowrap">
           {p.art_number || '—'}
         </span>
       ),
@@ -2379,21 +2393,6 @@ export default function ProductManagement() {
         );
       },
       sortValue: (p) => p.description || ''
-    },
-    {
-      header: 'Specification',
-      accessor: (p) => {
-        const spec = getItemSpecDisplayName(p, dresses);
-        return spec ? (
-          <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs">
-            {spec.code && <strong className="font-black text-amber-700 bg-amber-200/60 px-1 rounded text-[10px]">{spec.code}</strong>}
-            <span>{spec.name}</span>
-          </span>
-        ) : (
-          <span className="text-xs text-zinc-350 italic">—</span>
-        );
-      },
-      sortValue: (p) => getItemSpecDisplayName(p, dresses)?.name || ''
     },
     {
       header: 'Base Size',
@@ -2520,15 +2519,31 @@ export default function ProductManagement() {
               maxWidth="max-w-[220px]"
             />
 
-            {/* 3. Garment Type Filter */}
+            {/* 3. Specification Filter */}
             <FilterDropdown
-              label="Garment Type"
-              allLabel="All Garment Types"
-              value={filterGarmentType}
-              onChange={setFilterGarmentType}
-              options={uniqueGarmentTypes}
+              label="Specification"
+              allLabel="All Specifications"
+              value={filterSpecification}
+              onChange={setFilterSpecification}
+              options={uniqueSpecifications}
               maxWidth="max-w-[220px]"
             />
+
+            {(filterGender !== 'ALL' || filterDress !== 'ALL' || filterSpecification !== 'ALL') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilterGender('ALL');
+                  setFilterDress('ALL');
+                  setFilterSpecification('ALL');
+                }}
+                className="h-10 px-3 rounded-xl border border-dashed border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-400 text-xs font-semibold gap-1.5 transition-colors cursor-pointer"
+              >
+                <RotateCcw size={13} />
+                <span>Reset</span>
+              </Button>
+            )}
           </div>
         }
       />
