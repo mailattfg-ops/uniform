@@ -58,6 +58,16 @@ interface QuotationListProps {
   onUserReportTrigger?: (triggerFn: () => void) => void;
 }
 
+/**
+ * "Revised / Revision Requested" filter: superseded originals, quotes the customer asked to revise,
+ * and revision copies still in progress. An approved revision copy is left out (it is counted under Approved).
+ */
+function isInRevisedFilter(q: any): boolean {
+  if (q.status === 'Revised' || q.status === 'Revision Requested') return true;
+  const isRevisionCopy = Boolean(q.metrics_summary?.is_revision || q.metrics_summary?.revised_from_id);
+  return isRevisionCopy && q.status !== 'Approved';
+}
+
 export default function QuotationList({
   quotations,
   organizations,
@@ -86,7 +96,7 @@ export default function QuotationList({
   const canApproveAsBm = isAdmin || isBranchManager || userPermissions.includes('submit_quotations_ops') || userPermissions.includes('corporate_approver');
   const canSubmitToBm = isAdmin || isBranchManager || userPermissions.includes('submit_quotations_bm') || userPermissions.includes('manage_quotations') || userPermissions.includes('branch_sales');
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'bm_approved' | 'pending_ops' | 'ops_approved' | 'with_customer' | 'approved' | 'rejected' | 'held' | 'revised'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'bm_approved' | 'pending_ops' | 'ops_approved' | 'with_customer' | 'approved' | 'rejected' | 'revised'>('all');
   const [followUpQuotation, setFollowUpQuotation] = useState<Quotation | null>(null);
   const [advancePaymentQuotation, setAdvancePaymentQuotation] = useState<Quotation | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('ALL');
@@ -157,11 +167,8 @@ export default function QuotationList({
           return q.status === 'Approved';
         case 'rejected':
           return q.status === 'Rejected';
-        case 'held':
-          return q.status === 'Held';
         case 'revised':
-          // Superseded originals, quotes the customer asked to revise, and revision copies
-          return q.status === 'Revised' || q.status === 'Revision Requested' || Boolean(q.metrics_summary?.is_revision || q.metrics_summary?.revised_from_id);
+          return isInRevisedFilter(q);
         default:
           return true;
       }
@@ -179,9 +186,8 @@ export default function QuotationList({
       ops_approved: quotations.filter(q => q.status === 'Ops Approved').length,
       with_customer: quotations.filter(q => q.status === 'Pending Customer Approval').length,
       approved: quotations.filter(q => q.status === 'Approved').length,
-      held: quotations.filter(q => q.status === 'Held').length,
       rejected: quotations.filter(q => q.status === 'Rejected').length,
-      revised: quotations.filter(q => q.status === 'Revised' || q.status === 'Revision Requested' || Boolean(q.metrics_summary?.is_revision || q.metrics_summary?.revised_from_id)).length,
+      revised: quotations.filter(isInRevisedFilter).length,
     };
   }, [quotations]);
 
@@ -486,13 +492,6 @@ export default function QuotationList({
               Rejected
             </span>
           );
-        } else if (q.status === 'Held') {
-          badge = (
-            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-50 text-amber-700 border-amber-200 flex items-center justify-center gap-1 shadow-2xs">
-              <Clock size={10} className="shrink-0 text-amber-600" />
-              Held
-            </span>
-          );
         } else if (q.status === 'Revision Requested') {
           badge = (
             <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200 flex items-center justify-center gap-1 shadow-2xs">
@@ -742,25 +741,6 @@ export default function QuotationList({
           );
         }
 
-        if (q.status === 'Held') {
-          return (
-            <div className="flex items-center justify-center">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFollowUpQuotation(q);
-                }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer mx-auto"
-                title="Log the customer's response (Approved, Held, Revision, Rejected)"
-              >
-                <MessageSquare size={10} />
-                <span>Log Response</span>
-              </button>
-            </div>
-          );
-        }
-
         // Revised (or any other final state): no next step
         const supersededBy = q.metrics_summary?.revised_to_quotation_no;
         return (
@@ -937,7 +917,6 @@ export default function QuotationList({
                 { label: 'Ops Approved (send to customer)', value: 'ops_approved', badge: counts.ops_approved },
                 { label: 'Pending Customer Approval', value: 'with_customer', badge: counts.with_customer },
                 { label: 'Customer Approved Quotes', value: 'approved', badge: counts.approved },
-                { label: 'Held Quotes', value: 'held', badge: counts.held },
                 { label: 'Rejected Quotes', value: 'rejected', badge: counts.rejected },
                 { label: 'Revised / Revision Requested', value: 'revised', badge: counts.revised }
               ]}
@@ -1080,14 +1059,15 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
     }
     setIsSubmitting(true);
     const isRevReq = responseType === 'revision_requested';
-    const targetStatus = responseType === 'rejected' 
-      ? 'Rejected' 
-      : responseType === 'held' 
-      ? 'Held' 
-      : isRevReq 
-      ? 'Revision Requested' 
+    // "held" = customer undecided: logged as a follow-up, the status stays Pending Customer Approval
+    const targetStatus = responseType === 'rejected'
+      ? 'Rejected'
+      : responseType === 'held'
+      ? (quotation.status || 'Pending Customer Approval')
+      : isRevReq
+      ? 'Revision Requested'
       : 'Approved';
-    const toastId = toast.loading(`Saving quotation follow-up as ${targetStatus}...`);
+    const toastId = toast.loading(responseType === 'held' ? 'Logging as Held...' : `Saving quotation follow-up as ${targetStatus}...`);
 
     try {
       const res = await api.post(`/quotations/${quotation.id}/follow-up`, {
@@ -1099,7 +1079,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
         next_followup_date: nextFollowUpDate || null
       });
 
-      toast.success(res.data?.message || `Quotation marked as ${targetStatus}!`, { id: toastId });
+      toast.success(responseType === 'held' ? 'Logged as Held' : (res.data?.message || `Quotation marked as ${targetStatus}!`), { id: toastId });
       onSuccess();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to save the customer response', { id: toastId });
@@ -1131,8 +1111,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : quotation.status === 'Rejected'
                   ? 'bg-rose-50 text-rose-700 border-rose-200'
-                  : quotation.status === 'Held'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : 'bg-zinc-100 text-zinc-700 border-zinc-200'
               }`}>
                 {quotation.status === 'Approved' ? (
@@ -1144,11 +1122,6 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                   <>
                     <XCircle size={11} className="text-rose-600" />
                     <span>Rejected</span>
-                  </>
-                ) : quotation.status === 'Held' ? (
-                  <>
-                    <Clock size={11} className="text-amber-600" />
-                    <span>Held</span>
                   </>
                 ) : (
                   quotation.status || 'Draft'
@@ -1184,12 +1157,12 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
         {/* Modal Body */}
         <div className="space-y-5 overflow-y-auto pr-1 flex-1">
             <div className="space-y-4">
-              {/* Outcome Selection: 4 Options (Approved, Held, Revision Requested, Rejected) */}
+              {/* Outcome Selection: 4 Options (Approved, Held, Revision Requested, Rejected). Held is a log outcome only, not a status */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                   Customer Decision / Outcome *
                 </label>
-                {!['Pending Customer Approval', 'Held'].includes(quotation.status || '') && (
+                {quotation.status !== 'Pending Customer Approval' && (
                   <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium">
                     This quote is not yet approved by the BM and Ops ({quotation.status || 'Draft'}). The response is saved as a manual log and the status stays as it is.
                   </div>
@@ -1214,7 +1187,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                     </span>
                   </button>
 
-                  {/* Held / Pending */}
+                  {/* Held: logged outcome only, status unchanged */}
                   <button
                     type="button"
                     onClick={() => setResponseType('held')}
@@ -1296,7 +1269,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 {responseType === 'held' && (
                   <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center gap-2 animate-in fade-in">
                     <Clock size={14} className="text-amber-600 shrink-0" />
-                    <span>Quotation will be marked as Held while awaiting customer confirmation.</span>
+                    <span>Logged as Held. The quote status stays Pending Customer Approval; set a next follow-up date below.</span>
                   </div>
                 )}
                 {responseType === 'approved' && (
@@ -1369,7 +1342,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 ? 'Mark as Approved & Save'
                 : responseType === 'revision_requested'
                 ? 'Record Revision Request & Save'
-                : 'Mark as Held & Save'}
+                : 'Log as Held & Save'}
             </Button>
         </div>
       </div>

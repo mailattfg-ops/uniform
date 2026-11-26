@@ -87,7 +87,7 @@ export const getProductDisplayName = (
 ): string => {
   if (!p) return '';
 
-  // Only in-house manufactured readymades use the [Item] [Specification] [Gender] naming rule
+  // Only in-house manufactured readymades use the [Gender] [Item] [Specification] naming rule
   const rawArt = (p.art_number || '').toUpperCase();
   const accPrefixes = ['TIE-', 'BLT-', 'SCK-', 'BDG-', 'CAP-', 'SCF-', 'EPL-', 'LNY-', 'BOW-', 'PKS-', 'CRST-', 'ACC-'];
   if (
@@ -159,7 +159,7 @@ export const getProductDisplayName = (
       const cleanSpec = specName ? specName.trim() : '';
       const cleanGender = genderName ? genderName.trim() : '';
 
-      const composed = [cleanItem, cleanSpec, cleanGender].filter(Boolean).join(' ');
+      const composed = [cleanGender, cleanItem, cleanSpec].filter(Boolean).join(' ');
       if (composed) return composed;
     }
   }
@@ -2003,14 +2003,14 @@ export default function ProductManagement() {
     const genderObj = activeGenders.find(g => g.code === selectedGender);
     data.gender = genderObj ? genderObj.name : 'Unisex';
 
-    // Auto-generate product name for Art Number in format: [Item] [Specification] [Gender]
+    // Auto-generate product name for Art Number in format: [Gender] [Item] [Specification]
     if (matchedItem || data.art_number) {
       const cleanItemName = matchedItem?.name
         ? (matchedItem.name.charAt(0).toUpperCase() + matchedItem.name.slice(1).toLowerCase())
         : '';
       const cleanSpecName = specName ? specName.trim() : '';
       const cleanGender = data.gender ? data.gender.trim() : '';
-      const autoTitle = [cleanItemName, cleanSpecName, cleanGender].filter(Boolean).join(' ');
+      const autoTitle = [cleanGender, cleanItemName, cleanSpecName].filter(Boolean).join(' ');
       if (autoTitle) {
         data.name = autoTitle;
       }

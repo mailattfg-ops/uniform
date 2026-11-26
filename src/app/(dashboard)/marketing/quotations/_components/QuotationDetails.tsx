@@ -852,13 +852,13 @@ export default function QuotationDetails({
   const isBmApproved = selectedQuotation.status === 'BM Approved' || selectedQuotation.status === 'Approved' || Boolean(selectedQuotation.metrics_summary?.bm_approved);
   const isBmRevision = Boolean(selectedQuotation.metrics_summary?.needs_revision) && selectedQuotation.status === 'Draft';
   const isRejected = selectedQuotation.status === 'Rejected';
-  const isHeld = selectedQuotation.status === 'Held';
+  const isWithCustomer = selectedQuotation.status === 'Pending Customer Approval';
   const isAwaitingBm = selectedQuotation.status === 'Pending Branch Approval';
   const isDraft = selectedQuotation.status === 'Draft' && !isBmRevision;
   const isCustomerApproved = selectedQuotation.status === 'Approved';
   const isApprovedAndPaid = isCustomerApproved && parseFloat(String(selectedQuotation.paid_amount || 0)) > 0;
   // Customer decision/follow-up logging only after the quote is sent to the customer
-  const canLogDecision = selectedQuotation.status === 'Pending Customer Approval' || selectedQuotation.status === 'Held';
+  const canLogDecision = isWithCustomer;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -943,7 +943,7 @@ export default function QuotationDetails({
             )}
 
             {/* Download PDF button (once Ops approved, and after) */}
-            {(['Ops Approved', 'Pending Customer Approval', 'Held'].includes(selectedQuotation.status || '') || isCustomerApproved) && (
+            {(['Ops Approved', 'Pending Customer Approval'].includes(selectedQuotation.status || '') || isCustomerApproved) && (
               <Button
                 onClick={() => handleDownloadPDF(selectedQuotation)}
                 className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -1008,8 +1008,6 @@ export default function QuotationDetails({
                 ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                 : isRejected
                 ? 'bg-rose-50 text-rose-700 border-rose-200'
-                : isHeld
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
                 : isAwaitingBm
                 ? 'bg-amber-50 text-amber-800 border-amber-300'
                 : isBmRevision
@@ -1030,11 +1028,6 @@ export default function QuotationDetails({
                 <>
                   <XCircle size={13} className="text-rose-600" />
                   <span>Rejected</span>
-                </>
-              ) : isHeld ? (
-                <>
-                  <Clock size={13} className="text-amber-600" />
-                  <span>Held</span>
                 </>
               ) : isAwaitingBm ? (
                 'Waiting for BM'
@@ -1181,7 +1174,7 @@ export default function QuotationDetails({
                 ? 'border-emerald-200 bg-emerald-50/20'
                 : isRejected
                 ? 'border-rose-200'
-                : isHeld
+                : isWithCustomer
                 ? 'border-amber-200'
                 : 'border-zinc-200 opacity-60'
             }`}>
@@ -1190,7 +1183,7 @@ export default function QuotationDetails({
                   ? 'bg-emerald-100 text-emerald-700'
                   : isRejected
                   ? 'bg-rose-100 text-rose-600'
-                  : isHeld
+                  : isWithCustomer
                   ? 'bg-amber-100 text-amber-600'
                   : 'bg-zinc-100 text-zinc-400'
               }`}>
@@ -1198,7 +1191,7 @@ export default function QuotationDetails({
                   <CheckCircle2 size={16} strokeWidth={2.5} />
                 ) : isRejected ? (
                   <XCircle size={16} strokeWidth={2.5} />
-                ) : isHeld ? (
+                ) : isWithCustomer ? (
                   <Clock size={16} strokeWidth={2.5} />
                 ) : (
                   <FileCheck size={16} />
@@ -1211,8 +1204,8 @@ export default function QuotationDetails({
                     ? 'Customer Approved'
                     : isRejected
                     ? 'Customer Rejected'
-                    : isHeld
-                    ? 'Decision On Hold'
+                    : isWithCustomer
+                    ? 'With Customer'
                     : 'Awaiting Client'}
                 </p>
               </div>
