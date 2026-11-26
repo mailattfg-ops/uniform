@@ -868,7 +868,7 @@ export default function BranchOutletsPage() {
 
       {/* Add User Credentials Modal in Forma Style */}
       {showUserModal && selectedBranch && isAdmin && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] border border-zinc-200 max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
               <div className="flex items-center gap-3">
@@ -981,7 +981,7 @@ export default function BranchOutletsPage() {
 
       {/* Add / Edit Regional Zone Modal */}
       {showZoneModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] border border-zinc-200 max-w-md w-full p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
             {/* Header */}
             <div className="flex items-center justify-between border-b border-zinc-100 pb-4">

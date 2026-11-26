@@ -480,7 +480,7 @@ export default function MeasuresArchitectPage() {
 
       {/* EDIT METRIC MODAL */}
       {editingField && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-7 max-w-lg w-full shadow-2xl border border-zinc-100 space-y-6 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-3">

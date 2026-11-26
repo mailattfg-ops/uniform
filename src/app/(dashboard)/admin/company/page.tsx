@@ -469,7 +469,7 @@ export default function CompanySettingsPage() {
 
         {/* Modal: Add Tax Slab */}
         {showAddTaxModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100]">
             <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-zinc-200 relative overflow-hidden"><div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] absolute top-0 left-0 right-0" />
               <h3 className="text-lg font-bold text-zinc-900">Add New GST Tax Slab</h3>
               <div className="space-y-3 text-xs">

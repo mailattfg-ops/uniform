@@ -30,7 +30,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" onClick={onClose} />
       
       <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative z-10 animate-in zoom-in-95 duration-200">

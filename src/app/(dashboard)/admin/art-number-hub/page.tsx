@@ -1176,7 +1176,7 @@ export default function ArtNumberHubPage() {
 
       {/* Item Specifications Modal Manager */}
       {specModalItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-300">
           <Card className="max-w-2xl w-full p-8 rounded-[2.5rem] bg-white border border-zinc-200 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSpecModalItem(null)}

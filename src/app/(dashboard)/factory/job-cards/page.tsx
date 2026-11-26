@@ -472,7 +472,7 @@ export default function JobCardsPage() {
 
       {/* ── Raise Job Cards Modal ───────────────────────────────────── */}
       {showRaiseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowRaiseModal(false)} />
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-8 space-y-6">
             <button onClick={() => setShowRaiseModal(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
@@ -567,7 +567,7 @@ export default function JobCardsPage() {
 
       {/* ── PO Handler Action Modal ─────────────────────────────────── */}
       {showActionModal && selectedCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowActionModal(false)} />
           <div className="relative bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-5">
             <h3 className="text-base font-black text-slate-900">PO Handler: {actionType}</h3>
@@ -610,7 +610,7 @@ export default function JobCardsPage() {
 
       {/* ── PRD M9.5 Compliant Job Card Print & PDF Modal ─────────────────────────────────── */}
       {showPrintModal && printCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPrintModal(false)} />
           <div className="relative bg-white rounded-3xl max-w-5xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden z-10">
             {/* Modal Header */}
@@ -682,7 +682,7 @@ export default function JobCardsPage() {
 
       {/* ── Piece-Level Child Job Cards & Barcodes Modal ────────────────────────────── */}
       {showPiecesModal && piecesCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPiecesModal(false)} />
           <div className="relative bg-white rounded-3xl max-w-5xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden z-10">
             {/* Header */}
@@ -1005,7 +1005,7 @@ export default function JobCardsPage() {
 
       {/* ── Garment Barcode Stickers Print Preview Modal ────────────────────────────── */}
       {showStickerModal && printCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowStickerModal(false)} />
           <div className="relative bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden z-10">
             {/* Modal Header */}
@@ -1050,7 +1050,7 @@ export default function JobCardsPage() {
 
       {/* ── Person-Wise Traveler Sheets Print Preview Modal ────────────────────────────── */}
       {showPersonTravelerModal && printCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPersonTravelerModal(false)} />
           <div className="relative bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden z-10">
             {/* Modal Header */}

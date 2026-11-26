@@ -380,7 +380,7 @@ function ClientPortalSidebar({
     <>
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/50 z-30 transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
@@ -390,7 +390,7 @@ function ClientPortalSidebar({
         className={`
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 transition-[width] duration-300 ease-in-out
-          fixed md:static inset-y-0 left-0 z-[100]
+          fixed md:static inset-y-0 left-0 z-40 md:z-0
           ${isExpanded ? 'w-72' : 'w-20'}
           bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full shrink-0
           overflow-hidden select-none will-change-[width]
@@ -689,7 +689,7 @@ export const Sidebar: React.FC = () => {
     <>
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/50 z-30 transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         onClick={() => setIsSidebarOpen(false)}
       />
@@ -701,7 +701,7 @@ export const Sidebar: React.FC = () => {
         className={`
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 transition-[width] duration-300 ease-in-out
-          fixed md:static inset-y-0 left-0 z-[100]
+          fixed md:static inset-y-0 left-0 z-40 md:z-0
           ${isExpanded ? 'w-72' : 'w-20'}
           bg-[#030303] text-white flex flex-col border-r border-white/5 shadow-2xl h-full shrink-0
           overflow-hidden select-none will-change-[width]

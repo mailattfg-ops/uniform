@@ -191,7 +191,7 @@ export const ZoomableImageLightbox: React.FC<ZoomableImageLightboxProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-70 bg-black/92 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-5 select-none animate-in fade-in duration-200"
+      className="fixed inset-0 z-[200] bg-black/92 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-5 select-none animate-in fade-in duration-200"
       onClick={onClose}
     >
       {/* Top Header Controls Bar */}

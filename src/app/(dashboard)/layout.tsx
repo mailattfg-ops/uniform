@@ -167,7 +167,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-[#030303] text-white overflow-hidden relative w-full py-3 pr-3 md:py-4 md:pr-4 pl-0 gap-3 md:gap-4 font-sans">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0 bg-[#F5F4F2] text-[#030303] rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden relative">
+      <div className="flex flex-col flex-1 min-w-0 bg-[#F5F4F2] text-[#030303] rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden relative z-10">
         <Header />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 custom-scrollbar">
           <div className="w-full mx-auto">
