@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -14,6 +14,7 @@ import QuotationDetails from './_components/QuotationDetails';
 import QuotationWizard from './_components/QuotationWizard';
 import { RevisionModal } from './_components/RevisionModal';
 import { LeadViewModal } from '../../customers/leads/page';
+import { MessageModal } from '../operation-team/_components/MessageModal';
 
 export interface Organization {
   id: number;
@@ -221,6 +222,7 @@ export interface TemplateLineItem {
 
 export default function QuotationsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [pipelineLead, setPipelineLead] = useState<any | null>(null);
@@ -235,6 +237,8 @@ export default function QuotationsPage() {
   const [preselectedOrgId, setPreselectedOrgId] = useState<number | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Quotation | null>(null);
   const [submitCandidate, setSubmitCandidate] = useState<Quotation | null>(null);
+  // Proposal popup: final (Ops approved -> customer) or draft (watermarked NOT APPROVED)
+  const [sendTarget, setSendTarget] = useState<{ quote: Quotation; mode: 'final' | 'draft' } | null>(null);
   const [submitToBmCandidate, setSubmitToBmCandidate] = useState<Quotation | null>(null);
   const [bmApproveCandidate, setBmApproveCandidate] = useState<Quotation | null>(null);
   const [bmRejectCandidate, setBmRejectCandidate] = useState<Quotation | null>(null);
@@ -252,6 +256,17 @@ export default function QuotationsPage() {
   const [inwardRates, setInwardRates] = useState<any[]>([]);
   const [fabricMargins, setFabricMargins] = useState<any[]>([]);
   const [samConfigurations, setSamConfigurations] = useState<any[]>([]);
+
+  const prevSearchRef = useRef<string | null>(null);
+  const appliedLinkRef = useRef<string | null>(null);
+
+  // Back to the list: also drop ?id=..&action=.. so a reload or list refresh doesn't reopen the quote
+  const backToList = () => {
+    setActiveTab('list');
+    if (typeof window !== 'undefined' && window.location.search) {
+      router.replace('/marketing/quotations', { scroll: false });
+    }
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -298,9 +313,27 @@ export default function QuotationsPage() {
         return;
       }
 
+      // URL went from a quote link back to plain /marketing/quotations (e.g. sidebar "Quotations"): show the list.
+      // Only on that change, so opening Create / a quote from the list (no URL change) isn't undone on reload.
+      const searchKey = searchParams.toString();
+      const hadLink = prevSearchRef.current !== null && prevSearchRef.current !== '';
+      prevSearchRef.current = searchKey;
+      if (!actionParam && !quoteIdParam && !quoteNoParam) {
+        appliedLinkRef.current = null; // the same link opened again later works again
+        if (hadLink) {
+          setActiveTab('list');
+          setSelectedQuotation(null);
+        }
+        return;
+      }
+
+      // A quote link opens its quote once; list refreshes afterwards must not reopen it
+      if (appliedLinkRef.current === searchKey) return;
+
       if (quoteIdParam) {
         const id = parseInt(quoteIdParam, 10);
         if (!isNaN(id)) {
+          appliedLinkRef.current = searchKey;
           if (quotations.length > 0) {
             const match = quotations.find(q => q.id === id);
             if (match) {
@@ -329,6 +362,7 @@ export default function QuotationsPage() {
           }).catch(() => {});
         }
       } else if (quoteNoParam) {
+        appliedLinkRef.current = searchKey;
         if (quotations.length > 0) {
           const match = quotations.find(q => 
             q.quotation_no?.toLowerCase().trim() === quoteNoParam.toLowerCase().trim()
@@ -526,7 +560,7 @@ export default function QuotationsPage() {
       fetchQuotations();
       if (selectedQuotation?.id === deleteCandidate.id) {
         setSelectedQuotation(null);
-        setActiveTab('list');
+        backToList();
       }
     } catch (err) {
       toast.error('Failed to remove quotation');
@@ -589,7 +623,7 @@ export default function QuotationsPage() {
     setEditingQuotationId(null);
     setIsRevisionMode(false);
     setRevisedFromQuotationId(null);
-    setActiveTab('list');
+    backToList();
     fetchQuotations();
   };
 
@@ -660,10 +694,10 @@ export default function QuotationsPage() {
 
   const handleSubmitToOps = async () => {
     if (!submitCandidate) return;
-    const toastId = toast.loading(`Submitting ${submitCandidate.quotation_no} to Operations Team...`);
+    const toastId = toast.loading(`Sending ${submitCandidate.quotation_no} to Ops...`);
     try {
       await api.put(`/quotations/${submitCandidate.id}/submit-to-ops`);
-      toast.success(`Quotation ${submitCandidate.quotation_no} submitted to Operations Team!`, { id: toastId });
+      toast.success(`${submitCandidate.quotation_no} sent to Ops for approval`, { id: toastId });
       fetchQuotations();
       if (selectedQuotation && selectedQuotation.id === submitCandidate.id) {
         setSelectedQuotation(prev => prev ? { 
@@ -719,7 +753,7 @@ export default function QuotationsPage() {
             variant="secondary"
             onClick={() => {
               setEditingQuotationId(null);
-              setActiveTab('list');
+              backToList();
               setSelectedQuotation(null);
             }}
             className="h-14 px-8 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] flex items-center gap-2 cursor-pointer"
@@ -741,6 +775,7 @@ export default function QuotationsPage() {
           onStartRevision={handleStartRevision}
           onDeleteCandidate={setDeleteCandidate}
           onSubmitToOps={setSubmitCandidate}
+          onSendToCustomer={(q, mode) => setSendTarget({ quote: q, mode })}
           onSubmitToBm={setSubmitToBmCandidate}
           onBmApprove={setBmApproveCandidate}
           onBmReject={setBmRejectCandidate}
@@ -793,7 +828,7 @@ export default function QuotationsPage() {
             setIsRevisionMode(false);
             setRevisedFromQuotationId(null);
             setPreselectedOrgId(null);
-            setActiveTab('list');
+            backToList();
           }}
           onSaveSuccess={handleSaveSuccess}
         />
@@ -807,7 +842,7 @@ export default function QuotationsPage() {
           fabricsList={fabricsList}
           onBack={() => {
             setSelectedQuotation(null);
-            setActiveTab('list');
+            backToList();
           }}
           onStartEdit={handleStartEdit}
           onStartRevision={handleStartRevision}
@@ -867,16 +902,29 @@ export default function QuotationsPage() {
         />
       )}
 
-      {/* CONFIRMATION FOR DIRECT SUBMISSION TO OPERATIONS */}
+      {/* CONFIRMATION: SEND TO OPS (after BM approval) */}
       <ConfirmModal
         isOpen={!!submitCandidate}
-        title="Submit to Operations Team"
-        message={`Are you sure you want to submit quotation "${submitCandidate?.quotation_no} - ${submitCandidate?.title}" directly to the Operations Team for review and approval?`}
+        title="Send to Ops for approval"
+        message={`Send quotation "${submitCandidate?.quotation_no} - ${submitCandidate?.title}" to the Ops team for approval? After Ops approves, you can send it to the customer.`}
         onConfirm={handleSubmitToOps}
         onCancel={() => setSubmitCandidate(null)}
-        confirmLabel="Yes, Submit to Ops"
+        confirmLabel="Yes, Send to Ops"
         variant="primary"
       />
+
+      {/* SEND TO CUSTOMER (final) / SEND DRAFT (not approved) */}
+      {sendTarget && (
+        <MessageModal
+          quote={sendTarget.quote as any}
+          mode={sendTarget.mode}
+          isOpen={true}
+          onClose={() => setSendTarget(null)}
+          onSent={() => { setSendTarget(null); fetchQuotations(); }}
+          organizations={organizations as any}
+          companySettings={null}
+        />
+      )}
     </div>
   );
 }

@@ -31,10 +31,10 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/factory', permissions: ['manage_system', 'factory_po_handler', 'factory_floor'] },
 
   // Marketing, Quotes & Order Placement
-  { prefix: '/marketing/operation-team', permissions: ['manage_quotations', 'manage_system'] },
-  { prefix: '/marketing/order-placement', permissions: ['manage_quotations', 'manage_system', 'corporate_approver'] },
+  { prefix: '/marketing/operation-team', permissions: ['approve_quotations_ops', 'approve_hq_deals', 'manage_system'] },
+  { prefix: '/marketing/order-placement', permissions: ['view_orders', 'manage_orders', 'corporate_approver', 'submit_quotations_ops', 'approve_hq_deals', 'manage_system'] },
   { prefix: '/marketing/quotations', permissions: ['manage_quotations', 'branch_sales', 'view_quotations'] },
-  { prefix: '/marketing/initial-payment', permissions: ['manage_quotations', 'branch_sales', 'view_quotations'] },
+  { prefix: '/marketing/initial-payment', permissions: ['manage_payments', 'manage_invoices', 'manage_system'] },
   { prefix: '/marketing', permissions: ['manage_quotations', 'branch_sales', 'view_quotations'] },
 
   // Multi-Branch Hub & Transfers
@@ -44,7 +44,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/branches', permissions: ['branch_inventory', 'manage_system', 'branch_sales'] },
 
   // Invoicing & Dispatch
-  { prefix: '/billing', permissions: ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'] },
+  { prefix: '/billing', permissions: ['manage_system', 'manage_invoices', 'view_invoices', 'manage_delivery_challans'] },
 
   // Registry & Client CRM
   { prefix: '/crm', permissions: ['view_schools', 'manage_schools', 'view_organizations', 'view_leads', 'manage_leads', 'view_all_leads', 'manage_quotations', 'view_quotations'] },
@@ -60,13 +60,13 @@ const ROUTE_PERMISSIONS: { prefix: string; permissions: string[] }[] = [
   { prefix: '/items', permissions: ['manage_inventory', 'view_inventory', 'manage_products', 'view_products', 'manage_art_numbers', 'manage_design_numbers'] },
 
   // Accounts & Billing Hub
-  { prefix: '/accounts', permissions: ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank'] },
+  { prefix: '/accounts', permissions: ['manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank', 'manage_system'] },
 
   // Inventory Hub
   { prefix: '/inventory', permissions: ['manage_inventory', 'view_inventory', 'branch_transfers', 'branch_inventory', 'move_inventory'] },
 
   // Sales Hub
-  { prefix: '/sales', permissions: ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver', 'submit_quotations_ops', 'view_orders', 'manage_orders', 'manage_delivery_challans'] },
+  { prefix: '/sales', permissions: ['view_orders', 'manage_orders', 'manage_delivery_challans', 'corporate_approver', 'submit_quotations_ops', 'approve_hq_deals', 'manage_system'] },
 
   // Purchase Hub
   { prefix: '/purchase', permissions: ['manage_system', 'manage_inventory', 'view_inventory', 'view_vendors', 'manage_vendors', 'manage_purchase_orders', 'manage_purchase_bills'] },

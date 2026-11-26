@@ -32,6 +32,7 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { id: 'manage_branches', label: 'Manage Branches & Outlets', category: 'System & Security', description: 'Configure retail outlets, factories, corporate HQ, and credentials' },
 
   // ── 2. Customer CRM & Leads ──
+  { id: 'view_own_records_only', label: 'View Own Records Only (Salesperson)', category: 'Customer CRM & Leads', description: 'Restricts the user to leads assigned to them, customers they manage, and their own quotes, deals, orders, invoices and payments' },
   { id: 'view_all_leads', label: 'View All Leads (Global / HQ / Telecalling)', category: 'Customer CRM & Leads', description: 'Access and search all leads across all branches, telecallers, and sales reps globally' },
   { id: 'view_leads', label: 'View Inward Leads Registry', category: 'Customer CRM & Leads', description: 'Inspect prospective client inquiries and inbound lead records (scoped to branch/assigned)' },
   { id: 'manage_leads', label: 'Manage Leads (Create & Edit Details)', category: 'Customer CRM & Leads', description: 'Register new leads, edit client profile, contact details, and requirements' },
@@ -78,6 +79,8 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { id: 'submit_quotations_bm', label: 'Submit Quotations to Branch Manager', category: 'Marketing & Quotations', description: 'Submit drafted quotations to the Branch Manager for initial commercial review' },
   { id: 'submit_quotations_ops', label: 'Submit Quotations to Ops Team (Branch Manager)', category: 'Marketing & Quotations', description: 'Review, approve, and submit commercial quotations to the factory operations team' },
   { id: 'corporate_approver', label: 'Branch Manager & Corporate Approver Review', category: 'Marketing & Quotations', description: 'Review, approve, request revisions, or hold quotations and sales orders' },
+  { id: 'approve_quotations_ops', label: 'Ops Review: Approve Quotations', category: 'Marketing & Quotations', description: 'Ops team: approve or return BM-approved quotations before the salesperson sends them to the customer' },
+  { id: 'approve_hq_deals', label: 'HQ Approval: Deals & Sales Orders', category: 'Marketing & Quotations', description: 'Final HQ sign-off: approve deals sent to HQ and accept / hold / reject sales orders. Give only to designated HQ staff.' },
   { id: 'dispatch_proposals', label: 'Dispatch & Email Client Proposals', category: 'Marketing & Quotations', description: 'Send approved PDF contract proposals directly to customer contacts' },
 
   // ── 7. Sales Orders & Counter POS ──
@@ -185,6 +188,7 @@ export const ROLE_PRESETS: RolePreset[] = [
     badge: 'Sales & Quotes',
     description: 'Quotations, pricing, proposals, sales leads, and client accounts',
     permissions: [
+      'view_own_records_only', 'manage_lead_stage_feeds',
       'manage_quotations', 'view_quotations', 'submit_quotations_bm', 'branch_sales',
       'view_organizations', 'view_schools', 'view_leads', 'manage_leads',
       'manage_lead_stage_sales_contact', 'manage_lead_stage_followups',
@@ -216,7 +220,7 @@ export const ROLE_PRESETS: RolePreset[] = [
     badge: 'HQ Sign-off',
     description: 'Review branch sales orders, accept/reject/hold triage, view client quotes & products',
     permissions: [
-      'corporate_approver', 'view_quotations', 'view_organizations', 'view_schools',
+      'corporate_approver', 'approve_hq_deals', 'view_leads', 'view_quotations', 'view_organizations', 'view_schools',
       'view_products', 'view_orders', 'view_audit_logs'
     ]
   },

@@ -25,6 +25,7 @@ import {
   Receipt,
   BarChart3
 } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 interface Subsection {
   label: string;
@@ -154,10 +155,11 @@ const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'Measurements': ['manage_measurements', 'view_measurements', 'view_own_measurements', 'manage_templates', 'manage_tokens', 'approve_measurements', 'manage_measurement_config'],
   'SAM Engineering': ['manage_system', 'manage_sam'],
   'Inventory': ['manage_inventory', 'view_inventory', 'branch_transfers', 'branch_inventory', 'move_inventory'],
-  'Sales': ['manage_quotations', 'view_quotations', 'branch_sales', 'corporate_approver', 'submit_quotations_ops', 'view_orders', 'manage_orders', 'manage_delivery_challans', 'submit_quotations_bm', 'dispatch_proposals'],
+  // Sales & Accounts use their own permissions, not the general quoting ones (salespeople have those)
+  'Sales': ['view_orders', 'manage_orders', 'manage_delivery_challans', 'corporate_approver', 'submit_quotations_ops', 'approve_quotations_ops', 'approve_hq_deals', 'manage_system'],
   'Purchase': ['manage_system', 'manage_inventory', 'view_inventory', 'view_vendors', 'manage_vendors', 'manage_purchase_orders', 'manage_purchase_bills'],
   'Factory Operations': ['manage_system', 'factory_po_handler', 'factory_floor'],
-  'Accounts': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank'],
+  'Accounts': ['manage_invoices', 'view_invoices', 'manage_payments', 'manage_expenses', 'manage_company_bank', 'manage_system'],
   'Reports': ['manage_system', 'manage_sam', 'view_audit_logs', 'view_sam_reports'],
   'Admin Settings': ['manage_system', 'view_audit_logs', 'manage_employees', 'manage_industries', 'manage_size_charts', 'manage_roles', 'manage_branches', 'approve_measurements', 'manage_measurement_config'],
   // Legacy aliases
@@ -240,13 +242,13 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Move Items': ['move_inventory', 'manage_inventory', 'view_inventory', 'branch_transfers'],
 
   // Sales
-  'Sales Orders': ['view_orders', 'manage_orders', 'manage_quotations', 'corporate_approver', 'branch_sales', 'manage_system'],
-  'Order Placement': ['view_orders', 'manage_orders', 'manage_quotations', 'corporate_approver', 'branch_sales'],
-  'Operations Review': ['manage_quotations', 'corporate_approver', 'manage_system'],
-  'Operation Team': ['manage_quotations', 'corporate_approver', 'manage_system'],
-  'Delivery Challans (DC)': ['manage_delivery_challans', 'manage_system', 'manage_quotations', 'branch_sales', 'manage_invoices', 'view_invoices'],
-  'Packages': ['manage_quotations', 'manage_system'],
-  'Alterations & Returns': ['manage_quotations', 'manage_system'],
+  'Sales Orders': ['view_orders', 'manage_orders', 'corporate_approver', 'submit_quotations_ops', 'approve_hq_deals', 'manage_system'],
+  'Order Placement': ['view_orders', 'manage_orders', 'corporate_approver', 'submit_quotations_ops', 'approve_hq_deals', 'manage_system'],
+  'Operations Review': ['approve_quotations_ops', 'approve_hq_deals', 'manage_system'],
+  'Operation Team': ['approve_quotations_ops', 'approve_hq_deals', 'manage_system'],
+  'Delivery Challans (DC)': ['manage_delivery_challans', 'manage_system', 'manage_invoices', 'view_invoices'],
+  'Packages': ['manage_orders', 'manage_delivery_challans', 'manage_system'],
+  'Alterations & Returns': ['manage_orders', 'manage_system'],
 
   // Purchase
   'Vendors Manager': ['manage_vendors', 'view_vendors', 'manage_system', 'manage_inventory'],
@@ -260,9 +262,9 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Production Queue & Fabric': ['manage_system', 'factory_po_handler', 'factory_floor'],
 
   // Accounts
-  'Customer Invoices': ['manage_quotations', 'manage_system', 'branch_sales', 'manage_invoices', 'view_invoices'],
-  'Customer Payments': ['manage_payments', 'manage_quotations', 'view_quotations', 'branch_sales'],
-  'Initial Payment': ['manage_payments', 'manage_quotations', 'view_quotations', 'branch_sales'],
+  'Customer Invoices': ['manage_invoices', 'view_invoices', 'manage_system'],
+  'Customer Payments': ['manage_payments', 'manage_invoices', 'manage_system'],
+  'Initial Payment': ['manage_payments', 'manage_invoices', 'manage_system'],
   'Vendor Payments & Expenses': ['manage_expenses', 'manage_system'],
   'Company Bank & Profile': ['manage_company_bank', 'manage_system'],
   'Company Profile & Bank': ['manage_company_bank', 'manage_system'],
@@ -733,6 +735,10 @@ export const Sidebar: React.FC = () => {
         {/* Navigation Container */}
         <div className="flex-1 w-full relative overflow-hidden flex flex-col px-2">
           <nav className="flex-1 overflow-y-auto no-scrollbar py-2 space-y-1.5">
+            {/* In-app notifications for this user (approvals, quote updates) */}
+            <div className="px-1.5">
+              <NotificationBell variant="sidebar" isExpanded={isExpanded} />
+            </div>
             {modules.map((item) => {
               // Use the user state loaded in useEffect
               const roleStr = (user?.role || user?.role_name || user?.user_types?.name || '').toLowerCase();

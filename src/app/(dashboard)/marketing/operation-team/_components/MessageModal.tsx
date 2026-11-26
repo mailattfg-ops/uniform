@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Mail, MessageCircle, Paperclip, Send } from 'lucide-react';
+import { Mail, MessageCircle, Paperclip, Send, Handshake } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import toast from '@/components/ui/toast';
+import api from '@/lib/api';
 import { Quotation } from '../_lib/compileQuotationHTML';
 
 interface Organization {
@@ -18,6 +19,68 @@ interface MessageModalProps {
   onClose: () => void;
   organizations: Organization[];
   companySettings: any;
+  /** final: Ops-approved proposal (moves the quote to Pending Customer Approval); draft: watermarked NOT APPROVED copy */
+  mode?: 'final' | 'draft';
+  /** called after a successful send / mark-as-sent, so the list can refresh */
+  onSent?: () => void;
+}
+
+const money = (v: any) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+function emailText(quote: Quotation, isDraft: boolean) {
+  return isDraft
+    ? `Dear Team,
+
+As discussed, please find the DRAFT proposal for "${quote.title}" (${quote.quotation_no}) for your review.
+
+Please note: this draft has NOT yet been approved and is subject to change. The approved proposal will follow once our internal review is complete.
+
+Indicative value: ${money(quote.final_quote_value)} (inclusive of GST).
+
+The secure link to view and download the draft is included below.
+
+Best regards,
+Forma Apparels Co.`
+    : `Dear Team,
+
+Please find our approved proposal for "${quote.title}" (${quote.quotation_no}).
+
+The total contract value is ${money(quote.final_quote_value)} (inclusive of GST). The proposal includes the item details, specifications and delivery timeline.
+
+The secure link to view and download your proposal is included below.
+
+Please review it and let us know if you have any questions or are ready to proceed.
+
+Best regards,
+Forma Apparels Co.`;
+}
+
+function whatsappText(quote: Quotation, isDraft: boolean, link: string) {
+  return isDraft
+    ? `Hello *${quote.organizations?.name || 'Customer'}* Team,
+
+Here is the *DRAFT* proposal for *"${quote.title}"* (${quote.quotation_no}) for your review.
+
+*Note:* this draft is *not yet approved* and is subject to change.
+
+Indicative value: *${money(quote.final_quote_value)}* (inclusive of GST).
+
+View the draft here:
+${link}
+
+*Forma Apparels Co.*`
+    : `Hello *${quote.organizations?.name || 'Customer'}* Team,
+
+Here is our proposal for *"${quote.title}"* (${quote.quotation_no}).
+
+Total contract value: *${money(quote.final_quote_value)}* (inclusive of GST).
+
+View and download your proposal here:
+${link}
+
+Please let us know if you have any questions or are ready to proceed!
+
+*Forma Apparels Co.*`;
 }
 
 export const MessageModal: React.FC<MessageModalProps> = ({
@@ -25,8 +88,11 @@ export const MessageModal: React.FC<MessageModalProps> = ({
   isOpen,
   onClose,
   organizations,
-  companySettings
+  companySettings,
+  mode = 'final',
+  onSent
 }) => {
+  const isDraft = mode === 'draft';
   const [recipient, setRecipient] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
@@ -36,82 +102,36 @@ export const MessageModal: React.FC<MessageModalProps> = ({
 
   useEffect(() => {
     if (!quote) return;
-    const orgCleanName = (quote.organizations?.name || 'customer')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
-    const defaultRecipient = `info@${orgCleanName}.com`;
-    const defaultSubject = `Quotation Proposal #${quote.quotation_no} - Forma Apparels`;
-
-    setRecipient(defaultRecipient);
-    setSubject(defaultSubject);
-    setPhone('');
-
-    // Default email body
-    const emailBody = `Dear Team,
-
-We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${quote.title}" (${quote.quotation_no}).
-
-The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been drafted.
-
-You can view and download your official Proposal PDF here:
-${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
-
-Please review the proposal and let us know if you have any questions or are ready to proceed with contract execution.
-
-Best regards,
-
-Operations Desk Team
-Forma Apparels Co.`;
-
-    setBody(emailBody);
+    // Customer's contact email on file (blank if none, so nobody gets mailed by guesswork)
+    const org = quote.organizations as any;
+    setRecipient(org?.contact_email || org?.email || '');
+    setSubject(isDraft
+      ? `DRAFT (not approved) - Quotation #${quote.quotation_no} - Forma Apparels`
+      : `Quotation Proposal #${quote.quotation_no} - Forma Apparels`);
+    setPhone(org?.contact_number || org?.phone || '');
+    setBody(emailText(quote, isDraft));
     setChannel('email');
-  }, [quote]);
+  }, [quote, isDraft]);
 
   if (!isOpen || !quote) return null;
 
-  const switchToWhatsApp = () => {
+  const finish = () => { if (onSent) onSent(); else onClose(); };
+
+  const switchToWhatsApp = async () => {
     setChannel('whatsapp');
-
-    const waBody = `Hello *${quote.organizations?.name || 'Customer'}* Team,
-
-We are pleased to inform you that the operations desk has reviewed and approved the contract proposal for *"${quote.title}"* (${quote.quotation_no}).
-
-Total finalized contract value: *₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}* (inclusive of GST).
-
-Download your official Proposal PDF directly here:
-${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
-
-The secure, operations-verified PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been drafted. We have dispatched a copy to your email, and you can also download or view the details directly under your Forma Apparels portal.
-
-Please let us know if you have any questions or are ready to proceed with contract execution!
-
-Best regards,
-*Operations Desk Team*
-*Forma Apparels Co.*`;
-
-    setBody(waBody);
+    let link = '(proposal link unavailable)';
+    try {
+      const res = await api.post(`/quotations/${quote.id}/share-link`);
+      link = res.data?.share_url || link;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Could not create the proposal link');
+    }
+    setBody(whatsappText(quote, isDraft, link));
   };
 
   const switchToEmail = () => {
     setChannel('email');
-
-    const emailBody = `Dear Team,
-
-We are pleased to inform you that the operations desk has officially reviewed and approved the contract proposal for "${quote.title}" (${quote.quotation_no}).
-
-The total contract value is finalized at ₹${Number(quote.final_quote_value).toLocaleString(undefined, { minimumFractionDigits: 2 })} (inclusive of GST). The secure, operations-verified PDF proposal containing detailed sizing breakdowns, technical specifications, and production timelines has been drafted.
-
-You can view and download your official Proposal PDF here:
-${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5005/api').replace('/api', '')}/api/quotations/${quote.id}/share
-
-Please review the proposal and let us know if you have any questions or are ready to proceed with contract execution.
-
-Best regards,
-
-Operations Desk Team
-Forma Apparels Co.`;
-
-    setBody(emailBody);
+    setBody(emailText(quote, isDraft));
   };
 
   const handleSendMessage = async () => {
@@ -121,24 +141,35 @@ Forma Apparels Co.`;
     }
 
     setIsSendingMessage(true);
-    const loadingToast = toast.loading('Initiating secure delivery...');
-
-    setTimeout(() => {
-      toast.loading('Compiling and digitally signing vector proposal PDF...', { id: loadingToast });
-
-      setTimeout(() => {
-        toast.loading('Dispatching encrypted document package to client...', { id: loadingToast });
-
-        setTimeout(() => {
-          toast.success('Proposal PDF sent to customer successfully!', { id: loadingToast });
-          setIsSendingMessage(false);
-          onClose();
-        }, 800);
-      }, 800);
-    }, 800);
+    const loadingToast = toast.loading('Sending email...');
+    try {
+      const res = await api.post(`/quotations/${quote.id}/send-email`, {
+        to: recipient.trim(),
+        subject: subject.trim(),
+        message: body,
+        draft: isDraft
+      });
+      toast.success(res.data?.message || 'Email sent', { id: loadingToast });
+      finish();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Email could not be sent', { id: loadingToast });
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
-  const handleSendWhatsApp = () => {
+  // Records the send on the quote (final: moves it to Pending Customer Approval)
+  const recordSent = async (sendChannel: 'whatsapp' | 'manual') => {
+    try {
+      const res = await api.put(`/quotations/${quote.id}/mark-sent`, { channel: sendChannel, draft: isDraft });
+      toast.success(res.data?.message || 'Recorded');
+      finish();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Could not record the send');
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
     if (!phone.trim()) {
       toast.error('Please enter a valid WhatsApp mobile number');
       return;
@@ -149,17 +180,13 @@ Forma Apparels Co.`;
     }
 
     const cleanedPhone = phone.replace(/[^0-9+]/g, '');
-    const encodedText = encodeURIComponent(body);
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodedText}`;
-
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodeURIComponent(body)}`;
     const chatWindow = window.open(whatsappUrl, '_blank');
     if (!chatWindow) {
       toast.error('Failed to open WhatsApp window. Please allow popups.');
       return;
     }
-
-    toast.success('WhatsApp API message dispatch initiated!');
-    onClose();
+    await recordSent('whatsapp');
   };
 
   return (
@@ -176,8 +203,8 @@ Forma Apparels Co.`;
               <div className="absolute inset-2 rounded-full border-4 border-dashed border-zinc-900/10 border-t-zinc-900 animate-spin [animation-duration:3s]"></div>
             </div>
             <div className="text-center space-y-1">
-              <p className="text-xs font-black uppercase tracking-widest text-zinc-900">Secure Transmission Active</p>
-              <p className="text-[10px] font-bold text-zinc-400">Verifying keys & compiling proposal attachments...</p>
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-900">Sending Email</p>
+              <p className="text-[10px] font-bold text-zinc-400">Delivering to {recipient}...</p>
             </div>
           </div>
         )}
@@ -196,11 +223,11 @@ Forma Apparels Co.`;
             </div>
             <div>
               <h3 className="text-xl font-black tracking-tight text-zinc-900">
-                {channel === 'email' ? 'Send Proposal to Customer' : 'Send Proposal via WhatsApp'}
+                {isDraft ? (channel === 'email' ? 'Send Draft to Customer' : 'Send Draft via WhatsApp') : (channel === 'email' ? 'Send Proposal to Customer' : 'Send Proposal via WhatsApp')}
               </h3>
               <p className="text-xs text-zinc-400 font-semibold mt-0.5">
                 {channel === 'email'
-                  ? 'Prepare secure email package containing verified vector PDF.'
+                  ? (isDraft ? 'Not approved yet: the customer gets a copy watermarked NOT APPROVED.' : 'Email the approved proposal link to the customer.')
                   : 'Dispatch professional summary directly to customer chat.'}
               </p>
             </div>
@@ -281,6 +308,12 @@ Forma Apparels Co.`;
             </div>
           )}
 
+          {isDraft && (
+            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-semibold leading-relaxed">
+              This quote is not yet approved by the BM and Ops team ({quote.status || 'Draft'}). The customer's copy will carry a large <strong>NOT APPROVED</strong> watermark, and the status will not change.
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Message Body Content</label>
             <textarea
@@ -301,10 +334,10 @@ Forma Apparels Co.`;
                 <Paperclip size={18} />
               </div>
               <div>
-                <p className="text-[11px] font-black text-gray-800">proposal_{quote.quotation_no}.pdf</p>
+                <p className="text-[11px] font-black text-gray-800">{isDraft ? 'DRAFT ' : ''}Proposal {quote.quotation_no} (secure link)</p>
                 <p className="text-[9px] text-zinc-400 font-bold">
                   {channel === 'email'
-                    ? '1.2 MB • Proposal Drafted'
+                    ? 'Added to the email automatically when it is sent'
                     : 'Retrieve & download details dynamically linked in chat.'}
                 </p>
               </div>
@@ -312,7 +345,7 @@ Forma Apparels Co.`;
             <span className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg border ${
               channel === 'email' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[#FFF1F1] text-[#9E1B1D] border-[#C82A2B]/20'
             }`}>
-              {channel === 'email' ? 'Ready & Signed' : 'Portal Linked'}
+              {isDraft ? 'Watermarked: NOT APPROVED' : 'Link Included'}
             </span>
           </div>
 
@@ -332,13 +365,24 @@ Forma Apparels Co.`;
           >
             Cancel
           </Button>
+          {!isDraft && (
+            <Button
+              variant="outline"
+              onClick={() => recordSent('manual')}
+              className="rounded-xl border border-zinc-200 text-zinc-700 font-black hover:bg-zinc-50 px-4 flex items-center gap-2 cursor-pointer"
+              title="The customer received the proposal another way (in person, printed). Marks it as sent."
+            >
+              <Handshake size={14} />
+              Mark as Handed Over
+            </Button>
+          )}
           {channel === 'email' ? (
             <Button
               onClick={handleSendMessage}
               className="bg-[#C82A2B] text-white hover:bg-[#A81D1E] rounded-xl font-black px-6 flex items-center gap-2 shadow-md shadow-[#C82A2B]/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Send size={14} />
-              Send Secure Package
+              {isDraft ? 'Send Draft Email' : 'Send Email'}
             </Button>
           ) : (
             <Button

@@ -67,6 +67,7 @@ interface TaxInvoiceModalProps {
 
 import api from '@/lib/api';
 import { printInvoiceElement } from '@/lib/printUtils';
+import EmailDocumentButton from './EmailDocumentButton';
 
 const DEFAULT_COMPANY = {
   id: 1,
@@ -689,6 +690,17 @@ export default function TaxInvoiceModal({ isOpen, onClose, data, defaultCustomer
             Official {company.company_name || 'Forma Apparels'} GST Tax Invoice Template
           </div>
           <div className="flex items-center gap-3">
+            <EmailDocumentButton
+              docType="tax_invoice"
+              docNo={data.invoice_no}
+              elementId="tax-invoice-print-area"
+              filename={`Tax_Invoice_${data.invoice_no}`}
+              defaultEmail={customer.contact_email || customer.email || null}
+              organizationId={data.organization_id || customer.id || null}
+              entityId={data.id ?? null}
+              amount={data.total_amount ?? null}
+              dueDate={data.due_date ? new Date(data.due_date).toLocaleDateString('en-IN') : null}
+            />
             <Button
               onClick={handlePrint}
               className="h-10 px-5 rounded-xl bg-[#991b1b] hover:bg-[#7f1d1d] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-sm"

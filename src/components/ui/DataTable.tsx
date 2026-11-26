@@ -167,6 +167,17 @@ function isDateColumn<T>(col: Column<T>): boolean {
   return false;
 }
 
+// Identifier columns (CUST. ID, Quote No, SO No., Invoice No., Art No., Item Code, ...) are centred
+// like date/status columns. Header must END with the id word, so counts like "No. Of Packages" stay as they are.
+const ID_COLUMN_REGEX = /(^|[\s.])(id|no\.?|number|code|#)\s*$/i;
+
+function isIdColumn<T>(col: Column<T>): boolean {
+  const headerText = typeof col.header === 'string' ? col.header : (col.header ? extractTextFromReactNode(col.header) : '');
+  if (ID_COLUMN_REGEX.test(headerText.trim())) return true;
+  if (col.className && /(^|\s)(id-col|col-id)(\s|$)/i.test(col.className)) return true;
+  return false;
+}
+
 const STATUS_COLUMN_REGEX = /status|stage|state|packed|shipped|invoiced|approval/i;
 
 function isStatusColumn<T>(col: Column<T>): boolean {
@@ -614,7 +625,7 @@ export function DataTable<T extends { id: string | number }>({
                 const isSortable = col.sortable !== false && !isAction && !isCollapsed;
                 const isSorted = sortColumnIndex === idx;
                 const isDateCol = isDateColumn(col);
-                const isStatusCol = isStatusColumn(col);
+                const isStatusCol = isStatusColumn(col) || isIdColumn(col); // ID columns centre the same way
                 const isRightAligned = !isDateCol && !isStatusCol && col.className?.includes('text-right');
                 const isLeftAligned = !isDateCol && !isStatusCol && col.className?.includes('text-left');
                 const cleanedHeaderClass = (isDateCol || isStatusCol)
@@ -732,7 +743,7 @@ export function DataTable<T extends { id: string | number }>({
                     const isCollapsed = col.className?.includes('!w-0');
                     const isSticky = (isAction || isLast) && !isCollapsed;
                     const isDateCol = isDateColumn(col);
-                    const isStatusCol = isStatusColumn(col);
+                    const isStatusCol = isStatusColumn(col) || isIdColumn(col);
                     const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
                     return (
                       <td 
@@ -776,7 +787,7 @@ export function DataTable<T extends { id: string | number }>({
                       const isSticky = (isAction || isLast) && !isCollapsed;
                       const isSorted = sortColumnIndex === idx;
                       const isDateCol = isDateColumn(col);
-                      const isStatusCol = isStatusColumn(col);
+                      const isStatusCol = isStatusColumn(col) || isIdColumn(col); // ID columns centre the same way
                       const isRightAligned = !isDateCol && !isStatusCol && col.className?.includes('text-right');
                       const isLeftAligned = !isDateCol && !isStatusCol && col.className?.includes('text-left');
                       const isCenterCol = isDateCol || isStatusCol || col.className?.includes('text-center');
