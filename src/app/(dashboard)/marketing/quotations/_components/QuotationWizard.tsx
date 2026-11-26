@@ -47,6 +47,7 @@ const savedItemToLine = (item: any, legacyType?: string): ManualItem => {
       : (sb.trims || []),
     sam_value: String(sb.sam_value || ''),
     design_number: String(sb.design_number || ''),
+    brand_tier: sb.brand_tier || '',
     quantity: String(item.quantity ?? ''),
     price: String(item.unit_price ?? ''),
     // Keep the saved rate as-is; the user can switch back to the calculated rate in the item modal
@@ -148,6 +149,7 @@ export default function QuotationWizard({
   const [gstPercent, setGstPercent] = useState('5');
   const [salesType, setSalesType] = useState<string>('WHOLESALE');
   const [customerType, setCustomerType] = useState<string>('DIRECT');
+  const [brandTier, setBrandTier] = useState<string>('BRANDED');
   const [orgDepartments, setOrgDepartments] = useState<any[]>([]);
   const [orgClasses, setOrgClasses] = useState<any[]>([
     { id: 'Class1', name: 'Class1', selected: false, persons: '', sets: '2' },
@@ -349,6 +351,9 @@ export default function QuotationWizard({
         if (fullQuote.metrics_summary?.customer_type) {
           setCustomerType(fullQuote.metrics_summary.customer_type);
         }
+        if (fullQuote.metrics_summary?.brand_tier) {
+          setBrandTier(fullQuote.metrics_summary.brand_tier);
+        }
         if (fullQuote.metrics_summary?.extra_charges && Array.isArray(fullQuote.metrics_summary.extra_charges)) {
           setExtraCharges(fullQuote.metrics_summary.extra_charges);
         } else {
@@ -501,6 +506,9 @@ export default function QuotationWizard({
       if (fullQuote.metrics_summary?.customer_type) {
         setCustomerType(fullQuote.metrics_summary.customer_type);
       }
+      if (fullQuote.metrics_summary?.brand_tier) {
+        setBrandTier(fullQuote.metrics_summary.brand_tier);
+      }
       toast.success(`Copied details from order: ${fullQuote.title}`, { id: loadingToast });
     } catch (err) {
       console.error('Failed to copy previous order items', err);
@@ -612,7 +620,7 @@ export default function QuotationWizard({
     return finalCost;
   };
 
-  const calculateFabricCost = (fabricId: string, metersStr: string, fabricSamStr: string, productTypeId: string) => {
+  const calculateFabricCost = (fabricId: string, metersStr: string, fabricSamStr: string, productTypeId: string, itemBrandTier?: string) => {
     const meters = parseFloat(metersStr) || 0;
     const fabricSam = parseFloat(fabricSamStr) || 0;
     if (!fabricId || meters === 0) return 0;
@@ -651,11 +659,12 @@ export default function QuotationWizard({
     
     let marginPct = 0;
     if (marginRow) {
-      const brandType = (fabric.brand_type || '').toLowerCase();
-      if (brandType.includes('branded') && !brandType.includes('semi')) {
-        marginPct = parseFloat(marginRow.branded) || 0;
-      } else if (brandType.includes('semi')) {
+      // Priority: item-level override -> quote-level brandTier -> fabric.brand_type -> default 'NON_BRANDED'
+      const effectiveBrand = (itemBrandTier || brandTier || fabric.brand_type || 'NON_BRANDED').toLowerCase();
+      if (effectiveBrand.includes('semi')) {
         marginPct = parseFloat(marginRow.semi_branded) || 0;
+      } else if (effectiveBrand.includes('brand') && !effectiveBrand.includes('non')) {
+        marginPct = parseFloat(marginRow.branded) || 0;
       } else {
         marginPct = parseFloat(marginRow.non_branded) || 0;
       }
@@ -673,13 +682,13 @@ export default function QuotationWizard({
     );
     const mainFabricCost = (item.main_fabric_cost !== undefined && item.main_fabric_cost !== '' && !isNaN(parseFloat(item.main_fabric_cost)))
       ? parseFloat(item.main_fabric_cost)
-      : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id);
+      : calculateFabricCost(item.fabric_id, item.main_fabric_meters, item.main_fabric_sam, item.product_type_id, item.brand_tier);
     const att1Cost = (item.attachment_fabric1_cost !== undefined && item.attachment_fabric1_cost !== '' && !isNaN(parseFloat(item.attachment_fabric1_cost)))
       ? parseFloat(item.attachment_fabric1_cost)
-      : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id);
+      : calculateFabricCost(item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam, item.product_type_id, item.brand_tier);
     const att2Cost = (item.attachment_fabric2_cost !== undefined && item.attachment_fabric2_cost !== '' && !isNaN(parseFloat(item.attachment_fabric2_cost)))
       ? parseFloat(item.attachment_fabric2_cost)
-      : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id);
+      : calculateFabricCost(item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam, item.product_type_id, item.brand_tier);
     return productSAMCost + mainFabricCost + att1Cost + att2Cost;
   };
 
@@ -748,7 +757,7 @@ export default function QuotationWizard({
     const pick = (override: string | undefined, fabricId: string, meters: string, sam: string) =>
       (override !== undefined && override !== '' && !isNaN(parseFloat(override)))
         ? parseFloat(override)
-        : calculateFabricCost(fabricId, meters, sam, item.product_type_id);
+        : calculateFabricCost(fabricId, meters, sam, item.product_type_id, item.brand_tier);
     return pick(item.main_fabric_cost, item.fabric_id, item.main_fabric_meters, item.main_fabric_sam) +
       pick(item.attachment_fabric1_cost, item.attachment_fabric1_id, item.attachment_fabric1_meters, item.attachment_fabric1_sam) +
       pick(item.attachment_fabric2_cost, item.attachment_fabric2_id, item.attachment_fabric2_meters, item.attachment_fabric2_sam);
@@ -785,7 +794,8 @@ export default function QuotationWizard({
       const qty = parseQty(item);
       if (kind === 'FABRIC') {
         // Marked-up fabric cost for the meters sold
-        totalFabricExpense += calculateFabricCost(item.fabric_id, item.quantity, '6.777', '');
+        totalFabricExpense += calculateFabricCost(item.fabric_id, item.quantity, '6.777', '', item.brand_tier);
+        return;
       } else if (kind === 'ACCESSORY') {
         // Accessories / trade readymades are bought in: their rate is the expense
         totalAccExpense += (parseFloat(item.price) || 0) * qty;
@@ -927,11 +937,12 @@ export default function QuotationWizard({
             is_separate_fabric: true,
             item_kind: 'FABRIC',
             fabric_id: item.fabric_id,
+            brand_tier: item.brand_tier || brandTier,
             meters: qty,
             rate: rate,
             ...dept
           },
-          fabric_cost_per_item: calculateFabricCost(item.fabric_id, '1', '6.777', ''),
+          fabric_cost_per_item: calculateFabricCost(item.fabric_id, '1', '6.777', '', item.brand_tier),
           accessories_cost_per_item: 0,
           labor_cost_per_item: 0
         });
@@ -1040,6 +1051,7 @@ export default function QuotationWizard({
           item_kind: 'READYMADE',
           product_id: productId,
           product_name: resolvedProductName,
+          brand_tier: item.brand_tier || brandTier,
           fabric_id: item.fabric_id || null,
           main_fabric_meters: parseFloat(item.main_fabric_meters) || null,
           main_fabric_rate: parseFloat(item.main_fabric_rate) || null,
@@ -1116,6 +1128,7 @@ export default function QuotationWizard({
           },
           sales_type: salesType,
           customer_type: customerType,
+          brand_tier: brandTier,
           // Item kinds are stored per line; the quotation itself can mix all kinds
           quotation_type: 'CUSTOM',
           item_kinds: Array.from(new Set(manualItems.map(it => getItemKind(it)))),
@@ -1244,6 +1257,7 @@ Forma Apparels Co.`;
     ]);
     setSalesType('WHOLESALE');
     setCustomerType('DIRECT');
+    setBrandTier('BRANDED');
     setTemplateLineItems([]);
     setCoverLetter('');
     setGstPercent('5');
@@ -1336,6 +1350,8 @@ Forma Apparels Co.`;
               setSalesType={setSalesType}
               customerType={customerType}
               setCustomerType={setCustomerType}
+              brandTier={brandTier}
+              setBrandTier={setBrandTier}
               isAnalyzing={isAnalyzing}
               generateAutoCoverLetter={generateAutoCoverLetter}
               previousOrders={previousOrders}
@@ -1372,6 +1388,7 @@ Forma Apparels Co.`;
                 samConfigurations={samConfigurations}
                 salesType={salesType}
                 customerType={customerType}
+                brandTier={brandTier}
                 calculateProductSAMCost={calculateProductSAMCost}
                 calculateFabricCost={calculateFabricCost}
                 laborRatePerHour={laborRatePerHour}
