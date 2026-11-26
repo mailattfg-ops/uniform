@@ -5,7 +5,7 @@ import { DataTable, Column, SortInfo } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { DynamicForm } from '@/components/ui/DynamicForm';
-import { Plus, Edit2, Trash2, ArrowLeft, X, Maximize2, Copy, Check, ChevronLeft, ChevronRight, Box, Layers, Tag, Scissors, Sparkles, Building2, Store, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowLeft, X, Maximize2, Copy, Check, ChevronLeft, ChevronRight, Box, Layers, Tag, Scissors, Sparkles, Building2, Store, FileText, Camera } from 'lucide-react';
 import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -487,7 +487,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       <tr>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${item.garment_category || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600; text-align: center;">${item.brand_type || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${formatFabricDisplayName(item) || item.name || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m</td>
       </tr>
@@ -517,13 +516,12 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
         <th style="text-align: center;">Garment Category</th>
-        <th style="text-align: center;">Brand Type</th>
         <th>Item Name</th>
         <th style="text-align: right;">Quantity</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="4" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -552,34 +550,38 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       sortValue: (item) => item.garment_category || ''
     },
     {
-      header: 'Brand Type',
-      className: 'text-center',
-      accessor: (item: Item) => (
-        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block text-center">
-          {item.brand_type || '—'}
-        </span>
-      ),
-      sortValue: (item) => item.brand_type || ''
-    },
-    {
       header: 'Item Name',
-      accessor: (item: Item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {(() => {
-              const displayImg = item.image || parseImageGallery(item.images)[0];
-              return displayImg ? (
+      accessor: (item: Item) => {
+        const displayImg = item.image || parseImageGallery(item.images)[0];
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
+                displayImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+              }`}
+              onClick={
+                displayImg
+                  ? (e) => {
+                      e.stopPropagation();
+                      setSelectedItemForDetails(item);
+                      setActiveDetailImageIndex(0);
+                      setIsLightboxOpen(true);
+                    }
+                  : undefined
+              }
+            >
+              {displayImg ? (
                 <img src={displayImg} alt={item.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[9px] text-zinc-300 font-bold uppercase">No Img</span>
-              );
-            })()}
+                <Camera size={18} className="text-zinc-300" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
-          </div>
-        </div>
-      ),
+        );
+      },
       sortValue: (item) => formatFabricDisplayName(item)
     },
     {

@@ -2386,7 +2386,7 @@ export default function ProductManagement() {
         return (
           <div className="flex items-center gap-3">
             <div
-              className={`w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
+              className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
                 hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
               }`}
               onClick={
@@ -2408,7 +2408,7 @@ export default function ProductManagement() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Box size={16} className="text-zinc-400" />
+                <Box size={18} className="text-zinc-400" />
               )}
             </div>
             <div>

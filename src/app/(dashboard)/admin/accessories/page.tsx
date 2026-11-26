@@ -1152,13 +1152,29 @@ export default function AccessoriesAndTradeCatalogPage() {
       accessor: (item) => {
         const fullName = getItemFullName(item);
         const itemImgs = parseImageGallery(item.images);
+        const hasImg = itemImgs.length > 0;
         return (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center">
-              {itemImgs.length > 0 ? (
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
+                hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+              }`}
+              onClick={
+                hasImg
+                  ? (e) => {
+                      e.stopPropagation();
+                      setSelectedAccessoryForDetails(item);
+                      setActiveDetailImageIndex(0);
+                      setIsLightboxOpen(true);
+                    }
+                  : undefined
+              }
+              title={hasImg ? 'Click to enlarge image' : undefined}
+            >
+              {hasImg ? (
                 <img src={itemImgs[0]} alt={fullName || item.name} className="w-full h-full object-cover" />
               ) : (
-                <Tag size={15} className="text-[#9E1B1D]" />
+                <Tag size={18} className="text-zinc-300" />
               )}
             </div>
             <div>
