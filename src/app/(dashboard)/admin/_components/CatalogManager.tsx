@@ -35,6 +35,22 @@ interface Item {
   garment_category?: string;
 }
 
+interface InwardRate {
+  id?: string | number;
+  item: string;
+  width: string;
+  rate: number;
+}
+
+interface MarginCalculation {
+  id?: string | number;
+  sales_type: string;
+  customer_type: string;
+  branded: number;
+  semi_branded: number;
+  non_branded: number;
+}
+
 const VendorChecklistInput: React.FC<{
   value: any[];
   onChange: (val: any[]) => void;
@@ -345,17 +361,71 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [inwardRates, setInwardRates] = useState<InwardRate[]>([]);
+  const [fabricMargins, setFabricMargins] = useState<MarginCalculation[]>([]);
 
   const fetchItems = async () => {
     setIsLoading(true);
     try {
       const response = await api.get(`/inventory/${type}`);
       setItems(response.data);
+      if (type === 'fabrics') {
+        try {
+          const [inwardRes, marginsRes] = await Promise.all([
+            api.get('/sam-management/fabric/inward-transportation'),
+            api.get('/sam-management/fabric/margins')
+          ]);
+          if (Array.isArray(inwardRes.data)) setInwardRates(inwardRes.data);
+          if (Array.isArray(marginsRes.data)) setFabricMargins(marginsRes.data);
+        } catch (samErr) {
+          console.error('Failed to load SAM configuration for fabric calculations', samErr);
+        }
+      }
     } catch (err) {
       toast.error(`Failed to load ${type}`);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const calculateFabricAvgRate = (item: Item): number => {
+    // 1. Resolve Fabric SAM (latest_sam, fallback to sheet baseline 6.777)
+    const sam = Number(item.latest_sam) > 0 ? Number(item.latest_sam) : 6.777;
+    // Purchase Cost = ((SAM * 2) * 3) * 4 = SAM * 24
+    const purchaseCost = sam * 24;
+
+    // 2. Inward Transportation
+    const cat = (item.garment_category || '').toUpperCase();
+    let matchedCat = 'SHIRTING';
+    if (cat.includes('SUIT') || cat.includes('BLAZER') || cat.includes('COAT')) {
+      matchedCat = 'SUITING';
+    } else if (cat.includes('BOTTOM') || cat.includes('PANT') || cat.includes('TROUSER')) {
+      matchedCat = 'BOTTOM';
+    } else if (cat.includes('SHIRT')) {
+      matchedCat = 'SHIRTING';
+    } else {
+      const name = (item.name || '').toUpperCase();
+      if (name.includes('SUIT')) matchedCat = 'SUITING';
+      else if (name.includes('BOTTOM') || name.includes('PANT') || name.includes('TROUSER')) matchedCat = 'BOTTOM';
+      else matchedCat = 'SHIRTING';
+    }
+
+    const widthClean = String(item.width || '').replace(/[^0-9]/g, '');
+    const matchedTransport = inwardRates.find(
+      (r) => r.item?.toUpperCase() === matchedCat && String(r.width).replace(/[^0-9]/g, '') === widthClean
+    );
+    const transportCost = matchedTransport ? Number(matchedTransport.rate) : (matchedCat === 'SUITING' ? 4 : 2.5);
+
+    // 3. Retail Direct Non-Brand Margin
+    const retailDirect = fabricMargins.find(
+      (m) => m.sales_type?.toUpperCase() === 'RETAIL' && m.customer_type?.toUpperCase() === 'DIRECT'
+    );
+    const marginPct = retailDirect && retailDirect.non_branded !== undefined && retailDirect.non_branded !== null
+      ? Number(retailDirect.non_branded)
+      : 100;
+
+    // 4. Formula: ((SAM * 24) + Inward Transport) * (1 + Margin / 100) * 1.05 (GST)
+    return (purchaseCost + transportCost) * (1 + marginPct / 100) * 1.05;
   };
 
   useEffect(() => {
@@ -488,6 +558,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${item.garment_category || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${formatFabricDisplayName(item) || item.name || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">₹${calculateFabricAvgRate(item).toFixed(2)} / m</td>
         <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m</td>
       </tr>
     `).join('');
@@ -517,11 +588,12 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         <th style="width: 40px; text-align: center;">#</th>
         <th style="text-align: center;">Garment Category</th>
         <th>Item Name</th>
+        <th style="text-align: right;">Average Rate</th>
         <th style="text-align: right;">Quantity</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="4" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -583,6 +655,22 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         );
       },
       sortValue: (item) => formatFabricDisplayName(item)
+    },
+    {
+      header: 'Average Rate',
+      className: 'text-right',
+      accessor: (item: Item) => {
+        const rate = calculateFabricAvgRate(item);
+        return (
+          <div className="text-right">
+            <span className="px-2.5 py-1 bg-zinc-100/80 border border-zinc-200/80 rounded-xl text-xs font-black text-zinc-900 font-mono inline-block">
+              ₹{rate.toFixed(2)}
+              <span className="text-[10px] text-zinc-400 font-sans ml-1 font-semibold">/ m</span>
+            </span>
+          </div>
+        );
+      },
+      sortValue: (item) => calculateFabricAvgRate(item)
     },
     {
       header: 'Quantity',
@@ -1276,6 +1364,12 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Latest SAM</span>
                             <span className="text-sm font-bold text-zinc-900 font-mono mt-0.5 block">
                               {selectedItemForDetails.latest_sam ? `${selectedItemForDetails.latest_sam}` : '—'}
+                            </span>
+                          </div>
+                          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Average Rate</span>
+                            <span className="text-sm font-black text-[#C82A2B] font-mono mt-0.5 block">
+                              ₹{calculateFabricAvgRate(selectedItemForDetails).toFixed(2)} / m
                             </span>
                           </div>
                         </>
