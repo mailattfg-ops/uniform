@@ -20,6 +20,7 @@ export interface FilterDropdownProps {
   icon?: React.ReactNode;
   className?: string;
   maxWidth?: string;
+  disabled?: boolean;
 }
 
 export const FilterDropdown: React.FC<FilterDropdownProps> = ({
@@ -32,7 +33,8 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
   options,
   icon,
   className = '',
-  maxWidth = 'max-w-[240px]'
+  maxWidth = 'max-w-[240px]',
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,13 +117,16 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(prev => !prev)}
-        className={`h-10 px-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none shadow-2xs group ${maxWidth} ${
-          isFiltered
-            ? 'bg-[#FFF1F1] border-[#C82A2B]/40 text-[#9E1B1D] ring-2 ring-[#C82A2B]/15 hover:border-[#C82A2B]'
-            : 'bg-white border-zinc-200/90 hover:border-zinc-300 hover:bg-zinc-50/80 text-zinc-800'
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(prev => !prev)}
+        className={`h-10 px-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all select-none shadow-2xs group ${maxWidth} ${
+          disabled
+            ? 'bg-zinc-50 border-zinc-200 text-zinc-400 cursor-not-allowed opacity-75'
+            : isFiltered
+            ? 'bg-[#FFF1F1] border-[#C82A2B]/40 text-[#9E1B1D] ring-2 ring-[#C82A2B]/15 hover:border-[#C82A2B] cursor-pointer'
+            : 'bg-white border-zinc-200/90 hover:border-zinc-300 hover:bg-zinc-50/80 text-zinc-800 cursor-pointer'
         }`}
-        title={`${label}: ${displayLabel}`}
+        title={disabled ? (cleanAllLabel || label) : `${label}: ${displayLabel}`}
       >
         {icon && (
           <span className={`shrink-0 ${isFiltered ? 'text-[#C82A2B]' : 'text-zinc-400 group-hover:text-zinc-600'}`}>

@@ -2182,21 +2182,68 @@ export default function ProductManagement() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [dresses, products, genders, patterns]);
 
-  // Specification options for filter (from master items & product catalog)
+  // Specification options for filter: strictly scoped to the selected master garment item
   const uniqueSpecifications = useMemo(() => {
+    if (filterDress === 'ALL') return [];
+
     const set = new Set<string>();
-    (dresses || []).forEach((d: any) => {
-      (d.art_item_specifications || []).forEach((s: any) => {
-        if (s.name && String(s.name).trim()) set.add(String(s.name).trim());
+    const target = filterDress.toLowerCase().trim();
+
+    // 1. Find the matched item from dresses/art_items
+    const matchedItem = (dresses || []).find((d: any) =>
+      String(d.code).toLowerCase().trim() === target ||
+      String(d.id).toLowerCase().trim() === target ||
+      (d.name && d.name.toLowerCase().trim() === target)
+    );
+
+    // 2. Add specifications configured in art_item_specifications for this item
+    if (matchedItem && Array.isArray(matchedItem.art_item_specifications)) {
+      matchedItem.art_item_specifications.forEach((s: any) => {
+        if (s.name && String(s.name).trim()) {
+          set.add(String(s.name).trim());
+        }
       });
-    });
+    }
+
+    // 3. Add specifications from existing products matching this item (handles fallbacks/legacy codes)
     (products || []).forEach((p) => {
-      const specObj = getItemSpecDisplayName(p, dresses);
-      const specName = specObj?.name || (p as any).specification;
-      if (specName && String(specName).trim()) set.add(String(specName).trim());
+      const parsed = parseArtNumber(p.art_number || '', dresses, genders, patterns);
+      const pItemCode = (parsed.itemCode || parsed.dressCode || '').toLowerCase().trim();
+      const pMatchedItem = (dresses || []).find(d =>
+        String(d.code).toLowerCase().trim() === pItemCode ||
+        String(d.id) === String(p.item_id)
+      );
+      const itemName = (pMatchedItem?.name || '').toLowerCase().trim();
+
+      const isMatchingItem =
+        pItemCode === target ||
+        itemName === target ||
+        String(p.item_id).toLowerCase().trim() === target;
+
+      if (isMatchingItem) {
+        const specObj = getItemSpecDisplayName(p, dresses);
+        const specName = specObj?.name || (p as any).specification;
+        if (specName && String(specName).trim()) {
+          set.add(String(specName).trim());
+        }
+      }
     });
-    return Array.from(set).sort();
-  }, [dresses, products]);
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [filterDress, dresses, products, genders, patterns]);
+
+  // Reset specification filter when item changes or if the selected specification is invalid for the new item
+  useEffect(() => {
+    if (filterDress === 'ALL') {
+      if (filterSpecification !== 'ALL') {
+        setFilterSpecification('ALL');
+      }
+    } else {
+      if (filterSpecification !== 'ALL' && !uniqueSpecifications.includes(filterSpecification)) {
+        setFilterSpecification('ALL');
+      }
+    }
+  }, [filterDress, uniqueSpecifications, filterSpecification]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -2522,7 +2569,14 @@ export default function ProductManagement() {
             {/* 3. Specification Filter */}
             <FilterDropdown
               label="Specification"
-              allLabel="All Specifications"
+              allLabel={
+                filterDress === 'ALL'
+                  ? 'Select Item First'
+                  : uniqueSpecifications.length === 0
+                  ? 'No Specifications'
+                  : 'All Specifications'
+              }
+              disabled={filterDress === 'ALL' || uniqueSpecifications.length === 0}
               value={filterSpecification}
               onChange={setFilterSpecification}
               options={uniqueSpecifications}
