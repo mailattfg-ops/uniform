@@ -486,8 +486,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     const rowsHtml = dataToPrint.map((item, idx) => `
       <tr>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.garment_category || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600;">${item.brand_type || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700; text-align: center;">${item.garment_category || '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600; text-align: center;">${item.brand_type || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${formatFabricDisplayName(item) || item.name || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m</td>
       </tr>
@@ -516,8 +516,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
-        <th>Garment Category</th>
-        <th>Brand Type</th>
+        <th style="text-align: center;">Garment Category</th>
+        <th style="text-align: center;">Brand Type</th>
         <th>Item Name</th>
         <th style="text-align: right;">Quantity</th>
       </tr>
@@ -543,8 +543,9 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
   const columns: Column<Item>[] = type === 'fabrics' ? [
     {
       header: 'Garment Category',
+      className: 'text-center',
       accessor: (item: Item) => (
-        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block">
+        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block text-center">
           {item.garment_category || '—'}
         </span>
       ),
@@ -552,8 +553,9 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     },
     {
       header: 'Brand Type',
+      className: 'text-center',
       accessor: (item: Item) => (
-        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block">
+        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block text-center">
           {item.brand_type || '—'}
         </span>
       ),
@@ -573,20 +575,8 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
               );
             })()}
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="font-bold text-sm text-zinc-900">{formatFabricDisplayName(item)}</p>
-            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-              {item.brand_name && (
-                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-                  {item.brand_name} {item.quality ? `• ${item.quality}` : ''}
-                </span>
-              )}
-              {item.shade && (
-                <span className="text-[10px] font-bold text-[#2d8d9b] bg-[#2d8d9b]/10 px-1.5 py-0.5 rounded">
-                  Shade: {item.shade}
-                </span>
-              )}
-            </div>
           </div>
         </div>
       ),

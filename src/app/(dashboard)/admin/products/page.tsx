@@ -1568,6 +1568,8 @@ export default function ProductManagement() {
       name: 'images',
       label: 'Product Images',
       type: 'image-upload',
+      maxImages: 5,
+      uploadLabel: 'Upload Product Images (up to 5)',
       defaultValue: editingProduct?.images || [],
       className: 'md:col-span-2'
     },

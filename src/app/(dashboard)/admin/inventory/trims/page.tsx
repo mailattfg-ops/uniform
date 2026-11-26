@@ -898,7 +898,7 @@ export default function TrimsCatalogPage() {
               },
               {
                 name: 'description',
-                label: 'Additional Remarks / Notes',
+                label: 'Description',
                 type: 'textarea',
                 className: 'md:col-span-2',
                 placeholder: 'Optional storage location, vendor part references, packaging details...',
@@ -1267,7 +1267,7 @@ export default function TrimsCatalogPage() {
                       <div className="p-4 bg-zinc-50/80 rounded-2xl border border-zinc-200/80 space-y-1.5">
                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9E1B1D] flex items-center gap-1.5">
                           <FileText size={13} className="text-[#C82A2B]" />
-                          Description & Notes
+                          Description
                         </h4>
                         <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed">
                           {selectedTrimForDetails.description}

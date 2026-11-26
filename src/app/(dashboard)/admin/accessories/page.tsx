@@ -32,7 +32,9 @@ import {
   Maximize2,
   Copy,
   Box,
-  FileText
+  FileText,
+  ChevronLeft,
+  Move
 } from 'lucide-react';
 import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
 import { formatCurrency, formatQuantity } from '@/lib/formatters';
@@ -251,7 +253,7 @@ const ImageUploadField: React.FC<{
   onChange: (images: string[]) => void;
   maxImages?: number;
   colorTheme?: 'teal' | 'indigo';
-}> = ({ label, images = [], onChange, maxImages = 6, colorTheme = 'teal' }) => {
+}> = ({ label, images = [], onChange, maxImages = 5, colorTheme = 'teal' }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -283,7 +285,7 @@ const ImageUploadField: React.FC<{
         newBase64List.push(base64);
         loadedCount++;
         if (loadedCount === fileArr.length) {
-          onChange([...images, ...newBase64List]);
+          onChange([...images, ...newBase64List].slice(0, maxImages));
           toast.success(`${newBase64List.length} image(s) added!`);
         }
       };
@@ -295,9 +297,28 @@ const ImageUploadField: React.FC<{
     });
   };
 
+  const handleReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex < 0 || fromIndex >= images.length || toIndex < 0 || toIndex >= images.length) return;
+    const list = [...images];
+    const [moved] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, moved);
+    onChange(list);
+  };
+
+  const handleMove = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < images.length) {
+      handleReorder(index, targetIndex);
+    }
+  };
+
   const handleRemove = (index: number) => {
     const updated = images.filter((_, idx) => idx !== index);
     onChange(updated);
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -313,19 +334,26 @@ const ImageUploadField: React.FC<{
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-700">
           {label} ({images.length} / {maxImages})
         </label>
-        {images.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
-          >
-            <Trash2 size={11} /> Clear All
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {images.length > 1 && (
+            <span className="text-[10px] text-zinc-400 font-medium hidden sm:inline">
+              Drag or use arrows to rearrange • First image is Cover
+            </span>
+          )}
+          {images.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Trash2 size={11} /> Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       <input
@@ -344,27 +372,85 @@ const ImageUploadField: React.FC<{
 
       {images.length > 0 ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
             {images.map((img, idx) => (
               <div
                 key={idx}
-                className="relative aspect-square rounded-xl overflow-hidden bg-white border border-zinc-200 group shadow-xs"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', String(idx));
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                  if (!isNaN(fromIdx) && fromIdx !== idx) {
+                    handleReorder(fromIdx, idx);
+                  }
+                }}
+                className="relative aspect-square rounded-xl overflow-hidden bg-white border border-zinc-200 group shadow-xs select-none cursor-grab active:cursor-grabbing hover:border-zinc-400 transition-all"
+                title="Drag to reorder or use arrow buttons"
               >
-                <img src={img} alt={`Accessory ${idx + 1}`} className="w-full h-full object-cover" />
-                {idx === 0 && (
-                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-white text-[8px] font-black uppercase tracking-wider rounded-md">
+                <img src={img} alt={`Accessory ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                
+                {/* Badge */}
+                {idx === 0 ? (
+                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-[#9E1B1D] text-white text-[8px] font-black uppercase tracking-wider rounded-md shadow-xs z-10">
                     Cover
                   </span>
+                ) : (
+                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-white text-[8px] font-bold rounded-md shadow-xs z-10">
+                    #{idx + 1}
+                  </span>
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(idx)}
-                    className="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-sm cursor-pointer"
-                    title="Remove image"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+
+                {/* Hover Controls Overlay */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5 z-20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 p-0.5" title="Drag to rearrange">
+                      <Move size={12} />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(idx)}
+                      className="w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-sm cursor-pointer"
+                      title="Remove image"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Rearrange Arrows */}
+                  <div className="flex items-center justify-between gap-1 mt-auto">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMove(idx, 'left');
+                      }}
+                      className="h-6 flex-1 rounded bg-white/90 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                      title="Move left"
+                    >
+                      <ChevronLeft size={13} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === images.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMove(idx, 'right');
+                      }}
+                      className="h-6 flex-1 rounded bg-white/90 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                      title="Move right"
+                    >
+                      <ChevronRight size={13} strokeWidth={2.5} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -2316,7 +2402,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                   label={articleType === 'TRADE_READYMADE' ? 'Product Garment Images' : 'Accessory Product Images'}
                   images={articleFormData.images}
                   onChange={(imgs) => setArticleFormData(prev => ({ ...prev, images: imgs }))}
-                  maxImages={6}
+                  maxImages={5}
                   colorTheme={articleType === 'TRADE_READYMADE' ? 'indigo' : 'teal'}
                 />
 
