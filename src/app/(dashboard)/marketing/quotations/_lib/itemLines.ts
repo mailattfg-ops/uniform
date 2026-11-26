@@ -161,7 +161,7 @@ export const formatProductDisplayName = (
 ): string => {
   if (!prod) return '';
 
-  // Only in-house manufactured readymades use the [Item] [Specification] [Gender] naming rule.
+  // Only in-house manufactured readymades use the [Gender] [Item] [Specification] naming rule.
   // Accessories, trade readymades, fabrics, and custom quotation items preserve their assigned names.
   const rawArt = (prod.art_number || '').toUpperCase();
   const accPrefixes = ['TIE-', 'BLT-', 'SCK-', 'BDG-', 'CAP-', 'SCF-', 'EPL-', 'LNY-', 'BOW-', 'PKS-', 'CRST-', 'ACC-'];
@@ -241,7 +241,7 @@ export const formatProductDisplayName = (
       const cleanSpec = specName ? specName.trim() : '';
       const cleanGender = genderName ? genderName.trim() : '';
 
-      const composed = [cleanItem, cleanSpec, cleanGender].filter(Boolean).join(' ');
+      const composed = [cleanGender, cleanItem, cleanSpec].filter(Boolean).join(' ');
       if (composed) return composed;
     }
   }

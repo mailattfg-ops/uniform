@@ -178,7 +178,7 @@ export default function OperationTeamPage() {
   };
 
   // Filtered quotations list (Only displays quotations that have passed Branch Manager approval)
-  const OPS_STATUSES = ['Pending Ops Approval', 'Ops Approved', 'Pending Customer Approval', 'Held', 'Approved', 'Revision Requested', 'Rejected'];
+  const OPS_STATUSES = ['Pending Ops Approval', 'Ops Approved', 'Pending Customer Approval', 'Approved', 'Revision Requested', 'Rejected'];
   const isEligibleForOps = (q: Quotation) => OPS_STATUSES.includes(q.status || '') && (q.status !== 'Approved' || Boolean(q.metrics_summary?.ops_approved));
 
   const filteredQuotations = useMemo(() => {

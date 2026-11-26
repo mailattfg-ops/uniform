@@ -653,7 +653,7 @@ export default function ArtNumberHubPage() {
       )
     },
     {
-      header: 'Product Format (Item Spec Gender)',
+      header: 'Product Format (Gender Item Spec)',
       accessor: (an) => {
         const itemObj = an.art_items || an.art_dresses;
         const specObj = an.art_item_specifications;
@@ -664,11 +664,11 @@ export default function ArtNumberHubPage() {
         const specName = specObj?.name || '';
         const genderName = genderObj?.name || '';
 
-        const fullTitle = [cleanItemName, specName, genderName].filter(Boolean).join(' ');
+        const fullTitle = [genderName, cleanItemName, specName].filter(Boolean).join(' ');
         return (
           <div className="flex flex-col">
             <span className="font-black text-sm text-zinc-900 tracking-tight">{fullTitle || '—'}</span>
-            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Item · Specification · Gender</span>
+            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Gender · Item · Specification</span>
           </div>
         );
       }

@@ -19,7 +19,6 @@ function statusConfig(q: any): { label: string; cls: string; Icon?: any } {
     case 'Pending Customer Approval': return { label: 'With Customer', cls: 'bg-violet-50 text-violet-700 border-violet-200', Icon: Clock };
     case 'Approved': return { label: 'Customer Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: CheckCircle2 };
     case 'Rejected': return { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200', Icon: XCircle };
-    case 'Held': return { label: 'Held', cls: 'bg-amber-50 text-amber-700 border-amber-200', Icon: Clock };
     case 'Revision Requested': return { label: 'Revision Requested', cls: 'bg-purple-50 text-purple-700 border-purple-200', Icon: RotateCcw };
     case 'Revised': return { label: 'Revised', cls: 'bg-blue-50 text-blue-700 border-blue-200' };
     default: return { label: q.status || 'Draft', cls: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
