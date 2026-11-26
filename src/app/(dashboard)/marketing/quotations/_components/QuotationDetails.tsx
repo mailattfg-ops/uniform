@@ -135,7 +135,7 @@ export default function QuotationDetails({
         date: q.quotation_date || q.created_at,
         amount: q.final_quote_value || (q as any).total_amount || 0,
         status: q.status,
-        author: 'Commercial Team',
+        author: q.metrics_summary?.created_by_name || 'Not recorded', // set by the backend when the quote is created
         remarks: `Quotation #${q.quotation_no} compiled with value of ₹${Number(q.final_quote_value || (q as any).total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`
       });
 
@@ -148,8 +148,8 @@ export default function QuotationDetails({
           title: `Revision Requested by BM (#${q.quotation_no})`,
           badge: 'Revision Requested',
           badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-          date: q.metrics_summary.bm_rejection_at || q.updated_at || q.created_at,
-          author: q.metrics_summary.bm_rejected_by_name || 'Branch Manager',
+          date: q.metrics_summary.bm_rejected_at || q.metrics_summary.bm_rejection_at || q.updated_at || q.created_at,
+          author: q.metrics_summary.bm_rejected_by_name || 'Not recorded',
           remarks: `Branch Manager revision instructions: "${q.metrics_summary.bm_rejection_reason}"`
         });
       }
@@ -164,7 +164,7 @@ export default function QuotationDetails({
           badge: 'Approved',
           badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
           date: q.metrics_summary?.bm_approved_at || q.metrics_summary?.submitted_to_ops_at || q.updated_at || q.created_at,
-          author: q.metrics_summary?.bm_approved_by_name || 'Branch Manager',
+          author: q.metrics_summary?.bm_approved_by_name || 'Not recorded',
           remarks: 'Quotation verified and approved by Branch Manager & Operations.'
         });
       }
@@ -198,7 +198,7 @@ export default function QuotationDetails({
             badgeColor: isRev ? 'bg-purple-50 text-purple-700 border-purple-200' : undefined,
             outcome: f.outcome || f.response_type,
             date: f.created_at || (f.date ? `${f.date} ${f.time || ''}` : q.created_at),
-            author: f.author?.name || 'Sales Representative',
+            author: f.author?.name || 'Not recorded',
             remarks: f.remarks || f.text || '',
             next_followup_date: f.next_followup_date
           });
@@ -858,7 +858,7 @@ export default function QuotationDetails({
   const isCustomerApproved = selectedQuotation.status === 'Approved';
   const isApprovedAndPaid = isCustomerApproved && parseFloat(String(selectedQuotation.paid_amount || 0)) > 0;
   // Customer decision/follow-up logging only after the quote is sent to the customer
-  const canLogDecision = selectedQuotation.status === 'BM Approved' || selectedQuotation.status === 'Held';
+  const canLogDecision = selectedQuotation.status === 'Pending Customer Approval' || selectedQuotation.status === 'Held';
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -942,8 +942,8 @@ export default function QuotationDetails({
               </Button>
             )}
 
-            {/* Download PDF button (when BM Approved or Customer Approved) */}
-            {(selectedQuotation.status === 'BM Approved' || isCustomerApproved) && (
+            {/* Download PDF button (once Ops approved, and after) */}
+            {(['Ops Approved', 'Pending Customer Approval', 'Held'].includes(selectedQuotation.status || '') || isCustomerApproved) && (
               <Button
                 onClick={() => handleDownloadPDF(selectedQuotation)}
                 className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -965,7 +965,8 @@ export default function QuotationDetails({
             )}
 
             {/* Edit / Revise button */}
-            {!readOnly && (onStartRevision || onStartEdit) && selectedQuotation.status !== 'Approved' && (
+            {/* Editable only as a Draft (incl. returned by BM / Ops); after the customer's reply, Revise creates R1 */}
+            {!readOnly && (onStartRevision || onStartEdit) && ['Draft', 'Rejected', 'Revision Requested'].includes(selectedQuotation.status || 'Draft') && (
               <Button
                 variant={selectedQuotation.status === 'Rejected' || selectedQuotation.status === 'Revision Requested' || selectedQuotation.metrics_summary?.needs_revision ? 'primary' : 'outline'}
                 onClick={() => {
@@ -1038,7 +1039,11 @@ export default function QuotationDetails({
               ) : isAwaitingBm ? (
                 'Waiting for BM'
               ) : isBmRevision ? (
-                'Revision Needed'
+                selectedQuotation.metrics_summary?.returned_by === 'ops' ? 'Returned by Ops' : 'Returned by BM'
+              ) : selectedQuotation.status === 'Pending Ops Approval' ? (
+                'Waiting for Ops'
+              ) : selectedQuotation.status === 'Pending Customer Approval' ? (
+                'With Customer'
               ) : (
                 selectedQuotation.status || 'Draft'
               )}

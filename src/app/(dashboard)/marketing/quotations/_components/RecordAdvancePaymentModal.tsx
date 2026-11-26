@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { X, CreditCard, Calendar, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
 import toast from '@/components/ui/toast';
+import { showReceiptEmailResult } from '@/lib/receiptToast';
 import api from '@/lib/api';
 import { Quotation } from '../page';
 
@@ -71,7 +72,7 @@ export const RecordAdvancePaymentModal: React.FC<RecordAdvancePaymentModalProps>
     const toastId = toast.loading('Recording advance payment...');
 
     try {
-      await api.post('/payments', {
+      const payRes = await api.post('/payments', {
         quotation_id: quotation.id,
         amount,
         payment_method: paymentMethod,
@@ -79,6 +80,7 @@ export const RecordAdvancePaymentModal: React.FC<RecordAdvancePaymentModalProps>
         notes: paymentNotes.trim() || undefined,
         paid_at: new Date(paymentDate).toISOString()
       });
+      showReceiptEmailResult(payRes.data);
 
       toast.success(`Advance payment of ₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} recorded successfully!`, { id: toastId });
       onSuccess();

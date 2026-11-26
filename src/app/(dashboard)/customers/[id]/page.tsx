@@ -66,6 +66,7 @@ import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DynamicForm, FormField } from '@/components/ui/DynamicForm';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { showReceiptEmailResult } from '@/lib/receiptToast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
@@ -552,7 +553,8 @@ function OrganizationDetailsPageContent() {
         payload.invoice_id = parseInt(paymentInvoiceId, 10);
       }
 
-      await api.post('/payments', payload);
+      const payRes = await api.post('/payments', payload);
+      showReceiptEmailResult(payRes.data);
 
       const targetLabel = paymentTargetType === 'quotation'
         ? `Quotation #${customerQuotes.find((q: any) => String(q.id) === paymentQuoteId)?.quotation_no || paymentQuoteId}`

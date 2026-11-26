@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { showReceiptEmailResult } from '@/lib/receiptToast';
 import { formatDate } from '@/lib/formatters';
 import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import {
@@ -132,7 +133,7 @@ export default function InitialPaymentPage() {
 
     setIsSubmittingPayment(true);
     try {
-      await api.post('/payments', {
+      const payRes = await api.post('/payments', {
         quotation_id: selectedQuotation.id,
         amount,
         payment_method: paymentMethod,
@@ -140,6 +141,7 @@ export default function InitialPaymentPage() {
         notes: paymentNotes,
         paid_at: new Date(paidAtDate).toISOString()
       });
+      showReceiptEmailResult(payRes.data);
 
       toast.success('Payment recorded successfully!');
       setIsPaymentModalOpen(false);

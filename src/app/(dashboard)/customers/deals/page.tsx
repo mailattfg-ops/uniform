@@ -131,8 +131,11 @@ export default function DealsRegistryPage() {
   const userRole = (currentUser?.role || '').toLowerCase();
   const userPermissions: string[] = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
   const isSuperAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'superadmin' || userPermissions.includes('all');
-  const isCorporate = isSuperAdmin || userRole === 'corporate' || userPermissions.includes('corporate_approver');
-  const isBranchManager = isSuperAdmin || isCorporate || userRole.includes('branch manager') || userRole.includes('manager') || userPermissions.includes('manage_branch') || userPermissions.includes('submit_quotations_ops');
+  // HQ approval: only designated HQ staff (approve_hq_deals), not Branch Managers
+  const isCorporate = isSuperAdmin || userPermissions.includes('approve_hq_deals');
+  // HQ approval staff (not Admin, no branch): their Deals list is only what was sent to HQ
+  const isHqApproverOnly = !isSuperAdmin && userPermissions.includes('approve_hq_deals') && !currentUser?.branchId;
+  const isBranchManager = isSuperAdmin || (!isHqApproverOnly && (userRole.includes('branch manager') || userRole.includes('manager') || userPermissions.includes('manage_branch') || userPermissions.includes('submit_quotations_ops')));
   const canManageLeads = isSuperAdmin || userPermissions.includes('manage_leads');
 
   // Available zones filtered by selected branch
@@ -259,8 +262,13 @@ export default function DealsRegistryPage() {
       });
     }
 
+    // HQ approval staff see a deal only once it has been sent for HQ approval
+    if (isHqApproverOnly) {
+      activeList = activeList.filter(d => getDealFinancials(d).dealStage === 'PENDING_CORP_APPROVAL');
+    }
+
     return activeList;
-  }, [leads, quotations, getDealFinancials, isSuperAdmin, currentUser?.branchId]);
+  }, [leads, quotations, getDealFinancials, isSuperAdmin, currentUser?.branchId, isHqApproverOnly]);
 
   // Stage counts for filter options
   const stageCounts = useMemo(() => {
@@ -1172,22 +1180,23 @@ function DealItemRemarksModal({
                   const artNumber = it.art_number || it.art_no || it.product_code || it.products?.art_number || it.product?.art_number || (typeof it.notes === 'string' && it.notes.startsWith('{') ? (() => { try { return JSON.parse(it.notes).art_number; } catch(e) { return null; } })() : null);
 
                   return (
-                    <div key={it.id || idx} className="p-4 hover:bg-zinc-50/50 transition-colors space-y-3">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
+                    <div key={it.id || idx} className="p-4 hover:bg-zinc-50/50 transition-colors grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 items-start">
+                      {/* Item details (left) */}
+                      <div className="min-w-0">
+                        <div className="flex items-start gap-3 min-w-0">
                           <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
                             {idx + 1}
                           </span>
-                          <div>
-                            <h4 className="text-sm font-bold text-zinc-900">{itemName}</h4>
-                            <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-bold text-zinc-900 truncate" title={itemName}>{itemName}</h4>
+                            <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-xs text-zinc-500 mt-0.5">
                               <span>Qty: <strong className="text-zinc-800">{it.quantity || 1}</strong></span>
                               <span>•</span>
                               <span>Rate: <strong className="text-zinc-800 font-mono">₹{parseFloat(it.unit_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
                               <span>•</span>
                               <span>Total: <strong className="text-zinc-900 font-mono">₹{parseFloat(it.total_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-2 flex-wrap mt-1">
                               {artNumber && (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 bg-rose-50 text-[#9E1B1D] border border-rose-200 rounded">
                                   Art No: {artNumber}
@@ -1203,8 +1212,8 @@ function DealItemRemarksModal({
                         </div>
                       </div>
 
-                      {/* Remarks Input */}
-                      <div>
+                      {/* Remarks Input (right) */}
+                      <div className="min-w-0">
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
                           Branch Remark / Instructions
                         </label>
@@ -1216,9 +1225,9 @@ function DealItemRemarksModal({
                           <textarea
                             value={remarks[it.id] || ''}
                             onChange={(e) => setRemarks({ ...remarks, [it.id]: e.target.value })}
-                            rows={2}
+                            rows={3}
                             placeholder="Enter remarks for this item (e.g. customized fit, fabric shade, pocket style, embroidery details)..."
-                            className="w-full text-xs p-3 rounded-xl border border-zinc-300 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] placeholder:text-zinc-400"
+                            className="w-full resize-y text-xs p-3 rounded-xl border border-zinc-300 focus:outline-hidden focus:ring-2 focus:ring-[#C82A2B]/20 focus:border-[#C82A2B] placeholder:text-zinc-400"
                           />
                         )}
                       </div>

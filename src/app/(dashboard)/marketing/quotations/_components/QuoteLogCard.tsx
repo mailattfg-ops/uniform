@@ -10,10 +10,13 @@ function statusConfig(q: any): { label: string; cls: string; Icon?: any } {
   switch (q.status) {
     case 'Draft':
       return q.metrics_summary?.needs_revision
-        ? { label: 'Revision Needed', cls: 'bg-rose-50 text-rose-700 border-rose-200', Icon: AlertTriangle }
+        ? { label: q.metrics_summary?.returned_by === 'ops' ? 'Returned by Ops' : 'Returned by BM', cls: 'bg-rose-50 text-rose-700 border-rose-200', Icon: AlertTriangle }
         : { label: 'Draft', cls: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
     case 'Pending Branch Approval': return { label: 'Waiting for BM', cls: 'bg-amber-50 text-amber-800 border-amber-300', Icon: Clock };
     case 'BM Approved': return { label: 'BM Approved', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', Icon: CheckCircle2 };
+    case 'Pending Ops Approval': return { label: 'Waiting for Ops', cls: 'bg-orange-50 text-orange-800 border-orange-300', Icon: Clock };
+    case 'Ops Approved': return { label: 'Ops Approved', cls: 'bg-sky-50 text-sky-700 border-sky-200', Icon: CheckCircle2 };
+    case 'Pending Customer Approval': return { label: 'With Customer', cls: 'bg-violet-50 text-violet-700 border-violet-200', Icon: Clock };
     case 'Approved': return { label: 'Customer Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: CheckCircle2 };
     case 'Rejected': return { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200', Icon: XCircle };
     case 'Held': return { label: 'Held', cls: 'bg-amber-50 text-amber-700 border-amber-200', Icon: Clock };

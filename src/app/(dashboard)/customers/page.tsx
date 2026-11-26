@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { showLoginEmailResult } from '@/lib/receiptToast';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CredentialsModal } from '@/components/ui/CredentialsModal';
 import { CustomerFormModal } from '@/components/entities/CustomerFormModal';
@@ -779,6 +780,7 @@ export default function CustomersRegistry() {
 
         const createdOrg = res?.data?.data || res?.data;
         const creds = res?.data?.credentials;
+        showLoginEmailResult(creds);
         const finalCustCode = creds?.customer_code || createdOrg?.customer_code || (createdOrg?.id ? `CN${String(createdOrg.id).padStart(3, '0')}` : 'Customer Account');
         const loginUsername = creds?.username || finalCustCode;
 

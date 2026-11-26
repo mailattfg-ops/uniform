@@ -124,20 +124,15 @@ export const QuotationDetailsView: React.FC<QuotationDetailsViewProps> = ({
       // Compile the HTML PDF preview at the time of approval
       const compiledHtml = compileQuotationHTML(fullQuote, fabricsList, companySettings);
 
-      const payload = {
-        ...fullQuote,
-        status: 'Approved',
-        pdf_html: compiledHtml
-      };
-
-      await api.put(`/quotations/${quote.id}`, payload);
-      toast.success('Quotation approved & proposal PDF stored successfully!', { id: loadingToast });
+      // Ops approval (Pending Ops Approval -> Ops Approved); the salesperson then sends it to the customer
+      await api.put(`/quotations/${quote.id}/ops-approve`, { pdf_html: compiledHtml });
+      toast.success('Ops approved. The salesperson can now send it to the customer.', { id: loadingToast });
       fetchQuotations();
 
       // Update selected quotation view
       setSelectedQuotation({
         ...selectedQuotation,
-        status: 'Approved',
+        status: 'Ops Approved',
         pdf_html: compiledHtml
       });
     } catch (err: any) {
@@ -145,27 +140,19 @@ export const QuotationDetailsView: React.FC<QuotationDetailsViewProps> = ({
     }
   };
 
+  // Ops return: back to the salesperson as Draft (Returned by Ops) with a reason
   const handleRejectQuotation = async (quote: Quotation) => {
-    const loadingToast = toast.loading('Rejecting quotation...');
+    const reason = window.prompt(`Return ${quote.quotation_no} to the salesperson. What needs to change?`);
+    if (reason === null) return;
+    if (!reason.trim()) { toast.error('A reason is required'); return; }
+    const loadingToast = toast.loading('Returning quotation...');
     try {
-      const res = await api.get(`/quotations/${quote.id}`);
-      const fullQuote = res.data;
-
-      const payload = {
-        ...fullQuote,
-        status: 'Rejected'
-      };
-
-      await api.put(`/quotations/${quote.id}`, payload);
-      toast.success('Quotation marked as Rejected!', { id: loadingToast });
+      await api.put(`/quotations/${quote.id}/ops-return`, { reason: reason.trim() });
+      toast.success('Returned to the salesperson for revision', { id: loadingToast });
       fetchQuotations();
-
-      setSelectedQuotation({
-        ...selectedQuotation,
-        status: 'Rejected'
-      });
+      setSelectedQuotation({ ...selectedQuotation, status: 'Draft' });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to reject quotation', { id: loadingToast });
+      toast.error(err.response?.data?.error || 'Failed to return quotation', { id: loadingToast });
     }
   };
 
@@ -429,7 +416,7 @@ Forma Apparels Co.`;
                 Deep Edit Quotation
               </Button>
 
-              {selectedQuotation.status !== 'Approved' && (
+              {selectedQuotation.status === 'Pending Ops Approval' && (
                 <Button
                   variant="secondary"
                   onClick={() => handleApproveQuotation(selectedQuotation)}
@@ -440,14 +427,14 @@ Forma Apparels Co.`;
                 </Button>
               )}
 
-              {selectedQuotation.status !== 'Rejected' && (
+              {selectedQuotation.status === 'Pending Ops Approval' && (
                 <Button
                   variant="outline"
                   onClick={() => handleRejectQuotation(selectedQuotation)}
                   className="flex items-center gap-1.5 border-2 border-rose-500 hover:bg-rose-50 text-rose-600 rounded-xl py-2 text-xs font-black uppercase tracking-widest bg-white"
                 >
                   <XCircle size={14} />
-                  Reject Quotation
+                  Return to Salesperson
                 </Button>
               )}
             </>

@@ -152,6 +152,8 @@ export default function OrderPlacementPage() {
   const [customNotifyMsg, setCustomNotifyMsg] = useState('');
   const [isSendingNotify, setIsSendingNotify] = useState(false);
   const [hasCopiedLink, setHasCopiedLink] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifyShareUrl, setNotifyShareUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -163,13 +165,24 @@ export default function OrderPlacementPage() {
     fetchData();
   }, []);
 
+  // HQ Accept / Hold / Reject: only designated HQ staff (approve_hq_deals), not Branch Managers
   const isCorporateApprover =
     currentUser?.role === 'Admin' ||
     currentUser?.role === 'Super Admin' ||
     currentUser?.role === 'SuperAdmin' ||
-    currentUser?.role === 'Corporate' ||
-    currentUser?.permissions?.includes('corporate_approver') ||
-    currentUser?.permissions?.includes('manage_system');
+    currentUser?.permissions?.includes('all') ||
+    currentUser?.permissions?.includes('approve_hq_deals');
+
+  // HQ approval staff (not Admin, no branch): only the HQ queue (sent for HQ approval)
+  const isHqApproverOnly =
+    !['Admin', 'Super Admin', 'SuperAdmin'].includes(currentUser?.role || '') &&
+    !currentUser?.permissions?.includes('all') &&
+    Boolean(currentUser?.permissions?.includes('approve_hq_deals')) &&
+    !currentUser?.branchId;
+
+  useEffect(() => {
+    if (isHqApproverOnly) setActiveTab('pending');
+  }, [isHqApproverOnly]);
 
   const isBranchRole =
     currentUser?.role === 'Branch Manager' ||
@@ -293,6 +306,8 @@ export default function OrderPlacementPage() {
     setNotifyChannel('email');
     setCustomNotifyMsg('Your Sales Order has been confirmed and submitted to Corporate HQ for processing.');
     setHasCopiedLink(false);
+    setNotifyEmail((order as any).quotations?.organizations?.contact_email || '');
+    setNotifyShareUrl(null);
     setIsNotifyModalOpen(true);
   };
 
@@ -300,14 +315,26 @@ export default function OrderPlacementPage() {
     if (!notifyOrder) return;
     setIsSendingNotify(true);
     try {
+      if (notifyChannel === 'email' && !notifyEmail.trim()) {
+        toast.error('Enter the customer email address');
+        return;
+      }
       const res = await api.post(`/orders/${notifyOrder.id}/notify-customer`, {
         channel: notifyChannel,
-        custom_message: customNotifyMsg
+        custom_message: customNotifyMsg,
+        email: notifyChannel === 'email' ? notifyEmail.trim() : undefined
       });
-      toast.success(res.data.message || 'Customer notified successfully!');
-      setIsNotifyModalOpen(false);
+      if (notifyChannel === 'email') {
+        toast.success(res.data.message || 'Email sent');
+        setIsNotifyModalOpen(false);
+      } else {
+        // Manual share: show the link to copy; nothing was sent
+        setNotifyShareUrl(res.data.share_url || null);
+        if (res.data.share_url) toast.success('Link ready to copy');
+        else toast.info(res.data.message || 'No customer link available yet');
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to dispatch customer notification');
+      toast.error(err.response?.data?.error || (notifyChannel === 'email' ? 'Email could not be sent' : 'Could not create the link'));
     } finally {
       setIsSendingNotify(false);
     }
@@ -891,6 +918,7 @@ export default function OrderPlacementPage() {
 
       {/* Tab Selectors with Sleek Pill Design */}
       <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
+        {!isHqApproverOnly && (
         <button
           onClick={() => setActiveTab('awaiting')}
           className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
@@ -906,7 +934,9 @@ export default function OrderPlacementPage() {
             {awaitingOrders.length}
           </span>
         </button>
+        )}
 
+        {!isHqApproverOnly && (
         <button
           onClick={() => setActiveTab('held')}
           className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
@@ -922,6 +952,7 @@ export default function OrderPlacementPage() {
             {heldOrders.length}
           </span>
         </button>
+        )}
 
         <button
           onClick={() => setActiveTab('pending')}
@@ -939,6 +970,7 @@ export default function OrderPlacementPage() {
           </span>
         </button>
 
+        {!isHqApproverOnly && (
         <button
           onClick={() => setActiveTab('active')}
           className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
@@ -954,7 +986,9 @@ export default function OrderPlacementPage() {
             {activeProductionOrders.length}
           </span>
         </button>
+        )}
 
+        {!isHqApproverOnly && (
         <button
           onClick={() => setActiveTab('all')}
           className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
@@ -970,6 +1004,7 @@ export default function OrderPlacementPage() {
             {orders.length}
           </span>
         </button>
+        )}
       </div>
 
       {/* Data Table */}
@@ -1572,7 +1607,7 @@ export default function OrderPlacementPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500 font-medium">Client Contact:</span>
-                <span className="font-medium text-zinc-700">{notifyOrder.quotations?.organizations?.email || 'customer@client.com'}</span>
+                <span className="font-medium text-zinc-700">{(notifyOrder as any).quotations?.organizations?.contact_email || 'No email on file'}</span>
               </div>
             </div>
 
@@ -1609,6 +1644,35 @@ export default function OrderPlacementPage() {
               </div>
             </div>
 
+            {notifyChannel === 'email' && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-700">Send To (customer email)</label>
+                <input
+                  type="email"
+                  value={notifyEmail}
+                  onChange={e => setNotifyEmail(e.target.value)}
+                  placeholder="customer@company.com"
+                  className="w-full px-3 py-2 border rounded-xl text-xs text-zinc-800 focus:outline-none focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/15"
+                />
+              </div>
+            )}
+
+            {notifyChannel === 'link' && notifyShareUrl && (
+              <div className="flex items-center gap-2 p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl">
+                <span className="flex-1 min-w-0 truncate font-mono text-[10px] text-zinc-700" title={notifyShareUrl}>{notifyShareUrl}</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(notifyShareUrl); setHasCopiedLink(true); toast.success('Link copied'); }
+                    catch { toast.error('Copy failed: select the link and copy it'); }
+                  }}
+                  className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white cursor-pointer"
+                >
+                  {hasCopiedLink ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            )}
+
             {/* Custom Remarks */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-zinc-700">Notification Message</label>
@@ -1637,7 +1701,7 @@ export default function OrderPlacementPage() {
                 className="flex-1 rounded-xl h-11 bg-[#C82A2B] hover:bg-[#A81D1E] text-xs font-bold flex items-center justify-center gap-2 text-white shadow-md shadow-[#C82A2B]/20 cursor-pointer active:scale-95"
               >
                 <Send size={14} />
-                Confirm &amp; Log Notice
+                {notifyChannel === 'email' ? 'Send Email' : 'Get Link'}
               </Button>
             </div>
           </Card>

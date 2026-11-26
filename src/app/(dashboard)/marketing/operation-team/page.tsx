@@ -40,7 +40,7 @@ export default function OperationTeamPage() {
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
 
   const [deleteCandidate, setDeleteCandidate] = useState<Quotation | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [filterStatus, setFilterStatus] = useState<string>('Pending Ops Approval');
   const [messageCandidate, setMessageCandidate] = useState<Quotation | null>(null);
 
   const [companySettings, setCompanySettings] = useState<any>({
@@ -148,37 +148,38 @@ export default function OperationTeamPage() {
     }
   };
 
-  // Immediate Approve from main list table
+  // Ops approval: Pending Ops Approval -> Ops Approved (proposal PDF saved); the salesperson then sends it
   const handleApproveQuotation = async (quote: Quotation) => {
     const loadingToast = toast.loading('Approving quotation & compiling proposal...');
     try {
       const res = await api.get(`/quotations/${quote.id}`);
-      const fullQuote = res.data;
-
-      // Compile the HTML PDF preview at the time of approval
-      const compiledHtml = compileQuotationHTML(fullQuote, fabricsList, companySettings);
-
-      const payload = {
-        ...fullQuote,
-        status: 'Approved',
-        pdf_html: compiledHtml
-      };
-
-      await api.put(`/quotations/${quote.id}`, payload);
-      toast.success('Quotation approved & proposal PDF stored successfully!', { id: loadingToast });
+      const compiledHtml = compileQuotationHTML(res.data, fabricsList, companySettings);
+      await api.put(`/quotations/${quote.id}/ops-approve`, { pdf_html: compiledHtml });
+      toast.success('Ops approved. The salesperson can now send it to the customer.', { id: loadingToast });
       fetchQuotations();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve quotation', { id: loadingToast });
     }
   };
 
-  // Filtered quotations list (Only displays quotations that have passed Branch Manager approval)
-  const isEligibleForOps = (q: Quotation) => {
-    if (q.status === 'Draft' || q.status === 'Pending Branch Approval') {
-      return false;
+  // Ops return: back to the salesperson as Draft (Returned by Ops) with a reason
+  const handleReturnQuotation = async (quote: Quotation) => {
+    const reason = window.prompt(`Return ${quote.quotation_no} to the salesperson. What needs to change?`);
+    if (reason === null) return;
+    if (!reason.trim()) { toast.error('A reason is required'); return; }
+    const loadingToast = toast.loading('Returning quotation...');
+    try {
+      await api.put(`/quotations/${quote.id}/ops-return`, { reason: reason.trim() });
+      toast.success('Returned to the salesperson for revision', { id: loadingToast });
+      fetchQuotations();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to return quotation', { id: loadingToast });
     }
-    return q.status === 'Pending' || q.status === 'Approved' || q.status === 'Rejected' || q.metrics_summary?.submitted_to_ops;
   };
+
+  // Filtered quotations list (Only displays quotations that have passed Branch Manager approval)
+  const OPS_STATUSES = ['Pending Ops Approval', 'Ops Approved', 'Pending Customer Approval', 'Held', 'Approved', 'Revision Requested', 'Rejected'];
+  const isEligibleForOps = (q: Quotation) => OPS_STATUSES.includes(q.status || '') && (q.status !== 'Approved' || Boolean(q.metrics_summary?.ops_approved));
 
   const filteredQuotations = useMemo(() => {
     if (filterStatus === 'All') {
@@ -192,7 +193,7 @@ export default function OperationTeamPage() {
   const stats = useMemo(() => {
     const submittedQuotes = quotations.filter(isEligibleForOps);
     const total = submittedQuotes.length;
-    const pending = quotations.filter(q => q.status === 'Pending' && isEligibleForOps(q)).length;
+    const pending = quotations.filter(q => q.status === 'Pending Ops Approval').length;
     const approvedVal = quotations
       .filter(q => q.status === 'Approved')
       .reduce((acc, q) => acc + Number(q.final_quote_value), 0);
@@ -290,6 +291,10 @@ export default function OperationTeamPage() {
       accessor: (q) => {
         const styles: Record<string, string> = {
           Approved: 'bg-emerald-50 text-emerald-600 border-emerald-200/50',
+          'Pending Ops Approval': 'bg-orange-50 text-orange-700 border-orange-200/60',
+          'Ops Approved': 'bg-sky-50 text-sky-700 border-sky-200/60',
+          'Pending Customer Approval': 'bg-violet-50 text-violet-700 border-violet-200/60',
+          Held: 'bg-amber-50 text-amber-600 border-amber-200/50',
           Pending: 'bg-amber-50 text-amber-600 border-amber-200/50',
           Draft: 'bg-zinc-100 text-zinc-500 border-zinc-200',
           Rejected: 'bg-rose-50 text-rose-600 border-rose-200/50'
@@ -308,39 +313,30 @@ export default function OperationTeamPage() {
       accessor: (q) => (
         <div className="flex items-center justify-end gap-1.5">
 
-          {q.status !== 'Approved' && (
-            <Button
-              variant="outline"
-              size="h-auto"
-              onClick={() => handleApproveQuotation(q)}
-              className="text-emerald-600 hover:bg-emerald-50 rounded-lg h-7 w-7 p-0 flex items-center justify-center border border-emerald-200/60 shadow-sm"
-              title="Approve immediately"
-            >
-              <Check size={13} />
-            </Button>
+          {q.status === 'Pending Ops Approval' ? (
+            <>
+              <Button
+                variant="outline"
+                size="h-auto"
+                onClick={() => handleApproveQuotation(q)}
+                className="text-emerald-600 hover:bg-emerald-50 rounded-lg h-7 px-2 flex items-center justify-center gap-1 border border-emerald-200/60 shadow-sm text-[10px] font-black uppercase"
+                title="Approve (Ops). The salesperson then sends it to the customer"
+              >
+                <Check size={13} /> Approve
+              </Button>
+              <Button
+                variant="outline"
+                size="h-auto"
+                onClick={() => handleReturnQuotation(q)}
+                className="text-[#C82A2B] hover:bg-[#FFF1F1] rounded-lg h-7 px-2 flex items-center justify-center gap-1 border border-[#C82A2B]/30 shadow-sm text-[10px] font-black uppercase"
+                title="Return to the salesperson with a note"
+              >
+                Return
+              </Button>
+            </>
+          ) : (
+            <span className="text-[10px] font-bold text-zinc-400 italic">{q.status === 'Ops Approved' ? 'With salesperson' : '—'}</span>
           )}
-
-          {q.status === 'Approved' && (
-            <Button
-              variant="outline"
-              size="h-auto"
-              onClick={() => setMessageCandidate(q)}
-              className="text-[#2d8d9b] hover:bg-[#2d8d9b]/10 rounded-lg h-7 w-7 p-0 flex items-center justify-center border border-[#2d8d9b]/20 shadow-sm"
-              title="Send proposal to customer"
-            >
-              <Mail size={13} />
-            </Button>
-          )}
-
-          <Button
-            variant="outline"
-            size="h-auto"
-            onClick={() => setDeleteCandidate(q)}
-            className="text-rose-600 hover:bg-rose-50 rounded-lg h-7 w-7 p-0 flex items-center justify-center border border-rose-200/60 shadow-sm"
-            title="Delete quotation"
-          >
-            <Trash2 size={13} />
-          </Button>
         </div>
       )
     }
@@ -410,7 +406,7 @@ export default function OperationTeamPage() {
 
           {/* 3. FILTER TABS WITH SLEEK PILL DESIGN */}
           <div className="flex bg-zinc-100/80 p-1.5 rounded-2xl border border-zinc-200/50 flex-wrap gap-1 w-fit">
-            {['All', 'Draft', 'Pending', 'Approved', 'Rejected'].map(st => {
+            {['Pending Ops Approval', 'Ops Approved', 'Pending Customer Approval', 'Approved', 'All'].map(st => {
               const isActive = filterStatus === st;
               return (
                 <button

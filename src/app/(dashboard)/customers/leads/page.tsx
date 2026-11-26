@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
+import { showLoginEmailResult } from '@/lib/receiptToast';
 import { ContactPhoneLink } from '@/components/ui/ContactPhoneLink';
 import { CustomerRiskFavBadge } from '@/components/ui/CustomerRiskFavBadge';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -2848,6 +2849,14 @@ interface LeadViewModalProps {
   initialTab?: string; // overrides the stage tab picked from lead.status
 }
 
+// Old logs stored these placeholders when the acting user's name was unknown; never show them as a person
+const PLACEHOLDER_AUTHORS = new Set([
+  'sales representative', 'commercial team', 'finance staff', 'staff member', 'operations team',
+  'branch user', 'marketing staff', 'corporate approver', 'production lead', 'branch manager', 'staff', 'user'
+]);
+const realAuthor = (...names: any[]): string | null =>
+  (names.find(n => n && !PLACEHOLDER_AUTHORS.has(String(n).trim().toLowerCase())) as string) || null;
+
 export const LeadViewModal: React.FC<LeadViewModalProps> = ({
   isOpen,
   onClose,
@@ -2995,11 +3004,11 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
         activity_type: act.activity_type || act.response_type || 'Note',
         response_type: act.response_type || act.response || act.outcome,
         remarks: act.remarks || act.notes || act.text || '',
-        staff_name: act.staff_name || act.performed_by_name || act.author?.name || 'Staff Member',
-        staff_employee_id: act.staff_employee_id || act.performed_by_emp_id || act.author?.employee_id || 'STAFF',
-        staff_designation: act.staff_designation || act.performed_by_designation || act.author?.designation || 'Staff',
-        staff_department: act.staff_department || act.performed_by_dept || act.author?.department || 'Operations',
-        staff_branch: act.staff_branch || act.performed_by_branch || act.author?.branch || act.author?.branch_name || act.metadata?.branch_name || (act.branches?.name) || (lead as any).branches?.name || (lead as any).branch_name || null,
+        staff_name: realAuthor(act.staff_name, act.performed_by_name, act.author?.name) || 'Not recorded',
+        staff_employee_id: [act.staff_employee_id, act.performed_by_emp_id, act.author?.employee_id].find(v => v && v !== 'STAFF') || '',
+        staff_designation: act.staff_designation || act.performed_by_designation || act.author?.designation || '',
+        staff_department: act.staff_department || act.performed_by_dept || act.author?.department || '',
+        staff_branch: act.staff_branch || act.performed_by_branch || act.author?.branch || act.author?.branch_name || act.metadata?.branch_name || (act.branches?.name) || null,
         created_at: act.created_at || (act.date ? `${act.date} ${act.time || ''}` : lead.updated_at)
       }));
 
@@ -3043,11 +3052,11 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             activity_type: r.activity_type || r.response_type || 'Note',
             response_type: r.response_type || r.response || r.outcome,
             remarks: r.text || r.remarks || r.notes || '',
-            staff_name: r.author?.name || 'Staff Member',
-            staff_employee_id: r.author?.employee_id || 'STAFF',
-            staff_designation: r.author?.designation || 'Staff',
-            staff_department: r.author?.department || 'Operations',
-            staff_branch: r.author?.branch || r.author?.branch_name || r.metadata?.branch_name || (lead as any).branches?.name || (lead as any).branch_name || null,
+            staff_name: realAuthor(r.author?.name) || 'Not recorded',
+            staff_employee_id: r.author?.employee_id && r.author.employee_id !== 'STAFF' ? r.author.employee_id : '',
+            staff_designation: r.author?.designation || '',
+            staff_department: r.author?.department || '',
+            staff_branch: r.author?.branch || r.author?.branch_name || r.metadata?.branch_name || null,
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
@@ -3072,6 +3081,14 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
           const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${qIdx})`;
           const quoteNo = q.quotation_no || q.quotation_number || `QT-${q.id}`;
           const qVal = Number(q.final_quote_value || q.total_amount || 0);
+          // The "generated" log for THIS quote: the first quote number it mentions is this one
+          // (a revision's log also mentions its original later, e.g. "Original Quotation: #QT-1")
+          const genLog: any = mapped.find(m => {
+            const text = String(m.remarks || '');
+            const first = text.match(/#([A-Za-z0-9][\w/-]*[A-Za-z0-9])/);
+            return !!first && first[1] === quoteNo && /generated|dispatched/i.test(text);
+          });
+          const ms = q.metrics_summary || {};
 
           // One timeline entry per quotation, rendered by QuoteLogCard (items + nested follow-ups)
           quoteActs.push({
@@ -3088,11 +3105,11 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             version_label: verLabel,
             quote_amount: qVal,
             remarks: `Quotation #${quoteNo} (${verLabel}) generated for ₹${qVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}${q.metrics_summary?.bm_rejection_reason ? ` | Revision Notes: ${q.metrics_summary.bm_rejection_reason}` : ''}`,
-            staff_name: q.sales_person?.name || q.created_by_name || 'Commercial Team',
-            staff_employee_id: q.sales_person?.employee_id || 'SALES',
-            staff_designation: 'Sales & Marketing',
-            staff_department: 'Commercial',
-            staff_branch: q.branches?.name || (lead as any).branches?.name || (lead as any).branch_name || null,
+            staff_name: realAuthor(ms.created_by_name, genLog?.staff_name) || 'Not recorded',
+            staff_employee_id: genLog?.staff_employee_id || '',
+            staff_designation: ms.created_by_designation || genLog?.staff_designation || '',
+            staff_department: ms.created_by_department || genLog?.staff_department || '',
+            staff_branch: genLog?.staff_branch || q.branches?.name || null,
             created_at: q.created_at || lead.updated_at
           });
           // Quote follow-ups (metrics_summary.followups) are shown inside the QuoteLogCard
@@ -3116,10 +3133,10 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             activity_type: 'Deal Milestone',
             response_type: 'deal_won',
             remarks: 'Commercial Deal Active: Initial payment recorded. Deal confirmed and in commercial order pipeline.',
-            staff_name: lead.employees?.full_name || 'Commercial Team',
-            staff_employee_id: lead.employees?.employee_id || 'SALES',
-            staff_designation: 'Commercial Manager',
-            staff_department: 'Sales & Marketing',
+            staff_name: 'Not recorded',
+            staff_employee_id: '',
+            staff_designation: '',
+            staff_department: '',
             staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.updated_at || lead.created_at
           }];
@@ -3131,10 +3148,10 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             activity_type: 'Order Conversion',
             response_type: 'so_converted',
             remarks: 'Sales Order Converted: Commercial deal successfully advanced to production manufacturing order queue.',
-            staff_name: lead.employees?.full_name || 'Production Lead',
-            staff_employee_id: lead.employees?.employee_id || 'OPS',
-            staff_designation: 'Production Executive',
-            staff_department: 'Operations',
+            staff_name: 'Not recorded',
+            staff_employee_id: '',
+            staff_designation: '',
+            staff_department: '',
             staff_branch: (lead as any).branches?.name || (lead as any).branch_name || null,
             created_at: lead.updated_at || lead.created_at
           }];
@@ -3206,11 +3223,11 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
             activity_type: r.activity_type || r.response_type || 'Note',
             response_type: r.response_type || r.response || r.outcome,
             remarks: r.text || r.remarks || r.notes || '',
-            staff_name: r.author?.name || 'Staff Member',
-            staff_employee_id: r.author?.employee_id || 'STAFF',
-            staff_designation: r.author?.designation || 'Staff',
-            staff_department: r.author?.department || 'Operations',
-            staff_branch: r.author?.branch || r.author?.branch_name || r.metadata?.branch_name || (lead as any).branches?.name || (lead as any).branch_name || null,
+            staff_name: realAuthor(r.author?.name) || 'Not recorded',
+            staff_employee_id: r.author?.employee_id && r.author.employee_id !== 'STAFF' ? r.author.employee_id : '',
+            staff_designation: r.author?.designation || '',
+            staff_department: r.author?.department || '',
+            staff_branch: r.author?.branch || r.author?.branch_name || r.metadata?.branch_name || null,
             created_at: r.date ? `${r.date} ${r.time || ''}` : lead.updated_at
           }))
           .reverse();
@@ -3963,7 +3980,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                         iconColor = 'bg-indigo-50 text-indigo-600 border-indigo-200';
                       }
 
-                      const staffName = act.staff_name || 'Staff Member';
+                      const staffName = act.staff_name || 'Not recorded';
                       const initials = staffName.split(' ').map((n: string) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'ST';
 
                       let timeString = '';
@@ -4109,10 +4126,12 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                                   )}
                                 </div>
 
+                                {act.staff_branch && (
                                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200/80 text-[10px] font-semibold text-zinc-700 shrink-0">
                                   <Building2 size={11} className="text-[#9E1B1D] shrink-0" />
-                                  <span>{act.staff_branch || (lead as any).branches?.name || (lead as any).branch_name || 'Main Branch'}</span>
+                                  <span>{act.staff_branch}</span>
                                 </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -4845,6 +4864,7 @@ export const MeetingOutcomeModal: React.FC<MeetingOutcomeModalProps> = ({
 
       toast.success(res.data?.message || 'Meeting outcome recorded!', { id: toastId });
 
+      showLoginEmailResult(res.data?.credentials);
       let creds: any = null;
       if (res.data?.credentials && res.data?.organization) {
         creds = {

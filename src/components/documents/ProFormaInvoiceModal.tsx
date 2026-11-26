@@ -77,6 +77,7 @@ const DEFAULT_COMPANY = {
 };
 
 import { printInvoiceElement } from '@/lib/printUtils';
+import EmailDocumentButton from './EmailDocumentButton';
 
 export default function ProFormaInvoiceModal({ 
   isOpen, 
@@ -722,6 +723,17 @@ export default function ProFormaInvoiceModal({
             Official {company.company_name || 'Forma Apparels'} Pro Forma Invoice Template
           </div>
           <div className="flex items-center gap-3">
+            <EmailDocumentButton
+              docType="proforma_invoice"
+              docNo={data.pi_no}
+              elementId="proforma-invoice-print-area"
+              filename={`Pro_Forma_Invoice_${data.pi_no}`}
+              defaultEmail={(customer as any).contact_email || customer.email || data.raw?.organizations?.contact_email || null}
+              organizationId={data.raw?.organization_id || data.raw?.organizations?.id || null}
+              entityId={data.id ?? null}
+              amount={data.grand_total ?? data.amount ?? null}
+              dueDate={data.valid_until ? new Date(data.valid_until).toLocaleDateString('en-IN') : null}
+            />
             <Button
               onClick={handlePrint}
               className="h-10 px-5 rounded-xl bg-[#991b1b] hover:bg-[#7f1d1d] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-sm"

@@ -23,7 +23,8 @@ import {
   ChevronUp,
   FileText,
   Check,
-  Send
+  Send,
+  FileWarning
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -46,6 +47,7 @@ interface QuotationListProps {
   onStartRevision?: (q: Quotation) => void;
   onDeleteCandidate: (q: Quotation) => void;
   onSubmitToOps?: (q: Quotation) => void;
+  onSendToCustomer?: (q: Quotation, mode: 'final' | 'draft') => void; // final = Ops approved, draft = watermarked NOT APPROVED
   onSubmitToBm?: (q: Quotation) => void;
   onBmApprove?: (q: Quotation) => void;
   onBmReject?: (q: Quotation) => void;
@@ -66,6 +68,7 @@ export default function QuotationList({
   onStartRevision,
   onDeleteCandidate,
   onSubmitToOps,
+  onSendToCustomer,
   onSubmitToBm,
   onBmApprove,
   onBmReject,
@@ -83,7 +86,7 @@ export default function QuotationList({
   const canApproveAsBm = isAdmin || isBranchManager || userPermissions.includes('submit_quotations_ops') || userPermissions.includes('corporate_approver');
   const canSubmitToBm = isAdmin || isBranchManager || userPermissions.includes('submit_quotations_bm') || userPermissions.includes('manage_quotations') || userPermissions.includes('branch_sales');
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'bm_approved' | 'approved' | 'rejected' | 'held'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'drafts' | 'pending_bm' | 'bm_approved' | 'pending_ops' | 'ops_approved' | 'with_customer' | 'approved' | 'rejected' | 'held' | 'revised'>('all');
   const [followUpQuotation, setFollowUpQuotation] = useState<Quotation | null>(null);
   const [advancePaymentQuotation, setAdvancePaymentQuotation] = useState<Quotation | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('ALL');
@@ -144,12 +147,21 @@ export default function QuotationList({
           return q.status === 'Pending Branch Approval';
         case 'bm_approved':
           return q.status === 'BM Approved';
+        case 'pending_ops':
+          return q.status === 'Pending Ops Approval';
+        case 'ops_approved':
+          return q.status === 'Ops Approved';
+        case 'with_customer':
+          return q.status === 'Pending Customer Approval';
         case 'approved':
           return q.status === 'Approved';
         case 'rejected':
           return q.status === 'Rejected';
         case 'held':
           return q.status === 'Held';
+        case 'revised':
+          // Superseded originals, quotes the customer asked to revise, and revision copies
+          return q.status === 'Revised' || q.status === 'Revision Requested' || Boolean(q.metrics_summary?.is_revision || q.metrics_summary?.revised_from_id);
         default:
           return true;
       }
@@ -163,9 +175,13 @@ export default function QuotationList({
       drafts: quotations.filter(q => q.status === 'Draft').length,
       pending_bm: quotations.filter(q => q.status === 'Pending Branch Approval').length,
       bm_approved: quotations.filter(q => q.status === 'BM Approved').length,
+      pending_ops: quotations.filter(q => q.status === 'Pending Ops Approval').length,
+      ops_approved: quotations.filter(q => q.status === 'Ops Approved').length,
+      with_customer: quotations.filter(q => q.status === 'Pending Customer Approval').length,
       approved: quotations.filter(q => q.status === 'Approved').length,
       held: quotations.filter(q => q.status === 'Held').length,
       rejected: quotations.filter(q => q.status === 'Rejected').length,
+      revised: quotations.filter(q => q.status === 'Revised' || q.status === 'Revision Requested' || Boolean(q.metrics_summary?.is_revision || q.metrics_summary?.revised_from_id)).length,
     };
   }, [quotations]);
 
@@ -187,6 +203,9 @@ export default function QuotationList({
         };
       }
     }
+    // No relationship manager on the customer: the salesperson who created the quote
+    const creator = (q as any).metrics_summary?.created_by_name;
+    if (creator) return { name: creator, code: '' };
     return null;
   };
 
@@ -408,10 +427,10 @@ export default function QuotationList({
           badge = isRevision ? (
             <span 
               className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 flex items-center justify-center gap-1 shadow-2xs"
-              title={q.metrics_summary?.bm_rejection_reason ? `Feedback: ${q.metrics_summary.bm_rejection_reason}` : 'Revision requested'}
+              title={(q.metrics_summary?.returned_by === 'ops' ? q.metrics_summary?.ops_return_reason : q.metrics_summary?.bm_rejection_reason) ? `Feedback: ${q.metrics_summary?.returned_by === 'ops' ? q.metrics_summary?.ops_return_reason : q.metrics_summary?.bm_rejection_reason}` : 'Returned for revision'}
             >
               <AlertTriangle size={10} className="shrink-0 text-rose-600" />
-              Revision Needed
+              {q.metrics_summary?.returned_by === 'ops' ? 'Returned by Ops' : 'Returned by BM'}
             </span>
           ) : (
             <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-zinc-100 text-zinc-700 border-zinc-200 shadow-2xs">
@@ -430,6 +449,27 @@ export default function QuotationList({
             <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center justify-center gap-1 shadow-2xs">
               <CheckCircle2 size={10} className="shrink-0 text-indigo-600" />
               BM Approved
+            </span>
+          );
+        } else if (q.status === 'Pending Ops Approval') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-orange-50 text-orange-800 border-orange-300 flex items-center justify-center gap-1.5 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse shrink-0" />
+              Waiting for Ops
+            </span>
+          );
+        } else if (q.status === 'Ops Approved') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-sky-50 text-sky-700 border-sky-200 flex items-center justify-center gap-1 shadow-2xs">
+              <CheckCircle2 size={10} className="shrink-0 text-sky-600" />
+              Ops Approved
+            </span>
+          );
+        } else if (q.status === 'Pending Customer Approval') {
+          badge = (
+            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-violet-50 text-violet-700 border-violet-200 flex items-center justify-center gap-1 shadow-2xs" title={q.metrics_summary?.sent_to_customer_at ? `Sent ${formatDate(q.metrics_summary.sent_to_customer_at)}` : undefined}>
+              <Clock size={10} className="shrink-0 text-violet-600" />
+              With Customer
             </span>
           );
         } else if (q.status === 'Approved') {
@@ -490,12 +530,38 @@ export default function QuotationList({
       className: 'w-[155px] min-w-[145px] whitespace-nowrap text-center align-middle',
       sortable: false,
       accessor: (q) => {
+        // Before BM + Ops approval: share a watermarked draft, or log the customer's reply as a manual note
+        const draftTools = (
+          <span className="inline-flex items-center gap-1">
+            {onSendToCustomer && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onSendToCustomer(q, 'draft'); }}
+                className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white hover:bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/30 cursor-pointer"
+                title="Send draft to customer (watermarked NOT APPROVED)"
+                aria-label="Send draft to customer"
+              >
+                <FileWarning size={11} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setFollowUpQuotation(q); }}
+              className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white hover:bg-zinc-100 text-zinc-600 border border-zinc-200 cursor-pointer"
+              title="Log customer response (manual note, status unchanged until approved)"
+              aria-label="Log customer response"
+            >
+              <MessageSquare size={11} />
+            </button>
+          </span>
+        );
+
         const isBmForThisQuote = isAdmin || !currentUser?.branchId || String(q.branch_id || (q.organizations as any)?.branch_id || '') === String(currentUser.branchId);
         const canDirectApprove = canApproveAsBm && isBmForThisQuote;
 
         if (q.status === 'Draft') {
           return canSubmitToBm && onSubmitToBm ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-1.5">
               <button
                 type="button"
                 onClick={(e) => {
@@ -508,6 +574,7 @@ export default function QuotationList({
                 <Send size={10} />
                 <span>Send to BM</span>
               </button>
+              {draftTools}
             </div>
           ) : (
             <div className="flex items-center justify-center">
@@ -560,25 +627,67 @@ export default function QuotationList({
             </div>
           ) : (
             <div className="text-center">
-              <span className="text-[10px] font-bold text-zinc-400 italic">Waiting for BM</span>
+              <span className="text-[10px] font-bold text-zinc-400 italic mr-1.5">Waiting for BM</span>
+              {draftTools}
             </div>
           );
         }
 
         if (q.status === 'BM Approved') {
           return (
+            <div className="flex items-center justify-center gap-1.5">
+              {onSubmitToOps && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onSubmitToOps(q); }}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  title="BM approved. Send to the Ops team for approval"
+                >
+                  <Send size={10} />
+                  <span>Send to Ops</span>
+                </button>
+              )}
+              {draftTools}
+            </div>
+          );
+        }
+
+        if (q.status === 'Pending Ops Approval') {
+          return (
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] font-bold text-zinc-400 italic mr-1.5">With Ops</span>
+              {draftTools}
+            </div>
+          );
+        }
+
+        if (q.status === 'Ops Approved') {
+          return onSendToCustomer ? (
             <div className="flex items-center justify-center">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFollowUpQuotation(q);
-                }}
+                onClick={(e) => { e.stopPropagation(); onSendToCustomer(q, 'final'); }}
                 className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
-                title="Log customer decision (Approved, Held, Rejected)"
+                title="Ops approved. Send the proposal to the customer"
+              >
+                <Send size={10} />
+                <span>Send to Customer</span>
+              </button>
+            </div>
+          ) : null;
+        }
+
+        if (q.status === 'Pending Customer Approval') {
+          return (
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setFollowUpQuotation(q); }}
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
+                title="Log the customer's response (Approved, Held, Revision, Rejected)"
               >
                 <MessageSquare size={10} />
-                <span>Log Decision</span>
+                <span>Log Response</span>
               </button>
             </div>
           );
@@ -643,10 +752,10 @@ export default function QuotationList({
                   setFollowUpQuotation(q);
                 }}
                 className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all cursor-pointer mx-auto"
-                title="Log customer decision (Approved, Held, Rejected)"
+                title="Log the customer's response (Approved, Held, Revision, Rejected)"
               >
                 <MessageSquare size={10} />
-                <span>Log Decision</span>
+                <span>Log Response</span>
               </button>
             </div>
           );
@@ -823,10 +932,14 @@ export default function QuotationList({
               options={[
                 { label: 'Drafts Only', value: 'drafts', badge: counts.drafts },
                 { label: "Waiting for BM's Approval", value: 'pending_bm', badge: counts.pending_bm },
-                { label: 'BM Approved', value: 'bm_approved', badge: counts.bm_approved },
+                { label: 'BM Approved (send to Ops)', value: 'bm_approved', badge: counts.bm_approved },
+                { label: 'Waiting for Ops', value: 'pending_ops', badge: counts.pending_ops },
+                { label: 'Ops Approved (send to customer)', value: 'ops_approved', badge: counts.ops_approved },
+                { label: 'Pending Customer Approval', value: 'with_customer', badge: counts.with_customer },
                 { label: 'Customer Approved Quotes', value: 'approved', badge: counts.approved },
                 { label: 'Held Quotes', value: 'held', badge: counts.held },
-                { label: 'Rejected Quotes', value: 'rejected', badge: counts.rejected }
+                { label: 'Rejected Quotes', value: 'rejected', badge: counts.rejected },
+                { label: 'Revised / Revision Requested', value: 'revised', badge: counts.revised }
               ]}
               maxWidth="max-w-[240px]"
             />
@@ -989,47 +1102,7 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
       toast.success(res.data?.message || `Quotation marked as ${targetStatus}!`, { id: toastId });
       onSuccess();
     } catch (err: any) {
-      console.warn('Direct quotation follow-up endpoint error, applying safe fallback...', err);
-      try {
-        const authorName = currentUser?.fullName || currentUser?.full_name || currentUser?.name || 'Sales Representative';
-        const now = new Date();
-        const pastFollowups: any[] = Array.isArray(quotation.metrics_summary?.followups)
-          ? quotation.metrics_summary.followups
-          : [];
-
-        const newEntry = {
-          id: Date.now(),
-          created_at: now.toISOString(),
-          date: formatDate(now),
-          time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-          response_type: responseType,
-          outcome: responseType,
-          remarks: remarks.trim(),
-          next_followup_date: nextFollowUpDate || null,
-          author: { name: authorName }
-        };
-
-        const updatedMetrics = {
-          ...(quotation.metrics_summary || {}),
-          followups: [newEntry, ...pastFollowups],
-          last_followup: newEntry,
-          last_followup_at: now.toISOString(),
-          customer_status: targetStatus
-        };
-
-        await api.put(`/quotations/${quotation.id}`, {
-          title: quotation.title || `Quotation ${quotation.quotation_no}`,
-          organization_id: quotation.organization_id,
-          status: targetStatus,
-          items: quotation.items || [],
-          metrics_summary: updatedMetrics
-        }).catch(() => null);
-
-        toast.success(`Quotation marked as ${targetStatus}!`, { id: toastId });
-        onSuccess();
-      } catch (fallbackErr: any) {
-        toast.error(err.response?.data?.error || fallbackErr.message || 'Failed to save follow-up', { id: toastId });
-      }
+      toast.error(err.response?.data?.error || 'Failed to save the customer response', { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -1116,6 +1189,11 @@ export const QuotationFollowUpModal: React.FC<QuotationFollowUpModalProps> = ({
                 <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                   Customer Decision / Outcome *
                 </label>
+                {!['Pending Customer Approval', 'Held'].includes(quotation.status || '') && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium">
+                    This quote is not yet approved by the BM and Ops ({quotation.status || 'Draft'}). The response is saved as a manual log and the status stays as it is.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {/* Approved */}
                   <button

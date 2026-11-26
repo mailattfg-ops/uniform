@@ -7,10 +7,12 @@ import Link from 'next/link';
 import { useLayout } from '@/hooks/useLayout';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import NotificationBell from './NotificationBell';
 
 export const Header: React.FC = () => {
   const { isSidebarOpen, toggleSidebar } = useLayout();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isClientAccount, setIsClientAccount] = useState(false); // customer portal logins get no staff alerts
   const [userName, setUserName] = useState('Administrator');
   const [userRole, setUserRole] = useState('System Admin');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export const Header: React.FC = () => {
         setUserName(user.fullName || user.email || 'Administrator');
         const roleLower = (user.role || '').toLowerCase();
         const isEntity = Boolean(user.memberId || ['entity', 'student', 'member'].includes(roleLower));
+        setIsClientAccount(isEntity || Boolean(user.organizationId || ['organisation', 'organization', 'school'].includes(roleLower)));
         if (isEntity) {
           setUserRole(user.admissionNo ? `Member • #${user.admissionNo}` : 'Member / Student');
         } else {
@@ -84,6 +87,7 @@ export const Header: React.FC = () => {
 
       {/* Right: Actions & User */}
       <div className="flex items-center gap-6">
+        {!isClientAccount && <NotificationBell variant="header" />}
         <div className="h-6 w-[1px] bg-zinc-200 hidden sm:block" />
 
         {/* User Dropdown */}
