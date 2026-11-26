@@ -806,17 +806,17 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 placeholder: (type === 'fabrics' || type === 'buttons') ? 'Auto-generating...' : undefined,
                 allowSpecialCharacters: true 
               },
-              { 
-                name: 'name', 
-                label: type === 'fabrics' 
-                  ? 'Fabric Name' 
-                  : type === 'buttons' 
+              ...(type !== 'fabrics' ? [
+                { 
+                  name: 'name', 
+                  label: type === 'buttons' 
                     ? 'Button Name' 
                     : 'Thread Name', 
-                type: 'text', 
-                required: true, 
-                defaultValue: editingItem?.name 
-              },
+                  type: 'text' as const, 
+                  required: true, 
+                  defaultValue: editingItem?.name 
+                }
+              ] : []),
               ...(type === 'buttons' ? [
                 {
                   name: 'description',
@@ -906,7 +906,36 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   label: 'Brand Name', 
                   type: 'text' as const, 
                   placeholder: 'e.g. Raymond, Arvind', 
-                  defaultValue: editingItem?.brand_name || '' 
+                  defaultValue: editingItem?.brand_name || '',
+                  required: true
+                },
+                {
+                  name: 'quality',
+                  label: 'Quality',
+                  type: 'text' as const,
+                  placeholder: 'e.g. Concord, Super 120s',
+                  defaultValue: editingItem?.quality || '',
+                  required: true
+                },
+                { 
+                  name: 'shade', 
+                  label: 'Shade', 
+                  type: 'text' as const, 
+                  placeholder: 'e.g. 5111, Navy Blue', 
+                  defaultValue: editingItem?.shade || '',
+                  required: true
+                },
+                {
+                  name: 'width', 
+                  label: 'Width (inches)', 
+                  type: 'select' as const, 
+                  options: [
+                    { label: 'Select Width', value: '' },
+                    { label: '36"', value: '36' },
+                    { label: '44"', value: '44' },
+                    { label: '58"', value: '58' }
+                  ], 
+                  defaultValue: editingItem?.width || ''
                 },
                 { 
                   name: 'garment_category', 
@@ -933,20 +962,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   defaultValue: editingItem?.brand_type || '' 
                 },
                 {
-                  name: 'quality',
-                  label: 'Quality',
-                  type: 'text' as const,
-                  placeholder: 'e.g. Super 120s, Cotton Blend',
-                  defaultValue: editingItem?.quality || ''
-                },
-                { 
-                  name: 'description', 
-                  label: 'Fabric Specification', 
-                  type: 'textarea' as const, 
-                  placeholder: 'Detailed specifications of the fabric', 
-                  defaultValue: editingItem?.description || '' 
-                },
-                {
                   name: 'low_stock_threshold',
                   label: 'Low Stock Threshold (Optional)',
                   type: 'number' as const,
@@ -954,25 +969,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   placeholder: 'e.g. 10',
                   defaultValue: editingItem?.low_stock_threshold !== null && editingItem?.low_stock_threshold !== undefined ? String(editingItem.low_stock_threshold) : '',
                   required: false
-                },
-                { 
-                  name: 'shade', 
-                  label: 'Shade', 
-                  type: 'text' as const, 
-                  placeholder: 'e.g. Navy Blue, Charcoal Grey', 
-                  defaultValue: editingItem?.shade || '' 
-                },
-                {
-                  name: 'width', 
-                  label: 'Width (inches)', 
-                  type: 'select' as const, 
-                  options: [
-                    { label: 'Select Width', value: '' },
-                    { label: '36"', value: '36' },
-                    { label: '44"', value: '44' },
-                    { label: '58"', value: '58' }
-                  ], 
-                  defaultValue: editingItem?.width || ''
                 },
                 {
                   name: 'latest_sam',
@@ -983,10 +979,19 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                   placeholder: 'Auto-updated from quotations',
                   defaultValue: editingItem?.latest_sam !== null && editingItem?.latest_sam !== undefined ? String(editingItem.latest_sam) : '0'
                 },
+                { 
+                  name: 'description', 
+                  label: 'Description', 
+                  type: 'textarea' as const, 
+                  className: 'md:col-span-2',
+                  placeholder: 'Detailed description or specifications of the fabric', 
+                  defaultValue: editingItem?.description || '' 
+                },
                 {
                   name: 'images',
                   label: 'Fabric Images',
                   type: 'image-upload' as const,
+                  className: 'md:col-span-2',
                   maxImages: 5,
                   uploadLabel: 'Upload Fabric Images',
                   defaultValue: editingItem?.images || (editingItem?.image ? [editingItem.image] : [])
