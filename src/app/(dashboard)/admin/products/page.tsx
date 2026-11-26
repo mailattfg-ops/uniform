@@ -14,6 +14,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { splitSpecificationLines, formatSpecificationDisplay, formatDate } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { ZoomableImageLightbox, parseImageGallery } from '@/components/ui/ZoomableImageLightbox';
+import { useItemPermissions } from '@/hooks/useItemPermissions';
 
 interface RemarkEntry {
   title: string;
@@ -1046,6 +1047,7 @@ const ClassConsumptionMatrixEditor: React.FC<{
 };
 
 export default function ProductManagement() {
+  const { canEdit, canViewDetails } = useItemPermissions('readymades');
   const [products, setProducts] = useState<Product[]>([]);
   const [measureConfig, setMeasureConfig] = useState<any[]>([]);
   const [sizeCharts, setSizeCharts] = useState<any[]>([]);
@@ -1223,6 +1225,7 @@ export default function ProductManagement() {
 
   // Auto-open product details modal if requested via URL query param (?product=ID or ?id=ID)
   useEffect(() => {
+    if (!canViewDetails) return;
     if (typeof window !== 'undefined' && products.length > 0) {
       const urlParams = new URLSearchParams(window.location.search);
       const prodId = urlParams.get('product') || urlParams.get('id');
@@ -1233,7 +1236,7 @@ export default function ProductManagement() {
         }
       }
     }
-  }, [products]);
+  }, [products, canViewDetails]);
 
   // Additional states for new fields
   const [otherSizes, setOtherSizes] = useState('');
@@ -2387,10 +2390,10 @@ export default function ProductManagement() {
           <div className="flex items-center gap-3">
             <div
               className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
-                hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+                canViewDetails && hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
               }`}
               onClick={
-                hasImg
+                canViewDetails && hasImg
                   ? (e) => {
                       e.stopPropagation();
                       setSelectedProductForDetails(p);
@@ -2399,7 +2402,7 @@ export default function ProductManagement() {
                     }
                   : undefined
               }
-              title={hasImg ? 'Click to enlarge image' : undefined}
+              title={canViewDetails && hasImg ? 'Click to enlarge image' : undefined}
             >
               {hasImg ? (
                 <img
@@ -2489,17 +2492,19 @@ export default function ProductManagement() {
         
         {/* Catalog Navigation & Actions */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            onClick={() => {
-              setEditingProduct(null);
-              setIsAdding(true);
-              fetchData();
-            }}
-            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus size={18} strokeWidth={3} />
-            New Readymade
-          </Button>
+          {canEdit && (
+            <Button
+              onClick={() => {
+                setEditingProduct(null);
+                setIsAdding(true);
+                fetchData();
+              }}
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus size={18} strokeWidth={3} />
+              New Readymade
+            </Button>
+          )}
 
           <PageActionsMenu
             onPrint={() => {
@@ -2546,7 +2551,7 @@ export default function ProductManagement() {
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        onRowClick={(product) => setSelectedProductForDetails(product)}
+        onRowClick={canViewDetails ? (product) => setSelectedProductForDetails(product) : undefined}
         headerAction={
           <div className="flex flex-wrap items-center gap-2">
             {/* 1. Gender Filter */}
@@ -2605,7 +2610,7 @@ export default function ProductManagement() {
       />
 
       {/* Product Details Modal */}
-      {selectedProductForDetails && (() => {
+      {canViewDetails && selectedProductForDetails && (() => {
         const productImages = parseImageGallery(selectedProductForDetails.images);
         const currentActiveImg = productImages[activeDetailImageIndex] || productImages[0] || null;
         const mainFabricDetails = getFabricDetails(selectedProductForDetails.main_fabric || selectedProductForDetails.main_fabric_id);
@@ -2675,44 +2680,48 @@ export default function ProductManagement() {
 
                 {/* Header Actions */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditVerificationProduct(selectedProductForDetails);
-                      setIsDetailsActionsOpen(false);
-                    }}
-                    className="h-10 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-xs shadow-md shadow-[#C82A2B]/20 flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    <span>Edit Article</span>
-                  </button>
-
-                  <div className="relative" ref={detailsActionsRef}>
+                  {canEdit && (
                     <button
                       type="button"
-                      onClick={() => setIsDetailsActionsOpen(prev => !prev)}
-                      className="h-10 w-10 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl text-zinc-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                      title="More Options"
+                      onClick={() => {
+                        setEditVerificationProduct(selectedProductForDetails);
+                        setIsDetailsActionsOpen(false);
+                      }}
+                      className="h-10 px-4 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl font-black uppercase tracking-wider text-xs shadow-md shadow-[#C82A2B]/20 flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <MoreHorizontal size={16} />
+                      <Edit2 size={13} />
+                      <span>Edit Article</span>
                     </button>
+                  )}
 
-                    {isDetailsActionsOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsDetailsActionsOpen(false);
-                            setDeleteVerification({ step: 1, product: selectedProductForDetails });
-                          }}
-                          className="w-full px-4 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                          <span>Delete Article</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {canEdit && (
+                    <div className="relative" ref={detailsActionsRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsDetailsActionsOpen(prev => !prev)}
+                        className="h-10 w-10 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl text-zinc-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                        title="More Options"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+
+                      {isDetailsActionsOpen && (
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsDetailsActionsOpen(false);
+                              setDeleteVerification({ step: 1, product: selectedProductForDetails });
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                            <span>Delete Article</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <button
                     type="button"

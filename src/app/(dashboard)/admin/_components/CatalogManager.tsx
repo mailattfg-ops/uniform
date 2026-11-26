@@ -13,6 +13,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { formatDate } from '@/lib/formatters';
+import { useItemPermissions } from '@/hooks/useItemPermissions';
 
 interface Item {
   id: string;
@@ -349,6 +350,7 @@ interface CatalogManagerProps {
 }
 
 export default function CatalogManager({ type, title, subtitle }: CatalogManagerProps) {
+  const { canEdit, canViewDetails } = useItemPermissions(type === 'fabrics' ? 'fabrics' : 'trims');
   const [items, setItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'list' | 'add' | 'edit'>('list');
@@ -629,10 +631,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
           <div className="flex items-center gap-3">
             <div
               className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
-                displayImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+                canViewDetails && displayImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
               }`}
               onClick={
-                displayImg
+                canViewDetails && displayImg
                   ? (e) => {
                       e.stopPropagation();
                       setSelectedItemForDetails(item);
@@ -1040,16 +1042,18 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            onClick={() => {
-              setEditingItem(null);
-              setView('add');
-            }}
-            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus size={18} strokeWidth={3} />
-            Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
-          </Button>
+          {canEdit && (
+            <Button
+              onClick={() => {
+                setEditingItem(null);
+                setView('add');
+              }}
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus size={18} strokeWidth={3} />
+              Add {type === 'fabrics' ? 'Fabric' : title.replace(/Catalog/i, '').trim() || 'Item'}
+            </Button>
+          )}
           {type === 'fabrics' && (
             <PageActionsMenu
               onPrint={() => {
@@ -1077,10 +1081,14 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        onRowClick={(item) => {
-          setSelectedItemForDetails(item);
-          setActiveDetailImageIndex(0);
-        }}
+        onRowClick={
+          canViewDetails
+            ? (item) => {
+                setSelectedItemForDetails(item);
+                setActiveDetailImageIndex(0);
+              }
+            : undefined
+        }
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {type === 'fabrics' && (
@@ -1170,7 +1178,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
       />
 
       {/* Fabric / Item Details Modal */}
-      {selectedItemForDetails && (() => {
+      {canViewDetails && selectedItemForDetails && (() => {
         // Collect all images safely
         const fabricImages = (() => {
           const list = parseImageGallery(selectedItemForDetails.images);
@@ -1240,19 +1248,21 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const item = selectedItemForDetails;
-                      setSelectedItemForDetails(null);
-                      setEditingItem(item);
-                      setView('edit');
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    Edit {isFabric ? 'Fabric' : 'Item'}
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = selectedItemForDetails;
+                        setSelectedItemForDetails(null);
+                        setEditingItem(item);
+                        setView('edit');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      Edit {isFabric ? 'Fabric' : 'Item'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedItemForDetails(null)}

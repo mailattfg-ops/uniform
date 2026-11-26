@@ -9,6 +9,7 @@ import { DynamicForm } from '@/components/ui/DynamicForm';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatCurrency, formatQuantity, formatDate } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
+import { useItemPermissions } from '@/hooks/useItemPermissions';
 import {
   Plus,
   Edit2,
@@ -306,6 +307,7 @@ const VendorChecklistInput: React.FC<{
 };
 
 export default function TrimsCatalogPage() {
+  const { canEdit, canViewDetails } = useItemPermissions('trims');
   const [categories, setCategories] = useState<TrimCategory[]>([]);
   const [trims, setTrims] = useState<TrimItem[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ALL');
@@ -668,10 +670,10 @@ export default function TrimsCatalogPage() {
           <div className="flex items-center gap-3">
             <div
               className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
-                hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+                canViewDetails && hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
               }`}
               onClick={
-                hasImg
+                canViewDetails && hasImg
                   ? (e) => {
                       e.stopPropagation();
                       setSelectedTrimForDetails(item);
@@ -680,7 +682,7 @@ export default function TrimsCatalogPage() {
                     }
                   : undefined
               }
-              title={hasImg ? 'Click to enlarge image' : undefined}
+              title={canViewDetails && hasImg ? 'Click to enlarge image' : undefined}
             >
               {hasImg ? (
                 <img src={itemImgs[0]} alt={fullName || item.name} className="w-full h-full object-cover" />
@@ -729,7 +731,7 @@ export default function TrimsCatalogPage() {
       )) as any,
       sortValue: (item) => item.unit_price || 0
     },
-    {
+    ...(canEdit ? [{
       header: 'Action',
       accessor: ((item: TrimItem) => (
         <div className="flex items-center gap-1.5">
@@ -759,7 +761,7 @@ export default function TrimsCatalogPage() {
         </div>
       )) as any,
       className: 'w-24'
-    }
+    }] : [])
   ];
   // View: Add or Edit Form matching Fabric CatalogManager
   if (view !== 'list') {
@@ -970,16 +972,18 @@ export default function TrimsCatalogPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              onClick={() => {
-                setEditingItem(null);
-                setView('add');
-              }}
-              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus size={18} strokeWidth={3} />
-              New Trim
-            </Button>
+            {canEdit && (
+              <Button
+                onClick={() => {
+                  setEditingItem(null);
+                  setView('add');
+                }}
+                className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Plus size={18} strokeWidth={3} />
+                New Trim
+              </Button>
+            )}
             <PageActionsMenu
               onPrint={() => {
                 if (printTriggerRef.current) {
@@ -991,14 +995,14 @@ export default function TrimsCatalogPage() {
               printLabel="Print Trims"
               onUserReport={() => userReportTriggerRef.current?.()}
               userReportLabel="My Report"
-              extraActions={[
+              extraActions={canEdit ? [
                 {
                   label: 'Add Category',
                   description: 'Create & define new trim category',
                   onClick: () => setIsCategoryModalOpen(true),
                   icon: <FolderPlus size={16} className="text-[#C82A2B]" />
                 }
-              ]}
+              ] : undefined}
             />
           </div>
         </div>
@@ -1014,10 +1018,10 @@ export default function TrimsCatalogPage() {
           hideTablePrint={true}
           printTriggerRef={printTriggerRef}
           userReportTriggerRef={userReportTriggerRef}
-          onRowClick={(trim) => {
+          onRowClick={canViewDetails ? (trim) => {
             setSelectedTrimForDetails(trim);
             setActiveDetailImageIndex(0);
-          }}
+          } : undefined}
           headerAction={
             <div className="flex items-center gap-2 flex-wrap">
               {/* Category Filter */}
@@ -1081,7 +1085,7 @@ export default function TrimsCatalogPage() {
       </div>
 
       {/* Trim Article Details Modal */}
-      {selectedTrimForDetails && (() => {
+      {canViewDetails && selectedTrimForDetails && (() => {
         const trimImages = parseImageGallery(selectedTrimForDetails.images);
         const currentActiveImg = trimImages[activeDetailImageIndex] || trimImages[0];
         const fullName = getTrimFullName(selectedTrimForDetails) || selectedTrimForDetails.name;
@@ -1140,19 +1144,21 @@ export default function TrimsCatalogPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const item = selectedTrimForDetails;
-                      setSelectedTrimForDetails(null);
-                      setEditingItem(item);
-                      setView('edit');
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    Edit Trim
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = selectedTrimForDetails;
+                        setSelectedTrimForDetails(null);
+                        setEditingItem(item);
+                        setView('edit');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      Edit Trim
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedTrimForDetails(null)}
@@ -1333,7 +1339,7 @@ export default function TrimsCatalogPage() {
 
       {/* Lightbox Viewer */}
       <ZoomableImageLightbox
-        isOpen={isLightboxOpen}
+        isOpen={canViewDetails && isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
         images={selectedTrimForDetails?.images || []}
         initialIndex={activeDetailImageIndex}
@@ -1342,7 +1348,7 @@ export default function TrimsCatalogPage() {
 
       {/* Delete Item Confirmation Modal */}
       <ConfirmModal
-        isOpen={deleteConfirm.isOpen}
+        isOpen={canEdit && deleteConfirm.isOpen}
         title="Delete Trim Article?"
         message="This action cannot be undone."
         onConfirm={handleDelete}

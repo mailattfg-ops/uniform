@@ -41,6 +41,7 @@ import { formatCurrency, formatQuantity } from '@/lib/formatters';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { DataTable, Column, SortInfo, HeaderGroupItem } from '@/components/ui/DataTable';
 import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
+import { useItemPermissions } from '@/hooks/useItemPermissions';
 
 export interface AccessoryCategory {
   id: string;
@@ -512,6 +513,9 @@ export default function AccessoriesAndTradeCatalogPage() {
   const [filterColour, setFilterColour] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Permissions
+  const { canEdit, canViewDetails } = useItemPermissions('accessories');
 
   // Master Data for Manufactured-spec Art Numbers and US Standard Sizing
   const [productTypes, setProductTypes] = useState<any[]>([]);
@@ -1157,10 +1161,10 @@ export default function AccessoriesAndTradeCatalogPage() {
           <div className="flex items-center gap-3">
             <div
               className={`w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-200 overflow-hidden shrink-0 flex items-center justify-center transition-all ${
-                hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
+                canViewDetails && hasImg ? 'cursor-zoom-in hover:border-[#9E1B1D]/40 hover:shadow-sm' : ''
               }`}
               onClick={
-                hasImg
+                canViewDetails && hasImg
                   ? (e) => {
                       e.stopPropagation();
                       setSelectedAccessoryForDetails(item);
@@ -1169,7 +1173,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                     }
                   : undefined
               }
-              title={hasImg ? 'Click to enlarge image' : undefined}
+              title={canViewDetails && hasImg ? 'Click to enlarge image' : undefined}
             >
               {hasImg ? (
                 <img src={itemImgs[0]} alt={fullName || item.name} className="w-full h-full object-cover" />
@@ -1239,9 +1243,9 @@ export default function AccessoriesAndTradeCatalogPage() {
       sortable: true,
       sortValue: (item) => Number(item.base_price || item.retail_sam_value || 0)
     },
-    {
+    ...(canEdit ? [{
       header: 'Action',
-      accessor: (item) => (
+      accessor: (item: AccessoryItem) => (
         <div className="flex items-center gap-1.5">
           <button
             onClick={(e) => {
@@ -1266,7 +1270,7 @@ export default function AccessoriesAndTradeCatalogPage() {
         </div>
       ),
       className: 'w-24'
-    }
+    }] : [])
   ];
   const handleSwitchArticleType = (newType: 'ACCESSORY' | 'TRADE_READYMADE') => {
     if (newType === articleType) return;
@@ -1611,13 +1615,15 @@ export default function AccessoriesAndTradeCatalogPage() {
 
         <div className="flex flex-wrap items-center gap-2.5">
 
-          <button
-            onClick={() => handleOpenAddArticle()}
-            className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <Plus size={18} strokeWidth={3} />
-            New Accessories
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => handleOpenAddArticle()}
+              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Plus size={18} strokeWidth={3} />
+              New Accessories
+            </button>
+          )}
 
           <PageActionsMenu
             onPrint={() => {
@@ -1630,7 +1636,7 @@ export default function AccessoriesAndTradeCatalogPage() {
             printLabel="Print Accessories"
             onUserReport={() => userReportTriggerRef.current?.()}
             userReportLabel="My Updated Report"
-            extraActions={[
+            extraActions={canEdit ? [
               {
                 label: 'Category Management',
                 description: 'Manage, rename & edit categories',
@@ -1648,7 +1654,7 @@ export default function AccessoriesAndTradeCatalogPage() {
                 },
                 icon: <Plus size={16} className="text-[#9E1B1D]" />
               }
-            ]}
+            ] : undefined}
           />
         </div>
       </div>
@@ -1664,10 +1670,10 @@ export default function AccessoriesAndTradeCatalogPage() {
         hideTablePrint={true}
         printTriggerRef={printTriggerRef}
         userReportTriggerRef={userReportTriggerRef}
-        onRowClick={(item) => {
+        onRowClick={canViewDetails ? (item) => {
           setSelectedAccessoryForDetails(item);
           setActiveDetailImageIndex(0);
-        }}
+        } : undefined}
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Category Filter */}
@@ -1738,7 +1744,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       />
 
       {/* Accessory Article Details Modal */}
-      {selectedAccessoryForDetails && (() => {
+      {canViewDetails && selectedAccessoryForDetails && (() => {
         const accImages = parseImageGallery(selectedAccessoryForDetails.images);
         const currentActiveImg = accImages[activeDetailImageIndex] || accImages[0];
         const fullName = getItemFullName(selectedAccessoryForDetails) || selectedAccessoryForDetails.name;
@@ -1806,18 +1812,20 @@ export default function AccessoriesAndTradeCatalogPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const item = selectedAccessoryForDetails;
-                      setSelectedAccessoryForDetails(null);
-                      handleOpenEditArticle(item);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    Edit Article
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = selectedAccessoryForDetails;
+                        setSelectedAccessoryForDetails(null);
+                        handleOpenEditArticle(item);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#C82A2B] hover:bg-[#9E1B1D] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      Edit Article
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedAccessoryForDetails(null)}
@@ -1976,7 +1984,7 @@ export default function AccessoriesAndTradeCatalogPage() {
 
       {/* Lightbox Viewer */}
       <ZoomableImageLightbox
-        isOpen={isLightboxOpen}
+        isOpen={canViewDetails && isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
         images={selectedAccessoryForDetails?.images || []}
         initialIndex={activeDetailImageIndex}
@@ -1986,7 +1994,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* UNIFIED MODAL: ADD / EDIT ARTICLE (ACCESSORY & READYMADE TRADE)          */}
       {/* ========================================================================= */}
-      {isArticleModalOpen && (
+      {canEdit && isArticleModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-4xl bg-white rounded-[2.5rem] border border-zinc-200/80 p-6 md:p-8 shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-6 duration-400">
             {/* Top Brand Accent Rail */}
@@ -2461,7 +2469,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* MODAL 2: ADD CATEGORY MODAL (ACCESSORIES & TRADE GARMENTS)               */}
       {/* ========================================================================= */}
-      {isAddCatModalOpen && (
+      {canEdit && isAddCatModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-200/80 relative space-y-5 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
@@ -2574,7 +2582,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* MODAL 3: MANAGE CATEGORIES MODAL (ACCESSORIES & TRADE GARMENTS)           */}
       {/* ========================================================================= */}
-      {isManageCatModalOpen && (
+      {canEdit && isManageCatModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-lg w-full shadow-2xl border border-zinc-200/80 relative space-y-5 max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Top Brand Accent Rail */}
@@ -2798,7 +2806,7 @@ export default function AccessoriesAndTradeCatalogPage() {
       {/* ========================================================================= */}
       {/* MODAL 5: DELETE ITEM CONFIRMATION                                         */}
       {/* ========================================================================= */}
-      {deleteConfirm.isOpen && deleteConfirm.item && (
+      {canEdit && deleteConfirm.isOpen && deleteConfirm.item && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="w-full max-w-md bg-white rounded-[2rem] border border-red-100 p-6 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-3">
