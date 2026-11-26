@@ -488,8 +488,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">${idx + 1}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.garment_category || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600;">${item.brand_type || '—'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${item.name || '—'} ${item.shade ? `(${item.shade})` : ''}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.width ? `${item.width}"` : '—'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 700;">${formatFabricDisplayName(item) || item.name || '—'}</td>
         <td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: 700; font-family: monospace;">${item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '0.00'} m</td>
       </tr>
     `).join('');
@@ -520,12 +519,11 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         <th>Garment Category</th>
         <th>Brand Type</th>
         <th>Item Name</th>
-        <th style="text-align: center;">Width</th>
         <th style="text-align: right;">Quantity</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="6" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px;">No fabrics found</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -546,7 +544,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     {
       header: 'Garment Category',
       accessor: (item: Item) => (
-        <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-xl text-xs font-black text-amber-700 uppercase tracking-wider inline-block">
+        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block">
           {item.garment_category || '—'}
         </span>
       ),
@@ -555,7 +553,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     {
       header: 'Brand Type',
       accessor: (item: Item) => (
-        <span className="px-2.5 py-1 bg-teal-50 border border-teal-100 rounded-xl text-xs font-black text-teal-700 uppercase tracking-wider inline-block">
+        <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block">
           {item.brand_type || '—'}
         </span>
       ),
@@ -592,16 +590,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
           </div>
         </div>
       ),
-      sortValue: (item) => item.name
-    },
-    {
-      header: 'Width',
-      accessor: (item: Item) => (
-        item.width
-          ? <span className="px-2.5 py-1 bg-[#2d8d9b]/5 border border-[#2d8d9b]/15 rounded-xl text-xs font-black text-[#2d8d9b] font-mono">{item.width}&quot;</span>
-          : <span className="text-xs italic text-zinc-350">—</span>
-      ),
-      sortValue: (item) => item.width || ''
+      sortValue: (item) => formatFabricDisplayName(item)
     },
     {
       header: 'Quantity',
@@ -611,37 +600,6 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
         </span>
       ),
       sortValue: (item) => item.quantity || 0
-    },
-    {
-      header: 'Actions',
-      accessor: (item) => (
-        <div className="flex gap-2">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingItem(item);
-              setView('edit');
-            }}
-            variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-[#2d8d9b]/10 text-[#2d8d9b] hover:bg-[#2d8d9b] hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
-            title="Edit Item"
-          >
-            <Edit2 size={16} />
-          </Button>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteConfirm({ isOpen: true, id: item.id });
-            }}
-            variant="secondary"
-            className="!p-0 h-9 w-9 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all shadow-sm p-0 border-none cursor-pointer"
-            title="Delete Item"
-          >
-            <Trash2 size={16} />
-          </Button>
-        </div>
-      ),
-      className: 'w-28'
     }
   ] : [
     { 
