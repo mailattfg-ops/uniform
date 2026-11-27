@@ -1350,11 +1350,67 @@ export default function ProductManagement() {
       setProductType('');
       setAttachmentFabrics([]);
       setSelectedTrims([]);
-      // Refresh next pattern code on form open
-      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data?.nextCode || '001')).catch(() => { });
+      // Initialize default next pattern code on form open
+      setNextPatternCode('001');
+      setSelectedPattern('001');
     }
     prevIsAddingRef.current = isAdding;
   }, [editingProduct, isAdding]);
+
+  // Dynamically resolve pattern code in series scoped to (Gender, Item, Specification)
+  useEffect(() => {
+    // Only auto-resolve pattern code when creating a new product
+    if (editingProduct) return;
+    if (!isAdding) return;
+
+    if (!selectedGender || !selectedDress) {
+      setNextPatternCode('001');
+      setSelectedPattern('001');
+      return;
+    }
+
+    const cleanGender = selectedGender.trim().toUpperCase();
+    const cleanItem = selectedDress.trim().toUpperCase();
+    const cleanSpec = (selectedSpec || '').trim().toUpperCase();
+    const targetItemPart = `${cleanItem}${cleanSpec}`;
+
+    // 1. Instant local computation from loaded products
+    let localMax = 0;
+    (products || []).forEach(p => {
+      if (!p.art_number) return;
+      if (p.art_number.startsWith('ACC-') || p.art_number.startsWith('TRIM-') || p.art_number.startsWith('FAB-')) return;
+      const parts = p.art_number.split('-');
+      if (parts.length >= 2) {
+        const itemPart = parts[0].toUpperCase();
+        const middle = parts[1].toUpperCase();
+        if (itemPart === targetItemPart && middle.startsWith(cleanGender)) {
+          const patStr = middle.slice(cleanGender.length);
+          if (/^\d+$/.test(patStr)) {
+            const num = parseInt(patStr, 10);
+            if (!isNaN(num) && num > localMax) localMax = num;
+          }
+        }
+      }
+    });
+
+    const localNext = String(localMax + 1).padStart(3, '0');
+    setNextPatternCode(localNext);
+    setSelectedPattern(localNext);
+
+    // 2. Concurrently query backend for absolute DB consistency
+    api.get('/art-number-hub/patterns/next', {
+      params: {
+        gender_code: cleanGender,
+        item_code: cleanItem,
+        spec_code: cleanSpec
+      }
+    }).then(res => {
+      if (res.data?.nextCode) {
+        setNextPatternCode(res.data.nextCode);
+        setSelectedPattern(res.data.nextCode);
+      }
+    }).catch(() => { });
+  }, [selectedGender, selectedDress, selectedSpec, editingProduct, isAdding, products]);
 
   const availableDresses = dresses;
   const availableGenders = genders;
