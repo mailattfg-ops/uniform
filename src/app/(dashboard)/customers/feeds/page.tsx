@@ -8,7 +8,7 @@ import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Plus, Compass, MapPin, Phone, Mail, User, ShieldCheck, 
-  ExternalLink, Building2, ArrowRight, MessageSquarePlus, Clock
+  ExternalLink, Building2, ArrowRight, Clock
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -580,10 +580,9 @@ export default function FeedsRegistryPage() {
           <button
             type="button"
             onClick={() => setFeedOutcomeLead(l)}
-            className="px-3.5 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+            className="px-3.5 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
             title={l.is_returning_customer ? 'Log response and convert returning customer to lead' : 'Record follow-up outcome for feed'}
           >
-            <MessageSquarePlus size={12} />
             <span>{l.is_returning_customer ? 'Convert' : 'Update'}</span>
           </button>
         </div>
