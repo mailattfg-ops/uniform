@@ -176,6 +176,34 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       toast.error('Primary phone number is required');
       return;
     }
+    if (!contactTitle) {
+      toast.error('Contact person salutation is required');
+      return;
+    }
+    if (!contactPerson.trim()) {
+      toast.error('Contact person name is required');
+      return;
+    }
+    if (!contactDesignation.trim()) {
+      toast.error('Contact person designation is required');
+      return;
+    }
+    if (!industryId) {
+      toast.error('Customer sector / type is required');
+      return;
+    }
+    if (!address.trim()) {
+      toast.error('Street / building address is required');
+      return;
+    }
+    if (!city.trim()) {
+      toast.error('City is required');
+      return;
+    }
+    if (!state.trim()) {
+      toast.error('State is required');
+      return;
+    }
     if (email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email.trim())) {
@@ -274,9 +302,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           {/* Contact Persons Details: Single Line Format per Contact */}
           <div className="space-y-4 pt-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <User size={13} className="text-[#9E1B1D]" />
-                Primary Contact Person Details
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <User size={13} className="text-[#C82A2B]" />
+                Primary Contact Person Details *
               </label>
               {!showAltContact && (
                 <button
@@ -293,7 +321,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <div className="sm:col-span-2 space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Title *</span>
                 <Select
                   value={contactTitle}
                   onChange={setContactTitle}
@@ -302,9 +330,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 />
               </div>
               <div className="sm:col-span-4 space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Name</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Name *</span>
                 <input
                   type="text"
+                  required
                   value={contactPerson}
                   onChange={(e) => setContactPerson(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -323,9 +352,10 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 />
               </div>
               <div className="sm:col-span-3 space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Designation</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Designation *</span>
                 <input
                   type="text"
+                  required
                   value={contactDesignation}
                   onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
@@ -502,11 +532,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
             {/* Street / Building Address */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                Street / Building Address
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#C82A2B]" />
+                Street / Building Address *
               </label>
               <input
                 type="text"
+                required
                 maxLength={200}
                 value={address}
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
@@ -519,11 +551,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             {/* City & State in 2 columns */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  City
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  City *
                 </label>
                 <input
                   type="text"
+                  required
                   maxLength={100}
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
@@ -533,11 +567,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  State
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  State *
                 </label>
                 <input
                   type="text"
+                  required
                   maxLength={100}
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
