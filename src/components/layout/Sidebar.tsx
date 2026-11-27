@@ -57,10 +57,10 @@ const modules: ModuleItem[] = [
   {
     icon: Tag, label: 'Items', href: '/items',
     subsections: [
-      { label: 'Readymades', href: '/admin/products' },
       { label: 'Fabrics', href: '/admin/inventory/fabrics' },
-      { label: 'Trims', href: '/admin/inventory/trims' },
-      { label: 'Accessories', href: '/admin/accessories' }
+      { label: 'Readymades', href: '/admin/products' },
+      { label: 'Accessories', href: '/admin/accessories' },
+      { label: 'Trims', href: '/admin/inventory/trims' }
     ]
   },
   {
@@ -84,13 +84,13 @@ const modules: ModuleItem[] = [
   {
     icon: Package, label: 'Inventory', href: '/inventory',
     subsections: [
+      { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
       { label: 'Readymade Stock', href: '/admin/inventory/product-stock' },
       { label: 'Accessories Stock', href: '/admin/inventory/accessories-stock' },
-      { label: 'Fabric Stock', href: '/admin/inventory/fabric-stock' },
       { label: 'Trims Stock', href: '/admin/inventory/trims-stock' },
       { label: 'Stock Transfers', href: '/branches/transfers' },
       { label: 'Branch Inventory', href: '/branches/inventory' },
-      { label: 'Move Items', href: '/coming-soon?feature=Move%20Items&module=Inventory' },
+      { label: 'Move Rack', href: '/coming-soon?feature=Move%20Rack&module=Inventory' },
     ]
   },
   {
@@ -239,6 +239,7 @@ const SUB_PERMISSION_MAP: Record<string, string[]> = {
   'Accessories Stock': ['manage_inventory', 'view_inventory'],
   'Branch Inventory': ['branch_inventory', 'manage_system'],
   'Branch Stock & Inventory': ['branch_inventory', 'manage_system'],
+  'Move Rack': ['move_inventory', 'manage_inventory', 'view_inventory', 'branch_transfers'],
   'Move Items': ['move_inventory', 'manage_inventory', 'view_inventory', 'branch_transfers'],
 
   // Sales

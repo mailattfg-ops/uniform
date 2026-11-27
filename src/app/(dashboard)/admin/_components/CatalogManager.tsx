@@ -588,7 +588,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
-        <th style="text-align: center;">Garment Category</th>
+        <th style="text-align: center;">Fabric Type</th>
         <th>Item Name</th>
         <th style="text-align: right;">Average Rate</th>
         <th style="text-align: right;">Quantity</th>
@@ -614,7 +614,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
 
   const columns: Column<Item>[] = type === 'fabrics' ? [
     {
-      header: 'Garment Category',
+      header: 'Fabric Type',
       className: 'text-center',
       accessor: (item: Item) => (
         <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider inline-block text-center">
@@ -941,7 +941,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                 },
                 { 
                   name: 'garment_category', 
-                  label: 'Garment Category', 
+                  label: 'Fabric Type', 
                   type: 'select' as const, 
                   options: [
                     { label: 'Select Category', value: '' },
@@ -1093,10 +1093,10 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
           <div className="flex items-center gap-2 flex-wrap">
             {type === 'fabrics' && (
               <>
-                {/* Garment Category Filter */}
+                {/* Fabric Type Filter */}
                 <FilterDropdown
-                  label="Garment Category"
-                  allLabel="All Garment Categories"
+                  label="Fabric Type"
+                  allLabel="All Fabric Types"
                   value={garmentCategoryFilter}
                   onChange={setGarmentCategoryFilter}
                   options={uniqueGarmentCategories}
@@ -1342,7 +1342,7 @@ export default function CatalogManager({ type, title, subtitle }: CatalogManager
                       {isFabric ? (
                         <>
                           <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Garment Category</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Fabric Type</span>
                             <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{selectedItemForDetails.garment_category || '—'}</span>
                           </div>
                           <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200">

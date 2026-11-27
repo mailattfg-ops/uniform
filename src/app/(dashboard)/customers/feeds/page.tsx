@@ -437,7 +437,6 @@ export default function FeedsRegistryPage() {
             <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
               {l.name}
             </p>
-            <CustomerActivityBadge lead={l} />
           </div>
           {(() => {
             const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
@@ -543,9 +542,8 @@ export default function FeedsRegistryPage() {
           return (
             <span
               title={l.last_invoice_date ? `Returning customer · Last invoice: ${formatDate(l.last_invoice_date)}` : 'Returning customer'}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-2xs ${inactive ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+              className={`text-[11px] font-black uppercase tracking-wider ${inactive ? 'text-rose-700' : 'text-emerald-700'}`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${inactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
               {l.customer_activity || 'Returning'}
             </span>
           );
@@ -561,13 +559,11 @@ export default function FeedsRegistryPage() {
             title="Click to view feed pipeline & contact log"
           >
             {contacted ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs transition-transform group-hover:scale-105">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs transition-transform group-hover:scale-105">
                 Contacted
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 shadow-2xs transition-transform group-hover:scale-105">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C82A2B] shrink-0 animate-pulse" />
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 shadow-2xs transition-transform group-hover:scale-105">
                 Open
               </span>
             )}

@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   MapPin,
   CreditCard,
-  X
+  X,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -51,6 +53,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [industryId, setIndustryId] = useState('');
   const [clientTag, setClientTag] = useState<'standard' | 'special' | 'risk'>('standard');
   const [isActive, setIsActive] = useState<boolean>(true);
+  const [showAltContact, setShowAltContact] = useState(false);
   
   // Branch & Zone
   const [branchesList, setBranchesList] = useState<{ id: number; name: string; code?: string }[]>(branches || []);
@@ -98,6 +101,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setAltContactPerson(editingCustomer.alt_contact_person || '');
       setAltContactDesignation(editingCustomer.alt_contact_designation || '');
       setAltPhone(editingCustomer.alt_contact_number || editingCustomer.alt_phone || '');
+      setShowAltContact(Boolean(editingCustomer.alt_contact_person || editingCustomer.alt_contact_number || editingCustomer.alt_phone));
       setPhone(editingCustomer.contact_number || editingCustomer.phone || '');
       setEmail(editingCustomer.email || editingCustomer.contact_email || '');
       setIndustryId(editingCustomer.industry_id ? String(editingCustomer.industry_id) : '');
@@ -136,6 +140,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setAltContactPerson('');
       setAltContactDesignation('');
       setAltPhone('');
+      setShowAltContact(false);
       setPhone('');
       setEmail('');
       setIndustryId(industries.length > 0 ? String(industries[0].id) : '');
@@ -169,6 +174,34 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     }
     if (!phone.trim()) {
       toast.error('Primary phone number is required');
+      return;
+    }
+    if (!contactTitle) {
+      toast.error('Contact person salutation is required');
+      return;
+    }
+    if (!contactPerson.trim()) {
+      toast.error('Contact person name is required');
+      return;
+    }
+    if (!contactDesignation.trim()) {
+      toast.error('Contact person designation is required');
+      return;
+    }
+    if (!industryId) {
+      toast.error('Customer sector / type is required');
+      return;
+    }
+    if (!address.trim()) {
+      toast.error('Street / building address is required');
+      return;
+    }
+    if (!city.trim()) {
+      toast.error('City is required');
+      return;
+    }
+    if (!state.trim()) {
+      toast.error('State is required');
       return;
     }
     if (email.trim()) {
@@ -266,14 +299,29 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             />
           </div>
 
-          {/* Contact Person Details: Title + Full Name + Designation */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <User size={13} className="text-[#9E1B1D]" />
-              Contact Person Details
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-3">
+          {/* Contact Persons Details: Single Line Format per Contact */}
+          <div className="space-y-4 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <User size={13} className="text-[#C82A2B]" />
+                Primary Contact Person Details *
+              </label>
+              {!showAltContact && (
+                <button
+                  type="button"
+                  onClick={() => setShowAltContact(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] transition-colors cursor-pointer"
+                >
+                  <Plus size={14} />
+                  Add Contact Person
+                </button>
+              )}
+            </div>
+
+            {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-2 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Title *</span>
                 <Select
                   value={contactTitle}
                   onChange={setContactTitle}
@@ -281,40 +329,111 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   className="rounded-2xl py-3"
                 />
               </div>
-              <div className="sm:col-span-5">
+              <div className="sm:col-span-4 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Name *</span>
                 <input
                   type="text"
+                  required
                   value={contactPerson}
                   onChange={(e) => setContactPerson(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
-                  placeholder="Full Name (e.g. Rajesh Sharma)"
+                  placeholder="Full Name"
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Phone *</span>
+                <PhoneInput
+                  required
+                  value={phone}
+                  onChange={setPhone}
+                  country={country}
+                  onCountryChange={setCountry}
+                />
+              </div>
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Designation *</span>
                 <input
                   type="text"
+                  required
                   value={contactDesignation}
                   onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
-                  placeholder="Designation (e.g. Principal / Purchase Head)"
+                  placeholder="Designation"
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Phone & Email in 2 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <PhoneInput
-              required
-              label="Primary Phone Number *"
-              value={phone}
-              onChange={setPhone}
-              country={country}
-              onCountryChange={setCountry}
-            />
-            <div className="space-y-1.5">
+            {/* Line 2: Secondary / Additional Contact Person Details */}
+            {showAltContact && (
+              <div className="space-y-1 pt-2 border-t border-dashed border-zinc-200">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                    <User size={13} className="text-zinc-400" />
+                    Additional Contact Person Details
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAltContactPerson('');
+                      setAltPhone('');
+                      setAltContactDesignation('');
+                      setShowAltContact(false);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={12} />
+                    Remove
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
+                    <Select
+                      value={altContactTitle}
+                      onChange={setAltContactTitle}
+                      options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                      className="rounded-2xl py-3"
+                    />
+                  </div>
+                  <div className="sm:col-span-4 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Name</span>
+                    <input
+                      type="text"
+                      value={altContactPerson}
+                      onChange={(e) => setAltContactPerson(capitalizeWords(e.target.value))}
+                      autoCapitalize="words"
+                      placeholder="Alt Contact Name"
+                      className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                    />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Phone</span>
+                    <PhoneInput
+                      value={altPhone}
+                      onChange={setAltPhone}
+                      country={country}
+                      onCountryChange={setCountry}
+                    />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Designation</span>
+                    <input
+                      type="text"
+                      value={altContactDesignation}
+                      onChange={(e) => setAltContactDesignation(capitalizeWords(e.target.value))}
+                      autoCapitalize="words"
+                      placeholder="Alt Designation"
+                      className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Email Address */}
+            <div className="space-y-1.5 pt-1">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
                 Email Address
@@ -329,60 +448,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             </div>
           </div>
 
-          {/* Alternative Contact Person Details (Optional) */}
-          <div className="space-y-3 pt-3 border-t border-zinc-100">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <User size={13} className="text-[#9E1B1D]" />
-                Alternative Contact Person Details
-              </span>
-              <span className="text-[9px] text-zinc-400 font-bold lowercase tracking-normal">
-                (optional)
-              </span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-3">
-                <Select
-                  value={altContactTitle}
-                  onChange={setAltContactTitle}
-                  options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
-                  className="rounded-2xl py-3"
-                />
-              </div>
-              <div className="sm:col-span-5">
-                <input
-                  type="text"
-                  value={altContactPerson}
-                  onChange={(e) => setAltContactPerson(capitalizeWords(e.target.value))}
-                  autoCapitalize="words"
-                  placeholder="Alt Contact Person Name"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-                />
-              </div>
-              <div className="sm:col-span-4">
-                <input
-                  type="text"
-                  value={altContactDesignation}
-                  onChange={(e) => setAltContactDesignation(capitalizeWords(e.target.value))}
-                  autoCapitalize="words"
-                  placeholder="Alt Designation"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-                />
-              </div>
-            </div>
-            <div className="pt-1">
-              <PhoneInput
-                label="Alternative Contact Phone Number"
-                value={altPhone}
-                onChange={setAltPhone}
-                country={country}
-                onCountryChange={setCountry}
-              />
-            </div>
-          </div>
-
-          {/* Sector, Classification, Account Status in 3 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Sector & Classification in 2 columns (Account status removed as requested) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
                 <Briefcase size={13} className="text-[#C82A2B]" />
@@ -409,21 +476,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   { label: 'Standard Customer', value: 'standard' },
                   { label: '★ Favourite Customer', value: 'special' },
                   { label: '⚠ Risk Customer', value: 'risk' }
-                ]}
-                className="rounded-2xl py-3"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-[#9E1B1D]" />
-                Account Status
-              </label>
-              <Select
-                value={isActive ? 'true' : 'false'}
-                onChange={(val) => setIsActive(val === 'true')}
-                options={[
-                  { label: 'Active Account', value: 'true' },
-                  { label: 'Inactive Account', value: 'false' }
                 ]}
                 className="rounded-2xl py-3"
               />
@@ -480,11 +532,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
             {/* Street / Building Address */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                Street / Building Address
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#C82A2B]" />
+                Street / Building Address *
               </label>
               <input
                 type="text"
+                required
                 maxLength={200}
                 value={address}
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
@@ -497,11 +551,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             {/* City & State in 2 columns */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  City
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  City *
                 </label>
                 <input
                   type="text"
+                  required
                   maxLength={100}
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
@@ -511,11 +567,13 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  State
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  State *
                 </label>
                 <input
                   type="text"
+                  required
                   maxLength={100}
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}

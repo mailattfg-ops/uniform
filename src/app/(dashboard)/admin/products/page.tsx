@@ -250,10 +250,16 @@ const parseArtNumber = (artNumber: string, dresses: any[] = [], genders: any[] =
     if (exactMatch) {
       itemCode = exactMatch.code;
     } else {
-      const match = rawItem.match(/^([0-9a-zA-Z]+?)([A-Za-z])$/);
-      if (match) {
-        itemCode = match[1];
-        specCode = match[2].toUpperCase();
+      const matchingDress = (dresses || []).filter(d => rawItem.startsWith(d.code)).sort((a, b) => b.code.length - a.code.length)[0];
+      if (matchingDress) {
+        itemCode = matchingDress.code;
+        specCode = rawItem.slice(matchingDress.code.length);
+      } else {
+        const match = rawItem.match(/^([0-9a-zA-Z]+?)(.+)$/);
+        if (match) {
+          itemCode = match[1];
+          specCode = match[2];
+        }
       }
     }
 
@@ -1344,11 +1350,67 @@ export default function ProductManagement() {
       setProductType('');
       setAttachmentFabrics([]);
       setSelectedTrims([]);
-      // Refresh next pattern code on form open
-      api.get('/art-number-hub/patterns/next').then(res => setNextPatternCode(res.data?.nextCode || '001')).catch(() => { });
+      // Initialize default next pattern code on form open
+      setNextPatternCode('001');
+      setSelectedPattern('001');
     }
     prevIsAddingRef.current = isAdding;
   }, [editingProduct, isAdding]);
+
+  // Dynamically resolve pattern code in series scoped to (Gender, Item, Specification)
+  useEffect(() => {
+    // Only auto-resolve pattern code when creating a new product
+    if (editingProduct) return;
+    if (!isAdding) return;
+
+    if (!selectedGender || !selectedDress) {
+      setNextPatternCode('001');
+      setSelectedPattern('001');
+      return;
+    }
+
+    const cleanGender = selectedGender.trim().toUpperCase();
+    const cleanItem = selectedDress.trim().toUpperCase();
+    const cleanSpec = (selectedSpec || '').trim().toUpperCase();
+    const targetItemPart = `${cleanItem}${cleanSpec}`;
+
+    // 1. Instant local computation from loaded products
+    let localMax = 0;
+    (products || []).forEach(p => {
+      if (!p.art_number) return;
+      if (p.art_number.startsWith('ACC-') || p.art_number.startsWith('TRIM-') || p.art_number.startsWith('FAB-')) return;
+      const parts = p.art_number.split('-');
+      if (parts.length >= 2) {
+        const itemPart = parts[0].toUpperCase();
+        const middle = parts[1].toUpperCase();
+        if (itemPart === targetItemPart && middle.startsWith(cleanGender)) {
+          const patStr = middle.slice(cleanGender.length);
+          if (/^\d+$/.test(patStr)) {
+            const num = parseInt(patStr, 10);
+            if (!isNaN(num) && num > localMax) localMax = num;
+          }
+        }
+      }
+    });
+
+    const localNext = String(localMax + 1).padStart(3, '0');
+    setNextPatternCode(localNext);
+    setSelectedPattern(localNext);
+
+    // 2. Concurrently query backend for absolute DB consistency
+    api.get('/art-number-hub/patterns/next', {
+      params: {
+        gender_code: cleanGender,
+        item_code: cleanItem,
+        spec_code: cleanSpec
+      }
+    }).then(res => {
+      if (res.data?.nextCode) {
+        setNextPatternCode(res.data.nextCode);
+        setSelectedPattern(res.data.nextCode);
+      }
+    }).catch(() => { });
+  }, [selectedGender, selectedDress, selectedSpec, editingProduct, isAdding, products]);
 
   const availableDresses = dresses;
   const availableGenders = genders;
@@ -1363,6 +1425,24 @@ export default function ProductManagement() {
   const activeItemSpecs = matchedDressItem?.art_item_specifications || [];
 
   const productFields: FormField[] = [
+    {
+      name: 'gender_code',
+      label: 'Gender *',
+      type: 'select',
+      options: [
+        { label: 'Select Gender', value: '' },
+        ...availableGenders.map(g => ({
+          label: g.name ? `${g.name} [${g.code}]` : `[${g.code}]`,
+          value: String(g.code)
+        }))
+      ],
+      required: true,
+      value: selectedGender ? String(selectedGender) : '',
+      onChange: (rawVal) => {
+        const val = String(getCleanVal(rawVal) || '');
+        setSelectedGender(val);
+      }
+    },
     {
       name: 'dress_prefix',
       label: 'Item *',
@@ -1406,42 +1486,6 @@ export default function ProductManagement() {
       disabled: !selectedDress
     },
     {
-      name: 'gender_code',
-      label: 'Gender *',
-      type: 'select',
-      options: [
-        { label: 'Select Gender', value: '' },
-        ...availableGenders.map(g => ({
-          label: g.name ? `${g.name} [${g.code}]` : `[${g.code}]`,
-          value: String(g.code)
-        }))
-      ],
-      required: true,
-      value: selectedGender ? String(selectedGender) : '',
-      onChange: (rawVal) => {
-        const val = String(getCleanVal(rawVal) || '');
-        setSelectedGender(val);
-      }
-    },
-    {
-      name: 'pattern_code',
-      label: 'Pattern Code *',
-      type: 'select',
-      options: [
-        { label: `Auto-Generate Next (${nextPatternCode || '001'})`, value: nextPatternCode || '001' },
-        ...availablePatterns.map(p => ({
-          label: `[${p.code}] ${p.name}`,
-          value: String(p.code)
-        }))
-      ],
-      value: selectedPattern || nextPatternCode || '001',
-      onChange: (rawVal) => {
-        const val = String(getCleanVal(rawVal) || '');
-        setSelectedPattern(val);
-      },
-      required: true
-    },
-    {
       name: 'allowance',
       label: 'Allowance (inches)',
       type: 'text',
@@ -1450,6 +1494,15 @@ export default function ProductManagement() {
       value: allowance,
       onChange: (val) => setAllowance(val),
       hidden: productType === 'accessories'
+    },
+    {
+      name: 'pattern_code',
+      label: 'Pattern Code (Autogenerated)',
+      type: 'text',
+      value: selectedPattern || nextPatternCode || '001',
+      readOnly: true,
+      disabled: true,
+      required: true
     },
     {
       name: 'art_number',
