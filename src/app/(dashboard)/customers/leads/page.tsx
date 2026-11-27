@@ -88,7 +88,13 @@ export interface Lead {
   contact_title?: string | null;
   contact_person?: string | null;
   contact_designation?: string | null;
+  alt_contact_title?: string | null;
+  alt_contact_person?: string | null;
+  alt_contact_designation?: string | null;
+  alt_contact_number?: string | null;
+  alt_phone?: string | null;
   phone: string | null;
+  contact_number?: string | null;
   email?: string | null;
   source?: string | null;
   requirements?: string | null;
@@ -1532,6 +1538,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
   const [contactTitle, setContactTitle] = useState('Mr.');
   const [contactPerson, setContactPerson] = useState('');
   const [contactDesignation, setContactDesignation] = useState('');
+  const [altContactTitle, setAltContactTitle] = useState('Mr.');
+  const [altContactPerson, setAltContactPerson] = useState('');
+  const [altContactDesignation, setAltContactDesignation] = useState('');
+  const [altPhone, setAltPhone] = useState('');
+  const [showAltContact, setShowAltContact] = useState(false);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
@@ -1624,7 +1635,12 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setContactTitle(editingFeed.contact_title || 'Mr.');
         setContactPerson(editingFeed.contact_person || '');
         setContactDesignation(editingFeed.contact_designation || '');
-        setPhone(editingFeed.phone || '');
+        setAltContactTitle(editingFeed.alt_contact_title || 'Mr.');
+        setAltContactPerson(editingFeed.alt_contact_person || '');
+        setAltContactDesignation(editingFeed.alt_contact_designation || '');
+        setAltPhone(editingFeed.alt_contact_number || (editingFeed as any).alt_phone || '');
+        setShowAltContact(Boolean(editingFeed.alt_contact_person || editingFeed.alt_contact_number || (editingFeed as any).alt_phone));
+        setPhone(editingFeed.phone || editingFeed.contact_number || '');
         setEmail(editingFeed.email || '');
         setAddress(editingFeed.address || '');
         setGoogleMapsLink(editingFeed.google_maps_link || '');
@@ -1644,6 +1660,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setContactTitle('Mr.');
         setContactPerson('');
         setContactDesignation('');
+        setAltContactTitle('Mr.');
+        setAltContactPerson('');
+        setAltContactDesignation('');
+        setAltPhone('');
+        setShowAltContact(false);
         setPhone('');
         setEmail('');
         setAddress('');
@@ -1657,7 +1678,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         setZoneId('');
       }
     }
-  }, [isOpen, editingFeed]);
+  }, [isOpen, editingFeed, zones]);
 
   if (!isOpen) return null;
 
@@ -1700,6 +1721,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
         contact_title: contactTitle,
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
+        alt_contact_title: altContactTitle,
+        alt_contact_person: altContactPerson.trim() || null,
+        alt_contact_designation: altContactDesignation.trim() || null,
+        alt_contact_number: altPhone.trim() || null,
+        alt_phone: altPhone.trim() || null,
         phone: phone.trim(),
         contact_number: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
@@ -1724,31 +1750,32 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
 
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col my-8 z-10 max-h-[92vh]">
-        {/* Top Accent Rail */}
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
+        {/* Top Brand Accent Rail */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] shrink-0" />
-        {/* Header */}
-        <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0 border-b border-white/10">
+
+        {/* Executive Brand Obsidian Header */}
+        <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
-                {editingFeed ? (editingFeed.lead_code || `Customer #${editingFeed.id}`) : 'Customer Directory'}
+              <span className="px-3 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
+                {editingFeed ? (editingFeed.lead_code || `Feed #${editingFeed.id}`) : 'Customer Directory'}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-rose-200 border border-white/15 text-[9px] font-black uppercase tracking-wider">
-                {editingFeed ? 'Edit Customer Profile' : 'Add New Customer'}
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-white/90 border border-white/10 text-[9px] font-black uppercase tracking-wider">
+                {editingFeed ? 'Edit Profile' : 'New Feed'}
               </span>
             </div>
-            <h3 className="text-2xl font-black italic tracking-tight">
+            <h3 className="text-2xl font-black italic tracking-tight text-white">
               {editingFeed ? 'Edit Customer Profile' : 'Add New Customer'}
             </h3>
-            <p className="text-xs text-zinc-300 font-medium mt-0.5">
-              {editingFeed ? `Update customer profile for ${editingFeed.name}` : 'Register new customer profile.'}
+            <p className="text-xs text-zinc-400 font-semibold mt-0.5">
+              {editingFeed ? `Update customer record for ${editingFeed.name}` : 'Register new customer feed into directory'}
             </p>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -1756,90 +1783,86 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto flex-1">
-          {/* Authenticated Staff Auto-Logged */}
-          <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-700 flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-[#9E1B1D]" />
-                Authenticated Staff & Branch (Auto-Logged)
-              </span>
-              <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 uppercase">
-                Active Session
-              </span>
+          {/* Authenticated Staff Auto-Logged (New Feed Creation Mode Only) */}
+          {!editingFeed && (
+            <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-700 flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-[#9E1B1D]" />
+                  Authenticated Staff & Branch (Auto-Logged)
+                </span>
+                <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 uppercase">
+                  Active Session
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white rounded-xl p-2.5 border border-zinc-200 shadow-2xs">
+                  <p className="text-[8px] font-black uppercase text-zinc-400">Agent Name</p>
+                  <p className="text-xs font-black text-zinc-900 truncate mt-0.5">{authorName}</p>
+                </div>
+                <div className="bg-white rounded-xl p-2.5 border border-zinc-200 shadow-2xs">
+                  <p className="text-[8px] font-black uppercase text-zinc-400">Origin / Branch</p>
+                  <p className="text-xs font-black text-[#9E1B1D] truncate mt-0.5">
+                    {isBranchUser ? (userBranchName || `Branch #${userBranchId}`) : 'Headquarters (HQ)'}
+                  </p>
+                </div>
+                <div className="bg-white rounded-xl p-2.5 border border-zinc-200 shadow-2xs">
+                  <p className="text-[8px] font-black uppercase text-zinc-400">Department</p>
+                  <p className="text-xs font-black text-zinc-700 truncate mt-0.5">{authorDepartment}</p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-white rounded-xl p-2.5 border border-zinc-200 shadow-2xs">
-                <p className="text-[8px] font-black uppercase text-zinc-400">Agent Name</p>
-                <p className="text-xs font-black text-zinc-900 truncate mt-0.5">{authorName}</p>
-              </div>
-              <div className="bg-white rounded-xl p-2.5 border border-zinc-200 shadow-2xs">
-                <p className="text-[8px] font-black uppercase text-zinc-400">Origin / Branch</p>
-                <p className="text-xs font-black text-[#9E1B1D] truncate mt-0.5">
-                  {isBranchUser ? (userBranchName || `Branch #${userBranchId}`) : 'Headquarters (HQ)'}
-                </p>
-              </div>
-              <div className="bg-white rounded-xl p-2.5 border border-zinc-200 shadow-2xs">
-                <p className="text-[8px] font-black uppercase text-zinc-400">Department</p>
-                <p className="text-xs font-black text-zinc-700 truncate mt-0.5">{authorDepartment}</p>
-              </div>
-            </div>
-          </div>
+          )}
 
-          {/* Customer Name & Industry Sector */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-                <Building2 size={13} className="text-[#C82A2B]" />
-                Customer Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(capitalizeWords(e.target.value))}
-                autoCapitalize="words"
-                placeholder="e.g. Apex Hospital, Greenfield High"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-                <Briefcase size={13} className="text-[#C82A2B]" />
-                Industry Sector *
-              </label>
-              <Select
-                value={industryId}
-                onChange={(val) => setIndustryId(val)}
-                placeholder="Select Sector / Category"
-                options={industries.map((ind) => ({
-                  value: String(ind.id),
-                  label: ind.name
-                }))}
-              />
-            </div>
-          </div>
-
-          {/* Contact Person: Title + Full Name + Designation */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <User size={13} className="text-[#9E1B1D]" />
-              Contact Person Details
+          {/* Customer Name */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+              <Building2 size={13} className="text-[#C82A2B]" />
+              Customer Name *
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-3">
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(capitalizeWords(e.target.value))}
+              autoCapitalize="words"
+              placeholder="e.g. Apex Hospital, Greenfield High"
+              className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+            />
+          </div>
+
+          {/* Contact Persons Details: Single Line Format per Contact */}
+          <div className="space-y-4 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <User size={13} className="text-[#9E1B1D]" />
+                Primary Contact Person Details
+              </label>
+              {!showAltContact && (
+                <button
+                  type="button"
+                  onClick={() => setShowAltContact(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] transition-colors cursor-pointer"
+                >
+                  <Plus size={14} />
+                  Add Contact Person
+                </button>
+              )}
+            </div>
+
+            {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-2 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
                 <Select
                   value={contactTitle}
                   onChange={(val) => setContactTitle(val)}
-                  options={[
-                    { value: 'Mr.', label: 'Mr.' },
-                    { value: 'Mrs.', label: 'Mrs.' },
-                    { value: 'Ms.', label: 'Ms.' },
-                    { value: 'Dr.', label: 'Dr.' },
-                    { value: 'Prof.', label: 'Prof.' }
-                  ]}
+                  options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                  className="rounded-2xl py-3"
                 />
               </div>
-              <div className="sm:col-span-5">
+              <div className="sm:col-span-4 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Name</span>
                 <input
                   type="text"
                   value={contactPerson}
@@ -1849,7 +1872,18 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Phone *</span>
+                <PhoneInput
+                  required
+                  value={phone}
+                  onChange={setPhone}
+                  country={country}
+                  onCountryChange={setCountry}
+                />
+              </div>
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Designation</span>
                 <input
                   type="text"
                   value={contactDesignation}
@@ -1860,19 +1894,76 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 />
               </div>
             </div>
-          </div>
 
-          {/* Contact Number & Email Address */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <PhoneInput
-              required
-              label="Contact Number *"
-              value={phone}
-              onChange={setPhone}
-              country={country}
-              onCountryChange={setCountry}
-            />
-            <div className="space-y-1.5">
+            {/* Line 2: Secondary / Additional Contact Person Details */}
+            {showAltContact && (
+              <div className="space-y-1 pt-2 border-t border-dashed border-zinc-200">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                    <User size={13} className="text-zinc-400" />
+                    Additional Contact Person Details
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAltContactPerson('');
+                      setAltPhone('');
+                      setAltContactDesignation('');
+                      setShowAltContact(false);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={12} />
+                    Remove
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
+                    <Select
+                      value={altContactTitle}
+                      onChange={(val) => setAltContactTitle(val)}
+                      options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                      className="rounded-2xl py-3"
+                    />
+                  </div>
+                  <div className="sm:col-span-4 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Name</span>
+                    <input
+                      type="text"
+                      value={altContactPerson}
+                      onChange={(e) => setAltContactPerson(capitalizeWords(e.target.value))}
+                      autoCapitalize="words"
+                      placeholder="Alt Contact Name"
+                      className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                    />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Phone</span>
+                    <PhoneInput
+                      value={altPhone}
+                      onChange={setAltPhone}
+                      country={country}
+                      onCountryChange={setCountry}
+                    />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Designation</span>
+                    <input
+                      type="text"
+                      value={altContactDesignation}
+                      onChange={(e) => setAltContactDesignation(capitalizeWords(e.target.value))}
+                      autoCapitalize="words"
+                      placeholder="Alt Designation"
+                      className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Email Address */}
+            <div className="space-y-1.5 pt-1">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
                 Email Address
@@ -1887,123 +1978,52 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
-          {/* Address Details: Street, City, State, Pincode, Country */}
-          <div className="space-y-3 pt-1 border-t border-zinc-100">
-            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              <MapPin size={13} className="text-[#9E1B1D]" />
-              5-Part Standard Address Details
-            </div>
-
+          {/* Sector & Origin Grid (2 columns) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                Street / Building Address
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <Briefcase size={13} className="text-[#C82A2B]" />
+                Customer Sector / Type *
               </label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(capitalizeWords(e.target.value))}
-                autoCapitalize="words"
-                placeholder="e.g. Plot #45, Near Metro Pillar 112"
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              <Select
+                required
+                placeholder="Select Sector / Category"
+                value={industryId}
+                onChange={(val) => setIndustryId(val)}
+                options={industries.map((ind) => ({
+                  value: String(ind.id),
+                  label: ind.name
+                }))}
+                className="rounded-2xl py-3"
               />
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-                  <MapPin size={13} className="text-[#C82A2B]" />
-                  City *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={city}
-                  onChange={(e) => setCity(capitalizeWords(e.target.value))}
-                  autoCapitalize="words"
-                  placeholder="e.g. Mumbai, Bengaluru, Chennai"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-                  <MapPin size={13} className="text-[#C82A2B]" />
-                  State *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={state}
-                  onChange={(e) => setState(capitalizeWords(e.target.value))}
-                  autoCapitalize="words"
-                  placeholder="e.g. Maharashtra, Tamil Nadu"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  Pin Code
-                </label>
-                <input
-                  type="text"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  placeholder="e.g. 560001"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  value={country}
-                  onChange={(e) => setCountry(capitalizeWords(e.target.value))}
-                  autoCapitalize="words"
-                  placeholder="e.g. India"
-                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-                />
-              </div>
-            </div>
-
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                <Navigation size={13} className="text-[#9E1B1D]" />
-                Google Maps Link (Optional)
+                <Building2 size={13} className="text-[#9E1B1D]" />
+                Intake Origin
               </label>
-              <input
-                type="text"
-                value={googleMapsLink}
-                onChange={(e) => setGoogleMapsLink(e.target.value)}
-                placeholder="e.g. https://maps.app.goo.gl/..."
-                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
-              />
+              <div className="px-4 py-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 text-xs font-bold text-zinc-700 flex items-center justify-between">
+                <span>{isBranchUser ? 'Branch Sourced' : 'Headquarters (HQ)'}</span>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 uppercase">
+                  {effectiveOrigin}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Automatic Origin & Branch Confirmation */}
-          <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+          {/* Branch & Zone Selection (2 columns) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Building2 size={13} className="text-[#9E1B1D]" />
-                Intake Origin Source & Branch (Auto-Detected)
-              </span>
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isBranchUser ? 'bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20' : 'bg-zinc-200 text-zinc-800'}`}>
-                {isBranchUser ? 'Branch Session' : 'HQ Session'}
-              </span>
-            </div>
-            {isBranchUser ? (
-              <p className="text-xs font-bold text-[#9E1B1D]">
-                Origin: <span className="font-black">BRANCH</span> • Assigned Branch: <span className="font-black">{userBranchName || `Branch #${userBranchId}`}</span>
-              </p>
-            ) : (
-              <div className="space-y-2 pt-1">
-                <p className="text-[11px] text-zinc-600 font-medium">
-                  Select a branch or pick a zone to automatically assign the branch:
-                </p>
+                Assigned Branch
+              </label>
+              {isBranchUser ? (
+                <div className="px-4 py-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 text-xs font-bold text-[#9E1B1D] flex items-center justify-between">
+                  <span>{userBranchName || `Branch #${userBranchId}`}</span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 uppercase">Assigned</span>
+                </div>
+              ) : (
                 <Select
                   value={hqBranchId}
                   onChange={(val) => {
@@ -2017,29 +2037,31 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                       }
                     }
                   }}
-                  placeholder="Select Branch (Optional / Auto-assigned)"
-                  options={selectableBranches.map(b => ({
-                    value: String(b.id),
-                    label: b.name
-                  }))}
+                  placeholder="HQ / Unassigned Branch"
+                  options={[
+                    { value: '', label: 'HQ / Unassigned Branch' },
+                    ...selectableBranches.map(b => ({
+                      value: String(b.id),
+                      label: b.name
+                    }))
+                  ]}
+                  className="rounded-2xl py-3"
                 />
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Searchable Zone Selection within NewFeedModal */}
-            <div className="space-y-1.5 pt-2 border-t border-zinc-200/70" ref={zoneDropdownRef}>
+            <div className="space-y-1.5" ref={zoneDropdownRef}>
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                   <MapPin size={13} className="text-[#9E1B1D]" />
                   Assigned Zone {availableZones.length > 0 ? `(${availableZones.length})` : ''}
                 </label>
                 {!effectiveBranchId && availableZones.length > 0 && (
-                  <span className="text-[9px] font-semibold text-zinc-400">
+                  <span className="text-[8px] font-semibold text-zinc-400">
                     Auto-assigns branch
                   </span>
                 )}
               </div>
-
               <div className="relative">
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                 <input
@@ -2060,11 +2082,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                   }}
                   placeholder={
                     availableZones.length > 0
-                      ? 'Type to search zone (e.g. Indiranagar, South)...'
+                      ? 'Search zone...'
                       : 'No zones available'
                   }
                   disabled={availableZones.length === 0}
-                  className="w-full pl-9 pr-16 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-2 focus:ring-[#C82A2B]/15 text-xs font-bold text-zinc-800 bg-white disabled:bg-zinc-100 disabled:text-zinc-400 placeholder:text-zinc-400 placeholder:font-normal cursor-pointer"
+                  className="w-full pl-9 pr-14 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 bg-white disabled:bg-zinc-100 disabled:text-zinc-400 placeholder:text-zinc-400 cursor-pointer transition-all"
                 />
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   {(zoneId || zoneSearchQuery) && (
@@ -2158,9 +2180,110 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
             </div>
           </div>
 
+          {/* Address Details: Street, City, State, Pin Code, Country, Maps */}
+          <div className="space-y-3 pt-1 border-t border-zinc-100">
+            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              <MapPin size={13} className="text-[#9E1B1D]" />
+              Address Details
+            </div>
+
+            {/* Street / Building Address */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                Street / Building Address
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(capitalizeWords(e.target.value))}
+                autoCapitalize="words"
+                placeholder="Campus address, Street, Building"
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+
+            {/* City & State in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  City *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={city}
+                  onChange={(e) => setCity(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="e.g. Mumbai, Bengaluru"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  State *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={state}
+                  onChange={(e) => setState(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="e.g. Maharashtra, Karnataka"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+
+            {/* Pin Code & Country in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  Pin Code
+                </label>
+                <input
+                  type="text"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="e.g. 560001"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  Country
+                </label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(capitalizeWords(e.target.value))}
+                  autoCapitalize="words"
+                  placeholder="e.g. India"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+
+            {/* Google Maps Link (Optional) */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Navigation size={13} className="text-[#9E1B1D]" />
+                Google Maps Link (Optional)
+              </label>
+              <input
+                type="text"
+                value={googleMapsLink}
+                onChange={(e) => setGoogleMapsLink(e.target.value)}
+                placeholder="e.g. https://maps.app.goo.gl/..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+          </div>
+
           {/* Remarks: Only in Create Mode for initial field scouting, NOT in Edit Mode */}
           {!editingFeed && (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-1 border-t border-zinc-100">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
                 Agent Remarks & Contact Notes
               </label>
@@ -2181,7 +2304,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-all"
+              className="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-all cursor-pointer"
             >
               Cancel
             </button>
@@ -2235,6 +2358,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const [contactTitle, setContactTitle] = useState('Mr.');
   const [contactPerson, setContactPerson] = useState('');
   const [contactDesignation, setContactDesignation] = useState('');
+  const [altContactTitle, setAltContactTitle] = useState('Mr.');
+  const [altContactPerson, setAltContactPerson] = useState('');
+  const [altContactDesignation, setAltContactDesignation] = useState('');
+  const [altPhone, setAltPhone] = useState('');
+  const [showAltContact, setShowAltContact] = useState(false);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [source, setSource] = useState('Direct');
@@ -2264,6 +2392,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setContactTitle(data.contact_title || 'Mr.');
       setContactPerson(data.contact_person || '');
       setContactDesignation(data.contact_designation || '');
+      setAltContactTitle((data as any).alt_contact_title || 'Mr.');
+      setAltContactPerson((data as any).alt_contact_person || '');
+      setAltContactDesignation((data as any).alt_contact_designation || '');
+      setAltPhone((data as any).alt_contact_number || (data as any).alt_phone || '');
+      setShowAltContact(Boolean((data as any).alt_contact_person || (data as any).alt_contact_number || (data as any).alt_phone));
       setPhone(data.phone || '');
       setEmail(data.email || '');
       setSource(data.source || 'Direct');
@@ -2285,6 +2418,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
       setContactTitle('Mr.');
       setContactPerson('');
       setContactDesignation('');
+      setAltContactTitle('Mr.');
+      setAltContactPerson('');
+      setAltContactDesignation('');
+      setAltPhone('');
+      setShowAltContact(false);
       setPhone('');
       setEmail('');
       setSource('Direct');
@@ -2398,6 +2536,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         contact_title: contactTitle,
         contact_person: contactPerson.trim() || null,
         contact_designation: contactDesignation.trim() || null,
+        alt_contact_title: altContactTitle,
+        alt_contact_person: altContactPerson.trim() || null,
+        alt_contact_designation: altContactDesignation.trim() || null,
+        alt_contact_number: altPhone.trim() || null,
+        alt_phone: altPhone.trim() || null,
         phone: phone.trim(),
         email: email.trim() ? email.trim().toLowerCase() : null,
         source: isEditing ? (editingLead?.source || null) : (source.trim() || null),
@@ -2435,33 +2578,34 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
       
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden relative animate-in zoom-in-95 duration-300 flex flex-col my-8 z-10 max-h-[92vh]">
-        {/* Top Accent Rail */}
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
+        {/* Top Brand Accent Rail */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] shrink-0" />
-        {/* Header */}
-        <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0 border-b border-white/10">
+
+        {/* Executive Brand Obsidian Header */}
+        <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-8 py-6 text-white relative flex justify-between items-start shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
-                {editingLead ? (editingLead.lead_code || `Customer #${editingLead.id}`) : 'Customer Directory'}
+              <span className="px-3 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/15 text-[9px] font-black uppercase tracking-wider font-mono">
+                {editingLead ? (editingLead.lead_code || `Lead #${editingLead.id}`) : 'Customer Directory'}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-rose-200 border border-white/15 text-[9px] font-black uppercase tracking-wider">
-                {isConvertingFeed ? 'Customer Update • Convert to Lead' : editingLead ? 'Edit Customer Profile' : 'Add New Customer'}
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1F1]/10 text-white/90 border border-white/10 text-[9px] font-black uppercase tracking-wider">
+                {isConvertingFeed ? 'Convert Feed to Lead' : editingLead ? 'Edit Profile' : 'New Lead'}
               </span>
             </div>
-            <h3 className="text-2xl font-black italic tracking-tight">
+            <h3 className="text-2xl font-black italic tracking-tight text-white">
               {isConvertingFeed ? 'Customer Update — Convert Feed to Lead' : editingLead ? 'Edit Customer Profile' : 'Add New Customer'}
             </h3>
-            <p className="text-xs text-zinc-300 font-semibold mt-0.5">
+            <p className="text-xs text-zinc-400 font-semibold mt-0.5">
               {isConvertingFeed
                 ? 'Update mandatory contact person details and address to graduate this feed into the active commercial pipeline'
-                : editingLead ? `Update details for ${editingLead.name}` : 'Register full customer profile to initiate the 11-stage sales funnel'}
+                : editingLead ? `Update customer record for ${editingLead.name}` : 'Register full customer profile to initiate the sales funnel'}
             </p>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -2500,6 +2644,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               </div>
             </div>
           )}
+
           {/* Customer Name */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
@@ -2517,29 +2662,38 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             />
           </div>
 
-          {/* Contact Person Details: Title + Full Name + Designation */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
-              <User size={13} className="text-[#C82A2B]" />
-              Contact Person Details *
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-3 space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Salutation *</span>
+          {/* Contact Persons Details: Single Line Format per Contact */}
+          <div className="space-y-4 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                <User size={13} className="text-[#C82A2B]" />
+                Primary Contact Person Details *
+              </label>
+              {!showAltContact && (
+                <button
+                  type="button"
+                  onClick={() => setShowAltContact(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] transition-colors cursor-pointer"
+                >
+                  <Plus size={14} />
+                  Add Contact Person
+                </button>
+              )}
+            </div>
+
+            {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-2 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Title *</span>
                 <Select
                   value={contactTitle}
                   onChange={(val) => setContactTitle(val)}
-                  options={[
-                    { value: 'Mr.', label: 'Mr.' },
-                    { value: 'Mrs.', label: 'Mrs.' },
-                    { value: 'Ms.', label: 'Ms.' },
-                    { value: 'Dr.', label: 'Dr.' },
-                    { value: 'Prof.', label: 'Prof.' }
-                  ]}
+                  options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                  className="rounded-2xl py-3"
                 />
               </div>
-              <div className="sm:col-span-5 space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Contact Person Name *</span>
+              <div className="sm:col-span-4 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Name *</span>
                 <input
                   type="text"
                   required
@@ -2550,7 +2704,17 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-4 space-y-1">
+              <div className="sm:col-span-3 space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Phone *</span>
+                <PhoneInput
+                  required
+                  value={phone}
+                  onChange={setPhone}
+                  country={country}
+                  onCountryChange={setCountry}
+                />
+              </div>
+              <div className="sm:col-span-3 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Designation *</span>
                 <input
                   type="text"
@@ -2558,24 +2722,81 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   value={contactDesignation}
                   onChange={(e) => setContactDesignation(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
-                  placeholder="Designation (e.g. Principal / Director)"
+                  placeholder="Designation (e.g. Principal)"
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Phone & Email */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <PhoneInput
-              required
-              label="Primary Phone Number *"
-              value={phone}
-              onChange={setPhone}
-              country={country}
-              onCountryChange={setCountry}
-            />
-            <div className="space-y-1.5">
+            {/* Line 2: Secondary / Additional Contact Person Details */}
+            {showAltContact && (
+              <div className="space-y-1 pt-2 border-t border-dashed border-zinc-200">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                    <User size={13} className="text-zinc-400" />
+                    Additional Contact Person Details
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAltContactPerson('');
+                      setAltPhone('');
+                      setAltContactDesignation('');
+                      setShowAltContact(false);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={12} />
+                    Remove
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
+                    <Select
+                      value={altContactTitle}
+                      onChange={(val) => setAltContactTitle(val)}
+                      options={['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.']}
+                      className="rounded-2xl py-3"
+                    />
+                  </div>
+                  <div className="sm:col-span-4 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Name</span>
+                    <input
+                      type="text"
+                      value={altContactPerson}
+                      onChange={(e) => setAltContactPerson(capitalizeWords(e.target.value))}
+                      autoCapitalize="words"
+                      placeholder="Alt Contact Name"
+                      className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                    />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Phone</span>
+                    <PhoneInput
+                      value={altPhone}
+                      onChange={setAltPhone}
+                      country={country}
+                      onCountryChange={setCountry}
+                    />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Designation</span>
+                    <input
+                      type="text"
+                      value={altContactDesignation}
+                      onChange={(e) => setAltContactDesignation(capitalizeWords(e.target.value))}
+                      autoCapitalize="words"
+                      placeholder="Alt Designation"
+                      className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Email Address */}
+            <div className="space-y-1.5 pt-1">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Mail size={13} className="text-[#9E1B1D]" />
                 Email Address
@@ -2590,14 +2811,15 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
-          {/* Sector, Source, Branch, Salesperson Grid */}
+          {/* Sector & Source Grid (2 columns) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
                 <Briefcase size={13} className="text-[#C82A2B]" />
-                Industry Sector *
+                Customer Sector / Type *
               </label>
               <Select
+                required
                 value={industryId}
                 onChange={(val) => setIndustryId(val)}
                 placeholder="Select Sector"
@@ -2605,11 +2827,12 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   value: String(i.id),
                   label: i.name
                 }))}
+                className="rounded-2xl py-3"
               />
             </div>
 
-            {/* Lead Source: Only on creation, not in edit */}
-            {!isEditing && (
+            {/* Lead Source */}
+            {!isEditing ? (
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                   <Compass size={13} className="text-[#9E1B1D]" />
@@ -2626,17 +2849,30 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                     { value: 'Exhibition', label: 'Exhibition' },
                     { value: 'Other', label: 'Other' }
                   ]}
+                  className="rounded-2xl py-3"
                 />
               </div>
-            )}
-
-            {/* Branch Assignment Provision: Visible for HQ staff or when editing */}
-            {(isEditing || intakeRole === 'hq_staff') && (
+            ) : (
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Building2 size={13} className="text-[#9E1B1D]" />
-                  Branch Assignment
+                  <Compass size={13} className="text-[#9E1B1D]" />
+                  Lead Source
                 </label>
+                <div className="px-4 py-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 text-xs font-bold text-zinc-700">
+                  {source || 'Direct'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Branch & Zone Selection (2 columns) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <Building2 size={13} className="text-[#9E1B1D]" />
+                Assigned Branch
+              </label>
+              {(isEditing || intakeRole === 'hq_staff') ? (
                 <Select
                   value={branchId}
                   onChange={(val) => {
@@ -2651,52 +2887,59 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                       label: b.name
                     }))
                   ]}
+                  className="rounded-2xl py-3"
                 />
-              </div>
-            )}
+              ) : (
+                <div className="px-4 py-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 text-xs font-bold text-[#9E1B1D] flex items-center justify-between">
+                  <span>{userBranchName || `Branch #${userBranchId}`}</span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#FFF1F1] text-[#9E1B1D] border border-[#C82A2B]/20 uppercase">Assigned</span>
+                </div>
+              )}
+            </div>
 
-            {/* Zone Assignment Provision: Filtered by effective branch */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <MapPin size={13} className="text-[#9E1B1D]" />
-                Zone / Region {effectiveBranchId ? `(${availableZones.length})` : ''}
+                Assigned Zone {effectiveBranchId ? `(${availableZones.length})` : ''}
               </label>
               <Select
                 value={zoneId}
                 onChange={(val) => setZoneId(val)}
                 disabled={!effectiveBranchId}
-                placeholder={effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone / Sector' : 'No zones for this branch') : 'Select Branch first'}
+                placeholder={effectiveBranchId ? (availableZones.length > 0 ? 'Select Zone' : 'No zones for this branch') : 'Select Branch first'}
                 options={availableZones.map((z) => ({
                   value: String(z.id),
                   label: z.name
                 }))}
+                className="rounded-2xl py-3"
               />
             </div>
-
-            {/* Salesperson Assignment Provision: Only on creation for branch staff, not in edit */}
-            {!isEditing && intakeRole === 'branch_staff' && (
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <ShieldCheck size={13} className="text-[#9E1B1D]" />
-                  Salesperson Assignment
-                </label>
-                <Select
-                  value={assignedStaffId}
-                  onChange={(val) => setAssignedStaffId(val)}
-                  placeholder="Unassigned (Branch Intake)"
-                  options={[
-                    { value: '', label: 'Unassigned (Branch Intake)' },
-                    ...employees
-                      .filter(emp => !userBranchId || emp.branch_id === userBranchId)
-                      .map((emp) => ({
-                        value: String(emp.id),
-                        label: `${emp.full_name} (${emp.employee_id})`
-                      }))
-                  ]}
-                />
-              </div>
-            )}
           </div>
+
+          {/* Salesperson Assignment Provision (Only on creation for branch staff) */}
+          {!isEditing && intakeRole === 'branch_staff' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                <ShieldCheck size={13} className="text-[#9E1B1D]" />
+                Salesperson Assignment
+              </label>
+              <Select
+                value={assignedStaffId}
+                onChange={(val) => setAssignedStaffId(val)}
+                placeholder="Unassigned (Branch Intake)"
+                options={[
+                  { value: '', label: 'Unassigned (Branch Intake)' },
+                  ...employees
+                    .filter(emp => !userBranchId || emp.branch_id === userBranchId)
+                    .map((emp) => ({
+                      value: String(emp.id),
+                      label: `${emp.full_name} (${emp.employee_id})`
+                    }))
+                ]}
+                className="rounded-2xl py-3"
+              />
+            </div>
+          )}
 
           {/* Requirements: Available ONLY when no requirements have been added yet */}
           {!hasSavedRequirements && (
@@ -2718,8 +2961,14 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           )}
 
-          {/* Address & City */}
-          <div className="space-y-4">
+          {/* Address Details: Street, City, State, Pin Code, Country, Maps */}
+          <div className="space-y-3 pt-1 border-t border-zinc-100">
+            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              <MapPin size={13} className="text-[#9E1B1D]" />
+              Address Details
+            </div>
+
+            {/* Street / Building Address */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
                 <MapPin size={13} className="text-[#C82A2B]" />
@@ -2731,59 +2980,75 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 value={address}
                 onChange={(e) => setAddress(capitalizeWords(e.target.value))}
                 autoCapitalize="words"
-                placeholder="e.g. 12th Main Road, HAL 2nd Stage"
+                placeholder="Campus address, Street, Building"
                 className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
               />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* City & State in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B]">City *</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  City *
+                </label>
                 <input
                   type="text"
                   required
                   value={city}
                   onChange={(e) => setCity(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
-                  placeholder="e.g. Bengaluru"
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-800"
+                  placeholder="e.g. Mumbai, Bengaluru"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B]">State *</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] flex items-center gap-1.5">
+                  <MapPin size={13} className="text-[#C82A2B]" />
+                  State *
+                </label>
                 <input
                   type="text"
                   required
                   value={state}
                   onChange={(e) => setState(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
-                  placeholder="e.g. Karnataka"
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-800"
+                  placeholder="e.g. Maharashtra, Karnataka"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
+            </div>
+
+            {/* Pin Code & Country in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">PIN Code</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  PIN Code
+                </label>
                 <input
                   type="text"
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
-                  placeholder="e.g. 560008"
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-800"
+                  placeholder="e.g. 560001"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Country</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  Country
+                </label>
                 <input
                   type="text"
                   value={country}
                   onChange={(e) => setCountry(capitalizeWords(e.target.value))}
                   autoCapitalize="words"
                   placeholder="e.g. India"
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-800"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
             </div>
 
+            {/* Google Maps Link (Optional) */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                 <Navigation size={13} className="text-[#9E1B1D]" />
@@ -2799,20 +3064,37 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
             </div>
           </div>
 
+          {/* Remarks (Only in Create Mode) */}
+          {!isEditing && (
+            <div className="space-y-1.5 pt-1 border-t border-zinc-100">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                Agent Remarks & Contact Notes
+              </label>
+              <textarea
+                rows={2}
+                value={remarks}
+                onChange={(e) => setRemarks(capitalizeFirstLetter(e.target.value))}
+                autoCapitalize="sentences"
+                placeholder="e.g. Lead intake remarks..."
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-semibold text-zinc-800 transition-all placeholder:text-zinc-400 resize-none"
+              />
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-all"
+              className="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 flex items-center gap-2 active:scale-95"
+              className="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-[#C82A2B] hover:bg-[#A81D1E] transition-all shadow-lg shadow-[#C82A2B]/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
             >
               {isSubmitting ? 'Saving...' : 'Save'}
             </button>
