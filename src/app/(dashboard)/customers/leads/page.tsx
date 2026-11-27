@@ -790,7 +790,6 @@ export default function LeadsRegistryPage() {
                 customer={(l as any).organizations}
                 size={18}
               />
-              <CustomerActivityBadge lead={l} />
             </div>
             {industryName && (
               <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
@@ -1672,6 +1671,10 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
       toast.error('Industry Sector is required');
       return;
     }
+    if (!phone.trim()) {
+      toast.error('Contact number is required');
+      return;
+    }
     if (!city.trim()) {
       toast.error('City is required');
       return;
@@ -1862,7 +1865,8 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
           {/* Contact Number & Email Address */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PhoneInput
-              label="Contact Number"
+              required
+              label="Contact Number *"
               value={phone}
               onChange={setPhone}
               country={country}

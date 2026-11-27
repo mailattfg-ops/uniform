@@ -79,13 +79,13 @@ interface ArtNumber {
   art_fits?: { code: string; name: string };
 }
 
-type TabType = 'registry' | 'items' | 'genders' | 'patterns' | 'fits';
+type TabType = 'registry' | 'items' | 'genders' | 'fits';
 
 export default function ArtNumberHubPage() {
   const [activeTab, setActiveTab] = useState<TabType>('registry');
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [deleteCandidate, setDeleteCandidate] = useState<{ type: TabType | 'spec'; id: number; code: string; itemId?: number } | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<{ type: TabType | 'patterns' | 'spec'; id: number; code: string; itemId?: number } | null>(null);
 
   // Core Data States
   const [items, setItems] = useState<Item[]>([]);
@@ -359,12 +359,12 @@ export default function ArtNumberHubPage() {
     const cleanName = specName.trim();
 
     if (!cleanCode || !cleanName) {
-      toast.error('Specification Code (e.g. A) and Name (e.g. Half Sleeve) are required');
+      toast.error('Specification Code (e.g. A, +, -) and Name (e.g. Half Sleeve) are required');
       return;
     }
 
-    if (cleanCode.length > 5) {
-      toast.error('Specification Code should be 1-2 characters (e.g. A, B, C)');
+    if (cleanCode.length > 10) {
+      toast.error('Specification Code should be 10 characters or less');
       return;
     }
 
@@ -738,7 +738,6 @@ export default function ArtNumberHubPage() {
     switch (activeTab) {
       case 'items': return 'Item';
       case 'genders': return 'Gender Code';
-      case 'patterns': return 'Pattern Code';
       case 'fits': return 'Fit Code';
       case 'registry': return 'Combined Art Number';
     }
@@ -748,7 +747,6 @@ export default function ArtNumberHubPage() {
     switch (activeTab) {
       case 'items': return items;
       case 'genders': return genders;
-      case 'patterns': return patterns;
       case 'fits': return fits;
       case 'registry': return artNumbers;
     }
@@ -758,7 +756,6 @@ export default function ArtNumberHubPage() {
     switch (activeTab) {
       case 'items': return itemColumns;
       case 'genders': return genderColumns;
-      case 'patterns': return patternColumns;
       case 'fits': return fitColumns;
       case 'registry': return registryColumns;
     }
@@ -768,7 +765,6 @@ export default function ArtNumberHubPage() {
     switch (activeTab) {
       case 'items': return 'Search by Item Code, Name, or Specification (e.g. 1, Shirt, Half Sleeve)...';
       case 'genders': return 'Search by Gender Code or Description...';
-      case 'patterns': return 'Search by Pattern Code or Name...';
       case 'fits': return 'Search by Fit Code (S, R, L) or Name...';
       case 'registry': return 'Search combined Art Numbers (e.g. 1A-3053-R2)...';
     }
@@ -800,30 +796,32 @@ export default function ArtNumberHubPage() {
             <RefreshCw size={18} className={isLoading ? 'animate-spin text-teal-600' : 'text-teal-600'} />
           </Button>
 
-          {!isAdding ? (
-            <Button
-              onClick={() => setIsAdding(true)}
-              size="h-auto"
-              className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus size={18} strokeWidth={3} />
-              Register {getTabLabelSingular()}
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="h-auto"
-              onClick={handleCancel}
-              className="h-14 px-8 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] cursor-pointer"
-            >
-              Cancel Entry
-            </Button>
+          {activeTab !== 'registry' && (
+            !isAdding ? (
+              <Button
+                onClick={() => setIsAdding(true)}
+                size="h-auto"
+                className="h-14 px-8 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] shadow-xl shadow-[#C82A2B]/25 gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Plus size={18} strokeWidth={3} />
+                Register {getTabLabelSingular()}
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="h-auto"
+                onClick={handleCancel}
+                className="h-14 px-8 rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[11px] cursor-pointer"
+              >
+                Cancel Entry
+              </Button>
+            )
           )}
         </div>
       </div>
 
       {/* Tabs Menu Selector */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 bg-zinc-100 p-2.5 rounded-[1.8rem] border border-zinc-200/50 shadow-inner">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-100 p-2.5 rounded-[1.8rem] border border-zinc-200/50 shadow-inner">
         <Button
           onClick={() => { setActiveTab('registry'); handleCancel(); }}
           variant="secondary"
@@ -861,19 +859,6 @@ export default function ArtNumberHubPage() {
         >
           <UserCheck size={16} />
           Gender Codes
-        </Button>
-
-        <Button
-          onClick={() => { setActiveTab('patterns'); handleCancel(); }}
-          variant="secondary"
-          size="h-auto"
-          className={`flex items-center justify-center gap-2.5 py-4 px-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-300 h-auto border-none ${activeTab === 'patterns'
-            ? 'bg-white text-teal-600 shadow-md scale-[1.02] border border-zinc-200/40'
-            : 'text-[#3a525d] hover:bg-white/60 hover:text-teal-600 bg-transparent shadow-none'
-            }`}
-        >
-          <Palette size={16} />
-          Pattern Codes
         </Button>
 
         <Button
@@ -1207,14 +1192,14 @@ export default function ArtNumberHubPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block mb-1">
-                    Spec Code (e.g. A, B)
+                    Spec Code (e.g. A, +, -, /)
                   </label>
                   <Input
-                    placeholder="e.g. A"
+                    placeholder="e.g. A, +, -"
                     value={specCode}
                     onChange={(e) => {
                       const val = e.target.value.toUpperCase();
-                      if (val.length <= 5 && /^[A-Z0-9]*$/.test(val)) setSpecCode(val);
+                      if (val.length <= 10) setSpecCode(val);
                     }}
                     className="h-11 rounded-xl font-black text-center font-mono uppercase bg-white"
                   />

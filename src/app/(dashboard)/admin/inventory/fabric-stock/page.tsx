@@ -353,8 +353,8 @@ export default function FabricStockPage() {
         headerAction={
           <div className="flex items-center gap-2 flex-wrap">
             <FilterDropdown
-              label="Garment Category"
-              allLabel="All Garment Categories"
+              label="Fabric Type"
+              allLabel="All Fabric Types"
               value={garmentCategoryFilter}
               onChange={setGarmentCategoryFilter}
               options={uniqueGarmentCategories}
