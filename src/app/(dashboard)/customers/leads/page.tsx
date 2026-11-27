@@ -4115,24 +4115,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                 </div>
               </div>
 
-              {/* Sales Person / Operator */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
-                  Sales Person
-                </label>
-                {lead.employees ? (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <ShieldCheck size={14} className="text-[#9E1B1D]" />
-                    <div>
-                      <p className="text-xs font-black text-zinc-900">{lead.employees.full_name}</p>
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase font-mono">{lead.employees.employee_id}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-xs text-zinc-400 italic font-medium">Unassigned</span>
-                )}
-              </div>
-
               {/* Location & Address */}
               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
                 <div className="flex items-center justify-between mb-1">
@@ -4172,6 +4154,24 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Sales Person / Operator */}
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-1">
+                  Sales Person
+                </label>
+                {lead.employees ? (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <ShieldCheck size={14} className="text-[#9E1B1D]" />
+                    <div>
+                      <p className="text-xs font-black text-zinc-900">{lead.employees.full_name}</p>
+                      <p className="text-[9px] font-bold text-zinc-400 uppercase font-mono">{lead.employees.employee_id}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-xs text-zinc-400 italic font-medium">Unassigned</span>
+                )}
+              </div>
             </div>
 
             {/* Right Column: Stage-Specific Activity Log Section (Zoho Style Timeline) */}
@@ -4204,9 +4204,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                   >
                     {selectedStageTab === 'ALL' ? '✓ Showing All Stages' : 'Show All Stages'}
                   </button>
-                  <span className="px-2.5 py-1 rounded-xl bg-zinc-100 text-zinc-600 text-[10px] font-bold font-mono">
-                    {stageActivities.length} {stageActivities.length === 1 ? 'entry' : 'entries'}
-                  </span>
                 </div>
               </div>
 

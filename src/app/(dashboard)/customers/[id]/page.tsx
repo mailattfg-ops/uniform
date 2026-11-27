@@ -3144,31 +3144,7 @@ function OrganizationDetailsPageContent() {
                 </div>
               </div>
 
-              {/* 2. Sales Person */}
-              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
-                <div>
-                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
-                    <Users size={12} /> Sales Person
-                  </span>
-                  <p className="text-sm font-bold text-zinc-900">
-                    {org.relationship_manager?.full_name
-                      ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
-                      : 'Unassigned'}
-                  </p>
-                  {org.assigned_operator && (
-                    <div className="mt-3 pt-2.5 border-t border-zinc-200/60">
-                      <span className="flex items-center gap-1 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">
-                        Assigned Marketing Executive
-                      </span>
-                      <p className="text-xs font-bold text-zinc-700">
-                        {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 3. Address Location */}
+              {/* 2. Address Location */}
               <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
                 <div>
                   <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
@@ -3203,6 +3179,30 @@ function OrganizationDetailsPageContent() {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* 3. Sales Person */}
+              <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col justify-between">
+                <div>
+                  <span className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">
+                    <Users size={12} /> Sales Person
+                  </span>
+                  <p className="text-sm font-bold text-zinc-900">
+                    {org.relationship_manager?.full_name
+                      ? `${org.relationship_manager.full_name} (${org.relationship_manager.employee_id})`
+                      : 'Unassigned'}
+                  </p>
+                  {org.assigned_operator && (
+                    <div className="mt-3 pt-2.5 border-t border-zinc-200/60">
+                      <span className="flex items-center gap-1 text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">
+                        Assigned Marketing Executive
+                      </span>
+                      <p className="text-xs font-bold text-zinc-700">
+                        {org.assigned_operator.full_name} ({org.assigned_operator.employee_id})
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
