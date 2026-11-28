@@ -1,5 +1,6 @@
 import { formatDate } from '@/lib/formatters';
 import { formatFabricDisplayName } from '@/lib/fabricFormatter';
+import { PROPOSAL_PRINT_CSS, proposalDraftMarkup, proposalDraftNote, isDraftProposal } from '@/lib/proposalPrint';
 
 export interface Organization {
   id: number;
@@ -173,6 +174,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
     const standardItems = quote.items.filter((item: any) => !item.size_breakdown?.is_separate_fabric);
     const hasDeptItems = standardItems.some((item: any) => item.size_breakdown?.department_name);
 
+    let itemIndex = 1;
     if (hasDeptItems) {
       const groups: Record<string, any[]> = {};
       standardItems.forEach((item: any) => {
@@ -233,9 +235,10 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           const att2Line = att2Id ? `FAB(A) - ${att2Brand}` : '';
           
           firstCellHtml = `
-            <div class="space-y-0.5 py-1 text-left">
+            <div class="py-0.5 text-left">
               <div class="font-bold text-gray-500 uppercase text-[9px] tracking-wider">${deptHeader}</div>
               <div class="font-bold text-gray-800 text-xs">${productLine}</div>
+              <div class="text-gray-500 text-[10px] font-semibold mt-0.5">Quantity: <span class="font-bold text-gray-800">${qty} pcs</span></div>
               ${mainFabricLine ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${mainFabricLine}</div>` : ''}
               ${att1Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att1Line}</div>` : ''}
               ${att2Line ? `<div class="text-gray-400 text-[10px] pl-2 font-medium">${att2Line}</div>` : ''}
@@ -247,10 +250,10 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
 
           itemsHtml += `
             <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <td class="py-3.5 px-4">${firstCellHtml}</td>
-              <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
-              <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
-              <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+              <td class="py-3 px-4 text-center text-xs font-bold text-gray-600 align-top">${itemIndex++}</td>
+              <td class="py-3 px-4 align-top">${firstCellHtml}</td>
+              <td class="py-3 px-4 text-gray-700 text-xs text-right font-mono whitespace-nowrap align-top">₹ ${price.toFixed(2)}</td>
+              <td class="py-3 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono whitespace-nowrap align-top">₹ ${total.toFixed(2)}</td>
             </tr>
           `;
         });
@@ -262,18 +265,23 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         const className = item.size_breakdown?.class_name;
         const classPrefix = className ? `[${className}] ` : '';
         
-        const firstCellHtml = `<span class="font-bold text-gray-800 text-xs">${classPrefix}${pTypeName}</span>`;
-
         const price = Number(item.unit_price) || 0;
         const total = Number(item.total_price) || 0;
         const qty = Number(item.quantity) || 0;
 
+        const firstCellHtml = `
+          <div class="py-0.5 text-left">
+            <span class="font-bold text-gray-800 text-xs">${classPrefix}${pTypeName}</span>
+            <div class="text-gray-500 text-[10px] font-semibold mt-0.5">Quantity: <span class="font-bold text-gray-800">${qty} pcs</span></div>
+          </div>
+        `;
+
         itemsHtml += `
           <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="py-3.5 px-4">${firstCellHtml}</td>
-            <td class="py-3.5 px-4 text-gray-800 text-xs text-right font-black">${qty}</td>
-            <td class="py-3.5 px-4 text-gray-700 text-xs text-right font-mono">₹ ${price.toFixed(2)}</td>
-            <td class="py-3.5 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono">₹ ${total.toFixed(2)}</td>
+            <td class="py-3 px-4 text-center text-xs font-bold text-gray-600 align-top">${itemIndex++}</td>
+            <td class="py-3 px-4 align-top">${firstCellHtml}</td>
+            <td class="py-3 px-4 text-gray-700 text-xs text-right font-mono whitespace-nowrap align-top">₹ ${price.toFixed(2)}</td>
+            <td class="py-3 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono whitespace-nowrap align-top">₹ ${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -320,33 +328,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         }
       </script>
       <style>
-        @page {
-          margin: 0;
-        }
-        @media print {
-          body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            background-color: white;
-            padding: 2cm !important;
-            margin: 0 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .page-break {
-            page-break-before: always;
-            break-before: page;
-          }
-          .print-container {
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-            border-radius: 0 !important;
-          }
-        }
+        ${PROPOSAL_PRINT_CSS}
         body {
           font-family: 'Inter', sans-serif;
         }
@@ -355,7 +337,8 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         }
       </style>
     </head>
-    <body class="bg-white p-8 md:p-12 text-gray-800">
+    <body class="bg-white p-12 text-gray-800">
+        ${proposalDraftMarkup(quote.status)}
       
       <!-- PRINT TOOLBAR (NO-PRINT) -->
       <div class="no-print mb-8 p-4 bg-gray-50 border border-gray-200 rounded-2xl flex justify-between items-center">
@@ -374,7 +357,8 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
       </div>
 
       <!-- COMPOSER FRAME -->
-      <div class="max-w-4xl mx-auto border border-gray-150 p-8 md:p-10 rounded-[2.5rem] shadow-sm relative bg-white print-container">
+      <div class="max-w-4xl mx-auto border border-gray-150 p-10 rounded-[2.5rem] shadow-sm relative bg-white print-container">
+          ${proposalDraftNote(quote.status)}
         
         <!-- LETTERHEAD BRANDING -->
         <div class="flex justify-between items-start border-b-2 border-gray-100 pb-8 flex-wrap gap-4">
@@ -400,7 +384,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
                 </span>
               ` : ''}
               <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
-                ${quote.status} ${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
+                ${isDraftProposal(quote.status) ? 'Draft ' : ''}${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
               </span>
             </div>
             <h1 class="text-xl font-black text-gray-800 mt-2 font-outfit">${quote.quotation_no}</h1>
@@ -409,7 +393,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         </div>
 
         <!-- CLIENT & TARGET INFO -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-gray-100 text-xs">
+        <div class="grid grid-cols-2 gap-6 py-6 border-b border-gray-100 text-xs">
           <div>
             <div class="flex items-center gap-2 mb-1">
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prepared For</p>
@@ -442,7 +426,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
             ` : ''}
           </div>
 
-          <div class="md:text-right space-y-3">
+          <div class="text-right space-y-3">
             <div>
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
               <p class="text-sm font-black text-[#2d8d9b] mt-0.5">${deliveryDateStr}</p>
@@ -461,23 +445,23 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         ${quote.metrics_summary?.cover_letter ? `
           <div class="py-8 border-b border-gray-100">
             <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Letter of Proposal</p>
-            <div class="text-xs text-gray-600 leading-relaxed font-semibold whitespace-pre-wrap italic bg-gray-50/50 p-6 rounded-2xl border border-gray-150">
+            <div class="text-xs text-gray-600 leading-relaxed font-medium whitespace-pre-line bg-gray-50/50 px-6 py-5 rounded-2xl border border-gray-150">
               ${quote.metrics_summary.cover_letter}
             </div>
           </div>
         ` : ''}
 
         <!-- SPECIFICATIONS TABLE -->
-        <div class="py-8 page-break">
+        <div class="page-break-before py-8" style="page-break-before: always; break-before: page;">
           <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Quotation Product Specifications</p>
           <div class="border border-gray-150 rounded-2xl overflow-hidden shadow-sm">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse" style="width: 100%;">
               <thead>
                 <tr class="bg-gray-50 border-b border-gray-150 text-[9px] font-black uppercase tracking-widest text-gray-500">
-                  <th class="py-3 px-4">Garment Line</th>
-                  <th class="py-3 px-4 text-right">Quantity</th>
-                  <th class="py-3 px-4 text-right">Unit Price</th>
-                  <th class="py-3 px-4 text-right">Total Price</th>
+                  <th class="py-3 px-4 text-center w-14 whitespace-nowrap">Sl. No.</th>
+                  <th class="py-3 px-4">Item Name</th>
+                  <th class="py-3 px-4 text-right whitespace-nowrap w-32">Rate</th>
+                  <th class="py-3 px-4 text-right whitespace-nowrap w-36">Total Price</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 font-semibold">
@@ -488,44 +472,46 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
         </div>
 
         <!-- PRICING & GST COMPILATION -->
-        <div class="flex justify-end py-6 border-t border-gray-100">
-          <div class="w-80 space-y-2.5 text-xs font-bold text-gray-500">
-            <div class="flex justify-between">
-              <span>Taxable Value (Pre-Tax):</span>
-              <span class="font-mono text-gray-800 font-black">₹ ${pricing.subtotal.toFixed(2)}</span>
-            </div>
-            ${isB2B && pricing.gstRate > 0 ? `
-              <div class="flex justify-between text-[11px] text-gray-600">
-                <span>CGST (${halfGstRate}%):</span>
-                <span class="font-mono font-bold">₹ ${halfGstVal.toFixed(2)}</span>
-              </div>
-              <div class="flex justify-between text-[11px] text-gray-600">
-                <span>SGST (${halfGstRate}%):</span>
-                <span class="font-mono font-bold">₹ ${halfGstVal.toFixed(2)}</span>
-              </div>
-              <div class="flex justify-between border-b border-gray-100 pb-2">
-                <span>Total GST Tax (${pricing.gstRate}%):</span>
-                <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
-              </div>
-            ` : `
-              <div class="flex justify-between border-b border-gray-100 pb-2">
-                <span>GST Tax (${pricing.gstRate}%):</span>
-                <span class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</span>
-              </div>
-            `}
-            <div class="flex justify-between items-end pt-2 text-[#2d8d9b]">
-              <div>
-                <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
-                  ${isB2B ? 'Total Commercial Contract Value' : 'Total Contract Value'}
-                </p>
-                <p class="text-2xl font-black font-outfit mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
+        <div class="avoid-break py-6 border-t border-gray-100 flex justify-end">
+          <table style="width: 320px; border-collapse: collapse;" class="text-xs font-bold text-gray-500">
+            <tbody>
+              <tr>
+                <td style="padding: 4px 0; text-align: left;">Taxable Value (Pre-Tax):</td>
+                <td style="padding: 4px 0; text-align: right;" class="font-mono text-gray-800 font-black">₹ ${pricing.subtotal.toFixed(2)}</td>
+              </tr>
+              ${isB2B && pricing.gstRate > 0 ? `
+                <tr>
+                  <td style="padding: 2px 0; text-align: left;" class="text-[11px] text-gray-600">CGST (${halfGstRate}%):</td>
+                  <td style="padding: 2px 0; text-align: right;" class="font-mono font-bold text-[11px] text-gray-600">₹ ${halfGstVal.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 2px 0; text-align: left;" class="text-[11px] text-gray-600">SGST (${halfGstRate}%):</td>
+                  <td style="padding: 2px 0; text-align: right;" class="font-mono font-bold text-[11px] text-gray-600">₹ ${halfGstVal.toFixed(2)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                  <td style="padding: 4px 0 8px 0; text-align: left;">Total GST Tax (${pricing.gstRate}%):</td>
+                  <td style="padding: 4px 0 8px 0; text-align: right;" class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</td>
+                </tr>
+              ` : `
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                  <td style="padding: 4px 0 8px 0; text-align: left;">GST Tax (${pricing.gstRate}%):</td>
+                  <td style="padding: 4px 0 8px 0; text-align: right;" class="font-mono text-red-500 font-black">₹ ${pricing.gstValue.toFixed(2)}</td>
+                </tr>
+              `}
+              <tr>
+                <td colspan="2" style="padding-top: 10px; text-align: right;">
+                  <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
+                    ${isB2B ? 'Total Commercial Contract Value' : 'Total Contract Value'}
+                  </p>
+                  <p class="text-2xl font-black font-outfit text-[#2d8d9b] mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- BANK PAYMENT DETAILS -->
-        <div class="mt-8 p-6 bg-gray-50/50 border border-gray-150 rounded-2xl text-[10px] text-gray-600 font-semibold grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="mt-8 p-6 bg-gray-50/50 border border-gray-150 rounded-2xl text-[10px] text-gray-600 font-semibold grid grid-cols-2 gap-4">
           <div>
             <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Bank Transfer Details</p>
             <p><span class="text-gray-400">Bank Name:</span> ${companySettings.bank_name}</p>

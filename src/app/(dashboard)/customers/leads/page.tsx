@@ -126,6 +126,9 @@ export interface Lead {
   is_special?: boolean | null;
   customer_activity?: 'Active' | 'Inactive' | null;
   last_invoice_date?: string | null;
+  last_proforma_date?: string | null;
+  proforma_gap_months?: number | null;
+  proforma_gap_label?: string | null;
   is_returning_customer?: boolean | null;
   dormant_since?: string | null;
   origin?: string | null;
@@ -164,22 +167,44 @@ export interface Zone {
   branches?: { id: number; name: string; code?: string | null } | null;
 }
 
-// Existing customers only: Active < 1 year since last invoice, Inactive after that
+// Helper to calculate month gap duration from last proforma invoice date
+export function getProformaGap(lead: Lead): string | null {
+  if (lead.proforma_gap_label) return lead.proforma_gap_label;
+  const dateStr = lead.last_proforma_date || lead.dormant_since || lead.last_invoice_date;
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (now.getDate() < d.getDate()) months--;
+  months = Math.max(0, months);
+  if (months === 0) return '< 1 mo';
+  if (months === 1) return '1 mo';
+  if (months < 12) return `${months} mos`;
+  const yrs = Math.floor(months / 12);
+  const rem = months % 12;
+  if (rem === 0) return `${yrs} ${yrs === 1 ? 'yr' : 'yrs'}`;
+  return `${yrs} ${yrs === 1 ? 'yr' : 'yrs'} ${rem} ${rem === 1 ? 'mo' : 'mos'}`;
+}
+
+// Existing customers only: Active < 1 year since last proforma invoice, Inactive after that
 export function CustomerActivityBadge({ lead }: { lead: Lead }) {
   if (!lead.customer_activity) return null;
   const inactive = lead.customer_activity === 'Inactive';
+  const proformaDate = lead.last_proforma_date || lead.dormant_since || lead.last_invoice_date;
+  const gap = getProformaGap(lead);
   return (
     <>
       {lead.is_returning_customer && (
         <span
-          title={lead.dormant_since ? `Returning customer: no invoice since ${formatDate(lead.dormant_since)}` : 'Returning customer'}
+          title={proformaDate ? `Returning customer · Last proforma: ${formatDate(proformaDate)}${gap ? ` (${gap})` : ''}` : 'Returning customer'}
           className="shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border-amber-200"
         >
-          Returning
+          {gap ? `Returning (${gap})` : 'Returning'}
         </span>
       )}
       <span
-        title={lead.last_invoice_date ? `Last invoice: ${formatDate(lead.last_invoice_date)}` : undefined}
+        title={proformaDate ? `Last proforma: ${formatDate(proformaDate)}` : undefined}
         className={`shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${inactive ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
       >
         {lead.customer_activity}
@@ -797,11 +822,34 @@ export default function LeadsRegistryPage() {
                 size={18}
               />
             </div>
-            {industryName && (
-              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
-                {industryName}
-              </p>
-            )}
+            {(() => {
+              const proformaGap = l.is_returning_customer ? getProformaGap(l) : null;
+              const proformaDate = l.last_proforma_date || l.dormant_since || l.last_invoice_date;
+              if (!industryName && !l.is_cold && !proformaGap) return null;
+              return (
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap w-full">
+                  {industryName && (
+                    <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate">
+                      {industryName}
+                    </span>
+                  )}
+                  {l.is_returning_customer && proformaGap && (
+                    <span
+                      title={proformaDate ? `Returning customer · Last proforma: ${formatDate(proformaDate)} (${proformaGap} ago)` : 'Returning customer'}
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs"
+                    >
+                      <span>{proformaGap}</span>
+                    </span>
+                  )}
+                  {l.is_cold && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                      <Snowflake size={8} className="text-rose-500 shrink-0" />
+                      <span>Cold</span>
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         );
       }
@@ -1431,11 +1479,16 @@ export default function LeadsRegistryPage() {
           branches={branches}
           onClose={() => setFeedOutcomeLead(null)}
           onSuccess={(updated) => {
+            const wasReturning = feedOutcomeLead.is_returning_customer;
+            const target = updated || feedOutcomeLead;
             setFeedOutcomeLead(null);
             if (updated) handleLeadUpdated(updated);
             fetchData();
+            if (wasReturning) {
+              setAssignStaffLead(target);
+            }
           }}
-          onConvertToLead={() => {
+          onConvertToLead={feedOutcomeLead.is_returning_customer ? undefined : () => {
             const target = feedOutcomeLead;
             setFeedOutcomeLead(null);
             handleConvertFeedToLead(target);
@@ -1750,7 +1803,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
 
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
+      <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
         {/* Top Brand Accent Rail */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] shrink-0" />
 
@@ -1838,21 +1891,11 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                 <User size={13} className="text-[#9E1B1D]" />
                 Primary Contact Person Details
               </label>
-              {!showAltContact && (
-                <button
-                  type="button"
-                  onClick={() => setShowAltContact(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] transition-colors cursor-pointer"
-                >
-                  <Plus size={14} />
-                  Add Contact Person
-                </button>
-              )}
             </div>
 
             {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-              <div className="sm:col-span-2 space-y-1">
+              <div className="sm:col-span-1 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
                 <Select
                   value={contactTitle}
@@ -1872,7 +1915,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-3 space-y-1">
+              <div className="sm:col-span-4 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Phone *</span>
                 <PhoneInput
                   required
@@ -1895,6 +1938,20 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
               </div>
             </div>
 
+            {/* Add Contact Person Button (below primary contact inputs) */}
+            {!showAltContact && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAltContact(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-dashed border-[#C82A2B]/30 transition-all cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Add Contact Person</span>
+                </button>
+              </div>
+            )}
+
             {/* Line 2: Secondary / Additional Contact Person Details */}
             {showAltContact && (
               <div className="space-y-1 pt-2 border-t border-dashed border-zinc-200">
@@ -1903,22 +1960,9 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                     <User size={13} className="text-zinc-400" />
                     Additional Contact Person Details
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAltContactPerson('');
-                      setAltPhone('');
-                      setAltContactDesignation('');
-                      setShowAltContact(false);
-                    }}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
-                  >
-                    <Trash2 size={12} />
-                    Remove
-                  </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                  <div className="sm:col-span-2 space-y-1">
+                  <div className="sm:col-span-1 space-y-1">
                     <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
                     <Select
                       value={altContactTitle}
@@ -1938,7 +1982,7 @@ export const NewFeedModal: React.FC<NewFeedModalProps> = ({
                       className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                     />
                   </div>
-                  <div className="sm:col-span-3 space-y-1">
+                  <div className="sm:col-span-4 space-y-1">
                     <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Phone</span>
                     <PhoneInput
                       value={altPhone}
@@ -2578,7 +2622,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
       
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
+      <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
         {/* Top Brand Accent Rail */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D] shrink-0" />
 
@@ -2669,21 +2713,11 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 <User size={13} className="text-[#C82A2B]" />
                 Primary Contact Person Details *
               </label>
-              {!showAltContact && (
-                <button
-                  type="button"
-                  onClick={() => setShowAltContact(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] transition-colors cursor-pointer"
-                >
-                  <Plus size={14} />
-                  Add Contact Person
-                </button>
-              )}
             </div>
 
             {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-              <div className="sm:col-span-2 space-y-1">
+              <div className="sm:col-span-1 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Title *</span>
                 <Select
                   value={contactTitle}
@@ -2704,7 +2738,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-3 space-y-1">
+              <div className="sm:col-span-4 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Phone *</span>
                 <PhoneInput
                   required
@@ -2728,6 +2762,20 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               </div>
             </div>
 
+            {/* Add Contact Person Button (below primary contact inputs) */}
+            {!showAltContact && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAltContact(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-dashed border-[#C82A2B]/30 transition-all cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Add Contact Person</span>
+                </button>
+              </div>
+            )}
+
             {/* Line 2: Secondary / Additional Contact Person Details */}
             {showAltContact && (
               <div className="space-y-1 pt-2 border-t border-dashed border-zinc-200">
@@ -2736,22 +2784,9 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                     <User size={13} className="text-zinc-400" />
                     Additional Contact Person Details
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAltContactPerson('');
-                      setAltPhone('');
-                      setAltContactDesignation('');
-                      setShowAltContact(false);
-                    }}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
-                  >
-                    <Trash2 size={12} />
-                    Remove
-                  </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                  <div className="sm:col-span-2 space-y-1">
+                  <div className="sm:col-span-1 space-y-1">
                     <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
                     <Select
                       value={altContactTitle}
@@ -2771,7 +2806,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                       className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                     />
                   </div>
-                  <div className="sm:col-span-3 space-y-1">
+                  <div className="sm:col-span-4 space-y-1">
                     <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Phone</span>
                     <PhoneInput
                       value={altPhone}
@@ -3363,9 +3398,18 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
 
         const quoteActs: any[] = [];
         sortedQuotes.forEach((q: any, qIdx: number) => {
-          const isFirst = qIdx === 0;
-          const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${qIdx})`;
           const quoteNo = q.quotation_no || q.quotation_number || `QT-${q.id}`;
+          const slashRevMatch = String(quoteNo).match(/\/(\d{2})$/);
+          let verLabel = '';
+          if (slashRevMatch) {
+            const revNum = parseInt(slashRevMatch[1], 10);
+            verLabel = revNum === 1 ? 'First Quote (/01)' : `Revised Quote (/${slashRevMatch[1]})`;
+          } else if (String(quoteNo).includes('-R')) {
+            const rMatch = String(quoteNo).match(/-R(\d+)/i);
+            verLabel = `Revised Quote (${rMatch ? rMatch[0] : 'Rev'})`;
+          } else {
+            verLabel = qIdx === 0 ? 'First Quote (Initial)' : `Revised Quote (R${qIdx})`;
+          }
           const qVal = Number(q.final_quote_value || q.total_amount || 0);
           // The "generated" log for THIS quote: the first quote number it mentions is this one
           // (a revision's log also mentions its original later, e.g. "Original Quotation: #QT-1")
@@ -4330,9 +4374,6 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                             ) : (<>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs font-bold text-zinc-900 tracking-tight">
-                                  {act.activity_type || 'Activity Note'}
-                                </span>
                                 {(act as any).version_label && act.activity_type !== 'Requirements' && (
                                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                                     (act as any).version_label.includes('First')
@@ -4460,23 +4501,7 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                       className="w-full text-xs p-3 rounded-xl border border-zinc-300 focus:border-[#C82A2B] focus:ring-1 focus:ring-[#C82A2B] bg-white resize-none outline-none font-medium text-zinc-800 placeholder:text-zinc-400 leading-relaxed shadow-2xs"
                     />
 
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Log Type:</span>
-                        <select
-                          value={customLogType}
-                          onChange={(e) => setCustomLogType(e.target.value)}
-                          className="text-[10px] font-bold bg-white border border-zinc-300 rounded-lg px-2.5 py-1 text-zinc-700 outline-none focus:border-[#C82A2B] cursor-pointer"
-                        >
-                          <option value="Manual Note">Manual Note</option>
-                          <option value="Phone Call Note">Phone Call Note</option>
-                          <option value="Client Discussion">Client Discussion</option>
-                          <option value="Site Visit Note">Site Visit Note</option>
-                          <option value="Commercial Note">Commercial Note</option>
-                          <option value="Customer Feedback">Customer Feedback</option>
-                        </select>
-                      </div>
-
+                    <div className="flex items-center justify-end gap-2 flex-wrap">
                       <button
                         type="button"
                         disabled={!customLogText.trim() || isSavingCustomLog}
@@ -4553,15 +4578,23 @@ export const LeadViewModal: React.FC<LeadViewModalProps> = ({
                     <h3 className="text-base font-black tracking-tight truncate">
                       Quotation #{selectedQuoteForModal.quotation_no || selectedQuoteForModal.id}
                     </h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                      selectedQuoteForModal.quotation_no?.includes('-R') || selectedQuoteForModal.metrics_summary?.is_revision
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
-                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
-                    }`}>
-                      {selectedQuoteForModal.quotation_no?.includes('-R') || selectedQuoteForModal.metrics_summary?.is_revision
-                        ? 'Revised Quotation'
-                        : 'Initial Quotation'}
-                    </span>
+                    {(() => {
+                      const qNo = String(selectedQuoteForModal.quotation_no || '');
+                      const isRev = Boolean(
+                        selectedQuoteForModal.metrics_summary?.is_revision ||
+                        qNo.includes('-R') ||
+                        (/\/\d{2}$/.test(qNo) && !qNo.endsWith('/01'))
+                      );
+                      return (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          isRev
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                        }`}>
+                          {isRev ? 'Revised Quotation' : 'Initial Quotation'}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <p className="text-[11px] text-zinc-400 font-medium truncate">
                     Client: {lead.name} • Total Value: ₹{Number(selectedQuoteForModal.final_quote_value || selectedQuoteForModal.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -4629,8 +4662,8 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
   onSuccess,
   onConvertToLead
 }) => {
-  // Feeds have no Negative outcome: only Hold (stays in Feeds) or Positive (converts)
-  const [responseType, setResponseType] = useState<'hold' | 'positive'>('hold');
+  // Feeds outcomes: Hold (stays in Feeds), Positive (converts), Negative (retains in Feeds with Cold badge)
+  const [responseType, setResponseType] = useState<'hold' | 'positive' | 'negative'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -4638,11 +4671,17 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
     setIsSubmitting(true);
     const toastId = toast.loading('Recording feed response outcome...');
     try {
-      const logNote = remarks.trim() || (responseType === 'positive' ? 'Positive response from prospect' : 'Prospect ongoing / hold');
+      const defaultNote = responseType === 'positive'
+        ? 'Positive response from prospect'
+        : responseType === 'negative'
+        ? 'Prospect declined / Not interested (Cold Feed)'
+        : 'Prospect ongoing / hold';
+      const logNote = remarks.trim() || defaultNote;
       const res = await api.post(`/leads/${lead.id}/activity`, {
         stage: 'Feeds',
         activity_type: 'Feed Contact Outcome',
         response_type: responseType,
+        outcome: responseType,
         remarks: logNote,
         text: logNote
       });
@@ -4684,7 +4723,7 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
           <label className="text-[10px] font-black uppercase tracking-wider text-[#C82A2B] block">
             Field Contact Response Outcome *
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {/* 1. Hold / Pending (Default) */}
             <button
               type="button"
@@ -4695,9 +4734,9 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
                   : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
               }`}
             >
-              <span className="text-xs font-black block">Hold / Pending</span>
+              <span className="text-xs font-black block">Hold</span>
               <p className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">
-                Retains at Feeds for retry
+                Retains at Feeds
               </p>
             </button>
 
@@ -4713,7 +4752,25 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
             >
               <span className="text-xs font-black block">Positive</span>
               <p className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">
-                {lead.branch_id || lead.origin === 'BRANCH' ? 'Converts to New Leads' : 'Converts to Open Leads'}
+                {lead.is_returning_customer || lead.branch_id || lead.origin === 'BRANCH' ? 'Converts to New' : 'Converts to Open'}
+              </p>
+            </button>
+
+            {/* 3. Negative */}
+            <button
+              type="button"
+              onClick={() => setResponseType('negative')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'negative'
+                  ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block flex items-center gap-1 text-rose-700">
+                <Snowflake size={11} className="shrink-0" /> Negative
+              </span>
+              <p className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">
+                Not interested (Cold)
               </p>
             </button>
           </div>
@@ -4745,10 +4802,18 @@ export const FeedOutcomeModal: React.FC<FeedOutcomeModalProps> = ({
             className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
               responseType === 'positive'
                 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
+                : responseType === 'negative'
+                ? 'bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'
                 : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
             }`}
           >
-            {isSubmitting ? 'Recording...' : responseType === 'positive' ? 'Save & Convert to Lead →' : 'Save Outcome'}
+            {isSubmitting
+              ? 'Recording...'
+              : responseType === 'positive'
+              ? 'Save & Convert to Lead →'
+              : responseType === 'negative'
+              ? 'Save as Cold Feed'
+              : 'Save Outcome'}
           </Button>
         </div>
       </div>
@@ -4982,8 +5047,8 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  // No Negative here: Cold Lead is set only by a rejected meeting
-  const [responseType, setResponseType] = useState<'hold' | 'positive'>('hold');
+  // Follow-ups outcomes: Hold (stays in Follow-ups), Positive (advances to Meetings), Negative (stays in Follow-ups with Cold Lead badge)
+  const [responseType, setResponseType] = useState<'hold' | 'positive' | 'negative'>('hold');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -5041,7 +5106,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-[#C82A2B]">Call / Follow-up Outcome *</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {/* 1. Hold / Pending (Default) */}
             <button
               type="button"
@@ -5052,7 +5117,7 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
                   : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
               }`}
             >
-              <span className="text-xs font-black block">Hold / Pending</span>
+              <span className="text-xs font-black block">Hold</span>
               <span className="text-[10px] text-amber-700/80 font-medium mt-0.5 block">Stays in Follow-ups</span>
             </button>
 
@@ -5068,6 +5133,22 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
             >
               <span className="text-xs font-black block">Positive</span>
               <span className="text-[10px] text-emerald-700/80 font-medium mt-0.5 block">Advances to Meetings</span>
+            </button>
+
+            {/* 3. Negative */}
+            <button
+              type="button"
+              onClick={() => setResponseType('negative')}
+              className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                responseType === 'negative'
+                  ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              }`}
+            >
+              <span className="text-xs font-black block flex items-center gap-1 text-rose-700">
+                <Snowflake size={11} className="shrink-0" /> Negative
+              </span>
+              <span className="text-[10px] text-rose-700/80 font-medium mt-0.5 block">Mark as Cold Lead</span>
             </button>
           </div>
         </div>
@@ -5093,11 +5174,19 @@ export const FollowUpOutcomeModal: React.FC<FollowUpOutcomeModalProps> = ({
             onClick={handleSubmit}
             className={`flex-1 py-3 text-[10px] font-black uppercase text-white ${
               responseType === 'positive' 
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-amber-600 hover:bg-amber-700'
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
+                : responseType === 'negative'
+                ? 'bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'
+                : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20'
             }`}
           >
-            {isSubmitting ? 'Saving...' : 'Save'}
+            {isSubmitting
+              ? 'Saving...'
+              : responseType === 'positive'
+              ? 'Save & Advance to Meetings'
+              : responseType === 'negative'
+              ? 'Save as Cold Lead'
+              : 'Save'}
           </Button>
         </div>
       </div>

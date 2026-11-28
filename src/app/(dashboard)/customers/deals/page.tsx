@@ -9,7 +9,7 @@ import { DateRangeFilter, DateFilterValue, matchesDateFilter } from '@/component
 import { formatDate, formatContactPerson, formatPhoneNumber } from '@/lib/formatters';
 import { 
   Phone, User, ExternalLink, Eye, Sparkles, Clock, CheckCircle2, FileText, Calendar,
-  MoreVertical, Send, Check, ShieldCheck, Lock, Edit3, MessageSquare, AlertCircle, X, ChevronRight, Loader2
+  MoreVertical, Send, Check, ShieldCheck, Lock, Edit3, MessageSquare, AlertCircle, X, ChevronRight, Loader2, Snowflake
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -554,10 +554,20 @@ export default function DealsRegistryPage() {
                 size={18} 
               />
             </div>
-            {industryName && (
-              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5 w-full">
-                {industryName}
-              </p>
+            {(industryName || l.is_cold) && (
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap w-full">
+                {industryName && (
+                  <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate">
+                    {industryName}
+                  </span>
+                )}
+                {l.is_cold && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                    <Snowflake size={8} className="text-rose-500 shrink-0" />
+                    <span>Cold</span>
+                  </span>
+                )}
+              </div>
             )}
           </div>
         );
@@ -705,13 +715,13 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Amount',
-      className: 'w-[130px] whitespace-nowrap text-right',
+      className: 'w-[140px] whitespace-nowrap text-right',
       sortValue: (l) => getDealFinancials(l).quoteAmount,
       accessor: (l) => {
         const { quoteAmount } = getDealFinancials(l);
         return (
           <div className="text-right">
-            <span className="text-xs md:text-sm font-mono font-black text-zinc-900">
+            <span className="text-sm md:text-base font-mono font-medium text-zinc-900 tracking-tight">
               ₹{quoteAmount > 0 ? quoteAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
           </div>
@@ -720,13 +730,13 @@ export default function DealsRegistryPage() {
     },
     {
       header: 'Adv.Received',
-      className: 'w-[130px] whitespace-nowrap text-right',
+      className: 'w-[140px] whitespace-nowrap text-right',
       sortValue: (l) => getDealFinancials(l).advanceAmount,
       accessor: (l) => {
         const { advanceAmount } = getDealFinancials(l);
         return (
           <div className="text-right">
-            <span className="text-xs md:text-sm font-mono font-black text-emerald-700">
+            <span className="text-sm md:text-base font-mono font-medium text-emerald-700 tracking-tight">
               ₹{advanceAmount > 0 ? advanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
           </div>
@@ -1112,10 +1122,10 @@ function DealItemRemarksModal({
 
   const handleSave = async () => {
     setIsSaving(true);
-    const loadingToast = toast.loading('Saving item remarks...');
+    const loadingToast = toast.loading('Saving remarks...');
     try {
       await api.put(`/quotations/${quotation.id}/deal-item-remarks`, {
-        item_remarks: remarks
+        item_remarks: remarks || {}
       });
       toast.success('Remarks saved! Deal is now in SO Draft status.', { id: loadingToast });
       onSuccess();
