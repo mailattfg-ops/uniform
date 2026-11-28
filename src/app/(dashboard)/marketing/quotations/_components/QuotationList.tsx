@@ -529,20 +529,9 @@ export default function QuotationList({
       className: 'w-[155px] min-w-[145px] whitespace-nowrap text-center align-middle',
       sortable: false,
       accessor: (q) => {
-        // Before BM + Ops approval: share a watermarked draft, or log the customer's reply as a manual note
+        // Before BM + Ops approval: log the customer's reply as a manual note
         const draftTools = (
           <span className="inline-flex items-center gap-1">
-            {onSendToCustomer && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onSendToCustomer(q, 'draft'); }}
-                className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white hover:bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/30 cursor-pointer"
-                title="Send draft to customer (watermarked NOT APPROVED)"
-                aria-label="Send draft to customer"
-              >
-                <FileWarning size={11} />
-              </button>
-            )}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setFollowUpQuotation(q); }}
@@ -661,19 +650,13 @@ export default function QuotationList({
         }
 
         if (q.status === 'Ops Approved') {
-          return onSendToCustomer ? (
+          return (
             <div className="flex items-center justify-center">
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onSendToCustomer(q, 'final'); }}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-[#C82A2B] hover:bg-[#A81D1E] text-white shadow-2xs transition-all active:scale-95 cursor-pointer mx-auto"
-                title="Ops approved. Send the proposal to the customer"
-              >
-                <Send size={10} />
-                <span>Send to Customer</span>
-              </button>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                Ops Approved
+              </span>
             </div>
-          ) : null;
+          );
         }
 
         if (q.status === 'Pending Customer Approval') {
