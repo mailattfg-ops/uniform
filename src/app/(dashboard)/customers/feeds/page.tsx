@@ -8,7 +8,7 @@ import { PageActionsMenu } from '@/components/ui/PageActionsMenu';
 import { FilterDropdown } from '@/components/ui/FilterDropdown';
 import { 
   Plus, Compass, MapPin, Phone, Mail, User, ShieldCheck, 
-  ExternalLink, Building2, ArrowRight, MessageSquarePlus, Clock
+  ExternalLink, Building2, ArrowRight, Clock, Snowflake
 } from 'lucide-react';
 import api from '@/lib/api';
 import toast from '@/components/ui/toast';
@@ -25,7 +25,9 @@ import {
   FeedOutcomeModal, 
   LeadFormModal, 
   LeadViewModal,
-  CustomerActivityBadge
+  AssignStaffModal,
+  CustomerActivityBadge,
+  getProformaGap
 } from '../leads/page';
 
 export default function FeedsRegistryPage() {
@@ -49,6 +51,7 @@ export default function FeedsRegistryPage() {
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [feedOutcomeLead, setFeedOutcomeLead] = useState<Lead | null>(null);
   const [convertingFeed, setConvertingFeed] = useState<Lead | null>(null);
+  const [assigningStaffLead, setAssigningStaffLead] = useState<Lead | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({
     isOpen: false,
     id: null
@@ -431,29 +434,51 @@ export default function FeedsRegistryPage() {
       header: 'Customer Name',
       className: 'min-w-[200px] max-w-[320px]',
       sortValue: (l) => l.name,
-      accessor: (l) => (
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 max-w-full">
-            <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
-              {l.name}
-            </p>
-          </div>
-          {(() => {
-            const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
-            if (!industryName) return null;
-            return (
-              <p className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate mt-0.5">
-                {industryName}
+      accessor: (l) => {
+        const proformaGap = l.is_returning_customer ? getProformaGap(l) : null;
+        const proformaDate = l.last_proforma_date || l.dormant_since || l.last_invoice_date;
+        return (
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 max-w-full">
+              <p className="font-bold text-xs md:text-sm tracking-tight text-zinc-900 truncate" title={l.name}>
+                {l.name}
               </p>
-            );
-          })()}
-          {l.requirements && (
-            <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
-              {l.requirements}
-            </p>
-          )}
-        </div>
-      )
+            </div>
+            {(() => {
+              const industryName = l.industries?.name || industries.find(ind => ind.id === l.industry_id)?.name;
+              if (!industryName && !l.is_cold && !proformaGap) return null;
+              return (
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {industryName && (
+                    <span className="text-[10px] font-bold text-[#9E1B1D] uppercase tracking-wider truncate">
+                      {industryName}
+                    </span>
+                  )}
+                  {l.is_returning_customer && proformaGap && (
+                    <span
+                      title={proformaDate ? `Returning customer · Last proforma: ${formatDate(proformaDate)} (${proformaGap} ago)` : 'Returning customer'}
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs"
+                    >
+                      <span>{proformaGap}</span>
+                    </span>
+                  )}
+                  {l.is_cold && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                      <Snowflake size={8} className="text-rose-500 shrink-0" />
+                      <span>Cold</span>
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+            {l.requirements && (
+              <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5 max-w-[240px]">
+                {l.requirements}
+              </p>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Area/Locality',
@@ -539,9 +564,11 @@ export default function FeedsRegistryPage() {
       accessor: (l) => {
         if (l.is_returning_customer) {
           const inactive = l.customer_activity === 'Inactive';
+          const proformaDate = l.last_proforma_date || l.dormant_since || l.last_invoice_date;
+          const gap = getProformaGap(l);
           return (
             <span
-              title={l.last_invoice_date ? `Returning customer · Last invoice: ${formatDate(l.last_invoice_date)}` : 'Returning customer'}
+              title={proformaDate ? `Returning customer · Last proforma: ${formatDate(proformaDate)}${gap ? ` (${gap})` : ''}` : 'Returning customer'}
               className={`text-[11px] font-black uppercase tracking-wider ${inactive ? 'text-rose-700' : 'text-emerald-700'}`}
             >
               {l.customer_activity || 'Returning'}
@@ -580,10 +607,9 @@ export default function FeedsRegistryPage() {
           <button
             type="button"
             onClick={() => setFeedOutcomeLead(l)}
-            className="px-3.5 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+            className="px-3.5 py-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
             title={l.is_returning_customer ? 'Log response and convert returning customer to lead' : 'Record follow-up outcome for feed'}
           >
-            <MessageSquarePlus size={12} />
             <span>{l.is_returning_customer ? 'Convert' : 'Update'}</span>
           </button>
         </div>
@@ -756,15 +782,32 @@ export default function FeedsRegistryPage() {
           lead={feedOutcomeLead}
           branches={branches}
           onClose={() => setFeedOutcomeLead(null)}
-          onSuccess={() => {
+          onSuccess={(updatedLead) => {
+            const target = updatedLead || feedOutcomeLead;
+            const wasReturning = feedOutcomeLead.is_returning_customer;
             setFeedOutcomeLead(null);
             fetchData();
+            if (wasReturning) {
+              setAssigningStaffLead(target);
+            }
           }}
-          // Returning customers: backend already moves a positive outcome to Open/New Leads; their details exist, so no lead form
+          // Returning customers: details already exist, but prompt sales person assignment on positive conversion
           onConvertToLead={feedOutcomeLead.is_returning_customer ? undefined : () => {
             const target = feedOutcomeLead;
             setFeedOutcomeLead(null);
             handleConvertFeedToLead(target);
+          }}
+        />
+      )}
+
+      {assigningStaffLead && (
+        <AssignStaffModal
+          lead={assigningStaffLead}
+          employees={employees}
+          onClose={() => setAssigningStaffLead(null)}
+          onSuccess={() => {
+            setAssigningStaffLead(null);
+            fetchData();
           }}
         />
       )}

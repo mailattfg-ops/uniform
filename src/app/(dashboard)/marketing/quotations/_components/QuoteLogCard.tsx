@@ -71,7 +71,7 @@ export default function QuoteLogCard({ quote, versionLabel, defaultExpanded = fa
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-              versionLabel.includes('First') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+              versionLabel.includes('First') || versionLabel.includes('/01') || versionLabel.includes('Initial') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
               {versionLabel}
             </span>

@@ -94,17 +94,19 @@ export interface FormatDocumentNumberOptions {
   branch?: any;
   date?: Date | string | number;
   seq?: number | string;
+  rev?: number | string;
 }
 
 /**
  * Formats a document number synchronously given components.
- * Pattern: [PREFIX]-IU[Branch NO]-[FY]/[MM][seq]
+ * Pattern: [PREFIX]-IU[Branch NO]-[FY]/[MM][seq] (and /[rev] for QT/PR)
  */
 export function formatDocumentNumber({
   prefix,
   branch,
   date = new Date(),
-  seq = 1
+  seq = 1,
+  rev = 1
 }: FormatDocumentNumberOptions): string {
   const cleanPrefix = (prefix || 'DOC').toUpperCase();
   const branchNo = extractBranchNo(branch);
@@ -112,6 +114,13 @@ export function formatDocumentNumber({
   const monthNo = getMonthNumber(date);
   const nth = Math.max(1, parseInt(String(seq).replace(/\D/g, '') || '1', 10));
   const nthFormatted = String(nth).padStart(2, '0');
+
+  // Quotation and Proforma numbers include the version series (/01 for main, /02 for revised, etc.)
+  if (cleanPrefix === 'QT' || cleanPrefix === 'PR') {
+    const revNum = Math.max(1, parseInt(String(rev).replace(/\D/g, '') || '1', 10));
+    const revFormatted = String(revNum).padStart(2, '0');
+    return `${cleanPrefix}-IU${branchNo}-${fyYY}/${monthNo}${nthFormatted}/${revFormatted}`;
+  }
 
   return `${cleanPrefix}-IU${branchNo}-${fyYY}/${monthNo}${nthFormatted}`;
 }

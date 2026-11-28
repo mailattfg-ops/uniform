@@ -249,7 +249,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
 
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
+      <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl border border-zinc-200/80 overflow-hidden relative animate-in zoom-in-95 duration-200 flex flex-col my-8 z-10 max-h-[92vh]">
         {/* Top Brand Accent Rail */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#801416] via-[#C82A2B] to-[#9E1B1D]" />
 
@@ -306,21 +306,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 <User size={13} className="text-[#C82A2B]" />
                 Primary Contact Person Details *
               </label>
-              {!showAltContact && (
-                <button
-                  type="button"
-                  onClick={() => setShowAltContact(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] transition-colors cursor-pointer"
-                >
-                  <Plus size={14} />
-                  Add Contact Person
-                </button>
-              )}
             </div>
 
             {/* Line 1: Primary Contact (salutation, contact person name, phone number, designation) */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-              <div className="sm:col-span-2 space-y-1">
+              <div className="sm:col-span-1 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Title *</span>
                 <Select
                   value={contactTitle}
@@ -341,7 +331,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                   className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <div className="sm:col-span-3 space-y-1">
+              <div className="sm:col-span-4 space-y-1">
                 <span className="text-[9px] font-black uppercase tracking-wider text-[#C82A2B] block">Phone *</span>
                 <PhoneInput
                   required
@@ -365,6 +355,20 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
               </div>
             </div>
 
+            {/* Add Contact Person Button (below primary contact inputs) */}
+            {!showAltContact && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAltContact(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C82A2B] hover:text-[#A81D1E] hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-dashed border-[#C82A2B]/30 transition-all cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Add Contact Person</span>
+                </button>
+              </div>
+            )}
+
             {/* Line 2: Secondary / Additional Contact Person Details */}
             {showAltContact && (
               <div className="space-y-1 pt-2 border-t border-dashed border-zinc-200">
@@ -373,22 +377,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                     <User size={13} className="text-zinc-400" />
                     Additional Contact Person Details
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAltContactPerson('');
-                      setAltPhone('');
-                      setAltContactDesignation('');
-                      setShowAltContact(false);
-                    }}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
-                  >
-                    <Trash2 size={12} />
-                    Remove
-                  </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                  <div className="sm:col-span-2 space-y-1">
+                  <div className="sm:col-span-1 space-y-1">
                     <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Title</span>
                     <Select
                       value={altContactTitle}
@@ -408,7 +399,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                       className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:outline-none focus:border-[#C82A2B] focus:ring-4 focus:ring-[#C82A2B]/10 text-xs font-bold text-zinc-800 transition-all placeholder:text-zinc-400"
                     />
                   </div>
-                  <div className="sm:col-span-3 space-y-1">
+                  <div className="sm:col-span-4 space-y-1">
                     <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Phone</span>
                     <PhoneInput
                       value={altPhone}

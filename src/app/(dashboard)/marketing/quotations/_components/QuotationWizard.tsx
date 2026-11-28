@@ -235,15 +235,25 @@ export default function QuotationWizard({
           setQuoteTitle(fullQuote.title ? `${fullQuote.title} (Revised)` : 'Uniform Quotation (Revised)');
           const baseNo = fullQuote.quotation_no || `QT-${fullQuote.id}`;
           setParentBaseQuoteNo(baseNo);
-          const revMatch = baseNo.match(/^(.*)-R(\d+)$/i);
-          let nextNo = '';
-          if (revMatch) {
-            const prefix = revMatch[1];
-            const nextRevNum = parseInt(revMatch[2], 10) + 1;
-            nextNo = `${prefix}-R${nextRevNum}`;
+          let basePrefix = baseNo;
+          let nextRevNum = 2; // Default to /02 for the first revision of a main quote
+
+          const slashRevMatch = baseNo.match(/^(.*)\/(\d{2})$/);
+          const legacyRMatch = baseNo.match(/^(.*)-R(\d+)$/i);
+
+          if (slashRevMatch) {
+            basePrefix = slashRevMatch[1];
+            nextRevNum = parseInt(slashRevMatch[2], 10) + 1;
+          } else if (legacyRMatch) {
+            basePrefix = legacyRMatch[1];
+            nextRevNum = parseInt(legacyRMatch[2], 10) + 1;
           } else {
-            nextNo = `${baseNo}-R1`;
+            basePrefix = baseNo;
+            nextRevNum = 2;
           }
+
+          const nextRevFormatted = String(nextRevNum).padStart(2, '0');
+          const nextNo = `${basePrefix}/${nextRevFormatted}`;
           setQuoteNo(nextNo);
           setStatus('Draft');
         } else {
