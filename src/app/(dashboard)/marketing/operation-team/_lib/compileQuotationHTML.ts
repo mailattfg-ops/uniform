@@ -188,7 +188,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
 
       Object.entries(groups).forEach(([cleanDeptName, groupItems]) => {
         itemsHtml += `
-          <tr class="bg-gray-50/80 border-t border-b border-gray-150 text-[10px] font-black uppercase text-[#3a525d] tracking-wider">
+          <tr class="bg-gray-50/80 border-t border-b border-gray-150 text-[10px] font-black uppercase text-[#801416] tracking-wider">
             <td colspan="4" class="py-2.5 px-4 font-black">DEPARTMENT: ${cleanDeptName}</td>
           </tr>
         `;
@@ -253,7 +253,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
               <td class="py-3 px-4 text-center text-xs font-bold text-gray-600 align-top">${itemIndex++}</td>
               <td class="py-3 px-4 align-top">${firstCellHtml}</td>
               <td class="py-3 px-4 text-gray-700 text-xs text-right font-mono whitespace-nowrap align-top">₹ ${price.toFixed(2)}</td>
-              <td class="py-3 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono whitespace-nowrap align-top">₹ ${total.toFixed(2)}</td>
+              <td class="py-3 px-4 text-[#C82A2B] text-xs text-right font-black font-mono whitespace-nowrap align-top">₹ ${total.toFixed(2)}</td>
             </tr>
           `;
         });
@@ -281,7 +281,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
             <td class="py-3 px-4 text-center text-xs font-bold text-gray-600 align-top">${itemIndex++}</td>
             <td class="py-3 px-4 align-top">${firstCellHtml}</td>
             <td class="py-3 px-4 text-gray-700 text-xs text-right font-mono whitespace-nowrap align-top">₹ ${price.toFixed(2)}</td>
-            <td class="py-3 px-4 text-[#2d8d9b] text-xs text-right font-black font-mono whitespace-nowrap align-top">₹ ${total.toFixed(2)}</td>
+            <td class="py-3 px-4 text-[#C82A2B] text-xs text-right font-black font-mono whitespace-nowrap align-top">₹ ${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -365,14 +365,14 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           <div>
             <div class="flex items-center gap-2.5">
               <!-- SVG Gradient Logo -->
-              <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#3a525d] to-[#2d8d9b] flex items-center justify-center text-white shadow-md">
+              <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#9E1B1D] to-[#C82A2B] flex items-center justify-center text-white shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-5 h-5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.61 3.51a6 6 0 0 1 5.98 10.86Z" />
                 </svg>
               </div>
-               <span class="text-xl font-black italic tracking-tighter text-[#3a525d] font-outfit">${companySettings.company_name.toUpperCase()}</span>
+               <span class="text-xl font-black italic tracking-tighter text-zinc-900 font-outfit">${companySettings.company_name.toUpperCase()}</span>
             </div>
-            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-[#2d8d9b] mt-1.5 pl-0.5">Corporate Apparel & Sizing Specialists</p>
+            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-[#C82A2B] mt-1.5 pl-0.5">Corporate Apparel & Sizing Specialists</p>
             <p class="text-[10px] text-gray-400 mt-2 font-medium">${companySettings.address}<br/>${companySettings.phone} | ${companySettings.email}</p>
           </div>
 
@@ -383,7 +383,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
                   ${quote.metrics_summary.brand_tier === 'SEMI_BRANDED' ? 'Semi-Brand' : quote.metrics_summary.brand_tier === 'NON_BRANDED' ? 'Non-Brand' : 'Branded'}
                 </span>
               ` : ''}
-              <span class="px-3 py-1 bg-[#2d8d9b]/10 text-[#2d8d9b] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#2d8d9b]/15 inline-block">
+              <span class="px-3 py-1 bg-[#FFF1F1] text-[#C82A2B] font-black text-[9px] uppercase tracking-widest rounded-lg border border-[#C82A2B]/15 inline-block">
                 ${isDraftProposal(quote.status) ? 'Draft ' : ''}${isB2B ? 'B2B Tax Proposal' : 'Proposal'}
               </span>
             </div>
@@ -429,7 +429,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           <div class="text-right space-y-3">
             <div>
               <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expected Delivery Target</p>
-              <p class="text-sm font-black text-[#2d8d9b] mt-0.5">${deliveryDateStr}</p>
+              <p class="text-sm font-black text-[#C82A2B] mt-0.5">${deliveryDateStr}</p>
               <p class="text-gray-500 text-[10px] font-medium">Est. Days: ${quote.production_days_estimate} Production Days</p>
             </div>
             ${fullDeliveryAddress ? `
@@ -503,7 +503,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
                   <p class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
                     ${isB2B ? 'Total Commercial Contract Value' : 'Total Contract Value'}
                   </p>
-                  <p class="text-2xl font-black font-outfit text-[#2d8d9b] mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
+                  <p class="text-2xl font-black font-outfit text-[#C82A2B] mt-0.5">₹ ${pricing.finalValue.toFixed(2)}</p>
                 </td>
               </tr>
             </tbody>
@@ -521,7 +521,7 @@ export const compileQuotationHTML = (quote: Quotation, fabricsList: Fabric[], co
           <div>
             <p class="text-[8px] font-black text-gray-450 uppercase tracking-widest mb-2">Alternative/UPI Payment</p>
             <p><span class="text-gray-400">IFSC Code:</span> <span class="font-mono text-gray-800 font-black">${companySettings.ifsc_code}</span></p>
-            <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#2d8d9b] font-black">${companySettings.upi_id}</span></p>
+            <p class="mt-1"><span class="text-gray-400">UPI Pay No:</span> <span class="font-mono text-[#C82A2B] font-black">${companySettings.upi_id}</span></p>
           </div>
         </div>
 
