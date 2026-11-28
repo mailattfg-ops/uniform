@@ -51,6 +51,7 @@ interface QuotationDetailsProps {
   onBmApprove?: (q: Quotation) => void;
   onBmReject?: (q: Quotation) => void;
   onDeleteCandidate?: (q: Quotation) => void;
+  onSendToCustomer?: (q: Quotation, mode: 'final' | 'draft') => void;
   currentUser?: any;
   readOnly?: boolean;
   onRefresh?: () => void;
@@ -82,6 +83,7 @@ export default function QuotationDetails({
   onBmApprove,
   onBmReject,
   onDeleteCandidate,
+  onSendToCustomer,
   currentUser,
   readOnly = false,
   onRefresh
@@ -125,20 +127,26 @@ export default function QuotationDetails({
     relatedQuotations.forEach((q, idx) => {
       const isFirst = idx === 0;
       const verLabel = isFirst ? 'First Quote (Initial)' : `Revised Quote (R${idx})`;
-      activities.push({
-        id: `qd_quote_${q.id}`,
-        quotation_id: q.id,
-        quotation_no: q.quotation_no,
-        type: 'quotation_version',
-        title: `${verLabel}: #${q.quotation_no}`,
-        badge: verLabel,
-        badgeColor: isFirst ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
-        date: q.quotation_date || q.created_at,
-        amount: q.final_quote_value || (q as any).total_amount || 0,
-        status: q.status,
-        author: q.metrics_summary?.created_by_name || 'Not recorded', // set by the backend when the quote is created
-        remarks: `Quotation #${q.quotation_no} compiled with value of ₹${Number(q.final_quote_value || (q as any).total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`
-      });
+      
+      // Do not log quotation version entry when BM approval is pending or HQ (Ops) approval is pending
+      const isPendingBmOrHq = ['Draft', 'Pending Branch Approval', 'Pending BM Approval', 'Pending Ops Approval', 'Pending HQ Approval'].includes(q.status || '');
+
+      if (!isPendingBmOrHq) {
+        activities.push({
+          id: `qd_quote_${q.id}`,
+          quotation_id: q.id,
+          quotation_no: q.quotation_no,
+          type: 'quotation_version',
+          title: `${verLabel}: #${q.quotation_no}`,
+          badge: verLabel,
+          badgeColor: isFirst ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+          date: q.quotation_date || q.created_at,
+          amount: q.final_quote_value || (q as any).total_amount || 0,
+          status: q.status,
+          author: q.metrics_summary?.created_by_name || 'Not recorded',
+          remarks: `Quotation #${q.quotation_no} compiled with value of ₹${Number(q.final_quote_value || (q as any).total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Status: ${q.status || 'Draft'}`
+        });
+      }
 
       if (q.metrics_summary?.bm_rejection_reason) {
         activities.push({
@@ -155,7 +163,8 @@ export default function QuotationDetails({
         });
       }
 
-      if (q.metrics_summary?.bm_approved || q.status === 'Approved') {
+      // Only show approval if BM approved AND HQ (Ops) approval is NOT pending
+      if (!isPendingBmOrHq && (q.metrics_summary?.bm_approved || q.status === 'Approved' || q.status === 'Ops Approved')) {
         activities.push({
           id: `qd_bm_app_${q.id}`,
           quotation_id: q.id,
@@ -931,11 +940,28 @@ export default function QuotationDetails({
               </Button>
             )}
 
+            {/* Send Proposal to Customer */}
+            {!readOnly && onSendToCustomer && (
+              <Button
+                onClick={() => onSendToCustomer(
+                  selectedQuotation,
+                  ['Ops Approved', 'Pending Customer Approval', 'Approved'].includes(selectedQuotation.status || '') ? 'final' : 'draft'
+                )}
+                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                title={['Ops Approved', 'Pending Customer Approval', 'Approved'].includes(selectedQuotation.status || '')
+                  ? "Send official proposal to customer"
+                  : "Send draft proposal to customer"}
+              >
+                <Send size={14} strokeWidth={2.5} />
+                Send Proposal
+              </Button>
+            )}
+
             {/* Download PDF button (once Ops approved, and after) */}
             {(['Ops Approved', 'Pending Customer Approval'].includes(selectedQuotation.status || '') || isCustomerApproved) && (
               <Button
                 onClick={() => handleDownloadPDF(selectedQuotation)}
-                className="flex items-center gap-1.5 bg-[#C82A2B] hover:bg-[#A81D1E] text-white rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-lg shadow-[#C82A2B]/20 border-none h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="flex items-center gap-1.5 bg-white hover:bg-[#FFF1F1] text-[#C82A2B] border border-[#C82A2B]/30 rounded-xl py-2 px-3.5 text-xs font-black uppercase tracking-widest shadow-xs h-9 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 📥 Proposal PDF
               </Button>
@@ -1062,145 +1088,7 @@ export default function QuotationDetails({
           </div>
         )}
 
-        {/* 4-STAGE LIFECYCLE PROGRESS STEPPER */}
-        <div className="bg-zinc-50/70 border border-zinc-200/70 rounded-3xl p-5 md:p-6">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">
-            Quotation Governance Pipeline
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-            {/* Step 1: Draft Creation */}
-            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
-              selectedQuotation.status === 'Draft' ? 'border-zinc-400 ring-2 ring-zinc-100' : 'border-emerald-200'
-            }`}>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={16} strokeWidth={2.5} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">1. Draft Created</p>
-                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
-                  {formatDate(selectedQuotation.created_at)}
-                </p>
-              </div>
-            </div>
 
-            {/* Step 2: Branch Manager Review */}
-            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
-              isBmApproved
-                ? 'border-emerald-200'
-                : isAwaitingBm
-                ? 'border-amber-400 ring-2 ring-amber-100'
-                : isBmRevision
-                ? 'border-rose-300'
-                : 'border-zinc-200 opacity-60'
-            }`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                isBmApproved
-                  ? 'bg-emerald-50 text-emerald-600'
-                  : isAwaitingBm
-                  ? 'bg-amber-100 text-amber-700 animate-pulse'
-                  : isBmRevision
-                  ? 'bg-rose-100 text-rose-600'
-                  : 'bg-zinc-100 text-zinc-400'
-              }`}>
-                {isBmApproved ? (
-                  <CheckCircle2 size={16} strokeWidth={2.5} />
-                ) : isAwaitingBm ? (
-                  <Clock size={16} strokeWidth={2.5} />
-                ) : isBmRevision ? (
-                  <AlertTriangle size={16} strokeWidth={2.5} />
-                ) : (
-                  <ShieldCheck size={16} />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">2. BM Review</p>
-                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
-                  {isBmApproved
-                    ? `Approved ${selectedQuotation.metrics_summary?.bm_approved_by_name ? `(${selectedQuotation.metrics_summary.bm_approved_by_name})` : ''}`
-                    : isAwaitingBm
-                    ? 'Awaiting BM'
-                    : isBmRevision
-                    ? 'Revision Requested'
-                    : 'Not Submitted'}
-                </p>
-              </div>
-            </div>
-
-            {/* Step 3: BM Approved & Proposal Issued */}
-            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
-              isCustomerApproved
-                ? 'border-emerald-200'
-                : selectedQuotation.status === 'BM Approved'
-                ? 'border-indigo-400 ring-2 ring-indigo-100'
-                : 'border-zinc-200 opacity-60'
-            }`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                isCustomerApproved || selectedQuotation.status === 'BM Approved'
-                  ? 'bg-indigo-50 text-indigo-600'
-                  : 'bg-zinc-100 text-zinc-400'
-              }`}>
-                {isCustomerApproved || selectedQuotation.status === 'BM Approved' ? (
-                  <CheckCircle2 size={16} strokeWidth={2.5} />
-                ) : (
-                  <FileText size={16} />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">3. BM Approved</p>
-                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
-                  {selectedQuotation.status === 'BM Approved'
-                    ? 'Proposal Active'
-                    : isCustomerApproved
-                    ? 'Proposal Accepted'
-                    : 'Awaiting BM Sign-off'}
-                </p>
-              </div>
-            </div>
-
-            {/* Step 4: Customer Approved */}
-            <div className={`p-3.5 rounded-2xl bg-white border shadow-sm flex items-start gap-3 ${
-              isCustomerApproved
-                ? 'border-emerald-200 bg-emerald-50/20'
-                : isRejected
-                ? 'border-rose-200'
-                : isWithCustomer
-                ? 'border-amber-200'
-                : 'border-zinc-200 opacity-60'
-            }`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                isCustomerApproved
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : isRejected
-                  ? 'bg-rose-100 text-rose-600'
-                  : isWithCustomer
-                  ? 'bg-amber-100 text-amber-600'
-                  : 'bg-zinc-100 text-zinc-400'
-              }`}>
-                {isCustomerApproved ? (
-                  <CheckCircle2 size={16} strokeWidth={2.5} />
-                ) : isRejected ? (
-                  <XCircle size={16} strokeWidth={2.5} />
-                ) : isWithCustomer ? (
-                  <Clock size={16} strokeWidth={2.5} />
-                ) : (
-                  <FileCheck size={16} />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black text-zinc-900 uppercase tracking-wide">4. Customer Sign-Off</p>
-                <p className="text-[10px] text-zinc-500 font-medium truncate mt-0.5">
-                  {isCustomerApproved
-                    ? 'Customer Approved'
-                    : isRejected
-                    ? 'Customer Rejected'
-                    : isWithCustomer
-                    ? 'With Customer'
-                    : 'Awaiting Client'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* TWO COLUMN DETAILS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

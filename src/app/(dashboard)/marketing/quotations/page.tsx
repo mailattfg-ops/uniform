@@ -850,6 +850,7 @@ export default function QuotationsPage() {
           onStartRevision={handleStartRevision}
           onSelectQuotation={setSelectedQuotation}
           onSubmitToOps={setSubmitCandidate}
+          onSendToCustomer={(q, mode) => setSendTarget({ quote: q, mode })}
           onSubmitToBm={setSubmitToBmCandidate}
           onBmApprove={setBmApproveCandidate}
           onBmReject={setBmRejectCandidate}
